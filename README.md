@@ -73,15 +73,26 @@ A comprehensive Next.js application for managing installer programs, tracking re
 
 ## 🚀 Quick Start
 
+### ⚠️ Getting "ECONNREFUSED" Error?
+
+**You need to setup MongoDB first!**
+
+👉 **[Quick Fix Guide](./QUICK_FIX_MONGODB.md)** - 8 minutes
+👉 **[Complete MongoDB Atlas Setup](./MONGODB_ATLAS_SETUP.md)** - Detailed guide
+
+---
+
 ### 📖 Documentation Guides
 
 Choose your path:
 
 | Guide | Best For | Time |
 |-------|----------|------|
-| **[⚡ GET_STARTED.md](./GET_STARTED.md)** | First-time setup | 3 min |
+| **[🔧 QUICK_FIX_MONGODB.md](./QUICK_FIX_MONGODB.md)** | Fix "ECONNREFUSED" error | 8 min |
+| **[🌐 MONGODB_ATLAS_SETUP.md](./MONGODB_ATLAS_SETUP.md)** | MongoDB cloud setup | 8 min |
+| **[⚡ GET_STARTED.md](./GET_STARTED.md)** | First-time setup | 10 min |
 | **[📋 CHECKLIST.md](./CHECKLIST.md)** | Step-by-step checklist | 5 min |
-| **[📖 SETUP_GUIDE.md](./SETUP_GUIDE.md)** | Detailed instructions | 10 min |
+| **[📖 SETUP_GUIDE.md](./SETUP_GUIDE.md)** | Detailed instructions | 15 min |
 | **[📚 README.md](./README.md)** | Full documentation | Reference |
 
 ### ⚡ Super Quick Start (3 Minutes)
@@ -106,13 +117,22 @@ npm run dev
 
 Based on your `.env.local`:
 
-✅ MongoDB URI
 ✅ Google OAuth credentials
 ✅ Google Contacts credentials
 
-❌ Need to add:
+❌ Need to setup:
+- **MongoDB Database** - [MongoDB Atlas Guide](./MONGODB_ATLAS_SETUP.md) (8 min)
 - `NEXTAUTH_SECRET` (run: `npm run setup:secret`)
 - `GOOGLE_CONTACTS_REFRESH_TOKEN` (optional, see [SETUP_GUIDE.md](./SETUP_GUIDE.md))
+
+### ⚠️ Fixing "ECONNREFUSED" Error
+
+If you see `connect ECONNREFUSED ::1:27017`, MongoDB is not set up.
+
+**Quick Fix (Recommended)**: Use cloud MongoDB (no installation)
+- 📖 **[Complete MongoDB Atlas Setup Guide](./MONGODB_ATLAS_SETUP.md)** (8 minutes)
+
+**Or** install MongoDB locally (see Installation section below)
 
 ---
 

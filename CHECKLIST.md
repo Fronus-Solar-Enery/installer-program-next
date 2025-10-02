@@ -4,15 +4,39 @@ Complete these steps to get your Installer Program running:
 
 ## Pre-Setup
 - [ ] Node.js 18+ installed
-- [ ] MongoDB installed (or MongoDB Atlas account)
 - [ ] Code editor (VS Code recommended)
 
 ## Environment Variables
 
-### 1. MongoDB
-- [ ] MongoDB is running (local) OR
-- [ ] MongoDB Atlas connection string ready
-- [ ] `.env.local` has `MONGODB_URI` configured
+### 1. MongoDB Database (Choose ONE option)
+
+**⚠️ If you see "ECONNREFUSED" error, MongoDB is not set up!**
+
+#### ✅ Option A: MongoDB Atlas (Recommended - 8 min)
+**No installation required!**
+
+- [ ] Follow: **[MONGODB_ATLAS_SETUP.md](./MONGODB_ATLAS_SETUP.md)**
+- [ ] Created MongoDB Atlas account
+- [ ] Created free M0 cluster (512MB forever free)
+- [ ] Created database user (saved password!)
+- [ ] Added IP to whitelist
+- [ ] Copied connection string
+- [ ] Updated `.env.local` with Atlas URI
+
+**Example Atlas URI:**
+```env
+MONGODB_URI=mongodb+srv://user:password@cluster0.xxxxx.mongodb.net/installer_program?retryWrites=true&w=majority
+```
+
+#### OR Option B: Local MongoDB
+- [ ] MongoDB installed locally
+- [ ] MongoDB service started
+- [ ] `.env.local` has local URI
+
+**Example Local URI:**
+```env
+MONGODB_URI=mongodb://localhost:27017/installer_program
+```
 
 ### 2. NextAuth Secret
 - [ ] Run: `npm run setup:secret`
@@ -75,11 +99,12 @@ npm run build
 
 ## Environment Variables Summary
 
-Copy this to your `.env.local`:
+Your `.env.local` should look like this:
 
+### If Using MongoDB Atlas (Recommended):
 ```env
-# MongoDB
-MONGODB_URI=mongodb://localhost:27017/installer_program
+# MongoDB Atlas
+MONGODB_URI=mongodb+srv://user:password@cluster0.xxxxx.mongodb.net/installer_program?retryWrites=true&w=majority
 
 # NextAuth
 NEXTAUTH_URL=http://localhost:3000
@@ -92,16 +117,25 @@ GOOGLE_CLIENT_SECRET=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
 # Google Contacts API (Optional)
 GOOGLE_CONTACTS_CLIENT_ID=851275578938-jd6gdl62do3i3mlt74k687qkrqlk7t7i.apps.googleusercontent.com
 GOOGLE_CONTACTS_CLIENT_SECRET=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
-GOOGLE_CONTACTS_REFRESH_TOKEN=<follow SETUP_GUIDE.md or set to 'skip'>
+GOOGLE_CONTACTS_REFRESH_TOKEN=skip
+```
+
+### If Using Local MongoDB:
+```env
+# MongoDB Local
+MONGODB_URI=mongodb://localhost:27017/installer_program
+
+# (rest is same as above)
 ```
 
 ---
 
 ## Need Help?
 
-1. 📖 Read [SETUP_GUIDE.md](./SETUP_GUIDE.md) for detailed steps
-2. 📚 Check [README.md](./README.md) for full documentation
-3. 🐛 Common issues are in SETUP_GUIDE.md troubleshooting section
+1. 🌐 **MongoDB Atlas Setup**: [MONGODB_ATLAS_SETUP.md](./MONGODB_ATLAS_SETUP.md)
+2. 📖 **Detailed Setup**: [SETUP_GUIDE.md](./SETUP_GUIDE.md)
+3. ⚡ **Quick Start**: [GET_STARTED.md](./GET_STARTED.md)
+4. 📚 **Full Documentation**: [README.md](./README.md)
 
 ---
 

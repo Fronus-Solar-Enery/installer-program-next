@@ -3,17 +3,52 @@
 ## What You Have Now
 
 ✅ **Already Configured:**
-- MongoDB URI
 - Google OAuth Client ID & Secret
 - Google Contacts Client ID & Secret
 
-❌ **Missing (takes 2 minutes):**
-- NextAuth Secret (30 seconds)
-- Google Contacts Refresh Token (optional, 90 seconds)
+❌ **Need to Setup:**
+- **MongoDB Database** (8 minutes - see below)
+- **NextAuth Secret** (30 seconds)
+- **Google Contacts Refresh Token** (optional, 90 seconds)
 
 ---
 
-## ⚡ 3-Minute Setup
+## ⚠️ Important: MongoDB Setup Required
+
+You're getting the error because MongoDB is not set up. Choose one option:
+
+### 🌐 Option A: MongoDB Atlas (Recommended - 8 minutes)
+**No installation, works immediately**
+
+📖 **[Follow Complete MongoDB Atlas Setup Guide →](./MONGODB_ATLAS_SETUP.md)**
+
+Quick summary:
+1. Sign up at https://www.mongodb.com/cloud/atlas/register
+2. Create free M0 cluster (512MB free forever)
+3. Get connection string
+4. Update `.env.local`
+
+### 💻 Option B: Local MongoDB (If you prefer local)
+Install MongoDB locally:
+- Windows: https://www.mongodb.com/try/download/community
+- Mac: `brew install mongodb-community`
+- Linux: `sudo apt-get install mongodb-org`
+
+Then start service:
+```bash
+# Windows
+net start MongoDB
+
+# Mac
+brew services start mongodb-community
+
+# Linux
+sudo systemctl start mongod
+```
+
+---
+
+## ⚡ After MongoDB is Ready
 
 ### Step 1: Generate Secret (30 seconds)
 
@@ -28,7 +63,6 @@ NEXTAUTH_SECRET=<paste-here>
 
 ### Step 2: Create Admin User (30 seconds)
 
-Make sure MongoDB is running, then:
 ```bash
 npm run setup:admin
 ```
@@ -99,7 +133,15 @@ GOOGLE_CONTACTS_REFRESH_TOKEN=skip
 
 ## 🆘 Troubleshooting
 
-### MongoDB not running?
+### Error: "connect ECONNREFUSED"
+
+**You're seeing this error!**
+
+This means MongoDB is not set up. Follow:
+- **📖 [MongoDB Atlas Setup Guide](./MONGODB_ATLAS_SETUP.md)** (Recommended)
+- Or install MongoDB locally (see Option B above)
+
+### MongoDB not running (Local)?
 
 ```bash
 # Windows
