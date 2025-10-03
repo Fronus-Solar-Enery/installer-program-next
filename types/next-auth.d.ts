@@ -1,4 +1,4 @@
-import { TeamRole } from '@/models/TeamMember';
+import { TeamRole } from '@/types/roles';
 import 'next-auth';
 import 'next-auth/jwt';
 

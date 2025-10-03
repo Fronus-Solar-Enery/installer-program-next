@@ -1,18 +1,18 @@
 import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
 import Installer from '@/models/Installer';
 import InstallerReward from '@/models/InstallerReward';
 import { updateInstallerSchema } from '@/lib/validation';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
-import { authOptions } from '@/lib/auth';
+
 import { TeamRole } from '@/models/TeamMember';
 import { updateGoogleContact, deleteGoogleContact } from '@/lib/googleContacts';
 
 // GET single installer with stats
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 // PUT - Update installer
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();
@@ -150,7 +150,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 // DELETE installer (ADMIN/MANAGER only)
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();

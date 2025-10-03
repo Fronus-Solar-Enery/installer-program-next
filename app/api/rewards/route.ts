@@ -1,16 +1,17 @@
 import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
 import InstallerReward from '@/models/InstallerReward';
 import Installer from '@/models/Installer';
 import { registerRewardSchema } from '@/lib/validation';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
-import { authOptions } from '@/lib/auth';
+import { PRODUCT_MODELS } from '@/lib/constants';
+
 
 // GET all rewards with filtering
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();
@@ -116,7 +117,7 @@ export async function GET(request: NextRequest) {
 // POST - Register new reward
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();

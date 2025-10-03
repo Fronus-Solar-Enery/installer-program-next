@@ -1,16 +1,16 @@
 import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
 import InstallerReward from '@/models/InstallerReward';
 import { updateRewardSchema } from '@/lib/validation';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
-import { authOptions } from '@/lib/auth';
+
 import { TeamRole } from '@/models/TeamMember';
 
 // GET single reward
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 // PUT - Update reward
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();
@@ -47,10 +47,20 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     await dbConnect();
 
-    const reward = await InstallerReward.findById(params.id);
+    const reward = await InstallerReward.findById(params.id).populate('referrer');
 
     if (!reward) {
       return ApiResponse.notFound('Reward not found');
+    }
+
+    // Validation: Transaction ID is required
+    if (validatedData.transactionId !== undefined && !validatedData.transactionId) {
+      return ApiResponse.error('Installer transaction ID is required', 400);
+    }
+
+    // Validation: If installer has referrer, referrer transaction ID is also required
+    if (validatedData.transactionId && reward.referrer && !validatedData.referrerTransactionId) {
+      return ApiResponse.error('Referrer transaction ID is required when installer has a referrer', 400);
     }
 
     // Update reward
@@ -74,7 +84,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 // DELETE reward (ADMIN/MANAGER only)
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();

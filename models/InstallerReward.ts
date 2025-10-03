@@ -18,6 +18,7 @@ export interface IInstallerReward {
   serialNumber: string; // Primary key
   serialNumberStatus: string;
   inverterSerialNumber: string;
+  installationDate?: Date;
   bankName: string;
   accountNumber: string;
   accountTitle: string;
@@ -85,6 +86,9 @@ const InstallerRewardSchema = new Schema<IInstallerReward>(
       required: [true, 'Inverter serial number is required'],
       trim: true,
     },
+    installationDate: {
+      type: Date,
+    },
     bankName: {
       type: String,
       required: [true, 'Bank name is required'],
@@ -138,7 +142,7 @@ const InstallerRewardSchema = new Schema<IInstallerReward>(
 );
 
 // Indexes for better query performance
-InstallerRewardSchema.index({ serialNumber: 1 });
+// Note: serialNumber already has a unique index, no need to add it again
 InstallerRewardSchema.index({ installer: 1 });
 InstallerRewardSchema.index({ installerCode: 1 });
 InstallerRewardSchema.index({ referrer: 1 });

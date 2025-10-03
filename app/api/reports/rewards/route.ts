@@ -1,14 +1,14 @@
 import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/lib/auth';
 import * as XLSX from 'xlsx';
 import dbConnect from '@/lib/mongodb';
 import InstallerReward from '@/models/InstallerReward';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
-import { authOptions } from '@/lib/auth';
+
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();

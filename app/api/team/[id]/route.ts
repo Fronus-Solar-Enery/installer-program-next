@@ -1,16 +1,16 @@
 import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/mongodb';
 import TeamMember, { TeamRole } from '@/models/TeamMember';
 import { updateTeamMemberSchema } from '@/lib/validation';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
-import { authOptions } from '@/lib/auth';
+
 
 // GET single team member
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 // UPDATE team member
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();
@@ -85,7 +85,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 // DELETE team member
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();

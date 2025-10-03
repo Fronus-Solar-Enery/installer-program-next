@@ -1,6 +1,29 @@
 import { z } from 'zod';
-import { TeamRole } from '@/models/TeamMember';
+import { TeamRole } from '@/types/roles';
 import { PaymentStatus } from '@/models/InstallerReward';
+
+// Phone number formatter: converts to +92XXXXXXXXXX format
+function formatPhoneNumber(phone: string): string {
+  let cleaned = phone.replace(/[^\d+]/g, '');
+
+  if (cleaned.startsWith('+')) {
+    cleaned = cleaned.substring(1);
+  }
+
+  if (cleaned.startsWith('00')) {
+    cleaned = cleaned.substring(2);
+  }
+
+  if (cleaned.startsWith('92')) {
+    cleaned = cleaned.substring(2);
+  }
+
+  if (cleaned.startsWith('0')) {
+    cleaned = cleaned.substring(1);
+  }
+
+  return `+92${cleaned}`;
+}
 
 // Team Member Schemas
 export const registerTeamMemberSchema = z.object({
@@ -31,8 +54,12 @@ export const registerInstallerSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters'),
   referrerCode: z.string().optional(),
   cnic: z.string().regex(/^\d{5}-\d{7}-\d{1}$/, 'CNIC must be in format: 12345-1234567-1'),
-  phoneNumber: z.string().regex(/^(\+92|0)?[0-9]{10}$/, 'Invalid phone number'),
-  whatsappNumber: z.string().regex(/^(\+92|0)?[0-9]{10}$/, 'Invalid WhatsApp number'),
+  phoneNumber: z.string()
+    .min(10, 'Phone number must be at least 10 digits')
+    .transform(formatPhoneNumber),
+  whatsappNumber: z.string()
+    .min(10, 'WhatsApp number must be at least 10 digits')
+    .transform(formatPhoneNumber),
   address: z.string().min(5, 'Address must be at least 5 characters'),
   city: z.string().min(2, 'City is required'),
   province: z.string().min(2, 'Province is required'),
@@ -54,6 +81,7 @@ export const registerRewardSchema = z.object({
   serialNumber: z.string().min(1, 'Serial number is required'),
   serialNumberStatus: z.string().min(1, 'Serial number status is required'),
   inverterSerialNumber: z.string().min(1, 'Inverter serial number is required'),
+  installationDate: z.string().optional(),
   rewardAmount: z.number().min(0, 'Reward amount must be positive'),
   paymentStatus: z.nativeEnum(PaymentStatus).default(PaymentStatus.PENDING),
   transactionId: z.string().optional(),

@@ -1,55 +1,51 @@
-import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
-import { TeamRole } from '@/models/TeamMember';
+import type { NextRequest } from 'next/server';
 
-export default withAuth(
-  function middleware(req) {
-    const token = req.nextauth.token;
-    const path = req.nextUrl.pathname;
+export function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
 
-    // Check if user is accessing admin/manager only routes
-    if (path.startsWith('/api/team') && path !== '/api/team/profile') {
-      if (token?.role !== TeamRole.ADMIN && token?.role !== TeamRole.MANAGER) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-      }
+  // Public paths that don't require authentication
+  const publicPaths = [
+    '/auth/signin',
+    '/auth/error',
+    '/_next',
+    '/api/auth',
+    '/favicon.ico',
+    '/',
+  ];
 
-      // Only ADMIN can register ADMIN, MANAGER can register USER or MANAGER
-      if (path === '/api/team/register' && req.method === 'POST') {
-        // This will be handled in the API route
-      }
-    }
+  const isPublicPath = publicPaths.some((publicPath) => path.startsWith(publicPath));
 
-    // Installer delete - only ADMIN/MANAGER
-    if (path.match(/\/api\/installers\/.*\/delete/) && req.method === 'DELETE') {
-      if (token?.role !== TeamRole.ADMIN && token?.role !== TeamRole.MANAGER) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-      }
-    }
-
+  // Allow public paths
+  if (isPublicPath) {
     return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token, req }) => {
-        const path = req.nextUrl.pathname;
-
-        // Public paths
-        if (
-          path.startsWith('/auth/signin') ||
-          path.startsWith('/auth/error') ||
-          path.startsWith('/_next') ||
-          path.startsWith('/api/auth')
-        ) {
-          return true;
-        }
-
-        // All other paths require authentication
-        return !!token;
-      },
-    },
   }
-);
+
+  // Check for session token (simple check)
+  const token = request.cookies.get('authjs.session-token') || request.cookies.get('__Secure-authjs.session-token');
+
+  // Redirect to signin if not authenticated
+  if (!token) {
+    const url = new URL('/auth/signin', request.url);
+    url.searchParams.set('callbackUrl', path);
+    return NextResponse.redirect(url);
+  }
+
+  // Note: Role-based authorization is handled in API routes
+  // since we can't decode JWT in Edge Runtime without database access
+
+  return NextResponse.next();
+}
 
 export const config = {
-  matcher: ['/api/:path*', '/dashboard/:path*', '/installers/:path*', '/rewards/:path*', '/reports/:path*'],
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 };

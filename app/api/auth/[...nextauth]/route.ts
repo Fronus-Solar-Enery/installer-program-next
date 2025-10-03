@@ -1,6 +1,6 @@
-import NextAuth from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { handlers } from '@/lib/auth';
 
-const handler = NextAuth(authOptions);
+// Use Node.js runtime for auth routes (required for MongoDB)
+export const runtime = 'nodejs';
 
-export { handler as GET, handler as POST };
+export const { GET, POST } = handlers;

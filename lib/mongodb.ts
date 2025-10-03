@@ -11,14 +11,15 @@ interface GlobalMongoose {
   promise: Promise<typeof mongoose> | null;
 }
 
+// Use globalThis instead of global for compatibility with Edge Runtime
 declare global {
   var mongoose: GlobalMongoose | undefined;
 }
 
-let cached: GlobalMongoose = global.mongoose || { conn: null, promise: null };
+let cached: GlobalMongoose = globalThis.mongoose || { conn: null, promise: null };
 
-if (!global.mongoose) {
-  global.mongoose = cached;
+if (!globalThis.mongoose) {
+  globalThis.mongoose = cached;
 }
 
 async function dbConnect(): Promise<typeof mongoose> {

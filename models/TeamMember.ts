@@ -1,10 +1,8 @@
 import mongoose, { Schema, Model } from 'mongoose';
+import { TeamRole } from '@/types/roles';
 
-export enum TeamRole {
-  ADMIN = 'ADMIN',
-  MANAGER = 'MANAGER',
-  USER = 'USER',
-}
+// Re-export for backward compatibility
+export { TeamRole };
 
 export interface ITeamMember {
   _id?: string;
@@ -59,9 +57,8 @@ const TeamMemberSchema = new Schema<ITeamMember>(
 );
 
 // Indexes for better query performance
-TeamMemberSchema.index({ email: 1 });
+// Note: email and googleId already have unique indexes from schema definition
 TeamMemberSchema.index({ role: 1 });
-TeamMemberSchema.index({ googleId: 1 });
 
 const TeamMember: Model<ITeamMember> =
   mongoose.models.TeamMember || mongoose.model<ITeamMember>('TeamMember', TeamMemberSchema);

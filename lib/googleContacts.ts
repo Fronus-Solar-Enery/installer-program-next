@@ -1,17 +1,7 @@
-import { google } from 'googleapis';
-
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CONTACTS_CLIENT_ID,
-  process.env.GOOGLE_CONTACTS_CLIENT_SECRET,
-  'http://localhost:3000/api/auth/google/callback'
-);
-
-// Set credentials with refresh token
-oauth2Client.setCredentials({
-  refresh_token: process.env.GOOGLE_CONTACTS_REFRESH_TOKEN,
-});
-
-const people = google.people({ version: 'v1', auth: oauth2Client });
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { google } from "googleapis";
+import dbConnect from "./mongodb";
+import GoogleAuth from "@/models/GoogleAuth";
 
 export interface ContactData {
   fullName: string;
@@ -23,30 +13,140 @@ export interface ContactData {
   province?: string;
   companyName?: string;
   installerCode?: string;
+  referrerCode?: string;
   cnic?: string;
 }
 
-export async function createGoogleContact(data: ContactData): Promise<string | null> {
+/**
+ * Formats phone number to +92XXXXXXXXXX format
+ * Examples:
+ *   03001234567 -> +923001234567
+ *   +923001234567 -> +923001234567
+ *   00923001234567 -> +923001234567
+ *   3001234567 -> +923001234567
+ */
+function formatPhoneNumber(phone: string): string {
+  // Remove all non-digit characters except +
+  let cleaned = phone.replace(/[^\d+]/g, "");
+
+  // Remove leading + if present
+  if (cleaned.startsWith("+")) {
+    cleaned = cleaned.substring(1);
+  }
+
+  // Remove leading 00 if present
+  if (cleaned.startsWith("00")) {
+    cleaned = cleaned.substring(2);
+  }
+
+  // Remove leading 92 if present (we'll add it back)
+  if (cleaned.startsWith("92")) {
+    cleaned = cleaned.substring(2);
+  }
+
+  // Remove leading 0 if present
+  if (cleaned.startsWith("0")) {
+    cleaned = cleaned.substring(1);
+  }
+
+  // Add +92 prefix
+  return `+92${cleaned}`;
+}
+
+async function getAuthClient(userId: string) {
+  await dbConnect();
+
+  const googleAuth = await GoogleAuth.findOne({
+    userId,
+    isActive: true,
+  });
+
+  if (!googleAuth?.refreshToken) {
+    console.warn("No active Google auth found for user:", userId);
+    return null;
+  }
+
+  const CLIENT_ID =
+    process.env.GOOGLE_CONTACTS_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+  const CLIENT_SECRET =
+    process.env.GOOGLE_CONTACTS_CLIENT_SECRET ||
+    process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    console.error("Google OAuth credentials not configured in environment");
+    return null;
+  }
+
+  const oauth2Client = new google.auth.OAuth2(
+    CLIENT_ID,
+    CLIENT_SECRET,
+    `${process.env.NEXTAUTH_URL}/api/google-auth/callback`
+  );
+
+  oauth2Client.setCredentials({
+    refresh_token: googleAuth.refreshToken,
+    access_token: googleAuth.accessToken,
+  });
+
+  return oauth2Client;
+}
+
+export async function createGoogleContact(
+  userId: string,
+  data: ContactData
+): Promise<string | null> {
   try {
+    const authClient = await getAuthClient(userId);
+
+    if (!authClient) {
+      console.warn(
+        "Google Contacts not authenticated. Skipping contact creation."
+      );
+      return null;
+    }
+
+    // Format contact name based on referrer code
+    let displayName: string;
+    if (data.referrerCode) {
+      displayName = `${data.installerCode} REF-${data.referrerCode} ${data.fullName}`;
+    } else {
+      displayName = `${data.installerCode} ${data.fullName}`;
+    }
+
+    console.log("Creating Google contact for:", displayName);
+
+    const people = google.people({ version: "v1", auth: authClient });
+
+    // Format phone numbers
+    const formattedPhone = formatPhoneNumber(data.phoneNumber);
+    const formattedWhatsApp = formatPhoneNumber(data.whatsappNumber);
+
+    // Build phone numbers array - only add WhatsApp separately if different
+    const phoneNumbers: any[] = [
+      {
+        value: formattedPhone,
+        type: "mobile",
+      },
+    ];
+
+    // Only add WhatsApp as separate number if it's different from phone
+    if (formattedPhone !== formattedWhatsApp) {
+      phoneNumbers.push({
+        value: formattedWhatsApp,
+        type: "mobile",
+        formattedType: "WhatsApp",
+      });
+    }
+
     const response = await people.people.createContact({
       requestBody: {
         names: [
           {
-            givenName: data.fullName,
-            displayName: data.fullName,
+            givenName: displayName,
+            displayName: displayName,
           },
         ],
-        phoneNumbers: [
-          {
-            value: data.phoneNumber,
-            type: 'mobile',
-          },
-          {
-            value: data.whatsappNumber,
-            type: 'other',
-            formattedType: 'WhatsApp',
-          },
-        ],
+        phoneNumbers: phoneNumbers,
         emailAddresses: data.email
           ? [
               {
@@ -60,7 +160,7 @@ export async function createGoogleContact(data: ContactData): Promise<string | n
                 streetAddress: data.address,
                 city: data.city,
                 region: data.province,
-                country: 'Pakistan',
+                country: "Pakistan",
               },
             ]
           : [],
@@ -73,51 +173,103 @@ export async function createGoogleContact(data: ContactData): Promise<string | n
           : [],
         biographies: [
           {
-            value: `Installer Code: ${data.installerCode || 'N/A'}\nCNIC: ${data.cnic || 'N/A'}`,
-            contentType: 'TEXT_PLAIN',
+            value: `Installer Code: ${data.installerCode || "N/A"}\nCNIC: ${
+              data.cnic || "N/A"
+            }`,
+            contentType: "TEXT_PLAIN",
           },
         ],
       },
     });
 
+    console.log(
+      "✓ Google contact created successfully:",
+      response.data.resourceName
+    );
     return response.data.resourceName || null;
-  } catch (error) {
-    console.error('Error creating Google contact:', error);
+  } catch (error: any) {
+    console.error("Error creating Google contact:", error);
+    if (error.response) {
+      console.error("API Response Error:", {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data,
+      });
+    }
+    if (error.message) {
+      console.error("Error message:", error.message);
+    }
     return null;
   }
 }
 
-export async function updateGoogleContact(resourceName: string, data: ContactData): Promise<boolean> {
+export async function updateGoogleContact(
+  userId: string,
+  resourceName: string,
+  data: ContactData
+): Promise<boolean> {
   try {
+    const authClient = await getAuthClient(userId);
+
+    if (!authClient) {
+      console.warn(
+        "Google Contacts not authenticated. Skipping contact update."
+      );
+      return false;
+    }
+
+    const people = google.people({ version: "v1", auth: authClient });
+
+    // Format contact name based on referrer code
+    let displayName: string;
+    if (data.referrerCode) {
+      displayName = `${data.installerCode} REF-${data.referrerCode} ${data.fullName}`;
+    } else {
+      displayName = `${data.installerCode} ${data.fullName}`;
+    }
+
+    // Format phone numbers
+    const formattedPhone = formatPhoneNumber(data.phoneNumber);
+    const formattedWhatsApp = formatPhoneNumber(data.whatsappNumber);
+
+    // Build phone numbers array - only add WhatsApp separately if different
+    const phoneNumbers: any[] = [
+      {
+        value: formattedPhone,
+        type: "mobile",
+      },
+    ];
+
+    // Only add WhatsApp as separate number if it's different from phone
+    if (formattedPhone !== formattedWhatsApp) {
+      phoneNumbers.push({
+        value: formattedWhatsApp,
+        type: "mobile",
+        formattedType: "WhatsApp",
+      });
+    }
+
     // Get current contact to preserve etag
     const currentContact = await people.people.get({
       resourceName,
-      personFields: 'names,phoneNumbers,emailAddresses,addresses,organizations,biographies',
+      personFields:
+        "names,phoneNumbers,emailAddresses,addresses,organizations,biographies",
     });
 
     await people.people.updateContact({
       resourceName,
-      updatePersonFields: 'names,phoneNumbers,emailAddresses,addresses,organizations,biographies',
+      updatePersonFields:
+        "names,phoneNumbers,emailAddresses,addresses,organizations,biographies",
       requestBody: {
         resourceName,
         etag: currentContact.data.etag,
         names: [
           {
             givenName: data.fullName,
-            displayName: data.fullName,
+            displayName: displayName,
           },
         ],
-        phoneNumbers: [
-          {
-            value: data.phoneNumber,
-            type: 'mobile',
-          },
-          {
-            value: data.whatsappNumber,
-            type: 'other',
-            formattedType: 'WhatsApp',
-          },
-        ],
+        phoneNumbers: phoneNumbers,
         emailAddresses: data.email
           ? [
               {
@@ -131,7 +283,7 @@ export async function updateGoogleContact(resourceName: string, data: ContactDat
                 streetAddress: data.address,
                 city: data.city,
                 region: data.province,
-                country: 'Pakistan',
+                country: "Pakistan",
               },
             ]
           : [],
@@ -144,8 +296,10 @@ export async function updateGoogleContact(resourceName: string, data: ContactDat
           : [],
         biographies: [
           {
-            value: `Installer Code: ${data.installerCode || 'N/A'}\nCNIC: ${data.cnic || 'N/A'}`,
-            contentType: 'TEXT_PLAIN',
+            value: `Installer Code: ${data.installerCode || "N/A"}\nCNIC: ${
+              data.cnic || "N/A"
+            }`,
+            contentType: "TEXT_PLAIN",
           },
         ],
       },
@@ -153,19 +307,34 @@ export async function updateGoogleContact(resourceName: string, data: ContactDat
 
     return true;
   } catch (error) {
-    console.error('Error updating Google contact:', error);
+    console.error("Error updating Google contact:", error);
     return false;
   }
 }
 
-export async function deleteGoogleContact(resourceName: string): Promise<boolean> {
+export async function deleteGoogleContact(
+  userId: string,
+  resourceName: string
+): Promise<boolean> {
   try {
+    const authClient = await getAuthClient(userId);
+
+    if (!authClient) {
+      console.warn(
+        "Google Contacts not authenticated. Skipping contact deletion."
+      );
+      return false;
+    }
+
+    const people = google.people({ version: "v1", auth: authClient });
+
     await people.people.deleteContact({
       resourceName,
     });
+
     return true;
   } catch (error) {
-    console.error('Error deleting Google contact:', error);
+    console.error("Error deleting Google contact:", error);
     return false;
   }
 }

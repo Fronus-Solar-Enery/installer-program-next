@@ -1,16 +1,16 @@
 import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
 import Installer from '@/models/Installer';
 import { registerInstallerSchema } from '@/lib/validation';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
-import { authOptions } from '@/lib/auth';
+
 import { createGoogleContact } from '@/lib/googleContacts';
 
 // GET all installers with filtering
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
 // POST - Register new installer
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();
@@ -117,8 +117,9 @@ export async function POST(request: NextRequest) {
     });
 
     // Create Google Contact
+    let googleContactStatus = 'not attempted';
     try {
-      const googleContactId = await createGoogleContact({
+      const googleContactId = await createGoogleContact(session.user.id, {
         fullName: installer.fullName,
         phoneNumber: installer.phoneNumber,
         whatsappNumber: installer.whatsappNumber,
@@ -127,15 +128,26 @@ export async function POST(request: NextRequest) {
         province: installer.province,
         companyName: installer.companyName,
         installerCode: installer.installerCode,
+        referrerCode: installer.referrerCode,
         cnic: installer.cnic,
       });
 
       if (googleContactId) {
         installer.googleContactId = googleContactId;
         await installer.save();
+        googleContactStatus = 'success';
+        console.log('✓ Google contact created:', googleContactId);
+      } else {
+        googleContactStatus = 'failed - no ID returned';
+        console.warn('⚠ Google contact creation returned null');
       }
     } catch (error) {
-      console.error('Failed to create Google contact:', error);
+      googleContactStatus = 'failed - error';
+      console.error('✗ Failed to create Google contact:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+        console.error('Error stack:', error.stack);
+      }
     }
 
     const populatedInstaller = await Installer.findById(installer._id)

@@ -1,16 +1,16 @@
 import { NextRequest } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/mongodb';
 import TeamMember from '@/models/TeamMember';
 import { changePasswordSchema } from '@/lib/validation';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
-import { authOptions } from '@/lib/auth';
+
 
 // GET current user profile
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();
@@ -33,7 +33,7 @@ export async function GET() {
 // UPDATE current user profile (name, email)
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session) {
       return ApiResponse.unauthorized();

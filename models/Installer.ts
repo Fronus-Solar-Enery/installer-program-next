@@ -122,8 +122,7 @@ const InstallerSchema = new Schema<IInstaller>(
 );
 
 // Indexes for better query performance
-InstallerSchema.index({ installerCode: 1 });
-InstallerSchema.index({ cnic: 1 });
+// Note: installerCode and cnic already have unique indexes, no need to add them again
 InstallerSchema.index({ referrerCode: 1 });
 InstallerSchema.index({ city: 1 });
 InstallerSchema.index({ province: 1 });
