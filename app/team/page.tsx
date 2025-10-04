@@ -1,10 +1,14 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import Navbar from '@/components/Navbar';
-import { TeamRole } from '@/types/roles';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import Navbar from "@/components/Navbar";
+import { TeamRole } from "@/types/roles";
+import { toast } from "sonner";
+import TeamEditModal from "@/components/TeamEditModal";
+import TeamRegisterModal from "@/components/TeamRegisterModal";
+import { Edit, Trash2 } from "lucide-react";
 
 interface TeamMember {
   _id: string;
@@ -20,15 +24,21 @@ export default function TeamPage() {
   const { data: session } = useSession();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+
+  // Modal states
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [selectedTeamMemberId, setSelectedTeamMemberId] = useState("");
 
   // Check authorization
   const canAccessTeamManagement =
-    session?.user?.role === TeamRole.ADMIN || session?.user?.role === TeamRole.MANAGER;
+    session?.user?.role === TeamRole.ADMIN ||
+    session?.user?.role === TeamRole.MANAGER;
 
   useEffect(() => {
     if (session && !canAccessTeamManagement) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     }
   }, [session, canAccessTeamManagement, router]);
 
@@ -41,16 +51,18 @@ export default function TeamPage() {
   const fetchTeamMembers = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/team');
+      const response = await fetch("/api/team");
       const data = await response.json();
 
       if (data.success) {
-        setTeamMembers(data.data.members);
+        setTeamMembers(data.data.members || []);
       } else {
-        setError('Failed to load team members');
+        setError("Failed to load team members");
+        setTeamMembers([]);
       }
     } catch (err) {
-      setError('An error occurred while fetching team members');
+      setError("An error occurred while fetching team members");
+      setTeamMembers([]);
     } finally {
       setLoading(false);
     }
@@ -63,32 +75,32 @@ export default function TeamPage() {
 
     try {
       const response = await fetch(`/api/team/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       const data = await response.json();
 
       if (data.success) {
-        alert('Team member deleted successfully');
+        toast.success("Team member deleted successfully");
         fetchTeamMembers();
       } else {
-        alert(data.error || 'Failed to delete team member');
+        toast.error(data.error || "Failed to delete team member");
       }
     } catch (err) {
-      alert('An error occurred while deleting team member');
+      toast.error("An error occurred while deleting team member");
     }
   };
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case TeamRole.ADMIN:
-        return 'bg-red-100 text-red-800';
+        return "bg-red-100 text-red-800";
       case TeamRole.MANAGER:
-        return 'bg-blue-100 text-blue-800';
+        return "bg-blue-100 text-blue-800";
       case TeamRole.USER:
-        return 'bg-green-100 text-green-800';
+        return "bg-green-100 text-green-800";
       default:
-        return 'bg-gray-100 text-gray-800';
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -103,7 +115,7 @@ export default function TeamPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold text-gray-900">Team Management</h1>
           <button
-            onClick={() => router.push('/team/new')}
+            onClick={() => setRegisterModalOpen(true)}
             className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
           >
             + Add Team Member
@@ -146,9 +158,12 @@ export default function TeamPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {teamMembers.length === 0 ? (
+                {!teamMembers || teamMembers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                    <td
+                      colSpan={6}
+                      className="px-6 py-4 text-center text-gray-500"
+                    >
                       No team members found
                     </td>
                   </tr>
@@ -156,14 +171,18 @@ export default function TeamPage() {
                   teamMembers.map((member) => (
                     <tr key={member._id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{member.name}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {member.name}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-600">{member.email}</div>
+                        <div className="text-sm text-gray-600">
+                          {member.email}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
-                          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(
+                          className={`px-2 py-1 inline-flex text-xs leading-none font-semibold rounded-full ${getRoleBadgeColor(
                             member.role
                           )}`}
                         >
@@ -195,7 +214,7 @@ export default function TeamPage() {
                               Google
                             </span>
                           ) : (
-                            'Credentials'
+                            "Credentials"
                           )}
                         </div>
                       </td>
@@ -206,17 +225,22 @@ export default function TeamPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
-                          onClick={() => router.push(`/team/${member._id}/edit`)}
-                          className="text-indigo-600 hover:text-indigo-900 mr-4"
+                          onClick={() => {
+                            setSelectedTeamMemberId(member._id);
+                            setEditModalOpen(true);
+                          }}
+                          className="text-indigo-600 hover:text-indigo-900 mr-4 inline-flex items-center"
                         >
-                          Edit
+                          <Edit className="h-4 w-4" />
                         </button>
                         {session?.user?.id !== member._id && (
                           <button
-                            onClick={() => handleDelete(member._id, member.name)}
-                            className="text-red-600 hover:text-red-900"
+                            onClick={() =>
+                              handleDelete(member._id, member.name)
+                            }
+                            className="text-red-600 hover:text-red-900 inline-flex items-center"
                           >
-                            Delete
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         )}
                       </td>
@@ -229,20 +253,40 @@ export default function TeamPage() {
         )}
 
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-blue-900 mb-2">Role Permissions</h3>
+          <h3 className="text-sm font-semibold text-blue-900 mb-2">
+            Role Permissions
+          </h3>
           <div className="text-sm text-blue-800 space-y-1">
             <p>
-              <span className="font-medium">ADMIN:</span> Can create ADMIN, MANAGER, and USER accounts
+              <span className="font-medium">ADMIN:</span> Can create ADMIN,
+              MANAGER, and USER accounts
             </p>
             <p>
-              <span className="font-medium">MANAGER:</span> Can create MANAGER and USER accounts
+              <span className="font-medium">MANAGER:</span> Can create MANAGER
+              and USER accounts
             </p>
             <p>
-              <span className="font-medium">USER:</span> Can register installers and rewards
+              <span className="font-medium">USER:</span> Can register installers
+              and rewards
             </p>
           </div>
         </div>
       </div>
+
+      {/* Register Modal */}
+      <TeamRegisterModal
+        open={registerModalOpen}
+        onOpenChange={setRegisterModalOpen}
+        onSuccess={fetchTeamMembers}
+      />
+
+      {/* Edit Modal */}
+      <TeamEditModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        teamMemberId={selectedTeamMemberId}
+        onSuccess={fetchTeamMembers}
+      />
     </div>
   );
 }

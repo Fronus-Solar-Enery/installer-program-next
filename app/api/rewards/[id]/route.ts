@@ -12,7 +12,7 @@ import { PaymentStatus } from '@/types/rewards';
 import { TeamRole } from '@/models/TeamMember';
 
 // GET single reward
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
 
@@ -22,7 +22,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     await dbConnect();
 
-    const reward = await InstallerReward.findById(params.id)
+    const { id } = await params;
+    const reward = await InstallerReward.findById(id)
       .populate('installer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')
       .populate('referrer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')
       .populate('registeredBy', 'name email role');
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PUT - Update reward
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
 
@@ -51,7 +52,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     await dbConnect();
 
-    const reward = await InstallerReward.findById(params.id).populate('referrer');
+    const { id } = await params;
+    const reward = await InstallerReward.findById(id).populate('referrer');
 
     if (!reward) {
       return ApiResponse.notFound('Reward not found');
@@ -61,7 +63,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (validatedData.serialNumber && validatedData.serialNumber !== reward.serialNumber) {
       const existingReward = await InstallerReward.findOne({
         serialNumber: validatedData.serialNumber,
-        _id: { $ne: params.id }
+        _id: { $ne: id }
       });
 
       if (existingReward) {
@@ -82,14 +84,18 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       .populate('referrer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')
       .populate('registeredBy', 'name email role');
 
+    if (!updatedReward) {
+      return ApiResponse.error('Failed to fetch updated reward', 500);
+    }
+
     // Log activity
     await logActivity({
       type: ActivityType.REWARD_UPDATED,
       performedBy: session.user.id,
       targetType: 'InstallerReward',
       targetId: reward._id,
-      targetName: `${updatedReward.installer.installerCode} - ${updatedReward.serialNumber}`,
-      description: `Updated reward for ${updatedReward.installer.fullName}`,
+      targetName: `${(updatedReward.installer as any).installerCode} - ${updatedReward.serialNumber}`,
+      description: `Updated reward for ${(updatedReward.installer as any).fullName}`,
       metadata: { changes },
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
       userAgent: request.headers.get('user-agent') || undefined,
@@ -101,8 +107,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       sendRewardPaymentMessage(
         {
           installer: {
-            fullName: updatedReward.installer.fullName,
-            whatsappNumber: updatedReward.installer.whatsappNumber,
+            fullName: (updatedReward.installer as any).fullName,
+            whatsappNumber: (updatedReward.installer as any).whatsappNumber,
           },
           serialNumber: updatedReward.serialNumber,
           productModel: updatedReward.productModel,
@@ -119,8 +125,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         performedBy: session.user.id,
         targetType: 'InstallerReward',
         targetId: reward._id,
-        targetName: `${updatedReward.installer.installerCode} - ${updatedReward.serialNumber}`,
-        description: `Marked reward as PAID for ${updatedReward.installer.fullName} - Rs. ${updatedReward.rewardAmount.toLocaleString()}`,
+        targetName: `${(updatedReward.installer as any).installerCode} - ${updatedReward.serialNumber}`,
+        description: `Marked reward as PAID for ${(updatedReward.installer as any).fullName} - Rs. ${updatedReward.rewardAmount.toLocaleString()}`,
       });
     }
 
@@ -134,7 +140,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE reward (ADMIN/MANAGER only)
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
 
@@ -149,7 +155,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     await dbConnect();
 
-    const reward = await InstallerReward.findById(params.id)
+    const { id } = await params;
+    const reward = await InstallerReward.findById(id)
       .populate('installer', 'installerCode fullName');
 
     if (!reward) {

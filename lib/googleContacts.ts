@@ -333,7 +333,13 @@ export async function deleteGoogleContact(
     });
 
     return true;
-  } catch (error) {
+  } catch (error: any) {
+    // If contact not found (404), consider it as successfully deleted (contact doesn't exist anymore)
+    if (error.code === 404 || error.status === 404) {
+      console.warn(`Google contact not found (already deleted or doesn't exist): ${resourceName}`);
+      return true;
+    }
+
     console.error("Error deleting Google contact:", error);
     return false;
   }

@@ -8,7 +8,7 @@ import { ApiResponse, handleApiError } from '@/lib/apiResponse';
 
 
 // GET single team member
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
 
@@ -18,7 +18,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     await dbConnect();
 
-    const teamMember = await TeamMember.findById(params.id).select('-password');
+    const { id } = await params;
+    const teamMember = await TeamMember.findById(id).select('-password');
 
     if (!teamMember) {
       return ApiResponse.notFound('Team member not found');
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // UPDATE team member
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
 
@@ -51,7 +52,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     await dbConnect();
 
-    const teamMember = await TeamMember.findById(params.id);
+    const { id } = await params;
+    const teamMember = await TeamMember.findById(id);
 
     if (!teamMember) {
       return ApiResponse.notFound('Team member not found');
@@ -83,7 +85,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE team member
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
 
@@ -100,7 +102,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     await dbConnect();
 
-    const teamMember = await TeamMember.findById(params.id);
+    const { id } = await params;
+    const teamMember = await TeamMember.findById(id);
 
     if (!teamMember) {
       return ApiResponse.notFound('Team member not found');

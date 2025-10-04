@@ -13,7 +13,7 @@ export interface IInstaller {
   city: string;
   province: string;
   trainingCenter: string;
-  companyName: string;
+  companyName?: string;
   bankName: string;
   accountNumber: string;
   accountTitle: string;
@@ -85,7 +85,6 @@ const InstallerSchema = new Schema<IInstaller>(
     },
     companyName: {
       type: String,
-      required: [true, 'Company name is required'],
       trim: true,
     },
     bankName: {
@@ -135,7 +134,7 @@ InstallerSchema.pre('save', async function (next) {
     const Installer = mongoose.model<IInstaller>('Installer');
     const referrer = await Installer.findOne({ installerCode: this.referrerCode });
     if (referrer) {
-      this.referrer = referrer._id as Types.ObjectId;
+      this.referrer = referrer._id as unknown as Types.ObjectId;
     }
   }
   next();

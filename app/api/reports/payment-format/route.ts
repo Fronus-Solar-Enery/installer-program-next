@@ -5,6 +5,36 @@ import dbConnect from "@/lib/mongodb";
 import InstallerReward from "@/models/InstallerReward";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 
+// Format phone number to 03XXXXXXXXX
+function formatPhoneNumber(phone: string): string {
+  if (!phone) return "";
+
+  // Remove all non-digit characters
+  let cleaned = phone.replace(/\D/g, "");
+
+  // Remove country code if present
+  if (cleaned.startsWith("92")) {
+    cleaned = cleaned.substring(2);
+  }
+
+  // Add leading 0 if not present
+  if (!cleaned.startsWith("0")) {
+    cleaned = "0" + cleaned;
+  }
+
+  // Ensure it's 11 digits (03XXXXXXXXX format)
+  if (cleaned.length === 11 && cleaned.startsWith("03")) {
+    return cleaned;
+  }
+
+  // If it's 10 digits starting with 3, add 0
+  if (cleaned.length === 10 && cleaned.startsWith("3")) {
+    return "0" + cleaned;
+  }
+
+  return cleaned;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -20,8 +50,9 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
+    // Query for both PENDING and FAILED rewards
     const query: any = {
-      paymentStatus,
+      paymentStatus: { $in: ["PENDING", "FAILED"] },
     };
 
     if (startDate || endDate) {
@@ -45,73 +76,84 @@ export async function GET(request: NextRequest) {
       )
       .sort({ createdAt: -1 });
 
-    // Create Excel workbook for payment format
-    const workbook = XLSX.utils.book_new();
+    // Create array for all payments
+    const allPayments: any[] = [];
 
-    // Main installer payments
-    const installerPayments = rewards.map((reward) => {
+    // Add installer payments (for each pending/failed reward)
+    rewards.forEach((reward) => {
       const installer = reward.installer as any;
-      return {
-        "Phone Number": installer?.phoneNumber || "",
-        "Bank Account Number": reward.accountNumber,
-        "Bank Account Name": reward.accountTitle,
-        "Bank Name": reward.bankName,
-        Amount: reward.rewardAmount,
-        "Serial Number": reward.serialNumber,
-        "Installer Code": reward.installerCode,
-      };
+      if (installer) {
+        allPayments.push({
+          "To Account": installer.accountNumber || "",
+          Bank: installer.bankName || "",
+          Amount: reward.rewardAmount || 0,
+          Purpose: "Others",
+          "Phone No.": formatPhoneNumber(installer.phoneNumber || ""),
+        });
+      }
     });
 
-    // Referrer payments (only for rewards with referrers)
-    const referrerPayments = rewards
-      .filter(
-        (reward) =>
-          reward.referrer &&
-          reward.referrerRewardAmount &&
-          reward.referrerRewardAmount > 0
-      )
-      .map((reward) => {
-        const referrer = reward.referrer as any;
-        return {
-          "Phone Number": referrer?.phoneNumber || "",
-          "Bank Account Number": referrer?.accountNumber || "",
-          "Bank Account Name": referrer?.accountTitle || "",
-          "Bank Name": referrer?.bankName || "",
-          Amount: reward.referrerRewardAmount,
-          "Serial Number": reward.serialNumber,
-          "Installer Code": referrer?.installerCode || "",
-          Type: "Referral Reward",
-        };
-      });
+    // Add referrer payments at the bottom
+    rewards.forEach((reward) => {
+      const referrer = reward.referrer as any;
+      if (
+        referrer &&
+        reward.referrerRewardAmount &&
+        reward.referrerRewardAmount > 0
+      ) {
+        allPayments.push({
+          "To Account": referrer.accountNumber || "",
+          Bank: referrer.bankName || "",
+          Amount: reward.referrerRewardAmount || 0,
+          Purpose: "Others",
+          "Phone No.": formatPhoneNumber(referrer.phoneNumber || ""),
+        });
+      }
+    });
 
-    // Create worksheets
-    const installerSheet = XLSX.utils.json_to_sheet(installerPayments);
-    XLSX.utils.book_append_sheet(
-      workbook,
-      installerSheet,
-      "Installer Payments"
-    );
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
 
-    if (referrerPayments.length > 0) {
-      const referrerSheet = XLSX.utils.json_to_sheet(referrerPayments);
-      XLSX.utils.book_append_sheet(
-        workbook,
-        referrerSheet,
-        "Referrer Payments"
-      );
+    // Create worksheet from data
+    const worksheet = XLSX.utils.json_to_sheet(allPayments);
+
+    // Set all cells to text format
+    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cell_address = XLSX.utils.encode_cell({ r: R, c: C });
+        const cell = worksheet[cell_address];
+        if (cell && cell.v !== null && cell.v !== undefined) {
+          // Set cell format to text
+          cell.t = 's'; // 's' means string/text type
+          cell.v = String(cell.v); // Convert value to string
+        }
+      }
     }
+
+    // Set column widths for better readability
+    worksheet['!cols'] = [
+      { wch: 20 }, // To Account
+      { wch: 25 }, // Bank
+      { wch: 12 }, // Amount
+      { wch: 10 }, // Purpose
+      { wch: 15 }, // Phone No.
+    ];
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Payment Format");
 
     // Generate Excel file
     const excelBuffer = XLSX.write(workbook, {
       type: "buffer",
       bookType: "xlsx",
+      cellStyles: true,
     });
 
     return new Response(excelBuffer, {
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename=payment_format_${paymentStatus}_${Date.now()}.xlsx`,
+        "Content-Disposition": `attachment; filename=payment_format_${Date.now()}.xlsx`,
       },
     });
   } catch (error) {

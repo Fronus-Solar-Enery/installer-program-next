@@ -63,6 +63,14 @@ export default function Navbar() {
                   Team
                 </Link>
               )}
+              {session?.user?.role === TeamRole.ADMIN && (
+                <Link
+                  href="/settings"
+                  className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 ${isActive('/settings')}`}
+                >
+                  Settings
+                </Link>
+              )}
             </div>
           </div>
           <div className="flex items-center space-x-4">

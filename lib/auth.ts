@@ -29,7 +29,8 @@ export const authConfig: NextAuthConfig = {
           throw new Error('Invalid email or password');
         }
 
-        const isValid = await bcrypt.compare(credentials.password, user.password);
+        const passwordHash: string = user.password as string;
+        const isValid = await bcrypt.compare(credentials.password as string, passwordHash as string);
 
         if (!isValid) {
           throw new Error('Invalid email or password');
@@ -66,7 +67,7 @@ export const authConfig: NextAuthConfig = {
           // Update existing user with Google ID if not set
           if (!existingUser.googleId) {
             existingUser.googleId = account.providerAccountId;
-            existingUser.image = user.image;
+            existingUser.image = user.image || undefined;
             await existingUser.save();
           }
           user.id = existingUser._id.toString();
@@ -77,7 +78,7 @@ export const authConfig: NextAuthConfig = {
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
-        token.role = user.role;
+        token.role = user.role || TeamRole.USER;
       }
 
       // Update token on session update

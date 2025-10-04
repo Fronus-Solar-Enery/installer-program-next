@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     const city = searchParams.get('city');
     const registeredBy = searchParams.get('registeredBy');
     const installerCode = searchParams.get('installerCode');
+    const installerId = searchParams.get('installer'); // Support filtering by installer ID
     const serialNumberStatus = searchParams.get('serialNumberStatus');
     const paymentMethod = searchParams.get('paymentMethod');
     const startDate = searchParams.get('startDate');
@@ -54,6 +55,10 @@ export async function GET(request: NextRequest) {
 
     if (installerCode) {
       query.installerCode = installerCode.toUpperCase();
+    }
+
+    if (installerId) {
+      query.installer = installerId;
     }
 
     if (serialNumberStatus) {

@@ -5,12 +5,13 @@ import Installer from '@/models/Installer';
 import InstallerReward from '@/models/InstallerReward';
 import { updateInstallerSchema } from '@/lib/validation';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
+import mongoose from 'mongoose';
 
 import { TeamRole } from '@/models/TeamMember';
 import { updateGoogleContact, deleteGoogleContact } from '@/lib/googleContacts';
 
 // GET single installer with stats
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
 
@@ -20,7 +21,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     await dbConnect();
 
-    const installer = await Installer.findById(params.id)
+    const { id } = await params;
+    const installer = await Installer.findById(id)
       .populate('registeredBy', 'name email role')
       .populate('referrer', 'installerCode fullName');
 
@@ -38,7 +40,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     // Get reward amounts
     const rewardAmounts = await InstallerReward.aggregate([
-      { $match: { installer: installer._id } },
+      { $match: { installer: new mongoose.Types.ObjectId(installer._id.toString()) } },
       {
         $group: {
           _id: '$paymentStatus',
@@ -78,7 +80,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // PUT - Update installer
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
 
@@ -91,7 +93,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     await dbConnect();
 
-    const installer = await Installer.findById(params.id);
+    const { id } = await params;
+    const installer = await Installer.findById(id);
 
     if (!installer) {
       return ApiResponse.notFound('Installer not found');
@@ -118,7 +121,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     // Update Google Contact
     if (installer.googleContactId) {
       try {
-        await updateGoogleContact(installer.googleContactId, {
+        await updateGoogleContact(session.user.id, installer.googleContactId, {
           fullName: installer.fullName,
           phoneNumber: installer.phoneNumber,
           whatsappNumber: installer.whatsappNumber,
@@ -148,7 +151,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE installer (ADMIN/MANAGER only)
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth();
 
@@ -163,7 +166,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     await dbConnect();
 
-    const installer = await Installer.findById(params.id);
+    const { id } = await params;
+    const installer = await Installer.findById(id);
 
     if (!installer) {
       return ApiResponse.notFound('Installer not found');
@@ -181,7 +185,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     // Delete Google Contact
     if (installer.googleContactId) {
       try {
-        await deleteGoogleContact(installer.googleContactId);
+        await deleteGoogleContact(session.user.id, installer.googleContactId);
       } catch (error) {
         console.error('Failed to delete Google contact:', error);
       }
