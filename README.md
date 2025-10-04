@@ -73,45 +73,46 @@ A comprehensive Next.js application for managing installer programs, tracking re
 
 ## 🚀 Quick Start
 
-### ⚠️ Getting "ECONNREFUSED" Error?
+### 📖 Setup Guide
 
-**You need to setup MongoDB first!**
+**👉 [Complete Setup Guide](./SETUP_GUIDE_COMPLETE.md)** - Everything you need in one place!
 
-👉 **[Quick Fix Guide](./QUICK_FIX_MONGODB.md)** - 8 minutes
-👉 **[Complete MongoDB Atlas Setup](./MONGODB_ATLAS_SETUP.md)** - Detailed guide
+This comprehensive guide includes:
+- Quick Start (10 minutes)
+- MongoDB Setup (Atlas & Local)
+- Google Contacts Integration
+- WhatsApp Integration
+- Project Overview
+- Troubleshooting
 
----
-
-### 📖 Documentation Guides
-
-Choose your path:
-
-| Guide | Best For | Time |
-|-------|----------|------|
-| **[🔧 QUICK_FIX_MONGODB.md](./QUICK_FIX_MONGODB.md)** | Fix "ECONNREFUSED" error | 8 min |
-| **[🌐 MONGODB_ATLAS_SETUP.md](./MONGODB_ATLAS_SETUP.md)** | MongoDB cloud setup | 8 min |
-| **[⚡ GET_STARTED.md](./GET_STARTED.md)** | First-time setup | 10 min |
-| **[📋 CHECKLIST.md](./CHECKLIST.md)** | Step-by-step checklist | 5 min |
-| **[📖 SETUP_GUIDE.md](./SETUP_GUIDE.md)** | Detailed instructions | 15 min |
-| **[📚 README.md](./README.md)** | Full documentation | Reference |
-
-### ⚡ Super Quick Start (3 Minutes)
+### ⚡ Super Quick Start (10 Minutes)
 
 ```bash
-# 1. Generate NextAuth secret (30 sec)
+# 1. Setup MongoDB (see SETUP_GUIDE_COMPLETE.md) - 8 min
+# Choose MongoDB Atlas (recommended) or local MongoDB
+
+# 2. Generate NextAuth secret (30 sec)
 npm run setup:secret
 # → Copy output to .env.local
 
-# 2. Create admin user (30 sec)
+# 3. Create admin user (30 sec)
 npm run setup:admin
 # → Admin created with credentials
 
-# 3. Start application (10 sec)
+# 4. Start application (10 sec)
 npm run dev
 # → Open http://localhost:3000
 ```
 
 **Login**: `admin@example.com` / `admin123`
+
+### ⚠️ Getting "ECONNREFUSED" Error?
+
+**You need to setup MongoDB first!**
+
+👉 See the **MongoDB Setup** section in [SETUP_GUIDE_COMPLETE.md](./SETUP_GUIDE_COMPLETE.md)
+
+**Quick Fix (Recommended)**: Use cloud MongoDB (no installation, free forever)
 
 ### 🎯 What's Already Configured
 
@@ -121,18 +122,9 @@ Based on your `.env.local`:
 ✅ Google Contacts credentials
 
 ❌ Need to setup:
-- **MongoDB Database** - [MongoDB Atlas Guide](./MONGODB_ATLAS_SETUP.md) (8 min)
+- **MongoDB Database** - See [Setup Guide](./SETUP_GUIDE_COMPLETE.md#mongodb-setup) (8 min)
 - `NEXTAUTH_SECRET` (run: `npm run setup:secret`)
-- `GOOGLE_CONTACTS_REFRESH_TOKEN` (optional, see [SETUP_GUIDE.md](./SETUP_GUIDE.md))
-
-### ⚠️ Fixing "ECONNREFUSED" Error
-
-If you see `connect ECONNREFUSED ::1:27017`, MongoDB is not set up.
-
-**Quick Fix (Recommended)**: Use cloud MongoDB (no installation)
-- 📖 **[Complete MongoDB Atlas Setup Guide](./MONGODB_ATLAS_SETUP.md)** (8 minutes)
-
-**Or** install MongoDB locally (see Installation section below)
+- Optional integrations (Google Contacts, WhatsApp) - See [Setup Guide](./SETUP_GUIDE_COMPLETE.md)
 
 ---
 
