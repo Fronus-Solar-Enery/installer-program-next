@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TeamRole } from '@/types/roles';
-import { PaymentStatus } from '@/models/InstallerReward';
+import { PaymentStatus } from '@/types/rewards';
 
 // Phone number formatter: converts to +92XXXXXXXXXX format
 function formatPhoneNumber(phone: string): string {
@@ -90,6 +90,7 @@ export const registerRewardSchema = z.object({
 });
 
 export const updateRewardSchema = z.object({
+  serialNumber: z.string().min(1, 'Serial number is required').optional(),
   cityOfInstallation: z.string().min(2, 'City of installation is required').optional(),
   productModel: z.string().min(1, 'Product model is required').optional(),
   serialNumberStatus: z.string().min(1, 'Serial number status is required').optional(),

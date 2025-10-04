@@ -1,10 +1,8 @@
 import mongoose, { Schema, Model, Types } from 'mongoose';
+import { PaymentStatus } from '@/types/rewards';
 
-export enum PaymentStatus {
-  PENDING = 'PENDING',
-  PAID = 'PAID',
-  FAILED = 'FAILED',
-}
+// Re-export for backward compatibility
+export { PaymentStatus };
 
 export interface IInstallerReward {
   _id?: string;

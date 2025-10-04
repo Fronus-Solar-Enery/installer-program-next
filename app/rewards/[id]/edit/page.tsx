@@ -3,15 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import { PaymentStatus } from '@/models/InstallerReward';
-
-const PAYMENT_METHODS = [
-  'Bank Transfer',
-  'Cheque',
-  'Cash',
-  'Online Payment',
-  'Mobile Banking',
-];
+import { PaymentStatus } from '@/types/rewards';
+import { PRODUCT_MODELS, PAYMENT_METHOD } from '@/lib/constants';
 
 export default function EditRewardPage() {
   const router = useRouter();
@@ -23,10 +16,13 @@ export default function EditRewardPage() {
   const [error, setError] = useState('');
   const [reward, setReward] = useState<any>(null);
 
-  // Form fields
+  // Form fields - all editable fields
+  const [serialNumber, setSerialNumber] = useState('');
+  const [productModel, setProductModel] = useState('');
+  const [inverterSerialNumber, setInverterSerialNumber] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(PaymentStatus.PENDING);
   const [transactionId, setTransactionId] = useState('');
   const [referrerTransactionId, setReferrerTransactionId] = useState('');
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(PaymentStatus.PENDING);
   const [sendingDate, setSendingDate] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
 
@@ -46,9 +42,12 @@ export default function EditRewardPage() {
 
       setReward(data.data);
       // Pre-fill form with existing data
+      setSerialNumber(data.data.serialNumber || '');
+      setProductModel(data.data.productModel || '');
+      setInverterSerialNumber(data.data.inverterSerialNumber || '');
+      setPaymentStatus(data.data.paymentStatus);
       setTransactionId(data.data.transactionId || '');
       setReferrerTransactionId(data.data.referrerTransactionId || '');
-      setPaymentStatus(data.data.paymentStatus);
       setSendingDate(data.data.sendingDate ? new Date(data.data.sendingDate).toISOString().split('T')[0] : '');
       setPaymentMethod(data.data.paymentMethod || '');
     } catch (err: any) {
@@ -64,14 +63,20 @@ export default function EditRewardPage() {
     setError('');
 
     // Validation
-    if (!transactionId) {
-      setError('Installer transaction ID is required');
+    if (!serialNumber) {
+      setError('Serial number is required');
       setLoading(false);
       return;
     }
 
-    if (reward?.referrer && !referrerTransactionId) {
-      setError('Referrer transaction ID is required when installer has a referrer');
+    if (!productModel) {
+      setError('Product model is required');
+      setLoading(false);
+      return;
+    }
+
+    if (!inverterSerialNumber) {
+      setError('Inverter serial number is required');
       setLoading(false);
       return;
     }
@@ -81,9 +86,12 @@ export default function EditRewardPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          transactionId,
-          referrerTransactionId: reward?.referrer ? referrerTransactionId : undefined,
+          serialNumber,
+          productModel,
+          inverterSerialNumber,
           paymentStatus,
+          transactionId: transactionId || undefined,
+          referrerTransactionId: reward?.referrer ? (referrerTransactionId || undefined) : undefined,
           sendingDate: sendingDate || undefined,
           paymentMethod: paymentMethod || undefined,
         }),
@@ -185,40 +193,58 @@ export default function EditRewardPage() {
 
         {/* Edit Form */}
         <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Details</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Edit Reward Details</h2>
 
           <div className="space-y-6">
-            {/* Installer Transaction ID */}
+            {/* Serial Number */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Installer Transaction ID <span className="text-red-500">*</span>
+                Serial Number <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
+                value={serialNumber}
+                onChange={(e) => setSerialNumber(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Enter transaction ID"
+                placeholder="Enter serial number"
                 required
               />
             </div>
 
-            {/* Referrer Transaction ID - Only if referrer exists */}
-            {reward.referrer && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Referrer Transaction ID <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={referrerTransactionId}
-                  onChange={(e) => setReferrerTransactionId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Enter referrer transaction ID"
-                  required
-                />
-              </div>
-            )}
+            {/* Product Model */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Product Model <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={productModel}
+                onChange={(e) => setProductModel(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                required
+              >
+                <option value="">Select product model</option>
+                {PRODUCT_MODELS.map((product) => (
+                  <option key={product.value} value={product.value}>
+                    {product.label} (Rs. {product.reward.toLocaleString()})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Inverter Serial Number */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Inverter Serial Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={inverterSerialNumber}
+                onChange={(e) => setInverterSerialNumber(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Enter inverter serial number"
+                required
+              />
+            </div>
 
             {/* Payment Status */}
             <div>
@@ -237,22 +263,35 @@ export default function EditRewardPage() {
               </select>
             </div>
 
-            {/* Payment Method */}
+            {/* Installer Transaction ID */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Payment Method
+                Installer Transaction ID
               </label>
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
+              <input
+                type="text"
+                value={transactionId}
+                onChange={(e) => setTransactionId(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">Select payment method</option>
-                {PAYMENT_METHODS.map(method => (
-                  <option key={method} value={method}>{method}</option>
-                ))}
-              </select>
+                placeholder="Enter transaction ID"
+              />
             </div>
+
+            {/* Referrer Transaction ID - Only if referrer exists */}
+            {reward.referrer && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Referrer Transaction ID
+                </label>
+                <input
+                  type="text"
+                  value={referrerTransactionId}
+                  onChange={(e) => setReferrerTransactionId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Enter referrer transaction ID"
+                />
+              </div>
+            )}
 
             {/* Sending Date */}
             <div>
@@ -265,6 +304,23 @@ export default function EditRewardPage() {
                 onChange={(e) => setSendingDate(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               />
+            </div>
+
+            {/* Payment Method */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Payment Method
+              </label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">Select payment method</option>
+                {PAYMENT_METHOD.map(method => (
+                  <option key={method.value} value={method.value}>{method.label}</option>
+                ))}
+              </select>
             </div>
 
             {/* Submit Button */}
@@ -281,7 +337,7 @@ export default function EditRewardPage() {
                 disabled={loading}
                 className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400"
               >
-                {loading ? 'Updating...' : 'Update Payment Details'}
+                {loading ? 'Updating...' : 'Update Reward'}
               </button>
             </div>
           </div>

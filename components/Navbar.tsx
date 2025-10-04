@@ -49,6 +49,12 @@ export default function Navbar() {
               >
                 Reports
               </Link>
+              <Link
+                href="/activity"
+                className={`px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700 ${isActive('/activity')}`}
+              >
+                Activity
+              </Link>
               {canAccessTeamManagement && (
                 <Link
                   href="/team"
