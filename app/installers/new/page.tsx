@@ -6,6 +6,14 @@ import Navbar from '@/components/Navbar';
 import { CITIES, CITY_TO_PROVINCE, TRAINING_CENTER, BANKS } from '@/lib/constants';
 import { CheckCircle, Circle, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Digital payment methods (mobile wallets)
 const DIGITAL_PAYMENT_METHODS = ['jazzcash', 'easypaisa', 'nayapay', 'sadapay', 'finja', 'keenu', 'upaisa'];
@@ -380,75 +388,78 @@ export default function NewInstallerPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Register New Installer</h1>
-
-          {/* Steps Indicator */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              {steps.map((step, index) => (
-                <div key={step.number} className="flex items-center flex-1">
-                  <div className="flex flex-col items-center flex-1">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                      currentStep > step.number
-                        ? 'bg-green-500 border-green-500 text-white'
-                        : currentStep === step.number
-                        ? 'bg-indigo-600 border-indigo-600 text-white'
-                        : 'bg-white border-gray-300 text-gray-500'
-                    }`}>
-                      {currentStep > step.number ? (
-                        <CheckCircle className="h-6 w-6" />
-                      ) : (
-                        <span>{step.number}</span>
-                      )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Register New Installer</CardTitle>
+            <CardDescription>Complete all steps to register a new installer</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Steps Indicator */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between">
+                {steps.map((step, index) => (
+                  <div key={step.number} className="flex items-center flex-1">
+                    <div className="flex flex-col items-center flex-1">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
+                        currentStep > step.number
+                          ? 'bg-green-500 border-green-500 text-white dark:bg-green-600 dark:border-green-600'
+                          : currentStep === step.number
+                          ? 'bg-primary border-primary text-primary-foreground'
+                          : 'bg-background border-border text-muted-foreground'
+                      }`}>
+                        {currentStep > step.number ? (
+                          <CheckCircle className="h-6 w-6" />
+                        ) : (
+                          <span>{step.number}</span>
+                        )}
+                      </div>
+                      <div className="text-xs mt-2 text-center font-medium text-muted-foreground">
+                        {step.title}
+                      </div>
                     </div>
-                    <div className="text-xs mt-2 text-center font-medium text-gray-600">
-                      {step.title}
-                    </div>
+                    {index < steps.length - 1 && (
+                      <div className={`flex-1 h-0.5 mx-2 transition-colors ${
+                        currentStep > step.number ? 'bg-green-500 dark:bg-green-600' : 'bg-muted'
+                      }`} />
+                    )}
                   </div>
-                  {index < steps.length - 1 && (
-                    <div className={`flex-1 h-0.5 mx-2 ${
-                      currentStep > step.number ? 'bg-green-500' : 'bg-gray-300'
-                    }`} />
-                  )}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
 
           {/* Step Content */}
           <div className="space-y-6">
             {/* Step 1: Personal Info */}
             {currentStep === 1 && (
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Step 1: Personal Information</h2>
+                <h2 className="text-lg font-semibold mb-4">Step 1: Personal Information</h2>
 
                 {/* CNIC */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    CNIC <span className="text-red-500">*</span>
-                  </label>
+                <div className="space-y-2">
+                  <Label htmlFor="cnic">
+                    CNIC <span className="text-destructive">*</span>
+                  </Label>
                   <div className="flex gap-2">
-                    <input
+                    <Input
+                      id="cnic"
                       type="text"
                       value={cnicDisplay}
                       onChange={(e) => handleCNICChange(e.target.value)}
                       placeholder="35202-1234567-8"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                      className="flex-1"
                     />
-                    <button
+                    <Button
                       onClick={checkCNIC}
                       disabled={loading || cnic.length !== 13}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Check'}
-                    </button>
+                    </Button>
                   </div>
                   {cnicChecked && (
-                    <p className="mt-1 text-sm text-green-600 flex items-center">
+                    <p className="text-sm text-green-600 dark:text-green-500 flex items-center">
                       <Check className="h-4 w-4 mr-1" /> CNIC available
                     </p>
                   )}
@@ -457,51 +468,51 @@ export default function NewInstallerPage() {
                 {cnicChecked && (
                   <>
                     {/* Full Name */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Full Name <span className="text-red-500">*</span>
-                      </label>
-                      <input
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName">
+                        Full Name <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="fullName"
                         type="text"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                         placeholder="Enter full name"
                       />
                     </div>
 
                     {/* Phone Number */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Phone Number <span className="text-red-500">*</span>
-                      </label>
-                      <input
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber">
+                        Phone Number <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="phoneNumber"
                         type="text"
                         value={phoneNumber}
                         onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
                         maxLength={11}
                         placeholder="03001234567"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                       />
                     </div>
 
                     {/* WhatsApp Number */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-sm font-medium text-gray-700">
-                          WhatsApp Number
-                        </label>
-                        <label className="flex items-center text-sm text-gray-600">
-                          <input
-                            type="checkbox"
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="sameAsPhone"
                             checked={sameAsPhone}
-                            onChange={(e) => setSameAsPhone(e.target.checked)}
-                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"
+                            onCheckedChange={(checked) => setSameAsPhone(checked as boolean)}
                           />
-                          Same as phone
-                        </label>
+                          <Label htmlFor="sameAsPhone" className="text-sm font-normal cursor-pointer">
+                            Same as phone
+                          </Label>
+                        </div>
                       </div>
-                      <input
+                      <Input
+                        id="whatsappNumber"
                         type="text"
                         value={whatsappNumber}
                         onChange={(e) => {
@@ -511,7 +522,6 @@ export default function NewInstallerPage() {
                         maxLength={11}
                         placeholder="03001234567"
                         disabled={sameAsPhone}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100"
                       />
                     </div>
                   </>
@@ -522,100 +532,99 @@ export default function NewInstallerPage() {
             {/* Step 2: Location & Training */}
             {currentStep === 2 && (
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Step 2: Location & Training</h2>
+                <h2 className="text-lg font-semibold mb-4">Step 2: Location & Training</h2>
 
                 {/* City */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    City <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    <option value="">Select City</option>
-                    {CITIES.sort().map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
+                <div className="space-y-2">
+                  <Label htmlFor="city">
+                    City <span className="text-destructive">*</span>
+                  </Label>
+                  <Select value={city} onValueChange={setCity}>
+                    <SelectTrigger id="city">
+                      <SelectValue placeholder="Select City" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CITIES.sort().map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Province (auto-selected) */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Province
-                  </label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="province">Province</Label>
+                  <Input
+                    id="province"
                     type="text"
                     value={province}
                     disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600"
                   />
                 </div>
 
                 {/* Address */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Address <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
+                <div className="space-y-2">
+                  <Label htmlFor="address">
+                    Address <span className="text-destructive">*</span>
+                  </Label>
+                  <Textarea
+                    id="address"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Enter complete address"
                   />
                 </div>
 
                 {/* Training Center */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Training Center <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={trainingCenter}
-                    onChange={(e) => setTrainingCenter(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    <option value="">Select Training Center</option>
-                    {TRAINING_CENTER.map((tc) => (
-                      <option key={tc.city} value={tc.city}>{tc.city}</option>
-                    ))}
-                  </select>
+                <div className="space-y-2">
+                  <Label htmlFor="trainingCenter">
+                    Training Center <span className="text-destructive">*</span>
+                  </Label>
+                  <Select value={trainingCenter} onValueChange={setTrainingCenter}>
+                    <SelectTrigger id="trainingCenter">
+                      <SelectValue placeholder="Select Training Center" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TRAINING_CENTER.map((tc) => (
+                        <SelectItem key={tc.city} value={tc.city}>{tc.city}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Installer Code (auto-generated or manual) */}
                 {trainingCenter && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Installer Code {!settings?.allowInstallerCodeEdit && <span className="text-xs text-gray-500">(Auto-generated)</span>}
-                    </label>
+                  <div className="space-y-2">
+                    <Label htmlFor="installerCode">
+                      Installer Code {!settings?.allowInstallerCodeEdit && <span className="text-xs text-muted-foreground">(Auto-generated)</span>}
+                    </Label>
                     {settings?.allowInstallerCodeEdit ? (
-                      <input
+                      <Input
+                        id="installerCode"
                         type="text"
                         value={installerCode}
                         onChange={(e) => setInstallerCode(e.target.value.toUpperCase())}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                         placeholder="Enter installer code"
                       />
                     ) : (
                       <div className="relative">
-                        <input
+                        <Input
+                          id="installerCode"
                           type="text"
                           value={installerCode}
                           disabled
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-800 font-mono"
+                          className="font-mono"
                         />
                         {codeGenerating && (
                           <div className="absolute right-3 top-2.5">
-                            <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
+                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
                           </div>
                         )}
                       </div>
                     )}
                     {installerCode && !settings?.allowInstallerCodeEdit && (
-                      <p className="mt-1 text-xs text-green-600 flex items-center">
+                      <p className="text-xs text-green-600 dark:text-green-500 flex items-center">
                         <Check className="h-3 w-3 mr-1" /> Code generated based on training center
                       </p>
                     )}
@@ -627,42 +636,46 @@ export default function NewInstallerPage() {
             {/* Step 3: Banking Details */}
             {currentStep === 3 && (
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Step 3: Banking Details</h2>
+                <h2 className="text-lg font-semibold mb-4">Step 3: Banking Details</h2>
 
                 {/* Bank Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Bank / Payment Method <span className="text-red-500">*</span>
-                  </label>
-                  <select
+                <div className="space-y-2">
+                  <Label htmlFor="bankName">
+                    Bank / Payment Method <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
                     value={bankName}
-                    onChange={(e) => {
-                      setBankName(e.target.value);
-                      setAccountNumber(''); // Reset account number when bank changes
+                    onValueChange={(value) => {
+                      setBankName(value);
+                      setAccountNumber('');
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                   >
-                    <option value="">Select Bank / Payment Method</option>
-                    <optgroup label="Digital Payment Methods">
-                      {BANKS.filter(b => b.mobile).map((bank) => (
-                        <option key={bank.value} value={bank.value}>{bank.label}</option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Commercial Banks">
-                      {BANKS.filter(b => !b.mobile).map((bank) => (
-                        <option key={bank.value} value={bank.value}>{bank.label}</option>
-                      ))}
-                    </optgroup>
-                  </select>
+                    <SelectTrigger id="bankName">
+                      <SelectValue placeholder="Select Bank / Payment Method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <optgroup label="Digital Payment Methods">
+                        {BANKS.filter(b => b.mobile).map((bank) => (
+                          <SelectItem key={bank.value} value={bank.value}>{bank.label}</SelectItem>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Commercial Banks">
+                        {BANKS.filter(b => !b.mobile).map((bank) => (
+                          <SelectItem key={bank.value} value={bank.value}>{bank.label}</SelectItem>
+                        ))}
+                      </optgroup>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Account Number */}
                 {bankName && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {isDigitalPayment ? 'Mobile Number' : 'Account Number / IBAN'} <span className="text-red-500">*</span>
-                    </label>
-                    <input
+                  <div className="space-y-2">
+                    <Label htmlFor="accountNumber">
+                      {isDigitalPayment ? 'Mobile Number' : 'Account Number / IBAN'} <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="accountNumber"
                       type="text"
                       value={accountNumber}
                       onChange={(e) => {
@@ -674,32 +687,33 @@ export default function NewInstallerPage() {
                       }}
                       maxLength={isDigitalPayment ? 11 : undefined}
                       placeholder={isDigitalPayment ? '03XXXXXXXXX' : 'IBAN or Account Number'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                     />
                     {isDigitalPayment && (
-                      <p className="mt-1 text-xs text-gray-500">Enter 11-digit mobile number starting with 03</p>
+                      <p className="text-xs text-muted-foreground">Enter 11-digit mobile number starting with 03</p>
                     )}
                   </div>
                 )}
 
                 {/* Account Title */}
                 {bankName && (
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Account Title <span className="text-red-500">*</span>
-                      </label>
-                      <label className="flex items-center text-sm text-gray-600">
-                        <input
-                          type="checkbox"
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="accountTitle">
+                        Account Title <span className="text-destructive">*</span>
+                      </Label>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="sameAsName"
                           checked={sameAsName}
-                          onChange={(e) => setSameAsName(e.target.checked)}
-                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mr-2"
+                          onCheckedChange={(checked) => setSameAsName(checked as boolean)}
                         />
-                        Same as installer name
-                      </label>
+                        <Label htmlFor="sameAsName" className="text-sm font-normal cursor-pointer">
+                          Same as installer name
+                        </Label>
+                      </div>
                     </div>
-                    <input
+                    <Input
+                      id="accountTitle"
                       type="text"
                       value={accountTitle}
                       onChange={(e) => {
@@ -707,7 +721,6 @@ export default function NewInstallerPage() {
                         setSameAsName(false);
                       }}
                       disabled={sameAsName}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100"
                       placeholder="Account holder name"
                     />
                   </div>
@@ -718,43 +731,42 @@ export default function NewInstallerPage() {
             {/* Step 4: Additional Info */}
             {currentStep === 4 && (
               <div className="space-y-4">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Step 4: Additional Information</h2>
+                <h2 className="text-lg font-semibold mb-4">Step 4: Additional Information</h2>
 
                 {/* Certified */}
-                <div className="flex items-center p-4 bg-gray-50 rounded-md">
-                  <input
-                    type="checkbox"
+                <div className="flex items-center space-x-2 p-4 bg-muted/50 rounded-md">
+                  <Checkbox
                     id="certified"
                     checked={certified}
-                    onChange={(e) => setCertified(e.target.checked)}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-5 w-5"
+                    onCheckedChange={(checked) => setCertified(checked as boolean)}
                   />
-                  <label htmlFor="certified" className="ml-3 text-sm font-medium text-gray-700">
+                  <Label htmlFor="certified" className="cursor-pointer">
                     Certified Installer
-                  </label>
+                  </Label>
                 </div>
 
                 {/* Company Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Company Name <span className="text-xs text-gray-500">(Optional)</span>
-                  </label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="companyName">
+                    Company Name <span className="text-xs text-muted-foreground">(Optional)</span>
+                  </Label>
+                  <Input
+                    id="companyName"
                     type="text"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Enter company name (if any)"
                   />
                 </div>
 
                 {/* Referrer Code */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Referrer Code <span className="text-xs text-gray-500">(Optional)</span>
-                  </label>
+                <div className="space-y-2">
+                  <Label htmlFor="referrerCode">
+                    Referrer Code <span className="text-xs text-muted-foreground">(Optional)</span>
+                  </Label>
                   <div className="flex gap-2">
-                    <input
+                    <Input
+                      id="referrerCode"
                       type="text"
                       value={referrerCode}
                       onChange={(e) => {
@@ -762,24 +774,23 @@ export default function NewInstallerPage() {
                         setReferrerData(null);
                         setReferrerError('');
                       }}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                      className="flex-1"
                       placeholder="Enter referrer installer code"
                     />
-                    <button
+                    <Button
                       onClick={validateReferrerCode}
                       disabled={loading || !referrerCode.trim()}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
                       {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Verify'}
-                    </button>
+                    </Button>
                   </div>
                   {referrerData && (
-                    <p className="mt-1 text-sm text-green-600 flex items-center">
+                    <p className="text-sm text-green-600 dark:text-green-500 flex items-center">
                       <Check className="h-4 w-4 mr-1" /> Referrer: {referrerData.fullName} ({referrerData.installerCode})
                     </p>
                   )}
                   {referrerError && (
-                    <p className="mt-1 text-sm text-red-600">{referrerError}</p>
+                    <p className="text-sm text-destructive">{referrerError}</p>
                   )}
                 </div>
               </div>
@@ -788,96 +799,96 @@ export default function NewInstallerPage() {
             {/* Step 5: Review */}
             {currentStep === 5 && (
               <div className="space-y-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Step 5: Review Details</h2>
+                <h2 className="text-lg font-semibold mb-4">Step 5: Review Details</h2>
 
-                <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                <div className="bg-muted/50 rounded-lg p-6 space-y-4">
                   {/* Personal Info */}
                   <div>
-                    <h3 className="font-medium text-gray-900 mb-2">Personal Information</h3>
+                    <h3 className="font-medium mb-2">Personal Information</h3>
                     <dl className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <dt className="font-medium text-gray-500">CNIC</dt>
-                        <dd className="text-gray-900">{cnicDisplay}</dd>
+                        <dt className="font-medium text-muted-foreground">CNIC</dt>
+                        <dd>{cnicDisplay}</dd>
                       </div>
                       <div>
-                        <dt className="font-medium text-gray-500">Full Name</dt>
-                        <dd className="text-gray-900">{fullName}</dd>
+                        <dt className="font-medium text-muted-foreground">Full Name</dt>
+                        <dd>{fullName}</dd>
                       </div>
                       <div>
-                        <dt className="font-medium text-gray-500">Phone</dt>
-                        <dd className="text-gray-900">{phoneNumber}</dd>
+                        <dt className="font-medium text-muted-foreground">Phone</dt>
+                        <dd>{phoneNumber}</dd>
                       </div>
                       <div>
-                        <dt className="font-medium text-gray-500">WhatsApp</dt>
-                        <dd className="text-gray-900">{whatsappNumber}</dd>
+                        <dt className="font-medium text-muted-foreground">WhatsApp</dt>
+                        <dd>{whatsappNumber}</dd>
                       </div>
                     </dl>
                   </div>
 
                   {/* Location */}
-                  <div className="pt-4 border-t border-gray-200">
-                    <h3 className="font-medium text-gray-900 mb-2">Location & Training</h3>
+                  <div className="pt-4 border-t border-border">
+                    <h3 className="font-medium mb-2">Location & Training</h3>
                     <dl className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <dt className="font-medium text-gray-500">City</dt>
-                        <dd className="text-gray-900">{city}</dd>
+                        <dt className="font-medium text-muted-foreground">City</dt>
+                        <dd>{city}</dd>
                       </div>
                       <div>
-                        <dt className="font-medium text-gray-500">Province</dt>
-                        <dd className="text-gray-900">{province}</dd>
+                        <dt className="font-medium text-muted-foreground">Province</dt>
+                        <dd>{province}</dd>
                       </div>
                       <div className="col-span-2">
-                        <dt className="font-medium text-gray-500">Address</dt>
-                        <dd className="text-gray-900">{address}</dd>
+                        <dt className="font-medium text-muted-foreground">Address</dt>
+                        <dd>{address}</dd>
                       </div>
                       <div>
-                        <dt className="font-medium text-gray-500">Training Center</dt>
-                        <dd className="text-gray-900">{trainingCenter}</dd>
+                        <dt className="font-medium text-muted-foreground">Training Center</dt>
+                        <dd>{trainingCenter}</dd>
                       </div>
                       <div>
-                        <dt className="font-medium text-gray-500">Installer Code</dt>
-                        <dd className="text-gray-900 font-mono font-bold">{installerCode}</dd>
+                        <dt className="font-medium text-muted-foreground">Installer Code</dt>
+                        <dd className="font-mono font-bold">{installerCode}</dd>
                       </div>
                     </dl>
                   </div>
 
                   {/* Banking */}
-                  <div className="pt-4 border-t border-gray-200">
-                    <h3 className="font-medium text-gray-900 mb-2">Banking Details</h3>
+                  <div className="pt-4 border-t border-border">
+                    <h3 className="font-medium mb-2">Banking Details</h3>
                     <dl className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <dt className="font-medium text-gray-500">Bank / Payment Method</dt>
-                        <dd className="text-gray-900">{BANKS.find(b => b.value === bankName)?.label}</dd>
+                        <dt className="font-medium text-muted-foreground">Bank / Payment Method</dt>
+                        <dd>{BANKS.find(b => b.value === bankName)?.label}</dd>
                       </div>
                       <div>
-                        <dt className="font-medium text-gray-500">{isDigitalPayment ? 'Mobile Number' : 'Account Number'}</dt>
-                        <dd className="text-gray-900">{accountNumber}</dd>
+                        <dt className="font-medium text-muted-foreground">{isDigitalPayment ? 'Mobile Number' : 'Account Number'}</dt>
+                        <dd>{accountNumber}</dd>
                       </div>
                       <div className="col-span-2">
-                        <dt className="font-medium text-gray-500">Account Title</dt>
-                        <dd className="text-gray-900">{accountTitle}</dd>
+                        <dt className="font-medium text-muted-foreground">Account Title</dt>
+                        <dd>{accountTitle}</dd>
                       </div>
                     </dl>
                   </div>
 
                   {/* Additional */}
-                  <div className="pt-4 border-t border-gray-200">
-                    <h3 className="font-medium text-gray-900 mb-2">Additional Information</h3>
+                  <div className="pt-4 border-t border-border">
+                    <h3 className="font-medium mb-2">Additional Information</h3>
                     <dl className="grid grid-cols-2 gap-4 text-sm">
                       <div>
-                        <dt className="font-medium text-gray-500">Certified</dt>
-                        <dd className="text-gray-900">{certified ? 'Yes' : 'No'}</dd>
+                        <dt className="font-medium text-muted-foreground">Certified</dt>
+                        <dd>{certified ? 'Yes' : 'No'}</dd>
                       </div>
                       {companyName && (
                         <div>
-                          <dt className="font-medium text-gray-500">Company</dt>
-                          <dd className="text-gray-900">{companyName}</dd>
+                          <dt className="font-medium text-muted-foreground">Company</dt>
+                          <dd>{companyName}</dd>
                         </div>
                       )}
                       {referrerData && (
                         <div className="col-span-2">
-                          <dt className="font-medium text-gray-500">Referrer</dt>
-                          <dd className="text-gray-900">{referrerData.fullName} ({referrerData.installerCode})</dd>
+                          <dt className="font-medium text-muted-foreground">Referrer</dt>
+                          <dd>{referrerData.fullName} ({referrerData.installerCode})</dd>
                         </div>
                       )}
                     </dl>
@@ -887,48 +898,48 @@ export default function NewInstallerPage() {
             )}
           </div>
 
-          {/* Navigation Buttons */}
-          <div className="mt-8 flex justify-between">
-            <button
-              onClick={handlePrev}
-              disabled={currentStep === 1}
-              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
+            {/* Navigation Buttons */}
+            <div className="mt-8 flex justify-between">
+              <Button
+                onClick={handlePrev}
+                disabled={currentStep === 1}
+                variant="outline"
+              >
+                Previous
+              </Button>
 
-            {currentStep < 5 ? (
-              <button
-                onClick={handleNext}
-                disabled={
-                  (currentStep === 1 && !isStep1Valid()) ||
-                  (currentStep === 2 && !isStep2Valid()) ||
-                  (currentStep === 3 && !isStep3Valid()) ||
-                  (currentStep === 4 && !isStep4Valid()) ||
-                  codeGenerating
-                }
-                className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            ) : (
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Registering...
-                  </>
-                ) : (
-                  'Complete Registration'
-                )}
-              </button>
-            )}
-          </div>
-        </div>
+              {currentStep < 5 ? (
+                <Button
+                  onClick={handleNext}
+                  disabled={
+                    (currentStep === 1 && !isStep1Valid()) ||
+                    (currentStep === 2 && !isStep2Valid()) ||
+                    (currentStep === 3 && !isStep3Valid()) ||
+                    (currentStep === 4 && !isStep4Valid()) ||
+                    codeGenerating
+                  }
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      Registering...
+                    </>
+                  ) : (
+                    'Complete Registration'
+                  )}
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

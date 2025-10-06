@@ -104,7 +104,7 @@ export default function TeamRegisterModal({ open, onOpenChange, onSuccess }: Tea
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Name */}
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="name" className="block text-sm font-medium text-foreground">
             Name <span className="text-red-500">*</span>
           </label>
           <input
@@ -113,14 +113,14 @@ export default function TeamRegisterModal({ open, onOpenChange, onSuccess }: Tea
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
+            className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
             placeholder="Enter full name"
           />
         </div>
 
         {/* Email */}
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="email" className="block text-sm font-medium text-foreground">
             Email <span className="text-red-500">*</span>
           </label>
           <input
@@ -129,14 +129,14 @@ export default function TeamRegisterModal({ open, onOpenChange, onSuccess }: Tea
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
+            className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
             placeholder="email@example.com"
           />
         </div>
 
         {/* Role */}
         <div>
-          <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="role" className="block text-sm font-medium text-foreground">
             Role <span className="text-red-500">*</span>
           </label>
           <select
@@ -144,7 +144,7 @@ export default function TeamRegisterModal({ open, onOpenChange, onSuccess }: Tea
             value={role}
             onChange={(e) => setRole(e.target.value as TeamRole)}
             required
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
+            className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
           >
             {availableRoles().map((roleOption) => (
               <option key={roleOption} value={roleOption}>
@@ -152,7 +152,7 @@ export default function TeamRegisterModal({ open, onOpenChange, onSuccess }: Tea
               </option>
             ))}
           </select>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             {isAdmin
               ? 'As an admin, you can assign any role'
               : isManager
@@ -163,7 +163,7 @@ export default function TeamRegisterModal({ open, onOpenChange, onSuccess }: Tea
 
         {/* Password */}
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="password" className="block text-sm font-medium text-foreground">
             Password <span className="text-red-500">*</span>
           </label>
           <input
@@ -173,14 +173,14 @@ export default function TeamRegisterModal({ open, onOpenChange, onSuccess }: Tea
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
+            className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
             placeholder="Minimum 6 characters"
           />
         </div>
 
         {/* Confirm Password */}
         <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground">
             Confirm Password <span className="text-red-500">*</span>
           </label>
           <input
@@ -190,7 +190,7 @@ export default function TeamRegisterModal({ open, onOpenChange, onSuccess }: Tea
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             minLength={6}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
+            className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
             placeholder="Re-enter password"
           />
         </div>
@@ -207,14 +207,14 @@ export default function TeamRegisterModal({ open, onOpenChange, onSuccess }: Tea
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-md hover:bg-muted"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading || password !== confirmPassword}
-            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:bg-muted disabled:cursor-not-allowed"
           >
             {loading ? 'Creating...' : 'Create Team Member'}
           </button>

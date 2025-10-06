@@ -17,6 +17,46 @@ import {
   Settings2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function RewardsPage() {
   const router = useRouter();
@@ -27,10 +67,10 @@ export default function RewardsPage() {
   // Filter states
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("ALL");
   const [sendingDateFilter, setSendingDateFilter] = useState("");
-  const [paymentMethodFilter, setPaymentMethodFilter] = useState("");
-  const [serialNumberStatusFilter, setSerialNumberStatusFilter] = useState("");
-  const [productModelFilter, setProductModelFilter] = useState("");
-  const [teamMemberFilter, setTeamMemberFilter] = useState("");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
+  const [serialNumberStatusFilter, setSerialNumberStatusFilter] = useState("all");
+  const [productModelFilter, setProductModelFilter] = useState("all");
+  const [teamMemberFilter, setTeamMemberFilter] = useState("all");
 
   // Unique values for filters
   const [paymentMethods, setPaymentMethods] = useState<string[]>([]);
@@ -64,6 +104,10 @@ export default function RewardsPage() {
   });
   const [showColumnMenu, setShowColumnMenu] = useState(false);
 
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [rewardToDelete, setRewardToDelete] = useState<string | null>(null);
+
   useEffect(() => {
     fetchRewards();
   }, [
@@ -86,16 +130,16 @@ export default function RewardsPage() {
       if (sendingDateFilter) {
         params.append("sendingDate", sendingDateFilter);
       }
-      if (paymentMethodFilter) {
+      if (paymentMethodFilter && paymentMethodFilter !== "all") {
         params.append("paymentMethod", paymentMethodFilter);
       }
-      if (serialNumberStatusFilter) {
+      if (serialNumberStatusFilter && serialNumberStatusFilter !== "all") {
         params.append("serialNumberStatus", serialNumberStatusFilter);
       }
-      if (productModelFilter) {
+      if (productModelFilter && productModelFilter !== "all") {
         params.append("productModel", productModelFilter);
       }
-      if (teamMemberFilter) {
+      if (teamMemberFilter && teamMemberFilter !== "all") {
         params.append("registeredBy", teamMemberFilter);
       }
 
@@ -200,16 +244,16 @@ export default function RewardsPage() {
     return 0;
   });
 
-  const handleDelete = async (id: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this reward? This action cannot be undone."
-      )
-    )
-      return;
+  const handleDeleteClick = (id: string) => {
+    setRewardToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!rewardToDelete) return;
 
     try {
-      const response = await fetch(`/api/rewards/${id}`, {
+      const response = await fetch(`/api/rewards/${rewardToDelete}`, {
         method: "DELETE",
       });
 
@@ -224,6 +268,9 @@ export default function RewardsPage() {
     } catch (error) {
       console.error("Failed to delete reward:", error);
       toast.error("An error occurred while deleting the reward");
+    } finally {
+      setDeleteDialogOpen(false);
+      setRewardToDelete(null);
     }
   };
 
@@ -231,9 +278,11 @@ export default function RewardsPage() {
     const isCopied = copiedText === text;
 
     return (
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => handleCopy(text)}
-        className="ml-2 p-1 text-gray-400 hover:text-indigo-600 transition-colors"
+        className="ml-2 h-8 w-8 p-0"
         title={`Copy ${label}`}
       >
         {isCopied ? (
@@ -241,304 +290,271 @@ export default function RewardsPage() {
         ) : (
           <Copy className="h-4 w-4" />
         )}
-      </button>
+      </Button>
     );
   };
 
   const clearFilters = () => {
     setPaymentStatusFilter("ALL");
     setSendingDateFilter("");
-    setPaymentMethodFilter("");
-    setSerialNumberStatusFilter("");
-    setProductModelFilter("");
-    setTeamMemberFilter("");
+    setPaymentMethodFilter("all");
+    setSerialNumberStatusFilter("all");
+    setProductModelFilter("all");
+    setTeamMemberFilter("all");
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Rewards</h1>
-          <div className="space-x-4">
-            <button
-              onClick={() => router.push("/rewards/new")}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-            >
+          <h1 className="text-3xl font-bold">Rewards</h1>
+          <div className="flex gap-3">
+            <Button onClick={() => router.push("/rewards/new")}>
               + Register Reward
-            </button>
-            <button
-              onClick={() => router.push("/rewards/bulk-upload")}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-            >
+            </Button>
+            <Button onClick={() => router.push("/rewards/bulk-upload")} variant="secondary">
               Bulk Update
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Filters Section */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
-            <div className="flex gap-3">
-              <div className="relative">
-                <button
-                  onClick={() => setShowColumnMenu(!showColumnMenu)}
-                  className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-2 text-sm"
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Filters</CardTitle>
+              <div className="flex gap-3">
+                <DropdownMenu open={showColumnMenu} onOpenChange={setShowColumnMenu}>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Settings2 className="h-4 w-4 mr-2" />
+                      Columns
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Show/Hide Columns</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {Object.entries(visibleColumns).map(([key, value]) => (
+                      <DropdownMenuCheckboxItem
+                        key={key}
+                        checked={value}
+                        onCheckedChange={() => toggleColumn(key)}
+                      >
+                        {key.replace(/([A-Z])/g, " $1").trim()}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
                 >
-                  <Settings2 className="h-4 w-4" />
-                  Columns
-                </button>
-                {showColumnMenu && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-10">
-                    <div className="p-2 max-h-96 overflow-y-auto">
-                      <div className="text-xs font-semibold text-gray-500 uppercase px-2 py-1">
-                        Show/Hide Columns
-                      </div>
-                      {Object.entries(visibleColumns).map(([key, value]) => (
-                        <label
-                          key={key}
-                          className="flex items-center px-2 py-2 hover:bg-gray-50 cursor-pointer rounded"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={value}
-                            onChange={() => toggleColumn(key)}
-                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <span className="ml-2 text-sm text-gray-700 capitalize">
-                            {key.replace(/([A-Z])/g, " $1").trim()}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                  Clear All Filters
+                </Button>
               </div>
-              <button
-                onClick={clearFilters}
-                className="text-sm text-indigo-600 hover:text-indigo-800"
-              >
-                Clear All Filters
-              </button>
             </div>
-          </div>
+          </CardHeader>
+          <CardContent>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Payment Status Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Payment Status
-              </label>
-              <select
-                value={paymentStatusFilter}
-                onChange={(e) => setPaymentStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="ALL">All Status</option>
-                <option value="PENDING">Pending</option>
-                <option value="PAID">Paid</option>
-                <option value="FAILED">Failed</option>
-              </select>
+            <div className="space-y-2">
+              <Label htmlFor="payment-status">Payment Status</Label>
+              <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+                <SelectTrigger id="payment-status">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All Status</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="PAID">Paid</SelectItem>
+                  <SelectItem value="FAILED">Failed</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Sending Date Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sending Date
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label htmlFor="sending-date">Sending Date</Label>
+              <Input
+                id="sending-date"
                 type="date"
                 value={sendingDateFilter}
                 onChange={(e) => setSendingDateFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
 
             {/* Payment Method Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Payment Method
-              </label>
-              <select
-                value={paymentMethodFilter}
-                onChange={(e) => setPaymentMethodFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">All Methods</option>
-                {paymentMethods.map((method) => (
-                  <option key={method} value={method}>
-                    {method}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-2">
+              <Label htmlFor="payment-method">Payment Method</Label>
+              <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+                <SelectTrigger id="payment-method">
+                  <SelectValue placeholder="All Methods" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Methods</SelectItem>
+                  {paymentMethods.map((method) => (
+                    <SelectItem key={method} value={method}>
+                      {method}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Serial Number Status Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Serial Number Status
-              </label>
-              <select
-                value={serialNumberStatusFilter}
-                onChange={(e) => setSerialNumberStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">All Status</option>
-                {serialNumberStatuses.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-2">
+              <Label htmlFor="serial-status">Serial Number Status</Label>
+              <Select value={serialNumberStatusFilter} onValueChange={setSerialNumberStatusFilter}>
+                <SelectTrigger id="serial-status">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  {serialNumberStatuses.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Product Model Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Model
-              </label>
-              <select
-                value={productModelFilter}
-                onChange={(e) => setProductModelFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">All Models</option>
-                {productModels.map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-2">
+              <Label htmlFor="product-model">Product Model</Label>
+              <Select value={productModelFilter} onValueChange={setProductModelFilter}>
+                <SelectTrigger id="product-model">
+                  <SelectValue placeholder="All Models" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Models</SelectItem>
+                  {productModels.map((model) => (
+                    <SelectItem key={model} value={model}>
+                      {model}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Team Member Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Registered By
-              </label>
-              <select
-                value={teamMemberFilter}
-                onChange={(e) => setTeamMemberFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="">All Team Members</option>
-                {teamMembers.map((member) => (
-                  <option key={member._id} value={member._id}>
-                    {member.name} ({member.email})
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-2">
+              <Label htmlFor="team-member">Registered By</Label>
+              <Select value={teamMemberFilter} onValueChange={setTeamMemberFilter}>
+                <SelectTrigger id="team-member">
+                  <SelectValue placeholder="All Team Members" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Team Members</SelectItem>
+                  {teamMembers.map((member) => (
+                    <SelectItem key={member._id} value={member._id}>
+                      {member.name} ({member.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <Card>
+          <CardContent className="p-6">
           {loading ? (
             <div className="text-center py-12">
-              <div className="text-gray-600">Loading rewards...</div>
+              <div className="text-muted-foreground">Loading rewards...</div>
             </div>
           ) : sortedRewards.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-gray-600">No rewards found</div>
-              <button
-                onClick={() => router.push("/rewards/new")}
-                className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-              >
+              <div className="text-muted-foreground mb-4">No rewards found</div>
+              <Button onClick={() => router.push("/rewards/new")}>
                 Register First Reward
-              </button>
+              </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
                     {visibleColumns.serialNumber && (
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                      <TableHead
+                        className="cursor-pointer"
                         onClick={() => handleSort("serialNumber")}
                       >
                         Serial Number {getSortIcon("serialNumber")}
-                      </th>
+                      </TableHead>
                     )}
                     {visibleColumns.installerCode && (
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                      <TableHead
+                        className="cursor-pointer"
                         onClick={() => handleSort("installerCode")}
                       >
                         Installer Code {getSortIcon("installerCode")}
-                      </th>
+                      </TableHead>
                     )}
                     {visibleColumns.installer && (
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                      <TableHead
+                        className="cursor-pointer"
                         onClick={() => handleSort("installer")}
                       >
                         Installer {getSortIcon("installer")}
-                      </th>
+                      </TableHead>
                     )}
                     {visibleColumns.productModel && (
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                      <TableHead
+                        className="cursor-pointer"
                         onClick={() => handleSort("productModel")}
                       >
                         Product Model {getSortIcon("productModel")}
-                      </th>
+                      </TableHead>
                     )}
                     {visibleColumns.rewardAmount && (
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                      <TableHead
+                        className="cursor-pointer"
                         onClick={() => handleSort("rewardAmount")}
                       >
                         Amount {getSortIcon("rewardAmount")}
-                      </th>
+                      </TableHead>
                     )}
                     {visibleColumns.paymentStatus && (
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                      <TableHead
+                        className="cursor-pointer"
                         onClick={() => handleSort("paymentStatus")}
                       >
                         Status {getSortIcon("paymentStatus")}
-                      </th>
+                      </TableHead>
                     )}
                     {visibleColumns.paymentMethod && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Payment Method
-                      </th>
+                      <TableHead>Payment Method</TableHead>
                     )}
                     {visibleColumns.transactionId && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Transaction ID
-                      </th>
+                      <TableHead>Transaction ID</TableHead>
                     )}
                     {visibleColumns.sendingDate && (
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                      <TableHead
+                        className="cursor-pointer"
                         onClick={() => handleSort("sendingDate")}
                       >
                         Sending Date {getSortIcon("sendingDate")}
-                      </th>
+                      </TableHead>
                     )}
                     {visibleColumns.inverterSerialNumber && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Inverter Serial
-                      </th>
+                      <TableHead>Inverter Serial</TableHead>
                     )}
                     {visibleColumns.registeredBy && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Registered By
-                      </th>
+                      <TableHead>Registered By</TableHead>
                     )}
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {sortedRewards.map((reward: any) => (
-                    <tr key={reward._id} className="hover:bg-gray-50">
+                    <TableRow key={reward._id}>
                       {visibleColumns.serialNumber && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <TableCell className="font-medium">
                           <div className="flex items-center">
                             {reward.serialNumber}
                             <CopyButton
@@ -546,10 +562,10 @@ export default function RewardsPage() {
                               label="Serial Number"
                             />
                           </div>
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.installerCode && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <TableCell>
                           <div className="flex items-center">
                             {reward.installerCode}
                             <CopyButton
@@ -557,45 +573,45 @@ export default function RewardsPage() {
                               label="Installer Code"
                             />
                           </div>
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.installer && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <TableCell>
                           {reward.installer?.fullName || "N/A"}
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.productModel && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <TableCell>
                           {reward.productModel}
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.rewardAmount && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <TableCell>
                           Rs. {reward.rewardAmount.toLocaleString()}
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.paymentStatus && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span
-                            className={`px-2 py-1 inline-flex text-xs font-semibold rounded-full leading-none ${
+                        <TableCell>
+                          <Badge
+                            variant={
                               reward.paymentStatus === "PAID"
-                                ? "bg-green-100 text-green-800"
+                                ? "default"
                                 : reward.paymentStatus === "PENDING"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
+                                ? "secondary"
+                                : "destructive"
+                            }
                           >
                             {reward.paymentStatus}
-                          </span>
-                        </td>
+                          </Badge>
+                        </TableCell>
                       )}
                       {visibleColumns.paymentMethod && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <TableCell>
                           {reward.paymentMethod || "N/A"}
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.transactionId && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <TableCell>
                           <div className="flex items-center">
                             {reward.transactionId ? (
                               <>
@@ -609,62 +625,66 @@ export default function RewardsPage() {
                               "N/A"
                             )}
                           </div>
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.sendingDate && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <TableCell>
                           {reward.sendingDate
                             ? new Date(reward.sendingDate).toLocaleDateString()
                             : "N/A"}
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.inverterSerialNumber && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <TableCell>
                           {reward.inverterSerialNumber || "N/A"}
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.registeredBy && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <TableCell>
                           {reward.registeredBy?.name || "N/A"}
-                        </td>
+                        </TableCell>
                       )}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center gap-3">
-                          <button
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() =>
                               router.push(`/rewards/${reward._id}`)
                             }
-                            className="text-indigo-600 hover:text-indigo-900"
                             title="View Details"
                           >
                             <Eye className="h-4 w-4" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => {
                               setSelectedRewardId(reward._id);
                               setEditModalOpen(true);
                             }}
-                            className="text-blue-600 hover:text-blue-900"
                             title="Edit"
                           >
                             <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(reward._id)}
-                            className="text-red-600 hover:text-red-900"
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteClick(reward._id)}
                             title="Delete"
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Edit Modal */}
@@ -674,6 +694,25 @@ export default function RewardsPage() {
         rewardId={selectedRewardId}
         onSuccess={fetchRewards}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the reward
+              and remove it from the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

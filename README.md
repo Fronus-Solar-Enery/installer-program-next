@@ -112,6 +112,12 @@ npm run dev
 
 👉 See the **MongoDB Setup** section in [SETUP_GUIDE_COMPLETE.md](./SETUP_GUIDE_COMPLETE.md)
 
+**Quick Diagnosis:**
+```bash
+npm run test:db
+```
+This will diagnose the issue and provide specific solutions.
+
 **Quick Fix (Recommended)**: Use cloud MongoDB (no installation, free forever)
 
 ### 🎯 What's Already Configured
@@ -435,6 +441,72 @@ Then run:
 ```bash
 npm run dev
 ```
+
+---
+
+## 🔍 Database Debugging & Testing
+
+The application includes comprehensive database connection debugging tools.
+
+### Test Database Connection
+
+```bash
+npm run test:db
+```
+
+**What it does:**
+- ✅ Tests MongoDB connection
+- ✅ Diagnoses connection errors with specific solutions
+- ✅ Measures connection speed
+- ✅ Lists databases and collections
+- ✅ Tests read/write operations
+- ✅ Color-coded output (green=success, red=error)
+
+**Example output on error:**
+```
+❌ CONNECTION FAILED - DIAGNOSIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔴 ROOT CAUSE:
+   MongoDB is not running on your local machine
+
+📋 SOLUTION 1 (Recommended - No Installation):
+   Use MongoDB Atlas (Cloud Database):
+   1. Sign up: https://www.mongodb.com/cloud/atlas/register
+   2. Create FREE M0 cluster (512MB forever free)
+   ...
+```
+
+### Development Server Logging
+
+When you run `npm run dev`, you'll see:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🗄️  DATABASE CONFIGURATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Type:     MongoDB Atlas (Cloud)
+   Host:     cluster0.xxxxx.mongodb.net
+   Database: installer_program
+   Status:   Will connect on first request
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 Test connection: npm run test:db
+```
+
+### Health Check API
+
+**Endpoint:** `GET /api/health/db` (Admin only)
+
+Returns detailed database connection status including:
+- Connection state
+- Database info
+- Collections list
+- Response time
+
+**See [DB_DEBUG_FEATURES.md](./DB_DEBUG_FEATURES.md) for complete documentation.**
+
+---
 
 ## API Endpoints
 

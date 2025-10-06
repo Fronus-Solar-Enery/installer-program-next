@@ -171,7 +171,7 @@ export default function InstallerEditModal({
         size="xl"
       >
         <div className="flex items-center justify-center py-12">
-          <p className="text-gray-600">Loading installer data...</p>
+          <p className="text-muted-foreground">Loading installer data...</p>
         </div>
       </Modal>
     );
@@ -190,7 +190,7 @@ export default function InstallerEditModal({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Installer Code */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Installer Code <span className="text-red-500">*</span>
             </label>
             <input
@@ -198,11 +198,11 @@ export default function InstallerEditModal({
               value={installerCode}
               onChange={(e) => setInstallerCode(e.target.value.toUpperCase())}
               disabled={!settings?.allowInstallerCodeEdit}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-muted disabled:cursor-not-allowed"
               required
             />
             {!settings?.allowInstallerCodeEdit && (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Installer code editing is disabled by admin
               </p>
             )}
@@ -210,28 +210,28 @@ export default function InstallerEditModal({
 
           {/* Full Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Full Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
           </div>
 
           {/* CNIC */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               CNIC <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={cnic}
               onChange={(e) => setCnic(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="12345-1234567-1"
               required
             />
@@ -239,14 +239,14 @@ export default function InstallerEditModal({
 
           {/* Phone Number */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Phone Number <span className="text-red-500">*</span>
             </label>
             <input
               type="tel"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="+923001234567"
               required
             />
@@ -254,14 +254,14 @@ export default function InstallerEditModal({
 
           {/* WhatsApp Number */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               WhatsApp Number <span className="text-red-500">*</span>
             </label>
             <input
               type="tel"
               value={whatsappNumber}
               onChange={(e) => setWhatsappNumber(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="+923001234567"
               required
             />
@@ -269,13 +269,13 @@ export default function InstallerEditModal({
 
           {/* City */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               City <span className="text-red-500">*</span>
             </label>
             <select
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               required
             >
               <option value="">Select City</option>
@@ -289,13 +289,13 @@ export default function InstallerEditModal({
 
           {/* Province */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Province <span className="text-red-500">*</span>
             </label>
             <select
               value={province}
               onChange={(e) => setProvince(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               required
             >
               <option value="">Select Province</option>
@@ -309,70 +309,70 @@ export default function InstallerEditModal({
 
           {/* Training Center */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Training Center <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={trainingCenter}
               onChange={(e) => setTrainingCenter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
           </div>
 
           {/* Company Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Company Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
           </div>
 
           {/* Bank Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Bank Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={bankName}
               onChange={(e) => setBankName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
           </div>
 
           {/* Account Number */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Account Number <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={accountNumber}
               onChange={(e) => setAccountNumber(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
           </div>
 
           {/* Account Title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Account Title <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={accountTitle}
               onChange={(e) => setAccountTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
           </div>
@@ -380,13 +380,13 @@ export default function InstallerEditModal({
 
         {/* Address - Full Width */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-foreground mb-2">
             Address <span className="text-red-500">*</span>
           </label>
           <textarea
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             rows={3}
             required
           />
@@ -401,17 +401,17 @@ export default function InstallerEditModal({
             onChange={(e) => setCertified(e.target.checked)}
             className="h-4 w-4 text-indigo-600 rounded"
           />
-          <label htmlFor="certified" className="ml-2 text-sm font-medium text-gray-700">
+          <label htmlFor="certified" className="ml-2 text-sm font-medium text-foreground">
             Certified Installer
           </label>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+        <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            className="px-6 py-2 border border-border rounded-md text-foreground hover:bg-muted"
           >
             Cancel
           </button>

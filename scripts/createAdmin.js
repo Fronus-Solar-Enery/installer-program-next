@@ -1,10 +1,16 @@
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
+require('dotenv').config({ path: '.env.local' });
 
 async function createAdmin() {
   try {
     // Connect to MongoDB
     const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/installer_program';
+
+    if (!process.env.MONGODB_URI) {
+      console.log('⚠️  Warning: MONGODB_URI not found in .env.local, using localhost');
+    }
+
     await mongoose.connect(MONGODB_URI);
     console.log('📦 Connected to MongoDB');
 

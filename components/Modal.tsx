@@ -1,8 +1,15 @@
 'use client';
 
-import * as Dialog from '@radix-ui/react-dialog';
-import { X, ExternalLink } from 'lucide-react';
 import { ReactNode } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { ExternalLink } from 'lucide-react';
 
 interface ModalProps {
   open: boolean;
@@ -24,11 +31,11 @@ export default function Modal({
   openInTabUrl,
 }: ModalProps) {
   const sizeClasses = {
-    sm: 'max-w-md',
-    md: 'max-w-2xl',
-    lg: 'max-w-4xl',
-    xl: 'max-w-6xl',
-    full: 'max-w-7xl',
+    sm: 'sm:max-w-[425px]',
+    md: 'sm:max-w-[600px]',
+    lg: 'sm:max-w-[800px]',
+    xl: 'sm:max-w-[1000px]',
+    full: 'sm:max-w-[1200px]',
   };
 
   const handleOpenInTab = () => {
@@ -39,46 +46,31 @@ export default function Modal({
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-in fade-in duration-200" />
-        <Dialog.Content
-          className={`fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full ${sizeClasses[size]} max-h-[90vh] bg-white rounded-lg shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col`}
-        >
-          {/* Header */}
-          <div className="flex items-start justify-between p-6 border-b border-gray-200">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={sizeClasses[size]}>
+        <DialogHeader>
+          <div className="flex items-start justify-between">
             <div className="flex-1">
-              <Dialog.Title className="text-xl font-semibold text-gray-900">
-                {title}
-              </Dialog.Title>
+              <DialogTitle>{title}</DialogTitle>
               {description && (
-                <Dialog.Description className="mt-1 text-sm text-gray-600">
-                  {description}
-                </Dialog.Description>
+                <DialogDescription>{description}</DialogDescription>
               )}
             </div>
-            <div className="flex items-center gap-2 ml-4">
-              {openInTabUrl && (
-                <button
-                  onClick={handleOpenInTab}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-                  title="Open in new tab"
-                >
-                  <ExternalLink className="h-5 w-5" />
-                </button>
-              )}
-              <Dialog.Close className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors">
-                <X className="h-5 w-5" />
-              </Dialog.Close>
-            </div>
+            {openInTabUrl && (
+              <Button
+                onClick={handleOpenInTab}
+                variant="ghost"
+                size="icon"
+                className="ml-4"
+                title="Open in new tab"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            )}
           </div>
-
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6">
-            {children}
-          </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+        </DialogHeader>
+        <div className="mt-4">{children}</div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -5,6 +5,20 @@ import { useRouter, useParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
 import { Copy, Check, Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function RewardDetailsPage() {
   const router = useRouter();
@@ -15,6 +29,7 @@ export default function RewardDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [reward, setReward] = useState<any>(null);
   const [error, setError] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchReward();
@@ -38,9 +53,11 @@ export default function RewardDetailsPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this reward? This action cannot be undone.')) return;
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
 
+  const handleDeleteConfirm = async () => {
     try {
       const response = await fetch(`/api/rewards/${rewardId}`, {
         method: 'DELETE',
@@ -49,14 +66,12 @@ export default function RewardDetailsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert('Reward deleted successfully!');
         router.push('/rewards');
-      } else {
-        alert(data.error || 'Failed to delete reward');
       }
     } catch (error) {
       console.error('Failed to delete reward:', error);
-      alert('An error occurred while deleting the reward');
+    } finally {
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -64,9 +79,11 @@ export default function RewardDetailsPage() {
     const isCopied = copiedText === text;
 
     return (
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => copyToClipboard(text)}
-        className="ml-2 p-1 text-gray-400 hover:text-indigo-600 transition-colors inline-flex items-center"
+        className="ml-2 h-8 w-8 p-0"
         title={`Copy ${label}`}
       >
         {isCopied ? (
@@ -74,16 +91,16 @@ export default function RewardDetailsPage() {
         ) : (
           <Copy className="h-4 w-4" />
         )}
-      </button>
+      </Button>
     );
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         <Navbar />
         <div className="flex items-center justify-center h-96">
-          <p className="text-gray-600">Loading reward details...</p>
+          <p className="text-muted-foreground">Loading reward details...</p>
         </div>
       </div>
     );
@@ -91,263 +108,296 @@ export default function RewardDetailsPage() {
 
   if (error || !reward) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         <Navbar />
         <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <p className="text-red-600 mb-4">{error || 'Reward not found'}</p>
-            <button
-              onClick={() => router.push('/rewards')}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-            >
-              Back to Rewards
-            </button>
-          </div>
+          <Card className="w-full max-w-md">
+            <CardContent className="text-center pt-6">
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>{error || 'Reward not found'}</AlertDescription>
+              </Alert>
+              <Button onClick={() => router.push('/rewards')}>
+                Back to Rewards
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-6">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => router.push('/rewards')}
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
+            className="mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Rewards
-          </button>
+          </Button>
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Reward Details</h1>
-              <p className="mt-1 text-sm text-gray-500">
+              <h1 className="text-3xl font-bold">Reward Details</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Serial Number: {reward.serialNumber}
               </p>
             </div>
             <div className="flex gap-3">
-              <button
+              <Button
                 onClick={() => router.push(`/rewards/${rewardId}/edit`)}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
-              </button>
-              <button
-                onClick={handleDelete}
-                className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteClick}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
-              </button>
+              </Button>
             </div>
           </div>
         </div>
 
         {/* Payment Status Badge */}
         <div className="mb-6">
-          <span className={`px-4 py-2 inline-flex text-sm font-semibold rounded-full ${
-            reward.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' :
-            reward.paymentStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-            'bg-red-100 text-red-800'
-          }`}>
+          <Badge
+            variant={
+              reward.paymentStatus === 'PAID' ? 'default' :
+              reward.paymentStatus === 'PENDING' ? 'secondary' :
+              'destructive'
+            }
+            className="text-sm px-4 py-2"
+          >
             {reward.paymentStatus}
-          </span>
+          </Badge>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Product Information */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Product Information</h2>
-            <dl className="space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Product Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
               <div>
-                <dt className="text-sm font-medium text-gray-500">Serial Number</dt>
-                <dd className="mt-1 text-sm text-gray-900 flex items-center">
+                <div className="text-sm font-medium text-muted-foreground">Serial Number</div>
+                <div className="mt-1 text-sm flex items-center">
                   {reward.serialNumber}
                   <CopyButton text={reward.serialNumber} label="Serial Number" />
-                </dd>
+                </div>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Product Model</dt>
-                <dd className="mt-1 text-sm text-gray-900">{reward.productModel}</dd>
+                <div className="text-sm font-medium text-muted-foreground">Product Model</div>
+                <div className="mt-1 text-sm">{reward.productModel}</div>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Serial Number Status</dt>
-                <dd className="mt-1 text-sm text-gray-900">{reward.serialNumberStatus}</dd>
+                <div className="text-sm font-medium text-muted-foreground">Serial Number Status</div>
+                <div className="mt-1 text-sm">{reward.serialNumberStatus}</div>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Inverter Serial Number</dt>
-                <dd className="mt-1 text-sm text-gray-900 flex items-center">
+                <div className="text-sm font-medium text-muted-foreground">Inverter Serial Number</div>
+                <div className="mt-1 text-sm flex items-center">
                   {reward.inverterSerialNumber}
                   <CopyButton text={reward.inverterSerialNumber} label="Inverter Serial Number" />
-                </dd>
+                </div>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">City of Installation</dt>
-                <dd className="mt-1 text-sm text-gray-900">{reward.cityOfInstallation}</dd>
+                <div className="text-sm font-medium text-muted-foreground">City of Installation</div>
+                <div className="mt-1 text-sm">{reward.cityOfInstallation}</div>
               </div>
               {reward.installationDate && (
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">Installation Date</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
+                  <div className="text-sm font-medium text-muted-foreground">Installation Date</div>
+                  <div className="mt-1 text-sm">
                     {new Date(reward.installationDate).toLocaleDateString()}
-                  </dd>
+                  </div>
                 </div>
               )}
-            </dl>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Installer Information */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Installer Information</h2>
-            <dl className="space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Installer Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
               <div>
-                <dt className="text-sm font-medium text-gray-500">Installer Code</dt>
-                <dd className="mt-1 text-sm text-gray-900 flex items-center">
+                <div className="text-sm font-medium text-muted-foreground">Installer Code</div>
+                <div className="mt-1 text-sm flex items-center">
                   {reward.installerCode}
                   <CopyButton text={reward.installerCode} label="Installer Code" />
-                </dd>
+                </div>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Installer Name</dt>
-                <dd className="mt-1 text-sm text-gray-900">
+                <div className="text-sm font-medium text-muted-foreground">Installer Name</div>
+                <div className="mt-1 text-sm">
                   {reward.installer?.fullName || 'N/A'}
-                </dd>
+                </div>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Installer CNIC</dt>
-                <dd className="mt-1 text-sm text-gray-900">
+                <div className="text-sm font-medium text-muted-foreground">Installer CNIC</div>
+                <div className="mt-1 text-sm">
                   {reward.installer?.cnic || 'N/A'}
-                </dd>
+                </div>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Installer Phone</dt>
-                <dd className="mt-1 text-sm text-gray-900">
+                <div className="text-sm font-medium text-muted-foreground">Installer Phone</div>
+                <div className="mt-1 text-sm">
                   {reward.installer?.phoneNumber || 'N/A'}
-                </dd>
+                </div>
               </div>
-            </dl>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Payment Information */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Information</h2>
-            <dl className="space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
               <div>
-                <dt className="text-sm font-medium text-gray-500">Reward Amount</dt>
-                <dd className="mt-1 text-lg font-semibold text-green-600">
+                <div className="text-sm font-medium text-muted-foreground">Reward Amount</div>
+                <div className="mt-1 text-lg font-semibold text-green-600">
                   Rs. {reward.rewardAmount?.toLocaleString()}
-                </dd>
+                </div>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Bank Name</dt>
-                <dd className="mt-1 text-sm text-gray-900">{reward.bankName}</dd>
+                <div className="text-sm font-medium text-muted-foreground">Bank Name</div>
+                <div className="mt-1 text-sm">{reward.bankName}</div>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Account Number</dt>
-                <dd className="mt-1 text-sm text-gray-900 flex items-center">
+                <div className="text-sm font-medium text-muted-foreground">Account Number</div>
+                <div className="mt-1 text-sm flex items-center">
                   {reward.accountNumber}
                   <CopyButton text={reward.accountNumber} label="Account Number" />
-                </dd>
+                </div>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Account Title</dt>
-                <dd className="mt-1 text-sm text-gray-900">{reward.accountTitle}</dd>
+                <div className="text-sm font-medium text-muted-foreground">Account Title</div>
+                <div className="mt-1 text-sm">{reward.accountTitle}</div>
               </div>
               {reward.transactionId && (
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">Transaction ID</dt>
-                  <dd className="mt-1 text-sm text-gray-900 flex items-center">
+                  <div className="text-sm font-medium text-muted-foreground">Transaction ID</div>
+                  <div className="mt-1 text-sm flex items-center">
                     {reward.transactionId}
                     <CopyButton text={reward.transactionId} label="Transaction ID" />
-                  </dd>
+                  </div>
                 </div>
               )}
               {reward.paymentMethod && (
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">Payment Method</dt>
-                  <dd className="mt-1 text-sm text-gray-900">{reward.paymentMethod}</dd>
+                  <div className="text-sm font-medium text-muted-foreground">Payment Method</div>
+                  <div className="mt-1 text-sm">{reward.paymentMethod}</div>
                 </div>
               )}
               {reward.sendingDate && (
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">Sending Date</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
+                  <div className="text-sm font-medium text-muted-foreground">Sending Date</div>
+                  <div className="mt-1 text-sm">
                     {new Date(reward.sendingDate).toLocaleDateString()}
-                  </dd>
+                  </div>
                 </div>
               )}
-            </dl>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Referrer Information (if exists) */}
           {reward.referrer && (
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Referrer Information</h2>
-              <dl className="space-y-3">
+            <Card>
+              <CardHeader>
+                <CardTitle>Referrer Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">Referrer Code</dt>
-                  <dd className="mt-1 text-sm text-gray-900 flex items-center">
+                  <div className="text-sm font-medium text-muted-foreground">Referrer Code</div>
+                  <div className="mt-1 text-sm flex items-center">
                     {reward.referrerCode}
                     <CopyButton text={reward.referrerCode} label="Referrer Code" />
-                  </dd>
+                  </div>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">Referrer Name</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
+                  <div className="text-sm font-medium text-muted-foreground">Referrer Name</div>
+                  <div className="mt-1 text-sm">
                     {reward.referrer.fullName}
-                  </dd>
+                  </div>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">Referrer Reward Amount</dt>
-                  <dd className="mt-1 text-lg font-semibold text-green-600">
+                  <div className="text-sm font-medium text-muted-foreground">Referrer Reward Amount</div>
+                  <div className="mt-1 text-lg font-semibold text-green-600">
                     Rs. {reward.referrerRewardAmount || 500}
-                  </dd>
+                  </div>
                 </div>
                 {reward.referrerTransactionId && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Referrer Transaction ID</dt>
-                    <dd className="mt-1 text-sm text-gray-900 flex items-center">
+                    <div className="text-sm font-medium text-muted-foreground">Referrer Transaction ID</div>
+                    <div className="mt-1 text-sm flex items-center">
                       {reward.referrerTransactionId}
                       <CopyButton text={reward.referrerTransactionId} label="Referrer Transaction ID" />
-                    </dd>
+                    </div>
                   </div>
                 )}
-              </dl>
-            </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Registration Information */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Registration Information</h2>
-            <dl className="space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Registration Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
               <div>
-                <dt className="text-sm font-medium text-gray-500">Registered By</dt>
-                <dd className="mt-1 text-sm text-gray-900">
+                <div className="text-sm font-medium text-muted-foreground">Registered By</div>
+                <div className="mt-1 text-sm">
                   {reward.registeredBy?.name || 'N/A'} ({reward.registeredBy?.email || 'N/A'})
-                </dd>
+                </div>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">Created At</dt>
-                <dd className="mt-1 text-sm text-gray-900">
+                <div className="text-sm font-medium text-muted-foreground">Created At</div>
+                <div className="mt-1 text-sm">
                   {new Date(reward.createdAt).toLocaleString()}
-                </dd>
+                </div>
               </div>
               {reward.updatedAt && (
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">Last Updated</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
+                  <div className="text-sm font-medium text-muted-foreground">Last Updated</div>
+                  <div className="mt-1 text-sm">
                     {new Date(reward.updatedAt).toLocaleString()}
-                  </dd>
+                  </div>
                 </div>
               )}
-            </dl>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the reward
+              and remove it from the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

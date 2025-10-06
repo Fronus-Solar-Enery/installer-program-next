@@ -114,7 +114,7 @@ export default function RewardEditModal({
         size="xl"
       >
         <div className="flex items-center justify-center py-12">
-          <p className="text-gray-600">Loading reward data...</p>
+          <p className="text-muted-foreground">Loading reward data...</p>
         </div>
       </Modal>
     );
@@ -131,15 +131,15 @@ export default function RewardEditModal({
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Reward Summary */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-2">Reward Information</h3>
+        <div className="bg-muted rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-2">Reward Information</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <span className="text-gray-600">Installer:</span>
+              <span className="text-muted-foreground">Installer:</span>
               <span className="ml-2 font-medium">{reward?.installer?.installerCode} - {reward?.installer?.fullName}</span>
             </div>
             <div>
-              <span className="text-gray-600">Reward Amount:</span>
+              <span className="text-muted-foreground">Reward Amount:</span>
               <span className="ml-2 font-medium text-green-600">Rs. {reward?.rewardAmount?.toLocaleString()}</span>
             </div>
           </div>
@@ -148,27 +148,27 @@ export default function RewardEditModal({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Serial Number */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Serial Number <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={serialNumber}
               onChange={(e) => setSerialNumber(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
           </div>
 
           {/* Product Model */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Product Model <span className="text-red-500">*</span>
             </label>
             <select
               value={productModel}
               onChange={(e) => setProductModel(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               required
             >
               <option value="">Select product model</option>
@@ -182,27 +182,27 @@ export default function RewardEditModal({
 
           {/* Inverter Serial Number */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Inverter Serial Number <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={inverterSerialNumber}
               onChange={(e) => setInverterSerialNumber(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
           </div>
 
           {/* Payment Status */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Payment Status <span className="text-red-500">*</span>
             </label>
             <select
               value={paymentStatus}
               onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               required
             >
               <option value={PaymentStatus.PENDING}>Pending</option>
@@ -213,54 +213,54 @@ export default function RewardEditModal({
 
           {/* Installer Transaction ID */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Installer Transaction ID
             </label>
             <input
               type="text"
               value={transactionId}
               onChange={(e) => setTransactionId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
 
           {/* Referrer Transaction ID - Only if referrer exists */}
           {reward?.referrer && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Referrer Transaction ID
               </label>
               <input
                 type="text"
                 value={referrerTransactionId}
                 onChange={(e) => setReferrerTransactionId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
           )}
 
           {/* Sending Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Sending Date
             </label>
             <input
               type="date"
               value={sendingDate}
               onChange={(e) => setSendingDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
 
           {/* Payment Method */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Payment Method
             </label>
             <select
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="">Select payment method</option>
               {PAYMENT_METHOD.map(method => (
@@ -271,11 +271,11 @@ export default function RewardEditModal({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+        <div className="flex justify-end gap-3 pt-4 border-t border-border">
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            className="px-6 py-2 border border-border rounded-md text-foreground hover:bg-muted"
           >
             Cancel
           </button>

@@ -2,6 +2,13 @@
 
 import { useState } from 'react';
 import Navbar from '@/components/Navbar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Users, DollarSign, Wallet } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function ReportsPage() {
   const [loading, setLoading] = useState(false);
@@ -19,106 +26,114 @@ export default function ReportsPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      toast.success('Report downloaded successfully');
     } catch (error) {
       console.error('Failed to download report:', error);
-      alert('Failed to download report');
+      toast.error('Failed to download report');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Reports</h1>
+        <h1 className="text-3xl font-bold mb-6">Reports</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Installers Report</h2>
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            </div>
-            <p className="text-gray-600 mb-4">Export complete installer data to Excel</p>
-            <button
-              onClick={() => downloadReport('installers')}
-              disabled={loading}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400"
-            >
-              Download Excel
-            </button>
-          </div>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Installers Report</CardTitle>
+                <Users className="h-8 w-8 text-primary" />
+              </div>
+              <CardDescription>Export complete installer data to Excel</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => downloadReport('installers')}
+                disabled={loading}
+                className="w-full"
+              >
+                Download Excel
+              </Button>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Rewards Report</h2>
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <p className="text-gray-600 mb-4">Export complete rewards data to Excel</p>
-            <button
-              onClick={() => downloadReport('rewards')}
-              disabled={loading}
-              className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400"
-            >
-              Download Excel
-            </button>
-          </div>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Rewards Report</CardTitle>
+                <DollarSign className="h-8 w-8 text-primary" />
+              </div>
+              <CardDescription>Export complete rewards data to Excel</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => downloadReport('rewards')}
+                disabled={loading}
+                className="w-full"
+              >
+                Download Excel
+              </Button>
+            </CardContent>
+          </Card>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Payment Format</h2>
-              <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <p className="text-gray-600 mb-4">Export payment-ready format for bulk processing</p>
-            <button
-              onClick={() => downloadReport('payment-format')}
-              disabled={loading}
-              className="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-purple-400"
-            >
-              Download Excel
-            </button>
-          </div>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Payment Format</CardTitle>
+                <Wallet className="h-8 w-8 text-primary" />
+              </div>
+              <CardDescription>Export payment-ready format for bulk processing</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => downloadReport('payment-format')}
+                disabled={loading}
+                className="w-full"
+              >
+                Download Excel
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="mt-8 bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Filter Options</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Payment Status</label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
-                <option value="all">All</option>
-                <option value="PENDING">Pending</option>
-                <option value="PAID">Paid</option>
-                <option value="FAILED">Failed</option>
-              </select>
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle>Filter Options</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="payment-status">Payment Status</Label>
+                <Select>
+                  <SelectTrigger id="payment-status">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="PENDING">Pending</SelectItem>
+                    <SelectItem value="PAID">Paid</SelectItem>
+                    <SelectItem value="FAILED">Failed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="start-date">Start Date</Label>
+                <Input id="start-date" type="date" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end-date">End Date</Label>
+                <Input id="end-date" type="date" />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-              <input
-                type="date"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              />
+            <div className="mt-4">
+              <Button>Apply Filters</Button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-              <input
-                type="date"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              />
-            </div>
-          </div>
-          <div className="mt-4">
-            <button className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">
-              Apply Filters
-            </button>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

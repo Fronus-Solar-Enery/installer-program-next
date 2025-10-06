@@ -19,21 +19,33 @@ export const authConfig: NextAuthConfig = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email and password are required');
+          throw new Error('Please enter both email and password');
+        }
+
+        if (!credentials.email.trim()) {
+          throw new Error('Email cannot be empty');
+        }
+
+        if (!credentials.password.trim()) {
+          throw new Error('Password cannot be empty');
         }
 
         await dbConnect();
-        const user = await TeamMember.findOne({ email: credentials.email });
+        const user = await TeamMember.findOne({ email: credentials.email.trim().toLowerCase() });
 
-        if (!user || !user.password) {
-          throw new Error('Invalid email or password');
+        if (!user) {
+          throw new Error('No account found with this email address');
+        }
+
+        if (!user.password) {
+          throw new Error('This account uses Google Sign-In. Please sign in with Google.');
         }
 
         const passwordHash: string = user.password as string;
         const isValid = await bcrypt.compare(credentials.password as string, passwordHash as string);
 
         if (!isValid) {
-          throw new Error('Invalid email or password');
+          throw new Error('Incorrect password. Please try again.');
         }
 
         return {

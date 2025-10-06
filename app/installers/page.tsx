@@ -5,6 +5,12 @@ import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import InstallerEditModal from '@/components/InstallerEditModal';
 import { Edit, Eye, ArrowUpDown, ArrowUp, ArrowDown, Settings2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 export default function InstallersPage() {
   const router = useRouter();
@@ -148,21 +154,22 @@ export default function InstallersPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Installers</h1>
+          <h1 className="text-3xl font-bold">Installers</h1>
 
           {/* Show Authenticate button if not authenticated, otherwise Register button */}
           {googleAuthStatus && !googleAuthStatus.isAuthenticated ? (
-            <button
+            <Button
               onClick={handleAuthenticateGoogle}
               disabled={authLoading}
-              className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:bg-yellow-400 flex items-center gap-2"
+              variant="default"
+              className="bg-yellow-600 hover:bg-yellow-700"
             >
               <svg
-                className="w-5 h-5"
+                className="w-5 h-5 mr-2"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -174,250 +181,223 @@ export default function InstallersPage() {
                   d="M13 10V3L4 14h7v7l9-11h-7z"
                 />
               </svg>
-              {authLoading ? 'Authenticating...' : '🔗 Authenticate Google Contacts'}
-            </button>
+              {authLoading ? 'Authenticating...' : 'Authenticate Google Contacts'}
+            </Button>
           ) : (
-            <button
+            <Button
               onClick={() => router.push('/installers/new')}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
             >
               + Register New Installer
-            </button>
+            </Button>
           )}
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="mb-4 flex gap-3">
-            <input
-              type="text"
-              placeholder="Search by name, code, or CNIC..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            />
-            <div className="relative">
-              <button
-                onClick={() => setShowColumnMenu(!showColumnMenu)}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center gap-2"
-              >
-                <Settings2 className="h-4 w-4" />
-                Columns
-              </button>
-              {showColumnMenu && (
-                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-10">
-                  <div className="p-2 max-h-96 overflow-y-auto">
-                    <div className="text-xs font-semibold text-gray-500 uppercase px-2 py-1">
-                      Show/Hide Columns
-                    </div>
-                    {Object.entries(visibleColumns).map(([key, value]) => (
-                      <label key={key} className="flex items-center px-2 py-2 hover:bg-gray-50 cursor-pointer rounded">
-                        <input
-                          type="checkbox"
-                          checked={value}
-                          onChange={() => toggleColumn(key)}
-                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                        />
-                        <span className="ml-2 text-sm text-gray-700 capitalize">
-                          {key.replace(/([A-Z])/g, ' $1').trim()}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
+        <Card>
+          <CardContent className="p-6">
+            <div className="mb-4 flex gap-3">
+              <Input
+                type="text"
+                placeholder="Search by name, code, or CNIC..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="flex-1"
+              />
+              <DropdownMenu open={showColumnMenu} onOpenChange={setShowColumnMenu}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <Settings2 className="h-4 w-4 mr-2" />
+                    Columns
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Show/Hide Columns</DropdownMenuLabel>
+                  {Object.entries(visibleColumns).map(([key, value]) => (
+                    <DropdownMenuCheckboxItem
+                      key={key}
+                      checked={value}
+                      onCheckedChange={() => toggleColumn(key)}
+                    >
+                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          </div>
 
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="text-gray-600">Loading installers...</div>
-            </div>
-          ) : sortedInstallers.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-gray-600">No installers found</div>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="text-muted-foreground">Loading installers...</div>
+              </div>
+            ) : sortedInstallers.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-muted-foreground">No installers found</div>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
                     {visibleColumns.installerCode && (
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleSort('installerCode')}
                       >
                         Installer Code {getSortIcon('installerCode')}
-                      </th>
+                      </TableHead>
                     )}
                     {visibleColumns.fullName && (
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleSort('fullName')}
                       >
                         Name {getSortIcon('fullName')}
-                      </th>
+                      </TableHead>
                     )}
                     {visibleColumns.cnic && (
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleSort('cnic')}
                       >
                         CNIC {getSortIcon('cnic')}
-                      </th>
+                      </TableHead>
                     )}
                     {visibleColumns.phoneNumber && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Phone
-                      </th>
+                      <TableHead>Phone</TableHead>
                     )}
                     {visibleColumns.city && (
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleSort('city')}
                       >
                         City {getSortIcon('city')}
-                      </th>
+                      </TableHead>
                     )}
                     {visibleColumns.province && (
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleSort('province')}
                       >
                         Province {getSortIcon('province')}
-                      </th>
+                      </TableHead>
                     )}
                     {visibleColumns.trainingCenter && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Training Center
-                      </th>
+                      <TableHead>Training Center</TableHead>
                     )}
                     {visibleColumns.companyName && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Company
-                      </th>
+                      <TableHead>Company</TableHead>
                     )}
                     {visibleColumns.certified && (
-                      <th
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                      <TableHead
+                        className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleSort('certified')}
                       >
                         Certified {getSortIcon('certified')}
-                      </th>
+                      </TableHead>
                     )}
                     {visibleColumns.bankName && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Bank
-                      </th>
+                      <TableHead>Bank</TableHead>
                     )}
                     {visibleColumns.accountNumber && (
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Account
-                      </th>
+                      <TableHead>Account</TableHead>
                     )}
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {sortedInstallers.map((installer: any) => (
-                    <tr key={installer._id} className="hover:bg-gray-50">
+                    <TableRow key={installer._id}>
                       {visibleColumns.installerCode && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button
+                        <TableCell className="font-medium">
+                          <Button
+                            variant="link"
                             onClick={() => router.push(`/installers/${installer._id}`)}
-                            className="text-indigo-600 hover:text-indigo-900 hover:underline font-mono"
+                            className="font-mono p-0 h-auto"
                           >
                             {installer.installerCode}
-                          </button>
-                        </td>
+                          </Button>
+                        </TableCell>
                       )}
                       {visibleColumns.fullName && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <TableCell>
                           {installer.fullName}
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.cnic && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <TableCell className="text-muted-foreground">
                           {installer.cnic}
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.phoneNumber && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <TableCell className="text-muted-foreground">
                           {installer.phoneNumber}
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.city && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <TableCell className="text-muted-foreground">
                           {installer.city}
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.province && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <TableCell className="text-muted-foreground">
                           {installer.province}
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.trainingCenter && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <TableCell className="text-muted-foreground">
                           {installer.trainingCenter}
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.companyName && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <TableCell className="text-muted-foreground">
                           {installer.companyName}
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.certified && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {installer.certified ? (
-                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                              Yes
-                            </span>
-                          ) : (
-                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                              No
-                            </span>
-                          )}
-                        </td>
+                        <TableCell>
+                          <Badge variant={installer.certified ? "default" : "secondary"}>
+                            {installer.certified ? "Yes" : "No"}
+                          </Badge>
+                        </TableCell>
                       )}
                       {visibleColumns.bankName && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <TableCell className="text-muted-foreground">
                           {installer.bankName}
-                        </td>
+                        </TableCell>
                       )}
                       {visibleColumns.accountNumber && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <TableCell className="text-muted-foreground">
                           {installer.accountNumber}
-                        </td>
+                        </TableCell>
                       )}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <TableCell>
                         <div className="flex items-center gap-3">
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => router.push(`/installers/${installer._id}`)}
-                            className="text-indigo-600 hover:text-indigo-900"
                             title="View Details"
                           >
                             <Eye className="h-4 w-4" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => {
                               setSelectedInstallerId(installer._id);
                               setEditModalOpen(true);
                             }}
-                            className="text-blue-600 hover:text-blue-900"
                             title="Edit"
                           >
                             <Edit className="h-4 w-4" />
-                          </button>
+                          </Button>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Edit Modal */}

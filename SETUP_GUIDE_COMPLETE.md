@@ -9,10 +9,11 @@
 1. [Quick Start (10 minutes)](#quick-start)
 2. [Detailed Setup](#detailed-setup)
 3. [MongoDB Setup](#mongodb-setup)
-4. [Google Contacts Integration](#google-contacts-integration)
-5. [WhatsApp Integration](#whatsapp-integration)
-6. [Project Overview](#project-overview)
-7. [Troubleshooting](#troubleshooting)
+4. [Database Testing & Debugging](#database-testing--debugging)
+5. [Google Contacts Integration](#google-contacts-integration)
+6. [WhatsApp Integration](#whatsapp-integration)
+7. [Project Overview](#project-overview)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -264,6 +265,198 @@ brew services start mongodb-community
 sudo apt-get install -y mongodb-org
 sudo systemctl start mongod
 ```
+
+---
+
+## Database Testing & Debugging
+
+The application includes comprehensive database connection debugging and testing tools to help diagnose issues quickly.
+
+### 🧪 Test Database Connection
+
+Run the database connection test at any time:
+
+```bash
+npm run test:db
+```
+
+**What it does:**
+- ✅ Tests MongoDB connection
+- ✅ Diagnoses connection errors with specific solutions
+- ✅ Measures connection speed
+- ✅ Lists databases and collections
+- ✅ Tests read/write operations
+- ✅ Color-coded output (green=success, red=error, yellow=warning)
+
+**Example output:**
+```
+🧪 MONGODB CONNECTION TEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 CONNECTION DETAILS:
+   Type:     MongoDB Atlas (Cloud)
+   Host:     cluster0.xxxxx.mongodb.net
+   Database: installer_program
+
+🔌 Testing connection...
+✅ Connection successful! (1.23s)
+
+📊 DATABASE INFORMATION:
+   Database:    installer_program
+   Collections: 3
+   • teammembers
+   • installers
+   • installerrewards
+
+🧪 Testing read/write operations...
+   ✓ Write operation successful
+   ✓ Read operation successful
+   ✓ Delete operation successful
+
+✅ ALL TESTS PASSED!
+```
+
+### 🔍 Automatic Error Diagnosis
+
+When connection fails, the test tool automatically identifies the root cause:
+
+**ECONNREFUSED Error:**
+- 🔴 Identifies if MongoDB is not running locally
+- 📋 Provides specific solutions (Atlas setup or local installation)
+- 💡 Shows exact commands to fix the issue
+
+**Authentication Errors:**
+- 🔴 Detects wrong credentials
+- 📋 Shows how to reset password
+- 💡 Explains URL encoding for special characters
+
+**Network Errors:**
+- 🔴 Identifies DNS/timeout issues
+- 📋 Suggests IP whitelisting (Atlas)
+- 💡 Provides network troubleshooting steps
+
+### 📊 Development Server Logging
+
+When you run `npm run dev`, the server automatically logs database configuration:
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🗄️  DATABASE CONFIGURATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Type:     MongoDB Atlas (Cloud)
+   Host:     cluster0.xxxxx.mongodb.net
+   Database: installer_program
+   Status:   Will connect on first request
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 Test connection: npm run test:db
+```
+
+### 🔌 Connection Logging
+
+The MongoDB connection module now provides detailed logging:
+
+**On Connection Attempt:**
+```
+🔌 MongoDB Connection Attempt:
+   Type: MongoDB Atlas (Cloud)
+   Host: cluster0.xxxxx.mongodb.net
+   Database: installer_program
+   URI: mongodb+srv://user:****@cluster0.xxxxx.mongodb.net/...
+   State: Connecting...
+```
+
+**On Success:**
+```
+✅ MongoDB Connected Successfully!
+   Database: installer_program
+   Host: cluster0.xxxxx.mongodb.net
+   Status: Connected
+```
+
+**On Failure:**
+```
+❌ MongoDB Connection Failed!
+
+   🔴 MongoDB is not running on your local machine
+
+📋 Solutions:
+   1. Use MongoDB Atlas (Recommended - No installation):
+      → See SETUP_GUIDE_COMPLETE.md#mongodb-setup
+      → Sign up at: https://www.mongodb.com/cloud/atlas/register
+      → Free forever (512MB)
+
+💡 Quick Test: Run "npm run test:db" for detailed diagnostics
+```
+
+### 🏥 Health Check API
+
+Check database status programmatically (Admin only):
+
+**Endpoint:** `GET /api/health/db`
+
+**Response (Success):**
+```json
+{
+  "status": "healthy",
+  "database": {
+    "name": "installer_program",
+    "host": "cluster0.xxxxx.mongodb.net",
+    "type": "MongoDB Atlas (Cloud)",
+    "state": "connected",
+    "collections": 3,
+    "collectionNames": ["teammembers", "installers", "installerrewards"]
+  },
+  "connection": {
+    "responseTime": "142ms",
+    "readyState": 1,
+    "connected": true
+  },
+  "timestamp": "2025-10-04T18:30:00.000Z"
+}
+```
+
+**Response (Failure):**
+```json
+{
+  "status": "unhealthy",
+  "error": "connect ECONNREFUSED ::1:27017",
+  "database": {
+    "type": "MongoDB Local",
+    "expectedHost": "localhost:27017",
+    "expectedDatabase": "installer_program"
+  },
+  "connection": {
+    "readyState": 0,
+    "connected": false
+  }
+}
+```
+
+### 💡 Quick Debugging Tips
+
+**If you see ECONNREFUSED:**
+```bash
+# Run the test tool for detailed diagnosis
+npm run test:db
+
+# It will show exactly what's wrong and how to fix it
+```
+
+**Check current database status:**
+```bash
+# The dev server shows DB config on startup
+npm run dev
+
+# Or use the health check API (requires admin login)
+curl http://localhost:3000/api/health/db
+```
+
+**Common fixes:**
+- Local MongoDB not running → `net start MongoDB` (Windows)
+- Wrong credentials → Check .env.local
+- IP not whitelisted → Atlas → Network Access → Add IP
+- No MONGODB_URI → Add to .env.local
 
 ---
 

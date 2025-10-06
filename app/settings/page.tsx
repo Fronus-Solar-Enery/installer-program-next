@@ -1,16 +1,48 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { Settings as SettingsIcon, Save, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+
+interface SettingsData {
+  allowInstallerCodeEdit?: boolean;
+  maxReferralsPerInstaller?: number;
+  requireCertificationForRewards?: boolean;
+  autoVerifyInstallers?: boolean;
+  defaultReferralReward?: number;
+  maxRewardProcessingDays?: number;
+  requireTransactionIdForPaid?: boolean;
+  autoSendWhatsAppOnPaid?: boolean;
+  allowUserSelfRegistration?: boolean;
+  requireEmailVerification?: boolean;
+  sessionTimeoutMinutes?: number;
+  enableActivityLogging?: boolean;
+  enableWhatsAppNotifications?: boolean;
+  maintenanceMode?: boolean;
+  systemNotificationMessage?: string;
+  notifyAdminOnNewInstaller?: boolean;
+  notifyAdminOnRewardSubmission?: boolean;
+  adminNotificationEmail?: string;
+  allowBulkRewardUpload?: boolean;
+  maxBulkUploadSize?: number;
+  activityLogRetentionDays?: number;
+  autoDeleteOldActivities?: boolean;
+  updatedAt?: string;
+}
 
 export default function SettingsPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<SettingsData | null>(null);
 
   useEffect(() => {
     fetchSettings();
@@ -58,384 +90,378 @@ export default function SettingsPage() {
     }
   };
 
-  const updateSetting = (key: string, value: any) => {
-    setSettings((prev: any) => ({ ...prev, [key]: value }));
+  const updateSetting = (key: keyof SettingsData, value: string | number | boolean) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="flex items-center justify-center h-96">
-          <p className="text-gray-600">Loading settings...</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="space-y-6">
+            <Skeleton className="h-12 w-64" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-64" />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <h1 className="text-3xl font-bold flex items-center gap-2">
               <SettingsIcon className="h-8 w-8" />
               System Settings
             </h1>
-            <p className="text-gray-600 mt-1">Configure system-wide settings and preferences</p>
+            <p className="text-muted-foreground mt-1">Configure system-wide settings and preferences</p>
           </div>
           <div className="flex gap-3">
-            <button
+            <Button
               onClick={fetchSettings}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+              variant="outline"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-4 w-4 mr-2" />
               Reset
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleSave}
               disabled={saving}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 flex items-center gap-2"
             >
-              <Save className="h-4 w-4" />
+              <Save className="h-4 w-4 mr-2" />
               {saving ? 'Saving...' : 'Save Changes'}
-            </button>
+            </Button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Installer Settings */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Installer Settings</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Allow Installer Code Edit</label>
-                  <p className="text-xs text-gray-500">Allow editing installer codes after creation</p>
+          <Card>
+            <CardHeader>
+              <CardTitle>Installer Settings</CardTitle>
+              <CardDescription>Configure installer-related preferences</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex-1">
+                  <Label htmlFor="allowInstallerCodeEdit">Allow Installer Code Edit</Label>
+                  <p className="text-xs text-muted-foreground">Allow editing installer codes after creation</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
+                  id="allowInstallerCodeEdit"
                   checked={settings?.allowInstallerCodeEdit || false}
-                  onChange={(e) => updateSetting('allowInstallerCodeEdit', e.target.checked)}
-                  className="h-5 w-5 text-indigo-600 rounded"
+                  onCheckedChange={(checked) => updateSetting('allowInstallerCodeEdit', checked)}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Referrals Per Installer
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="maxReferralsPerInstaller">Max Referrals Per Installer</Label>
+                <Input
+                  id="maxReferralsPerInstaller"
                   type="number"
                   min="0"
                   max="100"
                   value={settings?.maxReferralsPerInstaller || 5}
                   onChange={(e) => updateSetting('maxReferralsPerInstaller', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Require Certification for Rewards</label>
-                  <p className="text-xs text-gray-500">Only certified installers can receive rewards</p>
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex-1">
+                  <Label htmlFor="requireCertificationForRewards">Require Certification for Rewards</Label>
+                  <p className="text-xs text-muted-foreground">Only certified installers can receive rewards</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
+                  id="requireCertificationForRewards"
                   checked={settings?.requireCertificationForRewards || false}
-                  onChange={(e) => updateSetting('requireCertificationForRewards', e.target.checked)}
-                  className="h-5 w-5 text-indigo-600 rounded"
+                  onCheckedChange={(checked) => updateSetting('requireCertificationForRewards', checked)}
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Auto Verify Installers</label>
-                  <p className="text-xs text-gray-500">Automatically verify new installers</p>
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex-1">
+                  <Label htmlFor="autoVerifyInstallers">Auto Verify Installers</Label>
+                  <p className="text-xs text-muted-foreground">Automatically verify new installers</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
+                  id="autoVerifyInstallers"
                   checked={settings?.autoVerifyInstallers || false}
-                  onChange={(e) => updateSetting('autoVerifyInstallers', e.target.checked)}
-                  className="h-5 w-5 text-indigo-600 rounded"
+                  onCheckedChange={(checked) => updateSetting('autoVerifyInstallers', checked)}
                 />
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Reward Settings */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Reward Settings</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Default Referral Reward (Rs.)
-                </label>
-                <input
+          <Card>
+            <CardHeader>
+              <CardTitle>Reward Settings</CardTitle>
+              <CardDescription>Configure reward and payment preferences</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="defaultReferralReward">Default Referral Reward (Rs.)</Label>
+                <Input
+                  id="defaultReferralReward"
                   type="number"
                   min="0"
                   value={settings?.defaultReferralReward || 500}
                   onChange={(e) => updateSetting('defaultReferralReward', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Reward Processing Days
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="maxRewardProcessingDays">Max Reward Processing Days</Label>
+                <Input
+                  id="maxRewardProcessingDays"
                   type="number"
                   min="1"
                   value={settings?.maxRewardProcessingDays || 30}
                   onChange={(e) => updateSetting('maxRewardProcessingDays', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Require Transaction ID for Paid</label>
-                  <p className="text-xs text-gray-500">Transaction ID required to mark as PAID</p>
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex-1">
+                  <Label htmlFor="requireTransactionIdForPaid">Require Transaction ID for Paid</Label>
+                  <p className="text-xs text-muted-foreground">Transaction ID required to mark as PAID</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
+                  id="requireTransactionIdForPaid"
                   checked={settings?.requireTransactionIdForPaid || false}
-                  onChange={(e) => updateSetting('requireTransactionIdForPaid', e.target.checked)}
-                  className="h-5 w-5 text-indigo-600 rounded"
+                  onCheckedChange={(checked) => updateSetting('requireTransactionIdForPaid', checked)}
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Auto Send WhatsApp on Paid</label>
-                  <p className="text-xs text-gray-500">Automatically send WhatsApp when marked as PAID</p>
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex-1">
+                  <Label htmlFor="autoSendWhatsAppOnPaid">Auto Send WhatsApp on Paid</Label>
+                  <p className="text-xs text-muted-foreground">Automatically send WhatsApp when marked as PAID</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
+                  id="autoSendWhatsAppOnPaid"
                   checked={settings?.autoSendWhatsAppOnPaid || false}
-                  onChange={(e) => updateSetting('autoSendWhatsAppOnPaid', e.target.checked)}
-                  className="h-5 w-5 text-indigo-600 rounded"
+                  onCheckedChange={(checked) => updateSetting('autoSendWhatsAppOnPaid', checked)}
                 />
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Team Settings */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Team Settings</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Allow User Self Registration</label>
-                  <p className="text-xs text-gray-500">Users can register without admin approval</p>
+          <Card>
+            <CardHeader>
+              <CardTitle>Team Settings</CardTitle>
+              <CardDescription>Manage team and user access settings</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex-1">
+                  <Label htmlFor="allowUserSelfRegistration">Allow User Self Registration</Label>
+                  <p className="text-xs text-muted-foreground">Users can register without admin approval</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
+                  id="allowUserSelfRegistration"
                   checked={settings?.allowUserSelfRegistration || false}
-                  onChange={(e) => updateSetting('allowUserSelfRegistration', e.target.checked)}
-                  className="h-5 w-5 text-indigo-600 rounded"
+                  onCheckedChange={(checked) => updateSetting('allowUserSelfRegistration', checked)}
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Require Email Verification</label>
-                  <p className="text-xs text-gray-500">Verify email before account activation</p>
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex-1">
+                  <Label htmlFor="requireEmailVerification">Require Email Verification</Label>
+                  <p className="text-xs text-muted-foreground">Verify email before account activation</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
+                  id="requireEmailVerification"
                   checked={settings?.requireEmailVerification || false}
-                  onChange={(e) => updateSetting('requireEmailVerification', e.target.checked)}
-                  className="h-5 w-5 text-indigo-600 rounded"
+                  onCheckedChange={(checked) => updateSetting('requireEmailVerification', checked)}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Session Timeout (Minutes)
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="sessionTimeoutMinutes">Session Timeout (Minutes)</Label>
+                <Input
+                  id="sessionTimeoutMinutes"
                   type="number"
                   min="30"
                   value={settings?.sessionTimeoutMinutes || 480}
                   onChange={(e) => updateSetting('sessionTimeoutMinutes', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* System Settings */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">System Settings</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Enable Activity Logging</label>
-                  <p className="text-xs text-gray-500">Track all user actions</p>
+          <Card>
+            <CardHeader>
+              <CardTitle>System Settings</CardTitle>
+              <CardDescription>Configure system-level options</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex-1">
+                  <Label htmlFor="enableActivityLogging">Enable Activity Logging</Label>
+                  <p className="text-xs text-muted-foreground">Track all user actions</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
+                  id="enableActivityLogging"
                   checked={settings?.enableActivityLogging || false}
-                  onChange={(e) => updateSetting('enableActivityLogging', e.target.checked)}
-                  className="h-5 w-5 text-indigo-600 rounded"
+                  onCheckedChange={(checked) => updateSetting('enableActivityLogging', checked)}
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Enable WhatsApp Notifications</label>
-                  <p className="text-xs text-gray-500">Send WhatsApp messages to installers</p>
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex-1">
+                  <Label htmlFor="enableWhatsAppNotifications">Enable WhatsApp Notifications</Label>
+                  <p className="text-xs text-muted-foreground">Send WhatsApp messages to installers</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
+                  id="enableWhatsAppNotifications"
                   checked={settings?.enableWhatsAppNotifications || false}
-                  onChange={(e) => updateSetting('enableWhatsAppNotifications', e.target.checked)}
-                  className="h-5 w-5 text-indigo-600 rounded"
+                  onCheckedChange={(checked) => updateSetting('enableWhatsAppNotifications', checked)}
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Maintenance Mode</label>
-                  <p className="text-xs text-gray-500">Disable access for non-admin users</p>
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex-1">
+                  <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
+                  <p className="text-xs text-muted-foreground">Disable access for non-admin users</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
+                  id="maintenanceMode"
                   checked={settings?.maintenanceMode || false}
-                  onChange={(e) => updateSetting('maintenanceMode', e.target.checked)}
-                  className="h-5 w-5 text-indigo-600 rounded"
+                  onCheckedChange={(checked) => updateSetting('maintenanceMode', checked)}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  System Notification Message
-                </label>
-                <textarea
+              <div className="space-y-2">
+                <Label htmlFor="systemNotificationMessage">System Notification Message</Label>
+                <Textarea
+                  id="systemNotificationMessage"
                   value={settings?.systemNotificationMessage || ''}
                   onChange={(e) => updateSetting('systemNotificationMessage', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   rows={3}
                   placeholder="Display a message to all users..."
                 />
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Notification Settings */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Notification Settings</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Notify Admin on New Installer</label>
-                  <p className="text-xs text-gray-500">Email admin when installer registers</p>
+          <Card>
+            <CardHeader>
+              <CardTitle>Notification Settings</CardTitle>
+              <CardDescription>Configure email and notification preferences</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex-1">
+                  <Label htmlFor="notifyAdminOnNewInstaller">Notify Admin on New Installer</Label>
+                  <p className="text-xs text-muted-foreground">Email admin when installer registers</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
+                  id="notifyAdminOnNewInstaller"
                   checked={settings?.notifyAdminOnNewInstaller || false}
-                  onChange={(e) => updateSetting('notifyAdminOnNewInstaller', e.target.checked)}
-                  className="h-5 w-5 text-indigo-600 rounded"
+                  onCheckedChange={(checked) => updateSetting('notifyAdminOnNewInstaller', checked)}
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Notify Admin on Reward Submission</label>
-                  <p className="text-xs text-gray-500">Email admin on new reward submission</p>
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex-1">
+                  <Label htmlFor="notifyAdminOnRewardSubmission">Notify Admin on Reward Submission</Label>
+                  <p className="text-xs text-muted-foreground">Email admin on new reward submission</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
+                  id="notifyAdminOnRewardSubmission"
                   checked={settings?.notifyAdminOnRewardSubmission || false}
-                  onChange={(e) => updateSetting('notifyAdminOnRewardSubmission', e.target.checked)}
-                  className="h-5 w-5 text-indigo-600 rounded"
+                  onCheckedChange={(checked) => updateSetting('notifyAdminOnRewardSubmission', checked)}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Admin Notification Email
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="adminNotificationEmail">Admin Notification Email</Label>
+                <Input
+                  id="adminNotificationEmail"
                   type="email"
                   value={settings?.adminNotificationEmail || ''}
                   onChange={(e) => updateSetting('adminNotificationEmail', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   placeholder="admin@example.com"
                 />
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Bulk Operations & Data Retention */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Data Management</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Allow Bulk Reward Upload</label>
-                  <p className="text-xs text-gray-500">Enable Excel bulk upload feature</p>
+          {/* Data Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Data Management</CardTitle>
+              <CardDescription>Configure bulk operations and data retention</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex-1">
+                  <Label htmlFor="allowBulkRewardUpload">Allow Bulk Reward Upload</Label>
+                  <p className="text-xs text-muted-foreground">Enable Excel bulk upload feature</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
+                  id="allowBulkRewardUpload"
                   checked={settings?.allowBulkRewardUpload || false}
-                  onChange={(e) => updateSetting('allowBulkRewardUpload', e.target.checked)}
-                  className="h-5 w-5 text-indigo-600 rounded"
+                  onCheckedChange={(checked) => updateSetting('allowBulkRewardUpload', checked)}
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Bulk Upload Size (rows)
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="maxBulkUploadSize">Max Bulk Upload Size (rows)</Label>
+                <Input
+                  id="maxBulkUploadSize"
                   type="number"
                   min="1"
                   value={settings?.maxBulkUploadSize || 1000}
                   onChange={(e) => updateSetting('maxBulkUploadSize', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Activity Log Retention (Days)
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label htmlFor="activityLogRetentionDays">Activity Log Retention (Days)</Label>
+                <Input
+                  id="activityLogRetentionDays"
                   type="number"
                   min="30"
                   value={settings?.activityLogRetentionDays || 90}
                   onChange={(e) => updateSetting('activityLogRetentionDays', parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-gray-700">Auto Delete Old Activities</label>
-                  <p className="text-xs text-gray-500">Automatically clean up old activity logs</p>
+              <div className="flex items-center justify-between space-x-2">
+                <div className="flex-1">
+                  <Label htmlFor="autoDeleteOldActivities">Auto Delete Old Activities</Label>
+                  <p className="text-xs text-muted-foreground">Automatically clean up old activity logs</p>
                 </div>
-                <input
-                  type="checkbox"
+                <Switch
+                  id="autoDeleteOldActivities"
                   checked={settings?.autoDeleteOldActivities || false}
-                  onChange={(e) => updateSetting('autoDeleteOldActivities', e.target.checked)}
-                  className="h-5 w-5 text-indigo-600 rounded"
+                  onCheckedChange={(checked) => updateSetting('autoDeleteOldActivities', checked)}
                 />
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Last Updated Info */}
         {settings?.updatedAt && (
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
+          <Alert className="mt-6">
+            <AlertDescription>
               Last updated: {new Date(settings.updatedAt).toLocaleString()}
-            </p>
-          </div>
+            </AlertDescription>
+          </Alert>
         )}
       </div>
     </div>

@@ -4,6 +4,21 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import * as XLSX from 'xlsx';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { AlertCircle, CheckCircle2, Download } from "lucide-react";
 
 interface RewardUpdate {
   serialNumber: string;
@@ -191,111 +206,121 @@ export default function BulkUploadRewardsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Bulk Upload Reward Payments</h1>
-          <button
+          <h1 className="text-3xl font-bold">Bulk Upload Reward Payments</h1>
+          <Button
+            variant="outline"
             onClick={() => router.push('/rewards')}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
           >
             ← Back to Rewards
-          </button>
+          </Button>
         </div>
 
         {/* Instructions */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <h3 className="font-medium text-blue-900 mb-2">📋 Instructions</h3>
-          <ol className="list-decimal list-inside text-sm text-blue-800 space-y-1">
-            <li>Download the Excel template below</li>
-            <li>Fill in the required fields: Serial Number, Installer Transaction ID, Payment Status</li>
-            <li>If the installer has a referrer, Referrer Transaction ID is required</li>
-            <li>Optional fields: Sending Date, Payment Method</li>
-            <li>Payment Status must be: PENDING, PAID, or FAILED</li>
-            <li>Upload the completed Excel file</li>
-          </ol>
-        </div>
+        <Alert className="bg-blue-50 border-border mb-6">
+          <AlertDescription>
+            <h3 className="font-medium text-blue-900 mb-2">Instructions</h3>
+            <ol className="list-decimal list-inside text-sm text-blue-800 space-y-1">
+              <li>Download the Excel template below</li>
+              <li>Fill in the required fields: Serial Number, Installer Transaction ID, Payment Status</li>
+              <li>If the installer has a referrer, Referrer Transaction ID is required</li>
+              <li>Optional fields: Sending Date, Payment Method</li>
+              <li>Payment Status must be: PENDING, PAID, or FAILED</li>
+              <li>Upload the completed Excel file</li>
+            </ol>
+          </AlertDescription>
+        </Alert>
 
         {/* Download Template Button */}
         <div className="mb-6">
-          <button
+          <Button
             onClick={downloadTemplate}
-            className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2"
+            className="bg-green-600 hover:bg-green-700"
           >
-            📥 Download Excel Template
-          </button>
+            <Download className="h-4 w-4 mr-2" />
+            Download Excel Template
+          </Button>
         </div>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-red-800 whitespace-pre-line">{error}</p>
-          </div>
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="whitespace-pre-line">{error}</AlertDescription>
+          </Alert>
         )}
 
         {success && (
-          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-green-800">{success}</p>
-          </div>
+          <Alert className="mb-4 bg-green-50 border-green-200">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">{success}</AlertDescription>
+          </Alert>
         )}
 
         {/* Upload Form */}
-        <form onSubmit={handleSubmit} className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Upload Excel File</h2>
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Excel File <span className="text-red-500">*</span>
-            </label>
-            <input
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Upload Excel File</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit}>
+          <div className="mb-6 space-y-2">
+            <Label htmlFor="excel-file">
+              Select Excel File <span className="text-destructive">*</span>
+            </Label>
+            <Input
+              id="excel-file"
               type="file"
               accept=".xlsx,.xls"
               onChange={handleFileChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               required
             />
           </div>
 
           {preview.length > 0 && (
             <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">
+              <h3 className="text-sm font-medium mb-2">
                 Preview ({preview.length} records)
               </h3>
-              <div className="overflow-x-auto border border-gray-200 rounded-md">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Serial Number</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Installer TID</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Referrer TID</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Serial Number</TableHead>
+                      <TableHead>Installer TID</TableHead>
+                      <TableHead>Referrer TID</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Method</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {preview.slice(0, 10).map((item, index) => (
-                      <tr key={index}>
-                        <td className="px-4 py-3 text-sm">{item.serialNumber}</td>
-                        <td className="px-4 py-3 text-sm">{item.transactionId}</td>
-                        <td className="px-4 py-3 text-sm">{item.referrerTransactionId || '-'}</td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            item.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800' :
-                            item.paymentStatus === 'FAILED' ? 'bg-red-100 text-red-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
+                      <TableRow key={index}>
+                        <TableCell>{item.serialNumber}</TableCell>
+                        <TableCell>{item.transactionId}</TableCell>
+                        <TableCell>{item.referrerTransactionId || '-'}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              item.paymentStatus === 'PAID' ? 'default' :
+                              item.paymentStatus === 'FAILED' ? 'destructive' :
+                              'secondary'
+                            }
+                          >
                             {item.paymentStatus}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-sm">{item.sendingDate || '-'}</td>
-                        <td className="px-4 py-3 text-sm">{item.paymentMethod || '-'}</td>
-                      </tr>
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{item.sendingDate || '-'}</TableCell>
+                        <TableCell>{item.paymentMethod || '-'}</TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
                 {preview.length > 10 && (
-                  <div className="px-4 py-2 bg-gray-50 text-sm text-gray-600">
+                  <div className="px-4 py-2 bg-muted text-sm text-muted-foreground">
                     ... and {preview.length - 10} more records
                   </div>
                 )}
@@ -304,22 +329,23 @@ export default function BulkUploadRewardsPage() {
           )}
 
           <div className="flex justify-end gap-3">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={() => router.push('/rewards')}
-              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={loading || preview.length === 0}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400"
             >
               {loading ? 'Processing...' : `Upload ${preview.length} Records`}
-            </button>
+            </Button>
           </div>
         </form>
+        </CardContent>
+        </Card>
       </div>
     </div>
   );

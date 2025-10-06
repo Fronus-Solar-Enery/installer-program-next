@@ -4,6 +4,20 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import { PRODUCT_MODELS, SERIAL_STATUSES, CITIES } from '@/lib/constants';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function NewRewardPage() {
   const router = useRouter();
@@ -170,138 +184,140 @@ export default function NewRewardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Register New Reward</h1>
-          <button
+          <h1 className="text-3xl font-bold">Register New Reward</h1>
+          <Button
+            variant="outline"
             onClick={() => router.push('/rewards')}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
           >
             ← Back to Rewards
-          </button>
+          </Button>
         </div>
 
         {/* Progress Indicator */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className={`h-2 rounded-full ${currentStep >= 1 ? 'bg-indigo-600' : 'bg-gray-300'}`} />
-              <p className={`mt-2 text-sm font-medium ${currentStep >= 1 ? 'text-indigo-600' : 'text-gray-500'}`}>
-                1. Validation
-              </p>
+        <Card className="mb-8">
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              <Progress value={(currentStep / 3) * 100} className="h-2" />
+              <div className="flex items-center justify-between text-sm">
+                <div className={`flex-1 ${currentStep >= 1 ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                  1. Validation
+                </div>
+                <div className={`flex-1 text-center ${currentStep >= 2 ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                  2. Product Details
+                </div>
+                <div className={`flex-1 text-right ${currentStep >= 3 ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                  3. Review
+                </div>
+              </div>
             </div>
-            <div className="flex-1 ml-4">
-              <div className={`h-2 rounded-full ${currentStep >= 2 ? 'bg-indigo-600' : 'bg-gray-300'}`} />
-              <p className={`mt-2 text-sm font-medium ${currentStep >= 2 ? 'text-indigo-600' : 'text-gray-500'}`}>
-                2. Product Details
-              </p>
-            </div>
-            <div className="flex-1 ml-4">
-              <div className={`h-2 rounded-full ${currentStep >= 3 ? 'bg-indigo-600' : 'bg-gray-300'}`} />
-              <p className={`mt-2 text-sm font-medium ${currentStep >= 3 ? 'text-indigo-600' : 'text-gray-500'}`}>
-                3. Review
-              </p>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-red-800">{error}</p>
-          </div>
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
-        <div className="bg-white shadow rounded-lg p-6">
+        <Card>
           {/* Step 1: Validation */}
           {currentStep === 1 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Step 1: Installer & Product Validation</h2>
+            <CardContent className="space-y-6 pt-6">
+              <CardTitle>Step 1: Installer & Product Validation</CardTitle>
 
               {/* Installer Code */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Installer Code <span className="text-red-500">*</span>
-                </label>
+              <div className="space-y-2">
+                <Label htmlFor="installer-code">
+                  Installer Code <span className="text-destructive">*</span>
+                </Label>
                 <div className="flex gap-3">
-                  <input
+                  <Input
+                    id="installer-code"
                     type="text"
                     value={installerCode}
                     onChange={(e) => setInstallerCode(e.target.value.toUpperCase())}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 uppercase"
+                    className="flex-1 uppercase"
                     placeholder="e.g., INS001"
                   />
-                  <button
+                  <Button
                     type="button"
                     onClick={validateInstallerCode}
                     disabled={loading || !installerCode}
-                    className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400"
                   >
                     {loading ? 'Validating...' : 'Validate'}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
               {installerData && (
-                <div className="p-4 bg-green-50 border border-green-200 rounded-md">
-                  <h3 className="font-medium text-green-900 mb-2">✓ Installer Found</h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-gray-600">Name:</span>
-                      <span className="ml-2 font-medium">{installerData.fullName}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Code:</span>
-                      <span className="ml-2 font-medium">{installerData.installerCode}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">City:</span>
-                      <span className="ml-2 font-medium">{installerData.city}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Company:</span>
-                      <span className="ml-2 font-medium">{installerData.companyName}</span>
-                    </div>
-                    {installerData.referrer && (
-                      <div className="col-span-2">
-                        <span className="text-gray-600">Referrer:</span>
-                        <span className="ml-2 font-medium text-blue-600">
-                          {installerData.referrer.installerCode} - {installerData.referrer.fullName}
-                        </span>
-                        <span className="ml-2 text-xs text-gray-500">(Will receive Rs. 500)</span>
+                <Alert className="border-green-200 bg-green-50">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <AlertDescription>
+                    <h3 className="font-medium text-green-900 mb-2">Installer Found</h3>
+                    <div className="grid grid-cols-2 gap-2 text-sm text-green-900">
+                      <div>
+                        <span className="text-muted-foreground">Name:</span>
+                        <span className="ml-2 font-medium">{installerData.fullName}</span>
                       </div>
-                    )}
-                  </div>
-                </div>
+                      <div>
+                        <span className="text-muted-foreground">Code:</span>
+                        <span className="ml-2 font-medium">{installerData.installerCode}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">City:</span>
+                        <span className="ml-2 font-medium">{installerData.city}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Company:</span>
+                        <span className="ml-2 font-medium">{installerData.companyName}</span>
+                      </div>
+                      {installerData.referrer && (
+                        <div className="col-span-2">
+                          <span className="text-muted-foreground">Referrer:</span>
+                          <span className="ml-2 font-medium text-blue-600">
+                            {installerData.referrer.installerCode} - {installerData.referrer.fullName}
+                          </span>
+                          <span className="ml-2 text-xs text-muted-foreground">(Will receive Rs. 500)</span>
+                        </div>
+                      )}
+                    </div>
+                  </AlertDescription>
+                </Alert>
               )}
 
               {/* Serial Number - Only show after installer validation */}
               {installerData && (
                 <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Product Serial Number <span className="text-red-500">*</span>
-                </label>
+              <div className="space-y-2">
+                <Label htmlFor="serial-number">
+                  Product Serial Number <span className="text-destructive">*</span>
+                </Label>
                 <div className="flex gap-3">
-                  <input
+                  <Input
+                    id="serial-number"
                     type="text"
                     value={serialNumber}
                     onChange={(e) => setSerialNumber(e.target.value.toUpperCase())}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 uppercase"
+                    className="flex-1 uppercase"
                     placeholder="e.g., SN123456"
                   />
-                  <button
+                  <Button
                     type="button"
                     onClick={validateSerialNumber}
                     disabled={loading || !serialNumber}
-                    className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400"
                   >
                     {loading ? 'Checking...' : 'Check'}
-                  </button>
+                  </Button>
                 </div>
                 {serialValid && (
-                  <p className="mt-1 text-sm text-green-600">✓ Serial number is available</p>
+                  <p className="text-sm text-green-600 flex items-center gap-1">
+                    <CheckCircle2 className="h-4 w-4" /> Serial number is available
+                  </p>
                 )}
               </div>
 
@@ -309,101 +325,100 @@ export default function NewRewardPage() {
               )}
 
               <div className="flex justify-end">
-                <button
+                <Button
                   type="button"
                   onClick={handleStep1Next}
                   disabled={!isStep1Complete}
-                  className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed"
                 >
                   Next →
-                </button>
+                </Button>
               </div>
-            </div>
+            </CardContent>
           )}
 
           {/* Step 2: Product Details */}
           {currentStep === 2 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Step 2: Product & Customer Details</h2>
+            <CardContent className="space-y-6 pt-6">
+              <CardTitle>Step 2: Product & Customer Details</CardTitle>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Product Model */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Product Model <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={productModel}
-                    onChange={(e) => setProductModel(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    <option value="">Select Product Model</option>
-                    {PRODUCT_MODELS.map(model => (
-                      <option key={model.value} value={model.value}>
-                        {model.label} - Rs. {model.reward.toLocaleString()} {model.isBattery ? '(Battery)' : ''}
-                      </option>
-                    ))}
-                  </select>
+                <div className="space-y-2">
+                  <Label htmlFor="product-model">
+                    Product Model <span className="text-destructive">*</span>
+                  </Label>
+                  <Select value={productModel} onValueChange={setProductModel}>
+                    <SelectTrigger id="product-model">
+                      <SelectValue placeholder="Select Product Model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRODUCT_MODELS.map(model => (
+                        <SelectItem key={model.value} value={model.value}>
+                          {model.label} - Rs. {model.reward.toLocaleString()} {model.isBattery ? '(Battery)' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Reward Amount (Auto-calculated) */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Reward Amount
-                  </label>
-                  <input
+                <div className="space-y-2">
+                  <Label htmlFor="reward-amount">Reward Amount</Label>
+                  <Input
+                    id="reward-amount"
                     type="text"
                     value={`Rs. ${rewardAmount.toLocaleString()}`}
                     readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 font-medium"
+                    className="bg-muted font-medium"
                   />
                 </div>
 
                 {/* City of Installation */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    City of Installation <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={cityOfInstallation}
-                    onChange={(e) => setCityOfInstallation(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    <option value="">Select City</option>
-                    {CITIES.map(city => (
-                      <option key={city} value={city}>{city}</option>
-                    ))}
-                  </select>
+                <div className="space-y-2">
+                  <Label htmlFor="city">
+                    City of Installation <span className="text-destructive">*</span>
+                  </Label>
+                  <Select value={cityOfInstallation} onValueChange={setCityOfInstallation}>
+                    <SelectTrigger id="city">
+                      <SelectValue placeholder="Select City" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CITIES.map(city => (
+                        <SelectItem key={city} value={city}>{city}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Serial Number Status */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Serial Number Status <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={serialNumberStatus}
-                    onChange={(e) => setSerialNumberStatus(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    <option value="">Select Status</option>
-                    {SERIAL_STATUSES.map(status => (
-                      <option key={status.value} value={status.value}>{status.label}</option>
-                    ))}
-                  </select>
+                <div className="space-y-2">
+                  <Label htmlFor="serial-status">
+                    Serial Number Status <span className="text-destructive">*</span>
+                  </Label>
+                  <Select value={serialNumberStatus} onValueChange={setSerialNumberStatus}>
+                    <SelectTrigger id="serial-status">
+                      <SelectValue placeholder="Select Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SERIAL_STATUSES.map(status => (
+                        <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Inverter Serial Number - Only for battery products */}
                 {isBatteryProduct && (
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Inverter Serial Number <span className="text-red-500">*</span>
-                    </label>
-                    <input
+                  <div className="md:col-span-2 space-y-2">
+                    <Label htmlFor="inverter-serial">
+                      Inverter Serial Number <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="inverter-serial"
                       type="text"
                       value={inverterSerialNumber}
                       onChange={(e) => setInverterSerialNumber(e.target.value.toUpperCase())}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 uppercase"
+                      className="uppercase"
                       placeholder="e.g., INV123456"
                     />
                   </div>
@@ -411,65 +426,64 @@ export default function NewRewardPage() {
               </div>
 
               <div className="flex justify-between">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setCurrentStep(1)}
-                  className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                 >
                   ← Back
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={handleStep2Next}
                   disabled={!isStep2Complete}
-                  className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed"
                 >
                   Next →
-                </button>
+                </Button>
               </div>
-            </div>
+            </CardContent>
           )}
 
           {/* Step 3: Review */}
           {currentStep === 3 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Step 3: Review Details</h2>
+            <CardContent className="space-y-6 pt-6">
+              <CardTitle>Step 3: Review Details</CardTitle>
 
               {/* Installer Information */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-3">Installer Information</h3>
+              <div className="rounded-lg border p-4 bg-muted/50">
+                <h3 className="font-medium mb-3">Installer Information</h3>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <span className="text-gray-600">Code:</span>
+                    <span className="text-muted-foreground">Code:</span>
                     <span className="ml-2 font-medium">{installerData?.installerCode}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Name:</span>
+                    <span className="text-muted-foreground">Name:</span>
                     <span className="ml-2 font-medium">{installerData?.fullName}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Company:</span>
+                    <span className="text-muted-foreground">Company:</span>
                     <span className="ml-2 font-medium">{installerData?.companyName}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">City:</span>
+                    <span className="text-muted-foreground">City:</span>
                     <span className="ml-2 font-medium">{installerData?.city}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Bank:</span>
+                    <span className="text-muted-foreground">Bank:</span>
                     <span className="ml-2 font-medium">{installerData?.bankName}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Account:</span>
+                    <span className="text-muted-foreground">Account:</span>
                     <span className="ml-2 font-medium">{installerData?.accountNumber}</span>
                   </div>
                   <div className="col-span-2">
-                    <span className="text-gray-600">Account Title:</span>
+                    <span className="text-muted-foreground">Account Title:</span>
                     <span className="ml-2 font-medium">{installerData?.accountTitle}</span>
                   </div>
                   {installerData?.referrer && (
-                    <div className="col-span-2 pt-2 border-t border-gray-200">
-                      <span className="text-gray-600">Referrer:</span>
+                    <div className="col-span-2 pt-2 border-t border-border">
+                      <span className="text-muted-foreground">Referrer:</span>
                       <span className="ml-2 font-medium text-blue-600">
                         {installerData.referrer.installerCode} - {installerData.referrer.fullName}
                       </span>
@@ -482,37 +496,37 @@ export default function NewRewardPage() {
               </div>
 
               {/* Product Information */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-medium text-gray-900 mb-3">Product Information</h3>
+              <div className="rounded-lg border p-4 bg-muted/50">
+                <h3 className="font-medium mb-3">Product Information</h3>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <span className="text-gray-600">Serial Number:</span>
+                    <span className="text-muted-foreground">Serial Number:</span>
                     <span className="ml-2 font-medium">{serialNumber}</span>
                   </div>
                   {isBatteryProduct && (
                     <div>
-                      <span className="text-gray-600">Inverter Serial:</span>
+                      <span className="text-muted-foreground">Inverter Serial:</span>
                       <span className="ml-2 font-medium">{inverterSerialNumber}</span>
                     </div>
                   )}
                   <div>
-                    <span className="text-gray-600">Product Model:</span>
+                    <span className="text-muted-foreground">Product Model:</span>
                     <span className="ml-2 font-medium">{productModel}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Installer Reward:</span>
+                    <span className="text-muted-foreground">Installer Reward:</span>
                     <span className="ml-2 font-medium text-green-600">Rs. {rewardAmount.toLocaleString()}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Installation City:</span>
+                    <span className="text-muted-foreground">Installation City:</span>
                     <span className="ml-2 font-medium">{cityOfInstallation}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Status:</span>
+                    <span className="text-muted-foreground">Status:</span>
                     <span className="ml-2 font-medium">{serialNumberStatus}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Installation Date:</span>
+                    <span className="text-muted-foreground">Installation Date:</span>
                     <span className="ml-2 font-medium">{new Date().toLocaleDateString()} (Auto-generated)</span>
                   </div>
                 </div>
@@ -520,46 +534,48 @@ export default function NewRewardPage() {
 
               {/* Referral Reward Information */}
               {installerData?.referrer && (
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <h3 className="font-medium text-blue-900 mb-3">💰 Referral Reward</h3>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <span className="text-blue-700">Referrer Code:</span>
-                      <span className="ml-2 font-medium text-blue-900">{installerData.referrer.installerCode}</span>
+                <Alert className="bg-blue-50 border-blue-200">
+                  <AlertDescription>
+                    <h3 className="font-medium text-blue-900 mb-3">Referral Reward</h3>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-blue-700">Referrer Code:</span>
+                        <span className="ml-2 font-medium text-blue-900">{installerData.referrer.installerCode}</span>
+                      </div>
+                      <div>
+                        <span className="text-blue-700">Referrer Name:</span>
+                        <span className="ml-2 font-medium text-blue-900">{installerData.referrer.fullName}</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-blue-700">Referral Reward Amount:</span>
+                        <span className="ml-2 font-bold text-green-600">Rs. 500</span>
+                        <span className="ml-2 text-xs text-blue-600">(Automatically credited for each product registration)</span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-blue-700">Referrer Name:</span>
-                      <span className="ml-2 font-medium text-blue-900">{installerData.referrer.fullName}</span>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-blue-700">Referral Reward Amount:</span>
-                      <span className="ml-2 font-bold text-green-600">Rs. 500</span>
-                      <span className="ml-2 text-xs text-blue-600">(Automatically credited for each product registration)</span>
-                    </div>
-                  </div>
-                </div>
+                  </AlertDescription>
+                </Alert>
               )}
 
               <div className="flex justify-between">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setCurrentStep(2)}
-                  className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                 >
                   ← Back
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={handleSubmit}
                   disabled={loading}
-                  className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-green-400"
+                  className="bg-green-600 hover:bg-green-700"
                 >
                   {loading ? 'Submitting...' : 'Submit Reward Registration'}
-                </button>
+                </Button>
               </div>
-            </div>
+            </CardContent>
           )}
-        </div>
+        </Card>
       </div>
     </div>
   );
