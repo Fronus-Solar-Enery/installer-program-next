@@ -284,7 +284,7 @@ export default function BulkUploadRewardsPage() {
               <h3 className="text-sm font-medium mb-2">
                 Preview ({preview.length} records)
               </h3>
-              <div className="rounded-md border">
+              <div className="rounded-md border border-border">
                 <Table>
                   <TableHeader>
                     <TableRow>

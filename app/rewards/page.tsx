@@ -475,7 +475,7 @@ export default function RewardsPage() {
               </Button>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border border-border">
               <Table>
                 <TableHeader>
                   <TableRow>
