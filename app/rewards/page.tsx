@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Navbar from "@/components/Navbar";
 import RewardEditModal from "@/components/RewardEditModal";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import {
@@ -57,6 +56,7 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import PageHeader from "@/components/PageHeader";
 
 export default function RewardsPage() {
   const router = useRouter();
@@ -304,20 +304,23 @@ export default function RewardsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Rewards</h1>
+    <div className="flex-1 overflow-auto">
+      <PageHeader
+        title="Rewards & Installations"
+        description="Manage product installations and reward distributions"
+        action={
           <div className="flex gap-3">
             <Button onClick={() => router.push("/rewards/new")}>
-              + Register Reward
+              + Add Installation
             </Button>
             <Button onClick={() => router.push("/rewards/bulk-upload")} variant="secondary">
               Bulk Update
             </Button>
           </div>
-        </div>
+        }
+      />
+      <div className="p-6">
+        <div className="max-w-7xl mx-auto">
 
         {/* Filters Section */}
         <Card className="mb-6">
@@ -685,6 +688,7 @@ export default function RewardsPage() {
           )}
           </CardContent>
         </Card>
+        </div>
       </div>
 
       {/* Edit Modal */}

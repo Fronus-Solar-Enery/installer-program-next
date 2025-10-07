@@ -2,15 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
-import { Copy, Check, Edit, Trash2, ArrowLeft, Award, TrendingUp, Activity as ActivityIcon, Package } from 'lucide-react';
+import { Copy, Check, Edit, Trash2, ArrowLeft, Award, TrendingUp, Activity as ActivityIcon, Package, UserPlus, User, Clock, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import PageHeader from '@/components/PageHeader';
 
 export default function InstallerDetailsPage() {
   const router = useRouter();
@@ -159,8 +159,7 @@ export default function InstallerDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <div className="p-6">
         <div className="flex items-center justify-center h-96">
           <p className="text-muted-foreground">Loading installer details...</p>
         </div>
@@ -170,8 +169,7 @@ export default function InstallerDetailsPage() {
 
   if (error || !installer) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <div className="p-6">
         <div className="flex items-center justify-center h-96">
           <div className="text-center space-y-4">
             <Alert variant="destructive">
@@ -187,56 +185,50 @@ export default function InstallerDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/installers')}
-            className="mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Installers
-          </Button>
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold">{installer.fullName}</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Installer Code: {installer.installerCode}
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                onClick={() => router.push(`/installers/${installerId}/edit`)}
-                variant="default"
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                onClick={handleDelete}
-                variant="destructive"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
+    <div className="flex-1 overflow-auto">
+      <PageHeader
+        title={installer.fullName}
+        description={`Installer Code: ${installer.installerCode}`}
+        breadcrumbLabel={installer.installerCode}
+        action={
+          <div className="flex gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => router.push('/installers')}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Installers
+            </Button>
+            <Button
+              onClick={() => router.push(`/installers/${installerId}/edit`)}
+              variant="default"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+            <Button
+              onClick={handleDelete}
+              variant="destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
           </div>
-        </div>
+        }
+      />
+      <div className="p-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Certified Badge */}
+          {installer.certified && (
+            <div className="mb-6">
+              <Badge variant="default" className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700">
+                <Award className="h-4 w-4 mr-2" />
+                Certified Installer
+              </Badge>
+            </div>
+          )}
 
-        {/* Certified Badge */}
-        {installer.certified && (
-          <div className="mb-6">
-            <Badge variant="default" className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700">
-              <Award className="h-4 w-4 mr-2" />
-              Certified Installer
-            </Badge>
-          </div>
-        )}
-
-        {/* Statistics Cards */}
+          {/* Statistics Cards */}
         {statistics && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <Card>
@@ -534,62 +526,204 @@ export default function InstallerDetailsPage() {
 
           {/* Activity Tab */}
           <TabsContent value="activity">
-            <Card>
-              <CardHeader>
-                <CardTitle>Activity Log</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loadingActivities ? (
-                  <p className="text-center text-muted-foreground py-8">Loading activities...</p>
-                ) : activities.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No activities found</p>
-                ) : (
-                <div className="flow-root">
-                  <ul className="-mb-8">
-                    {activities.map((activity: any, index: number) => (
-                      <li key={activity._id}>
-                        <div className="relative pb-8">
-                          {index !== activities.length - 1 && (
-                            <span
-                              className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-border"
-                              aria-hidden="true"
-                            />
-                          )}
-                          <div className="relative flex space-x-3">
-                            <div>
-                              <span className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-background ${
-                                activity.type.includes('REGISTERED') ? 'bg-green-500 dark:bg-green-600' :
-                                activity.type.includes('UPDATED') ? 'bg-blue-500 dark:bg-blue-600' :
-                                activity.type.includes('DELETED') ? 'bg-red-500 dark:bg-red-600' :
-                                activity.type.includes('PAID') ? 'bg-green-500 dark:bg-green-600' :
-                                activity.type.includes('FAILED') ? 'bg-red-500 dark:bg-red-600' :
-                                'bg-muted'
-                              }`}>
-                                <ActivityIcon className="h-4 w-4 text-white" />
-                              </span>
-                            </div>
-                            <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
-                              <div>
-                                <p className="text-sm">{activity.description}</p>
-                                <p className="mt-1 text-xs text-muted-foreground">
-                                  By {activity.performedBy?.name || 'Unknown'}
-                                </p>
-                              </div>
-                              <div className="whitespace-nowrap text-right text-sm text-muted-foreground">
-                                <time dateTime={activity.createdAt}>
-                                  {new Date(activity.createdAt).toLocaleString()}
-                                </time>
-                              </div>
-                            </div>
+            <div className="space-y-3">
+              {loadingActivities ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <Card key={i}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-4">
+                          <div className="h-10 w-10 rounded-lg bg-muted shrink-0" />
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 w-3/4 bg-muted rounded" />
+                            <div className="h-3 w-1/2 bg-muted rounded" />
                           </div>
                         </div>
-                      </li>
-                    ))}
-                  </ul>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
-                )}
-              </CardContent>
-            </Card>
+              ) : activities.length === 0 ? (
+                <Card>
+                  <CardContent className="p-12">
+                    <div className="text-center">
+                      <ActivityIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <div className="text-muted-foreground">No activities found</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                activities.map((activity: any) => {
+                  const isCreated = activity.type.includes('REGISTERED') || activity.type.includes('CREATED');
+                  const isUpdated = activity.type.includes('UPDATED');
+                  const isDeleted = activity.type.includes('DELETED');
+                  const isPaid = activity.type.includes('PAID');
+                  const isFailed = activity.type.includes('FAILED');
+
+                  const getActivityIcon = () => {
+                    if (activity.type.includes('INSTALLER_REGISTERED')) return <UserPlus className="h-4 w-4" />;
+                    if (isUpdated) return <Edit className="h-4 w-4" />;
+                    if (isDeleted) return <Trash2 className="h-4 w-4" />;
+                    return <ActivityIcon className="h-4 w-4" />;
+                  };
+
+                  const getActivityBgColor = () => {
+                    if (isDeleted) return 'bg-red-500/10 text-red-600 dark:text-red-400';
+                    if (isCreated || isPaid) return 'bg-green-500/10 text-green-600 dark:text-green-400';
+                    if (isUpdated) return 'bg-blue-500/10 text-blue-600 dark:text-blue-400';
+                    if (isFailed) return 'bg-orange-500/10 text-orange-600 dark:text-orange-400';
+                    return 'bg-muted text-muted-foreground';
+                  };
+
+                  const getActivityVariant = (): 'default' | 'destructive' | 'outline' | 'secondary' => {
+                    if (isDeleted) return 'destructive';
+                    if (isCreated || isPaid) return 'default';
+                    if (isUpdated) return 'secondary';
+                    return 'outline';
+                  };
+
+                  const getActivityTitle = () => {
+                    if (activity.type === 'INSTALLER_REGISTERED' && activity.metadata) {
+                      const installerName = activity.metadata.name || activity.targetName || 'Unknown';
+                      const installerCode = activity.metadata.code || '';
+                      return `Created new installer: ${installerName} (${installerCode})`;
+                    }
+                    return activity.description;
+                  };
+
+                  const getMetadataDisplay = () => {
+                    if (!activity.metadata) return null;
+                    const items: { label: string; value: string }[] = [];
+
+                    if (activity.type === 'INSTALLER_REGISTERED') {
+                      if (activity.metadata.entityId) items.push({ label: 'entityId', value: `"${activity.metadata.entityId}"` });
+                      if (activity.metadata.code) items.push({ label: 'code', value: `"${activity.metadata.code}"` });
+                      if (activity.metadata.name) items.push({ label: 'name', value: `"${activity.metadata.name}"` });
+                    }
+
+                    return items.length > 0 ? items : null;
+                  };
+
+                  const metadataItems = getMetadataDisplay();
+
+                  return (
+                    <Card key={activity._id} className="transition-all hover:shadow-md">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-4">
+                          {/* Icon with Status Indicator */}
+                          <div className="relative shrink-0">
+                            <div className={`p-2 rounded-lg ${getActivityBgColor()}`}>
+                              {getActivityIcon()}
+                            </div>
+                            {isCreated && (
+                              <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-green-500 flex items-center justify-center">
+                                <Check className="h-3 w-3 text-white" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-4 mb-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium">
+                                  {getActivityTitle()}
+                                </p>
+                              </div>
+
+                              {/* Activity Type Badge */}
+                              <Badge variant={getActivityVariant()} className="shrink-0">
+                                {activity.type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                              </Badge>
+                            </div>
+
+                            {/* Metadata Display */}
+                            {metadataItems && metadataItems.length > 0 && (
+                              <div className="mb-2 text-xs font-mono text-muted-foreground">
+                                {'{ '}{metadataItems.map((item, idx) => (
+                                  <span key={idx}>
+                                    <span className="text-muted-foreground/70">{item.label}:</span>{' '}
+                                    <span className="text-foreground/80">{item.value}</span>
+                                    {idx < metadataItems.length - 1 && ', '}
+                                  </span>
+                                ))}{' }'}
+                              </div>
+                            )}
+
+                            {/* User and Time Info */}
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                {activity.performedBy?.name || 'Unknown'}
+                              </span>
+                              <span className="text-muted-foreground/50">•</span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {new Date(activity.createdAt).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </span>
+                              {activity.targetName && !activity.type.includes('INSTALLER_REGISTERED') && (
+                                <>
+                                  <span className="text-muted-foreground/50">•</span>
+                                  <span>Target: {activity.targetName}</span>
+                                </>
+                              )}
+                            </div>
+
+                            {/* Changes Details */}
+                            {activity.metadata?.changes && Object.keys(activity.metadata.changes).length > 0 && (
+                              <details className="mt-3">
+                                <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1">
+                                  <AlertCircle className="h-3 w-3" />
+                                  View Changes
+                                </summary>
+                                <Alert className="mt-2">
+                                  <AlertDescription>
+                                    <dl className="space-y-2">
+                                      {Object.entries(activity.metadata.changes).map(([key, value]: [string, any]) => (
+                                        <div key={key} className="text-xs">
+                                          <dt className="font-medium capitalize">
+                                            {key.replace(/([A-Z])/g, ' $1').trim()}:
+                                          </dt>
+                                          <dd className="ml-4">
+                                            <span className="text-destructive line-through">{String(value.before || 'N/A')}</span>
+                                            {' → '}
+                                            <span className="text-green-600 dark:text-green-400">{String(value.after || 'N/A')}</span>
+                                          </dd>
+                                        </div>
+                                      ))}
+                                    </dl>
+                                  </AlertDescription>
+                                </Alert>
+                              </details>
+                            )}
+
+                            {/* WhatsApp Metadata */}
+                            {activity.metadata?.whatsappNumber && (
+                              <div className="mt-2 text-xs">
+                                <Badge variant="outline" className="font-mono">
+                                  {activity.metadata.whatsappNumber}
+                                </Badge>
+                                {activity.metadata.errorMessage && (
+                                  <span className="ml-2 text-destructive">
+                                    Error: {activity.metadata.errorMessage}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
           </TabsContent>
 
           {/* Products Tab */}
@@ -665,6 +799,7 @@ export default function InstallerDetailsPage() {
             </Card>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
     </div>
   );

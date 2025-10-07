@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Navbar from '@/components/Navbar';
-import { Activity, Clock, User, FileText } from 'lucide-react';
+import { Activity, Clock, User, FileText, UserPlus, Check, Edit, Trash2, AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import PageHeader from '@/components/PageHeader';
 
 interface ActivityData {
   _id: string;
@@ -18,10 +18,15 @@ interface ActivityData {
   };
   createdAt: string;
   targetName?: string;
+  entityType?: string;
+  entityId?: string;
   metadata?: {
     changes?: Record<string, { before: string | number | boolean; after: string | number | boolean }>;
     whatsappNumber?: string;
     errorMessage?: string;
+    code?: string;
+    name?: string;
+    [key: string]: any;
   };
 }
 
@@ -51,10 +56,13 @@ export default function ActivityPage() {
   };
 
   const getActivityIcon = (type: string) => {
-    if (type.includes('INSTALLER')) return <User className="h-5 w-5" />;
-    if (type.includes('REWARD')) return <Activity className="h-5 w-5" />;
-    if (type.includes('TEAM')) return <User className="h-5 w-5" />;
-    return <FileText className="h-5 w-5" />;
+    if (type.includes('INSTALLER_REGISTERED')) return <UserPlus className="h-4 w-4" />;
+    if (type.includes('INSTALLER')) return <User className="h-4 w-4" />;
+    if (type.includes('REWARD')) return <Activity className="h-4 w-4" />;
+    if (type.includes('TEAM')) return <User className="h-4 w-4" />;
+    if (type.includes('UPDATED')) return <Edit className="h-4 w-4" />;
+    if (type.includes('DELETED')) return <Trash2 className="h-4 w-4" />;
+    return <FileText className="h-4 w-4" />;
   };
 
   const getActivityVariant = (type: string): 'default' | 'destructive' | 'outline' | 'secondary' => {
@@ -65,10 +73,11 @@ export default function ActivityPage() {
   };
 
   const getActivityBgColor = (type: string) => {
-    if (type.includes('DELETED')) return 'bg-destructive/10 text-destructive';
-    if (type.includes('REGISTERED') || type.includes('PAID')) return 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400';
-    if (type.includes('UPDATED')) return 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400';
-    if (type.includes('FAILED')) return 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400';
+    if (type.includes('DELETED')) return 'bg-red-500/10 text-red-600 dark:text-red-400';
+    if (type.includes('REGISTERED')) return 'bg-green-500/10 text-green-600 dark:text-green-400';
+    if (type.includes('PAID')) return 'bg-green-500/10 text-green-600 dark:text-green-400';
+    if (type.includes('UPDATED')) return 'bg-blue-500/10 text-blue-600 dark:text-blue-400';
+    if (type.includes('FAILED')) return 'bg-orange-500/10 text-orange-600 dark:text-orange-400';
     return 'bg-muted text-muted-foreground';
   };
 
@@ -76,21 +85,44 @@ export default function ActivityPage() {
     return type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
   };
 
+  const getActivityTitle = (activity: ActivityData) => {
+    // For installer registration, show a custom format
+    if (activity.type === 'INSTALLER_REGISTERED' && activity.metadata) {
+      const installerName = activity.metadata.name || activity.targetName || 'Unknown';
+      const installerCode = activity.metadata.code || '';
+      return `Created new installer: ${installerName} (${installerCode})`;
+    }
+    return activity.description;
+  };
+
+  const getMetadataDisplay = (activity: ActivityData) => {
+    if (!activity.metadata) return null;
+
+    const items: { label: string; value: string }[] = [];
+
+    // Extract metadata items based on activity type
+    if (activity.type === 'INSTALLER_REGISTERED') {
+      if (activity.metadata.entityId) items.push({ label: 'entityId', value: `"${activity.metadata.entityId}"` });
+      if (activity.metadata.code) items.push({ label: 'code', value: `"${activity.metadata.code}"` });
+      if (activity.metadata.name) items.push({ label: 'name', value: `"${activity.metadata.name}"` });
+    }
+
+    return items.length > 0 ? items : null;
+  };
+
   const filteredActivities = filter === 'ALL'
     ? activities
     : activities.filter(a => a.type.includes(filter));
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Activity Log</h1>
-          <p className="text-muted-foreground">Track all system activities and changes</p>
-        </div>
-
+    <div className="flex-1 overflow-auto">
+      <PageHeader
+        title="Activity Log"
+        description="Track all system activities and changes"
+      />
+      <div className="container mx-auto p-6 space-y-6">
         {/* Filter Tabs */}
-        <Card className="mb-6">
+        <Card>
           <CardContent className="p-4">
             <div className="flex flex-wrap gap-2">
               {['ALL', 'INSTALLER', 'REWARD', 'TEAM', 'WHATSAPP'].map((filterType) => (
@@ -108,72 +140,111 @@ export default function ActivityPage() {
         </Card>
 
         {/* Activities List */}
-        <Card>
-          <CardContent className="p-0">
-            {loading ? (
-              <div className="p-12 space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex items-start gap-4">
-                    <Skeleton className="h-12 w-12 rounded-lg" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3 w-1/2" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : filteredActivities.length === 0 ? (
-              <div className="text-center py-12">
-                <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <div className="text-muted-foreground">No activities found</div>
-              </div>
-            ) : (
-              <div className="divide-y divide-border">
-                {filteredActivities.map((activity) => (
-                  <div
-                    key={activity._id}
-                    className="p-6 hover:bg-muted/50 transition-colors"
-                  >
+        <div className="space-y-3">
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-4">
                     <div className="flex items-start gap-4">
-                      {/* Icon */}
-                      <div className={`p-2 rounded-lg ${getActivityBgColor(activity.type)}`}>
-                        {getActivityIcon(activity.type)}
+                      <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : filteredActivities.length === 0 ? (
+            <Card>
+              <CardContent className="p-12">
+                <div className="text-center">
+                  <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <div className="text-muted-foreground">No activities found</div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredActivities.map((activity) => {
+              const metadataItems = getMetadataDisplay(activity);
+              const isCreated = activity.type.includes('REGISTERED') || activity.type.includes('CREATED');
+
+              return (
+                <Card key={activity._id} className="transition-all hover:shadow-md">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-4">
+                      {/* Icon with Status Indicator */}
+                      <div className="relative shrink-0">
+                        <div className={`p-2 rounded-lg ${getActivityBgColor(activity.type)}`}>
+                          {getActivityIcon(activity.type)}
+                        </div>
+                        {isCreated && (
+                          <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-green-500 flex items-center justify-center">
+                            <Check className="h-3 w-3 text-white" />
+                          </div>
+                        )}
                       </div>
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium">
-                              {activity.description}
+                              {getActivityTitle(activity)}
                             </p>
-                            <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <User className="h-3 w-3" />
-                                {activity.performedBy?.name || 'Unknown'}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {new Date(activity.createdAt).toLocaleString()}
-                              </span>
-                            </div>
-                            {activity.targetName && (
-                              <p className="mt-1 text-xs text-muted-foreground">
-                                Target: {activity.targetName}
-                              </p>
-                            )}
                           </div>
 
                           {/* Activity Type Badge */}
-                          <Badge variant={getActivityVariant(activity.type)}>
+                          <Badge variant={getActivityVariant(activity.type)} className="shrink-0">
                             {formatActivityType(activity.type)}
                           </Badge>
+                        </div>
+
+                        {/* Metadata Display */}
+                        {metadataItems && metadataItems.length > 0 && (
+                          <div className="mb-2 text-xs font-mono text-muted-foreground">
+                            {'{ '}{metadataItems.map((item, idx) => (
+                              <span key={idx}>
+                                <span className="text-muted-foreground/70">{item.label}:</span>{' '}
+                                <span className="text-foreground/80">{item.value}</span>
+                                {idx < metadataItems.length - 1 && ', '}
+                              </span>
+                            ))}{' }'}
+                          </div>
+                        )}
+
+                        {/* User and Time Info */}
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <User className="h-3 w-3" />
+                            {activity.performedBy?.name || 'Unknown'}
+                          </span>
+                          <span className="text-muted-foreground/50">•</span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {new Date(activity.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                          {activity.targetName && !activity.type.includes('INSTALLER_REGISTERED') && (
+                            <>
+                              <span className="text-muted-foreground/50">•</span>
+                              <span>Target: {activity.targetName}</span>
+                            </>
+                          )}
                         </div>
 
                         {/* Changes Details */}
                         {activity.metadata?.changes && Object.keys(activity.metadata.changes).length > 0 && (
                           <details className="mt-3">
-                            <summary className="text-sm text-muted-foreground cursor-pointer hover:text-foreground">
+                            <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
                               View Changes
                             </summary>
                             <Alert className="mt-2">
@@ -199,8 +270,10 @@ export default function ActivityPage() {
 
                         {/* WhatsApp Metadata */}
                         {activity.metadata?.whatsappNumber && (
-                          <div className="mt-2 text-xs text-muted-foreground">
-                            {activity.metadata.whatsappNumber}
+                          <div className="mt-2 text-xs">
+                            <Badge variant="outline" className="font-mono">
+                              {activity.metadata.whatsappNumber}
+                            </Badge>
                             {activity.metadata.errorMessage && (
                               <span className="ml-2 text-destructive">
                                 Error: {activity.metadata.errorMessage}
@@ -210,12 +283,12 @@ export default function ActivityPage() {
                         )}
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </div>
       </div>
     </div>
   );

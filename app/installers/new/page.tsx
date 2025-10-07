@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 import { CITIES, CITY_TO_PROVINCE, TRAINING_CENTER, BANKS } from '@/lib/constants';
 import { CheckCircle, Circle, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Digital payment methods (mobile wallets)
 const DIGITAL_PAYMENT_METHODS = ['jazzcash', 'easypaisa', 'nayapay', 'sadapay', 'finja', 'keenu', 'upaisa'];
@@ -388,9 +387,8 @@ export default function NewInstallerPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="p-6">
+      <div className="max-w-4xl mx-auto">
         <Card>
           <CardHeader>
             <CardTitle>Register New Installer</CardTitle>
@@ -654,16 +652,18 @@ export default function NewInstallerPage() {
                       <SelectValue placeholder="Select Bank / Payment Method" />
                     </SelectTrigger>
                     <SelectContent>
-                      <optgroup label="Digital Payment Methods">
+                      <SelectGroup>
+                        <SelectLabel>Digital Payment Methods</SelectLabel>
                         {BANKS.filter(b => b.mobile).map((bank) => (
                           <SelectItem key={bank.value} value={bank.value}>{bank.label}</SelectItem>
                         ))}
-                      </optgroup>
-                      <optgroup label="Commercial Banks">
+                      </SelectGroup>
+                      <SelectGroup>
+                        <SelectLabel>Commercial Banks</SelectLabel>
                         {BANKS.filter(b => !b.mobile).map((bank) => (
                           <SelectItem key={bank.value} value={bank.value}>{bank.label}</SelectItem>
                         ))}
-                      </optgroup>
+                      </SelectGroup>
                     </SelectContent>
                   </Select>
                 </div>

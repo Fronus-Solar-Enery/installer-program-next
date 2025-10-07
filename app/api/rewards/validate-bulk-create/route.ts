@@ -1,0 +1,144 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import dbConnect from '@/lib/mongodb';
+import Installer from '@/models/Installer';
+import InstallerReward from '@/models/InstallerReward';
+import TeamMember from '@/models/TeamMember';
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await dbConnect();
+
+    const { rewards } = await request.json();
+
+    if (!Array.isArray(rewards) || rewards.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid rewards data' },
+        { status: 400 }
+      );
+    }
+
+    // Fetch all existing serial numbers
+    const existingRewards = await InstallerReward.find(
+      {},
+      { serialNumber: 1, _id: 0 }
+    ).lean();
+
+    const existingSerialNumbers = new Set(
+      existingRewards.map((r: any) => r.serialNumber?.toUpperCase())
+    );
+
+    // Fetch all installers with full name and referrer info
+    const installers = await Installer.find(
+      {},
+      { installerCode: 1, fullName: 1, referredBy: 1, _id: 0 }
+    ).lean();
+
+    const installerMap = new Map(
+      installers.map((i: any) => [
+        i.installerCode.toUpperCase(),
+        { fullName: i.fullName, hasReferrer: !!i.referredBy }
+      ])
+    );
+
+    // Create set of all installer codes for referrer validation
+    const installerCodes = new Set(
+      installers.map((i: any) => i.installerCode.toUpperCase())
+    );
+
+    // Fetch all team member emails
+    const teamMembers = await TeamMember.find({}, { email: 1, _id: 0 }).lean();
+    const teamMemberEmails = new Set(
+      teamMembers.map((tm: any) => tm.email.toLowerCase())
+    );
+
+    // Track duplicates in batch
+    const serialNumbersInBatch = new Map<string, number>();
+
+    const validatedRewards = rewards.map((reward: any, index: number) => {
+      const newIssues: string[] = [];
+      const installerCode = reward.installerCode?.toString().toUpperCase();
+      const serialNumber = reward.serialNumber?.toString().toUpperCase();
+      const teamMemberEmail = reward.teamMemberEmail?.toString().toLowerCase();
+      const referrerCode = reward.referrerCode?.toString().toUpperCase();
+
+      // Check if team member email exists
+      if (teamMemberEmail && !teamMemberEmails.has(teamMemberEmail)) {
+        newIssues.push(`Team member email "${reward.teamMemberEmail}" does not exist in system`);
+      }
+
+      // Check if installer exists and name matches
+      if (!installerCode) {
+        newIssues.push('Installer code is required');
+      } else if (!installerMap.has(installerCode)) {
+        newIssues.push(`Installer code "${reward.installerCode}" does not exist`);
+      } else {
+        const installerInfo = installerMap.get(installerCode);
+
+        // Verify installer name matches
+        if (reward.installerName && installerInfo?.fullName !== reward.installerName) {
+          newIssues.push(
+            `Installer name "${reward.installerName}" does not match database (expected: "${installerInfo?.fullName}")`
+          );
+        }
+
+        // Check referrer reward amount requirement
+        if (installerInfo?.hasReferrer && !reward.referrerRewardAmount) {
+          newIssues.push('Referrer reward amount is required for this installer');
+        }
+      }
+
+      // Check if referrer code exists (if provided)
+      if (referrerCode && !installerCodes.has(referrerCode)) {
+        newIssues.push(`Referrer code "${reward.referrerCode}" is not a registered installer`);
+      }
+
+      // Check if serial number already exists in database
+      if (!serialNumber) {
+        newIssues.push('Serial number is required');
+      } else if (existingSerialNumbers.has(serialNumber)) {
+        newIssues.push(`Serial number "${reward.serialNumber}" already exists in database`);
+      }
+
+      // Check for duplicate serial numbers in batch
+      if (serialNumber) {
+        if (serialNumbersInBatch.has(serialNumber)) {
+          const firstOccurrence = serialNumbersInBatch.get(serialNumber)! + 1;
+          newIssues.push(
+            `Duplicate serial number in upload (first occurrence at row ${firstOccurrence})`
+          );
+        } else {
+          serialNumbersInBatch.set(serialNumber, index);
+        }
+      }
+
+      return {
+        ...reward,
+        issues: [...(reward.issues || []), ...newIssues],
+        isValid: reward.isValid && newIssues.length === 0,
+      };
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        validatedRewards,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error validating bulk rewards:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message || 'Failed to validate rewards',
+      },
+      { status: 500 }
+    );
+  }
+}

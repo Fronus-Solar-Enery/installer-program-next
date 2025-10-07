@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
 import { Copy, Check, Edit, Trash2, ArrowLeft } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -97,8 +96,7 @@ export default function RewardDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <div className="p-6">
         <div className="flex items-center justify-center h-96">
           <p className="text-muted-foreground">Loading reward details...</p>
         </div>
@@ -108,8 +106,7 @@ export default function RewardDetailsPage() {
 
   if (error || !reward) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <div className="p-6">
         <div className="flex items-center justify-center h-96">
           <Card className="w-full max-w-md">
             <CardContent className="text-center pt-6">
@@ -127,9 +124,8 @@ export default function RewardDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="p-6">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
           <Button

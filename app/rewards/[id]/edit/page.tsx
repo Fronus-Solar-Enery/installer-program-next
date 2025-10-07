@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 import { PaymentStatus } from '@/types/rewards';
 import { PRODUCT_MODELS, PAYMENT_METHOD } from '@/lib/constants';
 import { Button } from "@/components/ui/button";
@@ -127,8 +126,7 @@ export default function EditRewardPage() {
 
   if (fetchLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <div className="p-6">
         <div className="flex items-center justify-center h-96">
           <p className="text-muted-foreground">Loading reward details...</p>
         </div>
@@ -138,8 +136,7 @@ export default function EditRewardPage() {
 
   if (!reward) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
+      <div className="p-6">
         <div className="flex items-center justify-center h-96">
           <Alert variant="destructive">
             <AlertDescription>Reward not found</AlertDescription>
@@ -150,9 +147,8 @@ export default function EditRewardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="p-6">
+      <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Edit Reward Payment Details</h1>
           <Button

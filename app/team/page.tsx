@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import Navbar from "@/components/Navbar";
 import { TeamRole } from "@/types/roles";
 import { toast } from "sonner";
 import TeamEditModal from "@/components/TeamEditModal";
@@ -114,9 +113,8 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="p-6">
+      <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Team Management</h1>
           <Button onClick={() => setRegisterModalOpen(true)}>

@@ -1,0 +1,200 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import dbConnect from '@/lib/mongodb';
+import Installer from '@/models/Installer';
+import Activity from '@/models/Activity';
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    await dbConnect();
+
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
+
+    const { installers } = body;
+
+    if (!installers || !Array.isArray(installers) || installers.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No installers provided' },
+        { status: 400 }
+      );
+    }
+
+    // Limit batch size to prevent timeout
+    if (installers.length > 500) {
+      return NextResponse.json(
+        { success: false, error: 'Maximum 500 installers per upload. Please split your file.' },
+        { status: 400 }
+      );
+    }
+
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as string[],
+      duplicates: [] as string[],
+      successfulCodes: [] as string[],
+    };
+
+    // Validate that all installers have required fields
+    for (let i = 0; i < installers.length; i++) {
+      const inst = installers[i];
+      if (!inst.installerCode || !inst.fullName || !inst.cnic) {
+        results.errors.push(`Row ${i + 1}: Missing required fields (installerCode, fullName, or cnic)`);
+        results.failed++;
+      }
+    }
+
+    // If validation failed, return early
+    if (results.failed > 0) {
+      return NextResponse.json(
+        { success: false, error: 'Validation failed', data: results },
+        { status: 400 }
+      );
+    }
+
+    // Only process valid installers (those without frontend validation issues)
+    const validInstallers = installers.filter((i: any) => i.isValid !== false);
+
+    if (validInstallers.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No valid installers to upload', data: results },
+        { status: 400 }
+      );
+    }
+
+    // Process each installer
+    for (const installerData of validInstallers) {
+      try {
+        // Validate required fields one more time
+        if (!installerData.phoneNumber || !installerData.whatsappNumber ||
+            !installerData.address || !installerData.city || !installerData.province ||
+            !installerData.trainingCenter || !installerData.bankName ||
+            !installerData.accountNumber || !installerData.accountTitle) {
+          results.errors.push(`Installer ${installerData.installerCode}: Missing required fields`);
+          results.failed++;
+          continue;
+        }
+
+        // Handle referrer if provided
+        let referrerId = null;
+        if (installerData.referrerCode) {
+          const referrer = await Installer.findOne({
+            installerCode: installerData.referrerCode
+          });
+
+          if (!referrer) {
+            results.errors.push(`Referrer code not found for ${installerData.installerCode}: ${installerData.referrerCode}`);
+            results.failed++;
+            continue;
+          }
+          referrerId = referrer._id;
+        }
+
+        // Create installer
+        const newInstaller = await Installer.create({
+          installerCode: installerData.installerCode,
+          fullName: installerData.fullName,
+          referrerCode: installerData.referrerCode,
+          referrer: referrerId,
+          cnic: installerData.cnic,
+          phoneNumber: installerData.phoneNumber,
+          whatsappNumber: installerData.whatsappNumber,
+          address: installerData.address,
+          city: installerData.city,
+          province: installerData.province,
+          trainingCenter: installerData.trainingCenter,
+          companyName: installerData.companyName,
+          bankName: installerData.bankName,
+          accountNumber: installerData.accountNumber,
+          accountTitle: installerData.accountTitle,
+          certified: installerData.certified || false,
+          registeredBy: session.user.id,
+        });
+
+        // Log activity
+        await Activity.create({
+          type: 'INSTALLER_REGISTERED',
+          description: `Registered installer ${newInstaller.fullName} (${newInstaller.installerCode}) via bulk upload`,
+          performedBy: session.user.id,
+          targetType: 'Installer',
+          targetId: newInstaller._id,
+          metadata: {
+            installerCode: newInstaller.installerCode,
+            fullName: newInstaller.fullName,
+            cnic: newInstaller.cnic,
+            city: newInstaller.city,
+            method: 'bulk_upload',
+          },
+        });
+
+        results.success++;
+        results.successfulCodes.push(newInstaller.installerCode);
+      } catch (err: any) {
+        results.failed++;
+        const errorMessage = err.message || 'Unknown error';
+
+        // Provide more specific error messages
+        if (errorMessage.includes('duplicate key') || errorMessage.includes('E11000')) {
+          if (errorMessage.includes('installerCode')) {
+            results.errors.push(`Installer code "${installerData.installerCode}" already exists`);
+          } else if (errorMessage.includes('cnic')) {
+            results.errors.push(`CNIC "${installerData.cnic}" already exists`);
+          } else {
+            results.errors.push(`Duplicate entry for ${installerData.installerCode}`);
+          }
+        } else if (errorMessage.includes('validation failed')) {
+          results.errors.push(`Validation failed for ${installerData.installerCode}: ${errorMessage}`);
+        } else {
+          results.errors.push(`Failed to create ${installerData.installerCode}: ${errorMessage}`);
+        }
+      }
+    }
+
+    // Return results with detailed summary
+    const response: any = {
+      success: results.success > 0,
+      message: results.success > 0
+        ? `Successfully uploaded ${results.success} of ${validInstallers.length} installer(s)`
+        : 'No installers were uploaded successfully',
+      data: {
+        ...results,
+        summary: {
+          total: validInstallers.length,
+          successful: results.success,
+          failed: results.failed,
+          successRate: validInstallers.length > 0
+            ? Math.round((results.success / validInstallers.length) * 100)
+            : 0,
+        },
+      },
+    };
+
+    if (results.success === 0) {
+      return NextResponse.json(response, { status: 400 });
+    }
+
+    return NextResponse.json(response);
+  } catch (error: any) {
+    console.error('Bulk upload error:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Failed to upload installers' },
+      { status: 500 }
+    );
+  }
+}

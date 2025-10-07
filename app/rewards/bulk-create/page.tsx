@@ -18,36 +18,64 @@ import {
 } from "@/components/ui/table";
 import { AlertCircle, CheckCircle2, Download, Trash2, Upload, ArrowLeft } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import { PAYMENT_METHOD } from "@/lib/constants";
+import { PAYMENT_METHOD, PRODUCT_MODELS, BANKS } from "@/lib/constants";
 
-interface RewardUpdate {
+interface RewardCreate {
+  timestamp: string;
+  teamMemberEmail: string;
+  installerName: string;
+  installerCode: string;
+  referrerCode?: string;
+  productModel: string;
   serialNumber: string;
-  transactionId: string;
-  referrerTransactionId?: string;
+  inverterSerialNumber?: string;
+  serialNumberStatus: string;
+  cityOfInstallation: string;
+  bankName: string;
+  accountNumber: string;
+  accountTitle: string;
   paymentStatus: string;
+  transactionId?: string;
+  rewardAmount: string;
+  referrerRewardAmount?: string;
+  referrerTransactionId?: string;
   sendingDate?: string;
-  paymentMethod?: string;
+  paymentMethod: string;
   issues: string[];
   isValid: boolean;
 }
 
-export default function BulkUploadRewardsPage() {
+export default function BulkCreateRewardsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<RewardUpdate[]>([]);
+  const [preview, setPreview] = useState<RewardCreate[]>([]);
 
   const downloadTemplate = () => {
     const template = [
       {
+        'Timestamp': '10/2/2025 17:21:47',
+        'Team Member Email': 'user@example.com',
+        'Installer Name': 'John Doe',
+        'Installer Code': 'IP-0001',
+        'Referrer Code': 'REF-001 (optional)',
+        'Product Model': 'TP LD-51 Battery',
         'Serial Number': 'SN123456',
-        'Installer Transaction ID': 'TXN001',
-        'Referrer Transaction ID': 'TXN002 (optional)',
-        'Payment Status': 'PAID',
-        'Sending Date': '2025-10-03 (optional)',
+        'Inverter Serial Number': 'INV123456 (required for batteries)',
+        'Serial Number Status': 'ACTIVE',
+        'City of Installation': 'Karachi',
+        'Bank Name': 'Habib Bank Ltd',
+        'Account Number': '1234567890',
+        'Account Title': 'John Doe',
+        'Payment Status': 'PENDING',
+        'Transaction ID': 'TXN123456 (optional)',
+        'Reward Amount': '6500',
+        'Referrer Reward Amount': '1000 (required if referrer exists)',
+        'Referrer Transaction ID': 'REF_TXN123 (optional)',
+        'Sending Date': '07 Oct 2025 (optional)',
         'Payment Method': 'UBANK',
       }
     ];
@@ -56,17 +84,15 @@ export default function BulkUploadRewardsPage() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Rewards Template');
 
-    // Set column widths
     ws['!cols'] = [
-      { wch: 15 },
-      { wch: 25 },
-      { wch: 25 },
-      { wch: 15 },
-      { wch: 20 },
-      { wch: 25 },
+      { wch: 20 }, { wch: 25 }, { wch: 20 }, { wch: 15 },
+      { wch: 15 }, { wch: 35 }, { wch: 15 }, { wch: 35 },
+      { wch: 20 }, { wch: 20 }, { wch: 25 }, { wch: 20 },
+      { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 15 },
+      { wch: 35 }, { wch: 25 }, { wch: 25 }, { wch: 15 },
     ];
 
-    XLSX.writeFile(wb, 'rewards_bulk_update_template.xlsx');
+    XLSX.writeFile(wb, 'rewards_bulk_create_template.xlsx');
   };
 
   const validatePaymentStatus = (status: string): boolean => {
@@ -75,7 +101,7 @@ export default function BulkUploadRewardsPage() {
   };
 
   const validatePaymentMethod = (method: string): boolean => {
-    if (!method) return true; // Optional field
+    if (!method) return true;
     const normalizedMethod = method.toUpperCase().trim();
     return PAYMENT_METHOD.some(pm =>
       pm.value.toUpperCase() === normalizedMethod ||
@@ -93,37 +119,169 @@ export default function BulkUploadRewardsPage() {
     return matched ? matched.value : method;
   };
 
+  const validateProductModel = (model: string): boolean => {
+    return PRODUCT_MODELS.some(pm =>
+      pm.value === model || pm.label === model
+    );
+  };
+
+  const normalizeProductModel = (model: string): string => {
+    const matched = PRODUCT_MODELS.find(pm =>
+      pm.value === model || pm.label === model
+    );
+    return matched ? matched.value : model;
+  };
+
+  const normalizeBankName = (bankName: string): string => {
+    if (!bankName) return '';
+    const normalizedInput = bankName.toLowerCase().trim();
+    const matchedBank = BANKS.find(
+      (bank) =>
+        bank.label.toLowerCase() === normalizedInput ||
+        bank.value.toLowerCase() === normalizedInput ||
+        bank.shortcut.toLowerCase() === normalizedInput
+    );
+    return matchedBank ? matchedBank.label : bankName;
+  };
+
+  const validateBankName = (bankName: string): boolean => {
+    if (!bankName) return false;
+    const normalizedInput = bankName.toLowerCase().trim();
+    return BANKS.some(
+      (bank) =>
+        bank.label.toLowerCase() === normalizedInput ||
+        bank.value.toLowerCase() === normalizedInput ||
+        bank.shortcut.toLowerCase() === normalizedInput
+    );
+  };
+
+  const parseTimestamp = (timestampStr: string): string => {
+    if (!timestampStr) return '';
+    try {
+      const date = new Date(timestampStr);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+      return '';
+    } catch {
+      return '';
+    }
+  };
+
+  const parseSendingDate = (dateStr: string): string => {
+    if (!dateStr) return '';
+    try {
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+      return '';
+    } catch {
+      return '';
+    }
+  };
+
   const validateDate = (dateStr: string): boolean => {
-    if (!dateStr) return true; // Optional field
+    if (!dateStr) return true;
     const date = new Date(dateStr);
     return !isNaN(date.getTime());
   };
 
-  const validateReward = (reward: Omit<RewardUpdate, 'issues' | 'isValid'>): string[] => {
+  const validateReward = (reward: Omit<RewardCreate, 'issues' | 'isValid'>): string[] => {
     const issues: string[] = [];
 
-    // Required field validations
+    // Timestamp validation
+    if (!reward.timestamp) {
+      issues.push('Timestamp is required');
+    }
+
+    // Team member email validation
+    if (!reward.teamMemberEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(reward.teamMemberEmail)) {
+      issues.push('Valid team member email is required');
+    }
+
+    // Installer name validation
+    if (!reward.installerName || reward.installerName.length < 2) {
+      issues.push('Installer name is required');
+    }
+
+    // Installer code validation
+    if (!reward.installerCode || reward.installerCode.length < 3) {
+      issues.push('Installer code is required (min 3 characters)');
+    }
+
+    // Product model validation
+    if (!reward.productModel) {
+      issues.push('Product model is required');
+    } else if (!validateProductModel(reward.productModel)) {
+      issues.push(`Product model "${reward.productModel}" is not in the approved list`);
+    } else {
+      // Check if inverter serial is required for batteries
+      const productConfig = PRODUCT_MODELS.find(pm => pm.value === reward.productModel);
+      if (productConfig?.isBattery && !reward.inverterSerialNumber) {
+        issues.push('Inverter serial number is required for battery products');
+      }
+    }
+
+    // Serial number validation
     if (!reward.serialNumber || reward.serialNumber.length < 3) {
       issues.push('Serial number is required (min 3 characters)');
     }
 
-    if (!reward.transactionId || reward.transactionId.length < 3) {
-      issues.push('Installer transaction ID is required');
+    // Serial number status validation
+    if (!reward.serialNumberStatus) {
+      issues.push('Serial number status is required');
     }
 
+    // City of installation validation
+    if (!reward.cityOfInstallation || reward.cityOfInstallation.length < 2) {
+      issues.push('City of installation is required');
+    }
+
+    // Bank name validation
+    if (!reward.bankName) {
+      issues.push('Bank name is required');
+    } else if (!validateBankName(reward.bankName)) {
+      issues.push(`Invalid bank name "${reward.bankName}"`);
+    }
+
+    // Account number validation
+    if (!reward.accountNumber) {
+      issues.push('Account number is required');
+    }
+
+    // Account title validation
+    if (!reward.accountTitle) {
+      issues.push('Account title is required');
+    }
+
+    // Payment status validation
     if (!reward.paymentStatus) {
       issues.push('Payment status is required');
     } else if (!validatePaymentStatus(reward.paymentStatus)) {
       issues.push(`Invalid payment status "${reward.paymentStatus}" (must be: PAID, PENDING, or FAILED)`);
     }
 
-    // Optional field validations
-    if (reward.sendingDate && !validateDate(reward.sendingDate)) {
-      issues.push(`Invalid sending date format "${reward.sendingDate}"`);
+    // Reward amount validation
+    if (!reward.rewardAmount || isNaN(Number(reward.rewardAmount))) {
+      issues.push('Valid reward amount is required');
     }
 
-    if (reward.paymentMethod && !validatePaymentMethod(reward.paymentMethod)) {
+    // Payment method validation
+    if (!reward.paymentMethod) {
+      issues.push('Payment method is required');
+    } else if (!validatePaymentMethod(reward.paymentMethod)) {
       issues.push(`Invalid payment method "${reward.paymentMethod}" (must be: UBANK, UPaisa, or NayaPay)`);
+    }
+
+    // Referrer validation
+    if (reward.referrerCode && !reward.referrerRewardAmount) {
+      issues.push('Referrer reward amount is required when referrer code exists');
+    }
+
+    // Sending date validation
+    if (reward.sendingDate && !validateDate(reward.sendingDate)) {
+      issues.push(`Invalid sending date format "${reward.sendingDate}"`);
     }
 
     return issues;
@@ -147,14 +305,30 @@ export default function BulkUploadRewardsPage() {
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-        const parsedRewards: RewardUpdate[] = jsonData.map((row: any) => {
+        const parsedRewards: RewardCreate[] = jsonData.map((row: any) => {
           const rawPaymentMethod = row['Payment Method']?.toString().trim() || '';
+          const rawProductModel = row['Product Model']?.toString().trim() || '';
+          const rawBankName = row['Bank Name']?.toString().trim() || '';
           const reward = {
+            timestamp: parseTimestamp(row['Timestamp']?.toString() || ''),
+            teamMemberEmail: row['Team Member Email']?.toString().trim() || '',
+            installerName: row['Installer Name']?.toString().trim() || '',
+            installerCode: row['Installer Code']?.toString().trim().toUpperCase() || '',
+            referrerCode: row['Referrer Code']?.toString().trim().toUpperCase() || undefined,
+            productModel: normalizeProductModel(rawProductModel),
             serialNumber: row['Serial Number']?.toString().trim() || '',
-            transactionId: row['Installer Transaction ID']?.toString().trim() || '',
-            referrerTransactionId: row['Referrer Transaction ID']?.toString().trim() || undefined,
+            inverterSerialNumber: row['Inverter Serial Number']?.toString().trim() || undefined,
+            serialNumberStatus: row['Serial Number Status']?.toString().trim() || '',
+            cityOfInstallation: row['City of Installation']?.toString().trim() || '',
+            bankName: normalizeBankName(rawBankName),
+            accountNumber: row['Account Number']?.toString().trim() || '',
+            accountTitle: row['Account Title']?.toString().trim() || '',
             paymentStatus: row['Payment Status']?.toString().toUpperCase().trim() || 'PENDING',
-            sendingDate: row['Sending Date']?.toString().trim() || undefined,
+            transactionId: row['Transaction ID']?.toString().trim() || undefined,
+            rewardAmount: row['Reward Amount']?.toString().trim() || '',
+            referrerRewardAmount: row['Referrer Reward Amount']?.toString().trim() || undefined,
+            referrerTransactionId: row['Referrer Transaction ID']?.toString().trim() || undefined,
+            sendingDate: parseSendingDate(row['Sending Date']?.toString() || ''),
             paymentMethod: normalizePaymentMethod(rawPaymentMethod),
           };
 
@@ -170,7 +344,6 @@ export default function BulkUploadRewardsPage() {
         setPreview(parsedRewards);
         setError('');
 
-        // Automatically validate against database
         validateAgainstDatabase(parsedRewards);
       } catch (err: any) {
         setError('Failed to parse Excel file: ' + err.message);
@@ -180,10 +353,10 @@ export default function BulkUploadRewardsPage() {
     reader.readAsArrayBuffer(file);
   };
 
-  const validateAgainstDatabase = async (rewards: RewardUpdate[]) => {
+  const validateAgainstDatabase = async (rewards: RewardCreate[]) => {
     setValidating(true);
     try {
-      const response = await fetch('/api/rewards/validate-bulk', {
+      const response = await fetch('/api/rewards/validate-bulk-create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rewards }),
@@ -213,12 +386,26 @@ export default function BulkUploadRewardsPage() {
     }
 
     const excelData = invalidRecords.map(record => ({
+      'Timestamp': record.timestamp,
+      'Team Member Email': record.teamMemberEmail,
+      'Installer Name': record.installerName,
+      'Installer Code': record.installerCode,
+      'Referrer Code': record.referrerCode || '',
+      'Product Model': record.productModel,
       'Serial Number': record.serialNumber,
-      'Installer Transaction ID': record.transactionId,
-      'Referrer Transaction ID': record.referrerTransactionId || '',
+      'Inverter Serial Number': record.inverterSerialNumber || '',
+      'Serial Number Status': record.serialNumberStatus,
+      'City of Installation': record.cityOfInstallation,
+      'Bank Name': record.bankName,
+      'Account Number': record.accountNumber,
+      'Account Title': record.accountTitle,
       'Payment Status': record.paymentStatus,
+      'Transaction ID': record.transactionId || '',
+      'Reward Amount': record.rewardAmount,
+      'Referrer Reward Amount': record.referrerRewardAmount || '',
+      'Referrer Transaction ID': record.referrerTransactionId || '',
       'Sending Date': record.sendingDate || '',
-      'Payment Method': record.paymentMethod || '',
+      'Payment Method': record.paymentMethod,
       'ISSUES': record.issues.join(' | '),
     }));
 
@@ -226,14 +413,13 @@ export default function BulkUploadRewardsPage() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Invalid Records');
 
-    // Set column widths
     ws['!cols'] = [
-      { wch: 15 }, { wch: 25 }, { wch: 25 }, { wch: 15 },
-      { wch: 20 }, { wch: 25 }, { wch: 60 },
+      { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 20 },
+      { wch: 15 }, { wch: 25 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 60 },
     ];
 
     const timestamp = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `invalid_rewards_${timestamp}.xlsx`);
+    XLSX.writeFile(wb, `invalid_rewards_create_${timestamp}.xlsx`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -255,7 +441,7 @@ export default function BulkUploadRewardsPage() {
     setSuccess('');
 
     try {
-      const response = await fetch('/api/rewards/bulk-update', {
+      const response = await fetch('/api/rewards/bulk-create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rewards: preview }),
@@ -264,9 +450,9 @@ export default function BulkUploadRewardsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setSuccess(data.message || `Successfully updated ${data.data?.success} reward(s)!`);
+        setSuccess(data.message || `Successfully created ${data.data?.success} reward(s)!`);
         if (data.data?.errors && data.data.errors.length > 0) {
-          setError(`Some errors occurred: ${data.data.errors.join(', ')}`);
+          setError(`Some errors occurred: ${data.data.errors.slice(0, 5).join(', ')}${data.data.errors.length > 5 ? '...' : ''}`);
         }
         setTimeout(() => {
           router.push('/rewards');
@@ -275,7 +461,7 @@ export default function BulkUploadRewardsPage() {
         setError(data.error || 'Upload failed');
       }
     } catch (err: any) {
-      setError('Failed to upload rewards: ' + err.message);
+      setError('Failed to create rewards: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -287,8 +473,8 @@ export default function BulkUploadRewardsPage() {
   return (
     <div className="flex-1 overflow-auto">
       <PageHeader
-        title="Bulk Update Rewards"
-        description="Update multiple reward records at once using an Excel file"
+        title="Bulk Feed Rewards"
+        description="Upload multiple reward records at once using an Excel file"
         action={
           <Button
             variant="ghost"
@@ -301,7 +487,6 @@ export default function BulkUploadRewardsPage() {
       />
       <div className="p-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Instructions Card */}
           <Card>
             <CardHeader>
               <CardTitle>Instructions</CardTitle>
@@ -309,7 +494,7 @@ export default function BulkUploadRewardsPage() {
             <CardContent className="space-y-4">
               <div>
                 <p className="text-sm text-muted-foreground mb-2">
-                  1. Download the template file and fill in the reward update data
+                  1. Download the template file and fill in the reward data
                 </p>
                 <p className="text-sm text-muted-foreground mb-2">
                   2. Upload the completed Excel file
@@ -318,7 +503,7 @@ export default function BulkUploadRewardsPage() {
                   3. Review the data and fix any validation issues
                 </p>
                 <p className="text-sm text-muted-foreground mb-4">
-                  4. Click "Update All Valid Records" to finalize
+                  4. Click "Upload All Valid Records" to finalize
                 </p>
                 <Button onClick={downloadTemplate} variant="outline">
                   <Download className="h-4 w-4 mr-2" />
@@ -329,17 +514,28 @@ export default function BulkUploadRewardsPage() {
               <div className="pt-4 border-t">
                 <p className="text-sm font-medium mb-2">Validation Rules:</p>
                 <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>Serial number must exist in the system</li>
-                  <li>Transaction IDs are required for PAID status</li>
+                  <li>Timestamp must be in valid date format (e.g., 10/2/2025 17:21:47)</li>
+                  <li>Team member email must be valid and exist in the system</li>
+                  <li>Installer name must match the installer code in database</li>
+                  <li>Installer code must exist in the system</li>
+                  <li>Referrer code (if provided) must be an existing installer</li>
+                  <li>Product model must be from approved list</li>
+                  <li>Serial number must be unique (non-duplicate)</li>
+                  <li>Inverter serial number is required for battery products</li>
+                  <li>Serial number status is required</li>
+                  <li>City of installation is required</li>
+                  <li>Bank name must match the approved banks list</li>
+                  <li>Account number and account title are required</li>
                   <li>Payment status: PAID, PENDING, or FAILED</li>
-                  <li>Payment method: UBANK, UPaisa, or NayaPay (optional)</li>
-                  <li>Sending date format: YYYY-MM-DD (optional)</li>
+                  <li>Reward amount must be a valid number</li>
+                  <li>Referrer reward amount required if referrer code exists</li>
+                  <li>Payment method: UBANK, UPaisa, or NayaPay</li>
+                  <li>Sending date format: "07 Oct 2025" (optional)</li>
                 </ul>
               </div>
             </CardContent>
           </Card>
 
-          {/* Upload Form */}
           <Card>
             <CardHeader>
               <CardTitle>Upload File</CardTitle>
@@ -409,14 +605,13 @@ export default function BulkUploadRewardsPage() {
                 {preview.length > 0 && (
                   <Button type="submit" disabled={loading || invalidCount > 0 || validating}>
                     <Upload className="h-4 w-4 mr-2" />
-                    {loading ? 'Updating...' : `Update ${validCount} Valid Record(s)`}
+                    {loading ? 'Creating...' : `Create ${validCount} Valid Record(s)`}
                   </Button>
                 )}
               </form>
             </CardContent>
           </Card>
 
-          {/* Preview Table */}
           {preview.length > 0 && (
             <Card>
               <CardHeader>
@@ -429,12 +624,14 @@ export default function BulkUploadRewardsPage() {
                       <TableRow>
                         <TableHead className="w-12">#</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Serial Number</TableHead>
-                        <TableHead>Transaction ID</TableHead>
-                        <TableHead>Ref. Transaction</TableHead>
-                        <TableHead>Payment Status</TableHead>
-                        <TableHead>Method</TableHead>
-                        <TableHead>Date</TableHead>
+                        <TableHead>Timestamp</TableHead>
+                        <TableHead>Team Member</TableHead>
+                        <TableHead>Installer</TableHead>
+                        <TableHead>Product</TableHead>
+                        <TableHead>Serial #</TableHead>
+                        <TableHead>Bank</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Payment</TableHead>
                         <TableHead>Issues</TableHead>
                         <TableHead className="w-12">Action</TableHead>
                       </TableRow>
@@ -456,9 +653,24 @@ export default function BulkUploadRewardsPage() {
                               </Badge>
                             )}
                           </TableCell>
+                          <TableCell className="text-xs">
+                            {reward.timestamp ? new Date(reward.timestamp).toLocaleString() : '-'}
+                          </TableCell>
+                          <TableCell className="text-sm max-w-[150px] truncate" title={reward.teamMemberEmail}>
+                            {reward.teamMemberEmail}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <div>{reward.installerName}</div>
+                            <div className="font-mono text-xs text-muted-foreground">{reward.installerCode}</div>
+                          </TableCell>
+                          <TableCell className="text-sm max-w-[200px] truncate" title={reward.productModel}>
+                            {reward.productModel}
+                          </TableCell>
                           <TableCell className="font-mono text-sm">{reward.serialNumber}</TableCell>
-                          <TableCell className="font-mono text-sm">{reward.transactionId}</TableCell>
-                          <TableCell className="font-mono text-sm">{reward.referrerTransactionId || '-'}</TableCell>
+                          <TableCell className="text-sm max-w-[150px] truncate" title={reward.bankName}>
+                            {reward.bankName}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">{reward.rewardAmount}</TableCell>
                           <TableCell>
                             <Badge variant={
                               reward.paymentStatus === 'PAID' ? 'default' :
@@ -467,8 +679,6 @@ export default function BulkUploadRewardsPage() {
                               {reward.paymentStatus}
                             </Badge>
                           </TableCell>
-                          <TableCell>{reward.paymentMethod || '-'}</TableCell>
-                          <TableCell className="text-sm">{reward.sendingDate || '-'}</TableCell>
                           <TableCell>
                             {reward.issues.length > 0 ? (
                               <div className="space-y-1">

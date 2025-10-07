@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '@/components/Navbar';
 import InstallerEditModal from '@/components/InstallerEditModal';
 import { Edit, Eye, ArrowUpDown, ArrowUp, ArrowDown, Settings2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import PageHeader from '@/components/PageHeader';
 
 export default function InstallersPage() {
   const router = useRouter();
@@ -154,43 +154,54 @@ export default function InstallersPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Installers</h1>
-
-          {/* Show Authenticate button if not authenticated, otherwise Register button */}
-          {googleAuthStatus && !googleAuthStatus.isAuthenticated ? (
-            <Button
-              onClick={handleAuthenticateGoogle}
-              disabled={authLoading}
-              variant="default"
-              className="bg-yellow-600 hover:bg-yellow-700"
-            >
-              <svg
-                className="w-5 h-5 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+    <div className="flex-1 overflow-auto">
+      <PageHeader
+        title="Installers"
+        description="Manage installer registrations and information"
+        action={
+          <div className="flex gap-3">
+            {googleAuthStatus && !googleAuthStatus.isAuthenticated ? (
+              <Button
+                onClick={handleAuthenticateGoogle}
+                disabled={authLoading}
+                variant="default"
+                className="bg-yellow-600 hover:bg-yellow-700"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                />
-              </svg>
-              {authLoading ? 'Authenticating...' : 'Authenticate Google Contacts'}
-            </Button>
-          ) : (
-            <Button
-              onClick={() => router.push('/installers/new')}
-            >
-              + Register New Installer
-            </Button>
-          )}
-        </div>
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+                {authLoading ? 'Authenticating...' : 'Authenticate Google Contacts'}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  onClick={() => router.push('/installers/bulk-upload')}
+                  variant="secondary"
+                >
+                  Bulk Upload
+                </Button>
+                <Button
+                  onClick={() => router.push('/installers/new')}
+                >
+                  + Register New Installer
+                </Button>
+              </>
+            )}
+          </div>
+        }
+      />
+      <div className="p-6">
+        <div className="max-w-7xl mx-auto">
 
         <Card>
           <CardContent className="p-6">
@@ -398,6 +409,7 @@ export default function InstallersPage() {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
 
       {/* Edit Modal */}
