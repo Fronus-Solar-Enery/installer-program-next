@@ -90,10 +90,10 @@ export async function GET(req: NextRequest) {
         timestamp: new Date().toISOString()
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       return NextResponse.json({
         status: 'unhealthy',
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         database: {
           type: isAtlas ? 'MongoDB Atlas (Cloud)' : isLocal ? 'MongoDB Local' : 'MongoDB Remote',
           expectedHost: host,
@@ -107,11 +107,11 @@ export async function GET(req: NextRequest) {
       }, { status: 503 });
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
       {
         status: 'error',
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       },
       { status: 500 }

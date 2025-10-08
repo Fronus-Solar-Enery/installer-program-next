@@ -85,7 +85,7 @@ export function handleApiError(error: any) {
 
   // Handle Zod validation errors
   if (error instanceof ZodError) {
-    return ApiResponse.validationError(error.errors);
+    return ApiResponse.validationError(error.issues);
   }
 
   // Handle Mongoose validation errors

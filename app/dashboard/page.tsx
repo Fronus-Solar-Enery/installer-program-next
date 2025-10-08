@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -14,10 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Users, Package, DollarSign, TrendingUp, Activity, UserCheck, MapPin, Award, CreditCard, Target, ArrowUpRight, ArrowDownRight, Calendar } from 'lucide-react';
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Users, Package, DollarSign, Activity, UserCheck, MapPin, Award, Target, ArrowUpRight, Calendar, Search } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 import PageHeader from '@/components/PageHeader';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import GlobalSearchModal from '@/components/GlobalSearchModal';
 
 interface Stats {
   totalInstallers: number;
@@ -78,14 +82,46 @@ interface RecentInstaller {
   createdAt: string;
 }
 
+interface ItemWithDate {
+  createdAt: string;
+  [key: string]: unknown;
+}
+
+interface DashboardReward extends ItemWithDate {
+  _id: string;
+  rewardAmount: number;
+  referrerRewardAmount?: number;
+  paymentStatus: 'PENDING' | 'PAID' | 'FAILED';
+  productModel: string;
+  cityOfInstallation: string;
+  createdAt: string;
+  installer?: {
+    _id: string;
+    installerCode: string;
+    fullName: string;
+    city: string;
+  };
+}
+
+interface DashboardInstaller extends ItemWithDate {
+  _id: string;
+  installerCode: string;
+  fullName: string;
+  city: string;
+  createdAt: string;
+}
+
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
-type TimePeriod = 'all' | 'last30days' | 'previousMonth' | 'lastYear' | 'previousYear';
+type TimePeriod = 'all' | 'lastWeek' | 'last30days' | 'previousMonth' | 'thisYear' | 'previousYear' | 'custom';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('last30days');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [isCustomDateOpen, setIsCustomDateOpen] = useState(false);
   const [stats, setStats] = useState<Stats>({
     totalInstallers: 0,
     totalRewards: 0,
@@ -107,6 +143,7 @@ export default function DashboardPage() {
   const [recentInstallations, setRecentInstallations] = useState<RecentInstallation[]>([]);
   const [recentInstallers, setRecentInstallers] = useState<RecentInstaller[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -114,7 +151,7 @@ export default function DashboardPage() {
     }
   }, [status, router]);
 
-  const getDateRange = (period: TimePeriod): { startDate: Date | null; endDate: Date | null } => {
+  const getDateRange = useCallback((period: TimePeriod): { startDate: Date | null; endDate: Date | null } => {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
@@ -122,6 +159,11 @@ export default function DashboardPage() {
     switch (period) {
       case 'all':
         return { startDate: null, endDate: null };
+
+      case 'lastWeek':
+        const lastWeek = new Date();
+        lastWeek.setDate(lastWeek.getDate() - 7);
+        return { startDate: lastWeek, endDate: now };
 
       case 'last30days':
         const last30 = new Date();
@@ -133,31 +175,41 @@ export default function DashboardPage() {
         const prevMonthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59);
         return { startDate: prevMonthStart, endDate: prevMonthEnd };
 
-      case 'lastYear':
-        const lastYearStart = new Date(currentYear - 1, 0, 1);
-        const lastYearEnd = new Date(currentYear - 1, 11, 31, 23, 59, 59);
-        return { startDate: lastYearStart, endDate: lastYearEnd };
+      case 'thisYear':
+        const thisYearStart = new Date(currentYear, 0, 1);
+        return { startDate: thisYearStart, endDate: now };
 
       case 'previousYear':
         const prevYearStart = new Date(currentYear - 1, 0, 1);
         const prevYearEnd = new Date(currentYear - 1, 11, 31, 23, 59, 59);
         return { startDate: prevYearStart, endDate: prevYearEnd };
 
+      case 'custom':
+        if (customStartDate && customEndDate) {
+          const start = new Date(customStartDate);
+          const end = new Date(customEndDate);
+          end.setHours(23, 59, 59, 999);
+          return { startDate: start, endDate: end };
+        }
+        return { startDate: null, endDate: null };
+
       default:
         return { startDate: null, endDate: null };
     }
-  };
+  }, [customStartDate, customEndDate]);
 
-  const filterByDateRange = (items: any[], dateField: string = 'createdAt') => {
+
+  const filterByDateRange = useCallback(<T extends ItemWithDate>(items: T[], dateField: keyof T = 'createdAt' as keyof T): T[] => {
     const { startDate, endDate } = getDateRange(timePeriod);
 
     if (!startDate || !endDate) return items;
 
     return items.filter((item) => {
-      const itemDate = new Date(item[dateField]);
+      const fieldValue = item[dateField];
+      const itemDate = new Date(String(fieldValue));
       return itemDate >= startDate && itemDate <= endDate;
     });
-  };
+  }, [timePeriod, getDateRange]);
 
   const getPeriodLabel = (period: TimePeriod): string => {
     const now = new Date();
@@ -166,27 +218,30 @@ export default function DashboardPage() {
     switch (period) {
       case 'all':
         return 'All Time';
+      case 'lastWeek':
+        return 'Last Week';
       case 'last30days':
         return 'Last 30 Days';
       case 'previousMonth':
         const prevMonth = new Date(currentYear, now.getMonth() - 1);
         return prevMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
-      case 'lastYear':
-        return `${currentYear - 1}`;
+      case 'thisYear':
+        return `This Year (${currentYear})`;
       case 'previousYear':
-        return `${currentYear - 1}`;
+        return `Previous Year (${currentYear - 1})`;
+      case 'custom':
+        if (customStartDate && customEndDate) {
+          const start = new Date(customStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+          const end = new Date(customEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+          return `${start} - ${end}`;
+        }
+        return 'Custom Range';
       default:
         return 'Last 30 Days';
     }
   };
 
-  useEffect(() => {
-    if (session) {
-      fetchStats();
-    }
-  }, [session, timePeriod]);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
       try {
         setLoading(true);
         const [installersRes, rewardsRes, allRewardsRes, allInstallersRes] = await Promise.all([
@@ -202,29 +257,29 @@ export default function DashboardPage() {
         const allInstallers = await allInstallersRes.json();
 
         // Filter data by date range
-        const filteredRewards = filterByDateRange(allRewards.data?.rewards || []);
-        const filteredInstallers = filterByDateRange(allInstallers.data?.installers || []);
+        const filteredRewards = filterByDateRange(allRewards.data?.rewards || []) as DashboardReward[];
+        const filteredInstallers = filterByDateRange(allInstallers.data?.installers || []) as DashboardInstaller[];
 
         // Calculate filtered statistics for installer rewards
-        const totalAmount = filteredRewards.reduce((sum: number, reward: any) => sum + (reward.rewardAmount || 0), 0);
+        const totalAmount = filteredRewards.reduce((sum: number, reward: DashboardReward) => sum + (reward.rewardAmount || 0), 0);
         const pendingAmount = filteredRewards
-          .filter((r: any) => r.paymentStatus === 'PENDING')
-          .reduce((sum: number, r: any) => sum + (r.rewardAmount || 0), 0);
+          .filter((r: DashboardReward) => r.paymentStatus === 'PENDING')
+          .reduce((sum: number, r: DashboardReward) => sum + (r.rewardAmount || 0), 0);
         const paidAmount = filteredRewards
-          .filter((r: any) => r.paymentStatus === 'PAID')
-          .reduce((sum: number, r: any) => sum + (r.rewardAmount || 0), 0);
+          .filter((r: DashboardReward) => r.paymentStatus === 'PAID')
+          .reduce((sum: number, r: DashboardReward) => sum + (r.rewardAmount || 0), 0);
         const failedAmount = filteredRewards
-          .filter((r: any) => r.paymentStatus === 'FAILED')
-          .reduce((sum: number, r: any) => sum + (r.rewardAmount || 0), 0);
+          .filter((r: DashboardReward) => r.paymentStatus === 'FAILED')
+          .reduce((sum: number, r: DashboardReward) => sum + (r.rewardAmount || 0), 0);
 
         // Calculate referrer rewards
-        const referrerRewardsTotal = filteredRewards.reduce((sum: number, reward: any) => sum + (reward.referrerRewardAmount || 0), 0);
+        const referrerRewardsTotal = filteredRewards.reduce((sum: number, reward: DashboardReward) => sum + (reward.referrerRewardAmount || 0), 0);
         const referrerRewardsPending = filteredRewards
-          .filter((r: any) => r.paymentStatus === 'PENDING')
-          .reduce((sum: number, r: any) => sum + (r.referrerRewardAmount || 0), 0);
+          .filter((r: DashboardReward) => r.paymentStatus === 'PENDING')
+          .reduce((sum: number, r: DashboardReward) => sum + (r.referrerRewardAmount || 0), 0);
         const referrerRewardsPaid = filteredRewards
-          .filter((r: any) => r.paymentStatus === 'PAID')
-          .reduce((sum: number, r: any) => sum + (r.referrerRewardAmount || 0), 0);
+          .filter((r: DashboardReward) => r.paymentStatus === 'PAID')
+          .reduce((sum: number, r: DashboardReward) => sum + (r.referrerRewardAmount || 0), 0);
 
         // Calculate grand totals (installer rewards + referrer rewards)
         const grandTotal = totalAmount + referrerRewardsTotal;
@@ -248,7 +303,7 @@ export default function DashboardPage() {
 
         // Process product installation data from filtered rewards
         const productCounts: { [key: string]: number } = {};
-        filteredRewards.forEach((reward: any) => {
+        filteredRewards.forEach((reward: DashboardReward) => {
           const product = reward.productModel;
           productCounts[product] = (productCounts[product] || 0) + 1;
         });
@@ -265,7 +320,7 @@ export default function DashboardPage() {
 
         // Process city data from filtered rewards (product installations by city)
         const cityCounts: { [key: string]: number } = {};
-        filteredRewards.forEach((reward: any) => {
+        filteredRewards.forEach((reward: DashboardReward) => {
           const city = reward.cityOfInstallation;
           if (city && city !== 'undefined' && city !== 'null') {
             cityCounts[city] = (cityCounts[city] || 0) + 1;
@@ -287,18 +342,18 @@ export default function DashboardPage() {
           if (!startDate || !endDate) {
             // For "All Time", use all rewards
             const uniqueInstallers = new Set(
-              allRewards.data?.rewards?.map((r: any) => r.installer?._id).filter(Boolean)
+              allRewards.data?.rewards?.map((r: DashboardReward) => r.installer?._id).filter(Boolean)
             );
             return uniqueInstallers.size;
           }
 
-          const periodRewards = allRewards.data?.rewards?.filter((reward: any) => {
+          const periodRewards = allRewards.data?.rewards?.filter((reward: DashboardReward) => {
             const rewardDate = new Date(reward.createdAt);
             return rewardDate >= startDate && rewardDate <= endDate;
           }) || [];
 
           const uniqueInstallers = new Set(
-            periodRewards.map((r: any) => r.installer?._id).filter(Boolean)
+            periodRewards.map((r: DashboardReward) => r.installer?._id).filter(Boolean)
           );
           return uniqueInstallers.size;
         };
@@ -346,9 +401,9 @@ export default function DashboardPage() {
 
         setActiveInstallersData(activeInstallersArray);
 
-        // Calculate top installers from filtered rewards
-        const installerStats: { [key: string]: { installer: any; count: number; amount: number } } = {};
-        filteredRewards.forEach((reward: any) => {
+        // Calculate top installers using the same date range as everything else
+        const installerStats: { [key: string]: { installer: DashboardReward['installer']; count: number; amount: number } } = {};
+        filteredRewards.forEach((reward: DashboardReward) => {
           const installerId = reward.installer?._id;
           if (!installerId) return;
 
@@ -364,10 +419,11 @@ export default function DashboardPage() {
         });
 
         const topInstallersArray = Object.values(installerStats)
+          .filter((stat) => stat.installer) // Filter out entries without installer
           .map((stat) => ({
-            installerCode: stat.installer.installerCode,
-            fullName: stat.installer.fullName,
-            city: stat.installer.city || 'N/A',
+            installerCode: stat.installer!.installerCode,
+            fullName: stat.installer!.fullName,
+            city: stat.installer!.city || 'N/A',
             totalRewards: stat.count,
             totalAmount: stat.amount,
           }))
@@ -383,7 +439,13 @@ export default function DashboardPage() {
       } finally {
         setLoading(false);
       }
-  };
+  }, [filterByDateRange]);
+
+  useEffect(() => {
+    if (session) {
+      fetchStats();
+    }
+  }, [session, fetchStats]);
 
   if (status === 'loading' || loading) {
     return (
@@ -397,13 +459,6 @@ export default function DashboardPage() {
     return null;
   }
 
-  const pieData = [
-    { name: 'Paid', value: stats.paidAmount, color: '#10b981' },
-    { name: 'Pending', value: stats.pendingAmount, color: '#f59e0b' },
-    { name: 'Failed', value: stats.failedAmount, color: '#ef4444' },
-  ].filter(item => item.value > 0);
-
-  const totalRewardsCount = stats.totalRewards;
   const paidCount = stats.totalRewards > 0 ? Math.round((stats.paidAmount / stats.totalAmount) * stats.totalRewards) : 0;
 
   return (
@@ -413,7 +468,21 @@ export default function DashboardPage() {
         description="Overview of installer activity, rewards, and performance metrics"
         action={
           <div className="flex items-center gap-3">
-            <Select value={timePeriod} onValueChange={(value) => setTimePeriod(value as TimePeriod)}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSearchOpen(true)}
+              className="gap-2"
+            >
+              <Search className="h-4 w-4" />
+              <span className="hidden sm:inline">Search</span>
+            </Button>
+            <Select value={timePeriod} onValueChange={(value) => {
+              if (value === 'custom') {
+                setIsCustomDateOpen(true);
+              }
+              setTimePeriod(value as TimePeriod);
+            }}>
               <SelectTrigger className="w-[200px]">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
@@ -422,15 +491,92 @@ export default function DashboardPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="lastWeek">Last Week</SelectItem>
                 <SelectItem value="last30days">Last 30 Days</SelectItem>
                 <SelectItem value="previousMonth">Previous Month</SelectItem>
-                <SelectItem value="lastYear">Last Year</SelectItem>
-                <SelectItem value="previousYear">Previous Year (2024)</SelectItem>
+                <SelectItem value="thisYear">This Year</SelectItem>
+                <SelectItem value="previousYear">Previous Year</SelectItem>
+                <SelectItem value="custom">Custom Range...</SelectItem>
               </SelectContent>
             </Select>
             <Badge variant="outline" className="hidden sm:flex gap-1">
               {getPeriodLabel(timePeriod)}
             </Badge>
+            <Popover open={isCustomDateOpen} onOpenChange={setIsCustomDateOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "hidden sm:flex gap-2",
+                    timePeriod !== 'custom' && "hidden"
+                  )}
+                >
+                  <Calendar className="h-4 w-4" />
+                  Set Dates
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">Custom Date Range</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Select a custom date range for filtering dashboard data
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="start-date" className="text-xs">Start Date</Label>
+                      <Input
+                        id="start-date"
+                        type="date"
+                        value={customStartDate}
+                        onChange={(e) => setCustomStartDate(e.target.value)}
+                        max={customEndDate || undefined}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="end-date" className="text-xs">End Date</Label>
+                      <Input
+                        id="end-date"
+                        type="date"
+                        value={customEndDate}
+                        onChange={(e) => setCustomEndDate(e.target.value)}
+                        min={customStartDate || undefined}
+                        max={new Date().toISOString().split('T')[0]}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        if (customStartDate && customEndDate) {
+                          setTimePeriod('custom');
+                          setIsCustomDateOpen(false);
+                        }
+                      }}
+                      disabled={!customStartDate || !customEndDate}
+                    >
+                      Apply
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setCustomStartDate('');
+                        setCustomEndDate('');
+                        setTimePeriod('last30days');
+                        setIsCustomDateOpen(false);
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         }
       />
@@ -695,7 +841,7 @@ export default function DashboardPage() {
                 <Award className="h-5 w-5 text-primary" />
                 Top Performers
               </CardTitle>
-              <CardDescription>Best performing installers</CardDescription>
+              <CardDescription>Best performing installers in selected period</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -935,6 +1081,7 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+      <GlobalSearchModal open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }

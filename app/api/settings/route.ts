@@ -1,11 +1,12 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
-import Settings, { getSettings } from '@/models/Settings';
+import Settings, { getSettings, ISettings } from '@/models/Settings';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
 import { TeamRole } from '@/models/TeamMember';
 import { logActivity } from '@/lib/activityLogger';
 import { ActivityType } from '@/models/Activity';
+import { Document } from 'mongoose';
 
 // GET settings
 export async function GET(request: NextRequest) {
@@ -46,15 +47,16 @@ export async function PUT(request: NextRequest) {
     const settings = await getSettings();
 
     // Store old values for activity log
-    const oldSettings = settings ? { ...(settings as any).toObject() } : {};
+    const settingsDoc = settings as Document<unknown, unknown, ISettings> & ISettings;
+    const oldSettings = settingsDoc ? { ...settingsDoc.toObject() } : {};
 
     // Update settings
     Object.assign(settings, body);
-    (settings as any).updatedBy = session.user.id;
-    await (settings as any).save();
+    settingsDoc.updatedBy = session.user.id;
+    await settingsDoc.save();
 
     // Log activity
-    const changes: Record<string, any> = {};
+    const changes: Record<string, unknown> = {};
     for (const key in body) {
       if (oldSettings[key as keyof typeof oldSettings] !== body[key]) {
         changes[key] = {

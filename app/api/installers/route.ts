@@ -4,8 +4,10 @@ import dbConnect from '@/lib/mongodb';
 import Installer from '@/models/Installer';
 import { registerInstallerSchema } from '@/lib/validation';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
-
 import { createGoogleContact } from '@/lib/googleContacts';
+import { FilterQuery } from 'mongoose';
+import { IInstaller } from '@/models/Installer';
+import { ZodError } from 'zod';
 
 // GET all installers with filtering
 export async function GET(request: NextRequest) {
@@ -29,7 +31,7 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') === 'asc' ? 1 : -1;
 
-    const query: any = {};
+    const query: FilterQuery<IInstaller> = {};
 
     if (search) {
       query.$or = [
@@ -155,9 +157,9 @@ export async function POST(request: NextRequest) {
       .populate('referrer', 'installerCode fullName');
 
     return ApiResponse.success(populatedInstaller, 'Installer registered successfully', 201);
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
-      return ApiResponse.validationError(error.errors);
+  } catch (error: unknown) {
+    if (error instanceof ZodError) {
+      return ApiResponse.validationError(error.issues);
     }
     return handleApiError(error);
   }

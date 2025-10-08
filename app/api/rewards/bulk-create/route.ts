@@ -6,6 +6,38 @@ import InstallerReward from '@/models/InstallerReward';
 import TeamMember from '@/models/TeamMember';
 import Activity from '@/models/Activity';
 
+interface RewardDataInput {
+  timestamp: string;
+  teamMemberEmail: string;
+  installerCode: string;
+  productModel: string;
+  serialNumber: string;
+  serialNumberStatus: string;
+  bankName: string;
+  accountNumber: string;
+  accountTitle: string;
+  paymentStatus: string;
+  rewardAmount: string | number;
+  paymentMethod: string;
+  cityOfInstallation?: string;
+  referrerCode?: string;
+  referrerRewardAmount?: string | number;
+  inverterSerialNumber?: string;
+  transactionId?: string;
+  referrerTransactionId?: string;
+  sendingDate?: string;
+}
+
+interface InstallerLean {
+  _id: string;
+  installerCode: string;
+}
+
+interface TeamMemberLean {
+  _id: string;
+  email: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -16,11 +48,11 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    let rewards: any[];
+    let rewards: RewardDataInput[];
     try {
       const body = await request.json();
       rewards = body.rewards;
-    } catch (parseError) {
+    } catch (parseError: unknown) {
       return NextResponse.json(
         {
           success: false,
@@ -52,15 +84,15 @@ export async function POST(request: NextRequest) {
     };
 
     // Fetch all installers once
-    const installers = await Installer.find({}, { installerCode: 1, _id: 1 }).lean();
+    const installers = await Installer.find({}, { installerCode: 1, _id: 1 }).lean<InstallerLean[]>();
     const installerMap = new Map(
-      installers.map((i: any) => [i.installerCode.toUpperCase(), i._id.toString()])
+      installers.map((i) => [i.installerCode.toUpperCase(), i._id.toString()])
     );
 
     // Fetch all team members once
-    const teamMembers = await TeamMember.find({}, { email: 1, _id: 1 }).lean();
+    const teamMembers = await TeamMember.find({}, { email: 1, _id: 1 }).lean<TeamMemberLean[]>();
     const teamMemberMap = new Map(
-      teamMembers.map((tm: any) => [tm.email.toLowerCase(), tm._id.toString()])
+      teamMembers.map((tm) => [tm.email.toLowerCase(), tm._id.toString()])
     );
 
     for (let i = 0; i < rewards.length; i++) {
@@ -68,7 +100,7 @@ export async function POST(request: NextRequest) {
 
       try {
         // Required field validation
-        const requiredFields = [
+        const requiredFields: (keyof RewardDataInput)[] = [
           'timestamp',
           'teamMemberEmail',
           'installerCode',
@@ -127,14 +159,14 @@ export async function POST(request: NextRequest) {
         }
 
         // Parse reward amounts
-        const rewardAmount = parseFloat(rewardData.rewardAmount);
+        const rewardAmount = parseFloat(String(rewardData.rewardAmount));
         if (isNaN(rewardAmount)) {
           throw new Error('Invalid reward amount');
         }
 
         let referrerRewardAmount: number | undefined;
         if (rewardData.referrerRewardAmount) {
-          referrerRewardAmount = parseFloat(rewardData.referrerRewardAmount);
+          referrerRewardAmount = parseFloat(String(rewardData.referrerRewardAmount));
           if (isNaN(referrerRewardAmount)) {
             throw new Error('Invalid referrer reward amount');
           }
@@ -182,10 +214,11 @@ export async function POST(request: NextRequest) {
         });
 
         results.successful++;
-      } catch (error: any) {
+      } catch (error: unknown) {
         results.failed++;
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         results.errors.push(
-          `Row ${i + 1} (Serial: ${rewardData.serialNumber || 'N/A'}): ${error.message}`
+          `Row ${i + 1} (Serial: ${rewardData.serialNumber || 'N/A'}): ${errorMessage}`
         );
       }
     }
@@ -204,12 +237,13 @@ export async function POST(request: NextRequest) {
         errors: results.errors,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in bulk reward creation:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during bulk upload';
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'An unexpected error occurred during bulk upload',
+        error: errorMessage,
       },
       { status: 500 }
     );

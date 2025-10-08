@@ -5,6 +5,7 @@ import dbConnect from '@/lib/mongodb';
 import TeamMember, { TeamRole } from '@/models/TeamMember';
 import { updateTeamMemberSchema } from '@/lib/validation';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
+import { ZodError } from 'zod';
 
 
 // GET single team member
@@ -76,9 +77,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { password, ...teamMemberWithoutPassword } = teamMember.toObject();
 
     return ApiResponse.success(teamMemberWithoutPassword, 'Team member updated successfully');
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
-      return ApiResponse.validationError(error.errors);
+  } catch (error: unknown) {
+    if (error instanceof ZodError) {
+      return ApiResponse.validationError(error.issues);
     }
     return handleApiError(error);
   }

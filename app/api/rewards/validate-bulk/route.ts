@@ -14,6 +14,11 @@ interface RewardUpdate {
   isValid: boolean;
 }
 
+interface ExistingRewardLean {
+  serialNumber: string;
+  referrer?: unknown;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
@@ -40,16 +45,16 @@ export async function POST(req: NextRequest) {
     const existingRewards = await InstallerReward.find(
       { serialNumber: { $in: serialNumbers } },
       { serialNumber: 1, referrer: 1, _id: 0 }
-    ).lean();
+    ).lean<ExistingRewardLean[]>();
 
     const existingSerialNumbers = new Set(
-      existingRewards.map((r: any) => r.serialNumber.toUpperCase())
+      existingRewards.map((r) => r.serialNumber.toUpperCase())
     );
 
     const rewardsWithReferrer = new Set(
       existingRewards
-        .filter((r: any) => r.referrer)
-        .map((r: any) => r.serialNumber.toUpperCase())
+        .filter((r) => r.referrer)
+        .map((r) => r.serialNumber.toUpperCase())
     );
 
     // Track serial numbers in the upload batch for duplicate detection
@@ -114,10 +119,11 @@ export async function POST(req: NextRequest) {
         },
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Validation error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to validate rewards';
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to validate rewards' },
+      { success: false, error: errorMessage },
       { status: 500 }
     );
   }

@@ -51,10 +51,10 @@ export async function POST(req: NextRequest) {
     ).lean();
 
     const existingCodes = new Set(
-      existingInstallers.map((i: any) => i.installerCode.toUpperCase())
+      existingInstallers.map((i: { installerCode: string; cnic: string }) => i.installerCode.toUpperCase())
     );
     const existingCNICs = new Set(
-      existingInstallers.map((i: any) => i.cnic)
+      existingInstallers.map((i: { installerCode: string; cnic: string }) => i.cnic)
     );
 
     // Get all unique referrer codes from uploaded data
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     ).lean();
 
     const validReferrerCodes = new Set(
-      validReferrers.map((r: any) => r.installerCode.toUpperCase())
+      validReferrers.map((r: { installerCode: string }) => r.installerCode.toUpperCase())
     );
 
     // Track codes and CNICs in the current upload batch for duplicate detection
@@ -160,10 +160,10 @@ export async function POST(req: NextRequest) {
         },
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Validation error:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to validate installers' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to validate installers' },
       { status: 500 }
     );
   }

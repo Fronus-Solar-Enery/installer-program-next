@@ -1,8 +1,8 @@
-import { NextRequest } from 'next/server';
-import { auth } from '@/lib/auth';
-import dbConnect from '@/lib/mongodb';
-import { getRecentActivities, getTargetActivities } from '@/lib/activityLogger';
-import { ApiResponse, handleApiError } from '@/lib/apiResponse';
+import { NextRequest } from "next/server";
+import { auth } from "@/lib/auth";
+import dbConnect from "@/lib/mongodb";
+import { getRecentActivities, getTargetActivities } from "@/lib/activityLogger";
+import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 
 // GET activities
 export async function GET(request: NextRequest) {
@@ -16,16 +16,16 @@ export async function GET(request: NextRequest) {
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
-    const targetType = searchParams.get('targetType');
-    const targetId = searchParams.get('targetId');
-    const limit = parseInt(searchParams.get('limit') || '100');
+    const targetType = searchParams.get("targetType");
+    const targetId = searchParams.get("targetId");
+    const limit = parseInt(searchParams.get("limit") || "100");
 
     let activities;
 
     if (targetType && targetId) {
       // Get activities for a specific target
       activities = await getTargetActivities(
-        targetType as any,
+        targetType as 'Installer' | 'InstallerReward' | 'TeamMember',
         targetId,
         limit
       );

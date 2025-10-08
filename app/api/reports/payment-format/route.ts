@@ -2,8 +2,25 @@ import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import * as XLSX from "xlsx";
 import dbConnect from "@/lib/mongodb";
-import InstallerReward from "@/models/InstallerReward";
+import InstallerReward, { IInstallerReward } from "@/models/InstallerReward";
+import { IInstaller } from "@/models/Installer";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
+import { FilterQuery } from "mongoose";
+
+// Type for populated reward document
+interface PopulatedReward extends Omit<IInstallerReward, 'installer' | 'referrer'> {
+  installer: Pick<IInstaller, 'installerCode' | 'fullName' | 'phoneNumber' | 'bankName' | 'accountNumber' | 'accountTitle'>;
+  referrer?: Pick<IInstaller, 'installerCode' | 'fullName' | 'phoneNumber' | 'bankName' | 'accountNumber' | 'accountTitle'>;
+}
+
+// Type for payment row in Excel
+interface PaymentRow {
+  "To Account": string;
+  Bank: string;
+  Amount: number;
+  Purpose: string;
+  "Phone No.": string;
+}
 
 // Format phone number to 03XXXXXXXXX
 function formatPhoneNumber(phone: string): string {
@@ -51,7 +68,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get("endDate");
 
     // Query for both PENDING and FAILED rewards
-    const query: any = {
+    const query: FilterQuery<IInstallerReward> = {
       paymentStatus: { $in: ["PENDING", "FAILED"] },
     };
 
@@ -77,16 +94,17 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 });
 
     // Create array for all payments
-    const allPayments: any[] = [];
+    const allPayments: PaymentRow[] = [];
 
     // Add installer payments (for each pending/failed reward)
     rewards.forEach((reward) => {
-      const installer = reward.installer as any;
+      const populatedReward = reward as unknown as PopulatedReward;
+      const installer = populatedReward.installer;
       if (installer) {
         allPayments.push({
           "To Account": installer.accountNumber || "",
           Bank: installer.bankName || "",
-          Amount: reward.rewardAmount || 0,
+          Amount: populatedReward.rewardAmount || 0,
           Purpose: "Others",
           "Phone No.": formatPhoneNumber(installer.phoneNumber || ""),
         });
@@ -95,16 +113,17 @@ export async function GET(request: NextRequest) {
 
     // Add referrer payments at the bottom
     rewards.forEach((reward) => {
-      const referrer = reward.referrer as any;
+      const populatedReward = reward as unknown as PopulatedReward;
+      const referrer = populatedReward.referrer;
       if (
         referrer &&
-        reward.referrerRewardAmount &&
-        reward.referrerRewardAmount > 0
+        populatedReward.referrerRewardAmount &&
+        populatedReward.referrerRewardAmount > 0
       ) {
         allPayments.push({
           "To Account": referrer.accountNumber || "",
           Bank: referrer.bankName || "",
-          Amount: reward.referrerRewardAmount || 0,
+          Amount: populatedReward.referrerRewardAmount || 0,
           Purpose: "Others",
           "Phone No.": formatPhoneNumber(referrer.phoneNumber || ""),
         });

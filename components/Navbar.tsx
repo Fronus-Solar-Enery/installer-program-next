@@ -16,11 +16,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, User } from 'lucide-react';
+import { LogOut, Settings, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import GlobalSearchModal from '@/components/GlobalSearchModal';
 
 export default function Navbar() {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const isActive = (path: string) => {
     return pathname === path;
@@ -38,6 +41,19 @@ export default function Navbar() {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  // Keyboard shortcut (Ctrl/Cmd + K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -111,6 +127,21 @@ export default function Navbar() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
+            <Button
+              variant="outline"
+              size="sm"
+              className="hidden md:flex gap-2 w-[200px] justify-between"
+              onClick={() => setSearchOpen(true)}
+            >
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4" />
+                <span className="text-muted-foreground">Search...</span>
+              </div>
+              <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </Button>
+            <GlobalSearchModal open={searchOpen} onOpenChange={setSearchOpen} />
             <ThemeToggle />
             <Separator orientation="vertical" className="h-8" />
             <DropdownMenu>

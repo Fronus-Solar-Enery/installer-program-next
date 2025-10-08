@@ -32,7 +32,13 @@ export default function Sidebar() {
     return pathname === path || pathname?.startsWith(path + "/");
   };
 
-  const mainNavItems = [
+  const mainNavItems: Array<{
+    title: string;
+    href: string;
+    icon: typeof LayoutDashboard;
+    show: boolean;
+    badge?: string;
+  }> = [
     {
       title: "Dashboard",
       href: "/dashboard",

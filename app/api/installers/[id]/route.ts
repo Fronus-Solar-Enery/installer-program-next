@@ -6,9 +6,9 @@ import InstallerReward from '@/models/InstallerReward';
 import { updateInstallerSchema } from '@/lib/validation';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
 import mongoose from 'mongoose';
-
 import { TeamRole } from '@/models/TeamMember';
 import { updateGoogleContact, deleteGoogleContact } from '@/lib/googleContacts';
+import { ZodError } from 'zod';
 
 // GET single installer with stats
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -142,9 +142,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       .populate('referrer', 'installerCode fullName');
 
     return ApiResponse.success(updatedInstaller, 'Installer updated successfully');
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
-      return ApiResponse.validationError(error.errors);
+  } catch (error: unknown) {
+    if (error instanceof ZodError) {
+      return ApiResponse.validationError(error.issues);
     }
     return handleApiError(error);
   }

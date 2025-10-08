@@ -1,12 +1,12 @@
-import { NextRequest } from 'next/server';
-import { auth } from '@/lib/auth';
-import dbConnect from '@/lib/mongodb';
-import InstallerReward from '@/models/InstallerReward';
-import Installer from '@/models/Installer';
-import { registerRewardSchema } from '@/lib/validation';
-import { ApiResponse, handleApiError } from '@/lib/apiResponse';
-import { PRODUCT_MODELS } from '@/lib/constants';
-
+import { NextRequest } from "next/server";
+import { auth } from "@/lib/auth";
+import dbConnect from "@/lib/mongodb";
+import InstallerReward, { IInstallerReward } from "@/models/InstallerReward";
+import Installer from "@/models/Installer";
+import { registerRewardSchema } from "@/lib/validation";
+import { ApiResponse, handleApiError } from "@/lib/apiResponse";
+import { FilterQuery } from "mongoose";
+import { ZodError } from "zod";
 
 // GET all rewards with filtering
 export async function GET(request: NextRequest) {
@@ -20,33 +20,33 @@ export async function GET(request: NextRequest) {
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const paymentStatus = searchParams.get('paymentStatus');
-    const productModel = searchParams.get('productModel');
-    const city = searchParams.get('city');
-    const registeredBy = searchParams.get('registeredBy');
-    const installerCode = searchParams.get('installerCode');
-    const installerId = searchParams.get('installer'); // Support filtering by installer ID
-    const serialNumberStatus = searchParams.get('serialNumberStatus');
-    const paymentMethod = searchParams.get('paymentMethod');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    const sortBy = searchParams.get('sortBy') || 'createdAt';
-    const sortOrder = searchParams.get('sortOrder') === 'asc' ? 1 : -1;
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const paymentStatus = searchParams.get("paymentStatus");
+    const productModel = searchParams.get("productModel");
+    const city = searchParams.get("city");
+    const registeredBy = searchParams.get("registeredBy");
+    const installerCode = searchParams.get("installerCode");
+    const installerId = searchParams.get("installer"); // Support filtering by installer ID
+    const serialNumberStatus = searchParams.get("serialNumberStatus");
+    const paymentMethod = searchParams.get("paymentMethod");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const sortBy = searchParams.get("sortBy") || "createdAt";
+    const sortOrder = searchParams.get("sortOrder") === "asc" ? 1 : -1;
 
-    const query: any = {};
+    const query: FilterQuery<IInstallerReward> = {};
 
-    if (paymentStatus && paymentStatus !== 'all') {
+    if (paymentStatus && paymentStatus !== "all") {
       query.paymentStatus = paymentStatus;
     }
 
     if (productModel) {
-      query.productModel = { $regex: productModel, $options: 'i' };
+      query.productModel = { $regex: productModel, $options: "i" };
     }
 
     if (city) {
-      query.cityOfInstallation = { $regex: city, $options: 'i' };
+      query.cityOfInstallation = { $regex: city, $options: "i" };
     }
 
     if (registeredBy) {
@@ -83,9 +83,15 @@ export async function GET(request: NextRequest) {
 
     const [rewards, total] = await Promise.all([
       InstallerReward.find(query)
-        .populate('installer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')
-        .populate('referrer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')
-        .populate('registeredBy', 'name email role')
+        .populate(
+          "installer",
+          "installerCode fullName phoneNumber bankName accountNumber accountTitle"
+        )
+        .populate(
+          "referrer",
+          "installerCode fullName phoneNumber bankName accountNumber accountTitle"
+        )
+        .populate("registeredBy", "name email role")
         .sort({ [sortBy]: sortOrder })
         .skip(skip)
         .limit(limit),
@@ -97,9 +103,9 @@ export async function GET(request: NextRequest) {
       { $match: query },
       {
         $group: {
-          _id: '$paymentStatus',
+          _id: "$paymentStatus",
           count: { $sum: 1 },
-          totalAmount: { $sum: '$rewardAmount' },
+          totalAmount: { $sum: "$rewardAmount" },
         },
       },
     ]);
@@ -134,16 +140,20 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     // Find installer by code
-    const installer = await Installer.findOne({ installerCode: validatedData.installerCode });
+    const installer = await Installer.findOne({
+      installerCode: validatedData.installerCode,
+    });
 
     if (!installer) {
-      return ApiResponse.error('Installer not found with this code', 404);
+      return ApiResponse.error("Installer not found with this code", 404);
     }
 
     // Check if serial number already exists
-    const existingReward = await InstallerReward.findOne({ serialNumber: validatedData.serialNumber });
+    const existingReward = await InstallerReward.findOne({
+      serialNumber: validatedData.serialNumber,
+    });
     if (existingReward) {
-      return ApiResponse.error('Serial number already exists', 409);
+      return ApiResponse.error("Serial number already exists", 409);
     }
 
     // Get bank details from installer
@@ -152,7 +162,7 @@ export async function POST(request: NextRequest) {
     const accountTitle = installer.accountTitle;
 
     // Prepare reward data
-    const rewardData: any = {
+    const rewardData: Record<string, unknown> = {
       ...validatedData,
       installer: installer._id,
       bankName,
@@ -175,14 +185,24 @@ export async function POST(request: NextRequest) {
     const reward = await InstallerReward.create(rewardData);
 
     const populatedReward = await InstallerReward.findById(reward._id)
-      .populate('installer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')
-      .populate('referrer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')
-      .populate('registeredBy', 'name email role');
+      .populate(
+        "installer",
+        "installerCode fullName phoneNumber bankName accountNumber accountTitle"
+      )
+      .populate(
+        "referrer",
+        "installerCode fullName phoneNumber bankName accountNumber accountTitle"
+      )
+      .populate("registeredBy", "name email role");
 
-    return ApiResponse.success(populatedReward, 'Reward registered successfully', 201);
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
-      return ApiResponse.validationError(error.errors);
+    return ApiResponse.success(
+      populatedReward,
+      "Reward registered successfully",
+      201
+    );
+  } catch (error: unknown) {
+    if (error instanceof ZodError) {
+      return ApiResponse.validationError(error.issues);
     }
     return handleApiError(error);
   }

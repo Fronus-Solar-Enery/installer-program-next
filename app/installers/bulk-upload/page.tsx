@@ -99,7 +99,7 @@ export default function BulkUploadInstallersPage() {
 
   const validateInstallerCode = (code: string): boolean => {
     // Format: IP-XXXX or similar
-    return code && code.length >= 3 && code.length <= 20;
+    return Boolean(code && code.length >= 3 && code.length <= 20);
   };
 
   const normalizeBankName = (bankName: string): string => {
@@ -183,9 +183,9 @@ export default function BulkUploadInstallersPage() {
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<string, unknown>[];
 
-        const parsedInstallers: InstallerUpload[] = jsonData.map((row: any) => {
+        const parsedInstallers: InstallerUpload[] = jsonData.map((row) => {
           const rawBankName = row['Bank Name']?.toString().trim() || '';
           const installer = {
             installerCode: row['Installer Code']?.toString().trim().toUpperCase() || '',
@@ -219,8 +219,8 @@ export default function BulkUploadInstallersPage() {
 
         // Automatically validate against database after parsing
         validateAgainstDatabase(parsedInstallers);
-      } catch (err: any) {
-        setError('Failed to parse Excel file: ' + err.message);
+      } catch (err: unknown) {
+        setError('Failed to parse Excel file: ' + (err instanceof Error ? err.message : 'Unknown error'));
         setPreview([]);
       }
     };
@@ -241,7 +241,7 @@ export default function BulkUploadInstallersPage() {
       if (response.ok && data.data?.validatedInstallers) {
         setPreview(data.data.validatedInstallers);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Validation error:', err);
     } finally {
       setValidating(false);
@@ -340,8 +340,8 @@ export default function BulkUploadInstallersPage() {
       } else {
         setError(data.error || 'Upload failed');
       }
-    } catch (err: any) {
-      setError('Failed to upload installers: ' + err.message);
+    } catch (err: unknown) {
+      setError('Failed to upload installers: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -384,7 +384,7 @@ export default function BulkUploadInstallersPage() {
                   3. Review the data and fix any validation issues
                 </p>
                 <p className="text-sm text-muted-foreground mb-4">
-                  4. Click "Upload All Valid Records" to finalize
+                  4. Click &quot;Upload All Valid Records&quot; to finalize
                 </p>
                 <Button onClick={downloadTemplate} variant="outline">
                   <Download className="h-4 w-4 mr-2" />

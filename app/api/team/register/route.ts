@@ -5,6 +5,7 @@ import dbConnect from '@/lib/mongodb';
 import TeamMember, { TeamRole } from '@/models/TeamMember';
 import { registerTeamMemberSchema } from '@/lib/validation';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
+import { ZodError } from 'zod';
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,9 +51,9 @@ export async function POST(request: NextRequest) {
     const { password, ...teamMemberWithoutPassword } = teamMember.toObject();
 
     return ApiResponse.success(teamMemberWithoutPassword, 'Team member registered successfully', 201);
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
-      return ApiResponse.validationError(error.errors);
+  } catch (error: unknown) {
+    if (error instanceof ZodError) {
+      return ApiResponse.validationError(error.issues);
     }
     return handleApiError(error);
   }

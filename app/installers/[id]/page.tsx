@@ -12,6 +12,75 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import PageHeader from '@/components/PageHeader';
 
+interface InstallerDetails {
+  _id: string;
+  installerCode: string;
+  fullName: string;
+  cnic: string;
+  phoneNumber: string;
+  whatsappNumber: string;
+  address: string;
+  city: string;
+  province: string;
+  trainingCenter: string;
+  companyName?: string;
+  bankName: string;
+  accountNumber: string;
+  accountTitle: string;
+  certified: boolean;
+  referrerCode?: string;
+  createdAt: string;
+  updatedAt?: string;
+  referrer?: {
+    installerCode: string;
+    fullName: string;
+  };
+  registeredBy?: {
+    name: string;
+    email: string;
+  };
+}
+
+interface Statistics {
+  totalRewards: number;
+  pendingRewards: number;
+  paidRewards: number;
+  failedRewards: number;
+  totalAmount: number;
+  pendingAmount: number;
+  paidAmount: number;
+  failedAmount: number;
+}
+
+interface ActivityLog {
+  _id: string;
+  type: string;
+  description: string;
+  createdAt: string;
+  targetName?: string;
+  metadata?: {
+    changes?: Record<string, { before: unknown; after: unknown }>;
+    whatsappNumber?: string;
+    errorMessage?: string;
+    [key: string]: unknown;
+  };
+  performedBy?: {
+    name: string;
+  };
+}
+
+interface Product {
+  _id: string;
+  serialNumber: string;
+  productModel: string;
+  cityOfInstallation?: string;
+  installationDate?: string;
+  rewardAmount: number;
+  paymentStatus: string;
+  transactionId?: string;
+  createdAt: string;
+}
+
 export default function InstallerDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -19,11 +88,11 @@ export default function InstallerDetailsPage() {
   const { copiedText, copyToClipboard } = useCopyToClipboard();
 
   const [loading, setLoading] = useState(true);
-  const [installer, setInstaller] = useState<any>(null);
-  const [statistics, setStatistics] = useState<any>(null);
+  const [installer, setInstaller] = useState<InstallerDetails | null>(null);
+  const [statistics, setStatistics] = useState<Statistics | null>(null);
   const [error, setError] = useState('');
-  const [activities, setActivities] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [activities, setActivities] = useState<ActivityLog[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
 
@@ -43,8 +112,8 @@ export default function InstallerDetailsPage() {
 
       setInstaller(data.data.installer);
       setStatistics(data.data.statistics);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch installer');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch installer');
     } finally {
       setLoading(false);
     }
@@ -62,7 +131,7 @@ export default function InstallerDetailsPage() {
       const productsRes = await fetch(`/api/rewards?installer=${installerId}&limit=1000`);
       const productsData = await productsRes.json();
 
-      let allActivities: any[] = [];
+      let allActivities: ActivityLog[] = [];
 
       // Add installer activities
       if (installerActivitiesData.success) {
@@ -71,7 +140,7 @@ export default function InstallerDetailsPage() {
 
       // Fetch reward activities for each product
       if (productsData.success && productsData.data.rewards.length > 0) {
-        const rewardIds = productsData.data.rewards.map((r: any) => r._id);
+        const rewardIds = productsData.data.rewards.map((r: Product) => r._id);
 
         // Fetch activities for all rewards
         const rewardActivitiesPromises = rewardIds.map((rewardId: string) =>
@@ -553,7 +622,7 @@ export default function InstallerDetailsPage() {
                   </CardContent>
                 </Card>
               ) : (
-                activities.map((activity: any) => {
+                activities.map((activity: ActivityLog) => {
                   const isCreated = activity.type.includes('REGISTERED') || activity.type.includes('CREATED');
                   const isUpdated = activity.type.includes('UPDATED');
                   const isDeleted = activity.type.includes('DELETED');
@@ -707,11 +776,11 @@ export default function InstallerDetailsPage() {
                             {activity.metadata?.whatsappNumber && (
                               <div className="mt-2 text-xs">
                                 <Badge variant="outline" className="font-mono">
-                                  {activity.metadata.whatsappNumber}
+                                  {String(activity.metadata.whatsappNumber)}
                                 </Badge>
                                 {activity.metadata.errorMessage && (
                                   <span className="ml-2 text-destructive">
-                                    Error: {activity.metadata.errorMessage}
+                                    Error: {String(activity.metadata.errorMessage)}
                                   </span>
                                 )}
                               </div>
@@ -751,7 +820,7 @@ export default function InstallerDetailsPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {products.map((product: any) => (
+                      {products.map((product: Product) => (
                         <TableRow key={product._id}>
                           <TableCell className="font-medium">
                             {product.serialNumber}

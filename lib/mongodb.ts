@@ -199,7 +199,7 @@ async function dbConnect(): Promise<typeof mongoose> {
       // Log success
       if (process.env.NODE_ENV !== 'production') {
         console.log(`\n✅ MongoDB Connected Successfully!`);
-        console.log(`   Database: ${mongoose.connection.db.databaseName}`);
+        console.log(`   Database: ${mongoose.connection.db?.databaseName || 'Unknown'}`);
         console.log(`   Host: ${mongoose.connection.host}`);
         console.log(`   Status: Connected\n`);
       }

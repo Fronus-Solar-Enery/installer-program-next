@@ -2,9 +2,53 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import * as XLSX from 'xlsx';
 import dbConnect from '@/lib/mongodb';
-import InstallerReward from '@/models/InstallerReward';
+import InstallerReward, { IInstallerReward } from '@/models/InstallerReward';
+import { IInstaller } from '@/models/Installer';
+import { ITeamMember } from '@/models/TeamMember';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
+import { FilterQuery } from 'mongoose';
 
+// Type for populated reward document
+interface PopulatedReward extends Omit<IInstallerReward, 'installer' | 'referrer' | 'registeredBy'> {
+  installer: Pick<IInstaller, 'installerCode' | 'fullName' | 'phoneNumber' | 'bankName' | 'accountNumber' | 'accountTitle'>;
+  referrer?: Pick<IInstaller, 'installerCode' | 'fullName' | 'phoneNumber' | 'bankName' | 'accountNumber' | 'accountTitle'>;
+  registeredBy: Pick<ITeamMember, 'name' | 'email'>;
+  createdAt: Date;
+  sendingDate?: Date;
+}
+
+// Type for Excel export data
+interface ExcelRewardData {
+  'Installer Code': string;
+  'Installer Name': string;
+  'Phone Number': string;
+  'Serial Number': string;
+  'Product Model': string;
+  'City of Installation': string;
+  'Reward Amount': number;
+  'Payment Status': string;
+  'Transaction ID': string;
+  'Bank Name': string;
+  'Account Number': string;
+  'Account Title': string;
+  'Payment Method': string;
+  'Sending Date': string;
+  'Registered By': string;
+  'Registration Date': string;
+}
+
+// Type for aggregation statistics
+interface RewardStatistics {
+  _id: null;
+  totalRewards: number;
+  totalAmount: number;
+  pendingCount: number;
+  paidCount: number;
+  failedCount: number;
+  pendingAmount: number;
+  paidAmount: number;
+  failedAmount: number;
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +68,7 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    const query: any = {};
+    const query: FilterQuery<IInstallerReward> = {};
 
     if (paymentStatus && paymentStatus !== 'all') {
       query.paymentStatus = paymentStatus;
@@ -59,25 +103,25 @@ export async function GET(request: NextRequest) {
       const workbook = XLSX.utils.book_new();
 
       // Prepare data for Excel
-      const excelData = rewards.map((reward) => {
-        const installer = reward.installer as any;
+      const excelData: ExcelRewardData[] = rewards.map((reward) => {
+        const populatedReward = reward as unknown as PopulatedReward;
         return {
-          'Installer Code': reward.installerCode,
-          'Installer Name': installer?.fullName || 'N/A',
-          'Phone Number': installer?.phoneNumber || 'N/A',
-          'Serial Number': reward.serialNumber,
-          'Product Model': reward.productModel,
-          'City of Installation': reward.cityOfInstallation,
-          'Reward Amount': reward.rewardAmount,
-          'Payment Status': reward.paymentStatus,
-          'Transaction ID': reward.transactionId || 'N/A',
-          'Bank Name': reward.bankName,
-          'Account Number': reward.accountNumber,
-          'Account Title': reward.accountTitle,
-          'Payment Method': reward.paymentMethod || 'N/A',
-          'Sending Date': reward.sendingDate ? new Date(reward.sendingDate).toLocaleDateString() : 'N/A',
-          'Registered By': (reward.registeredBy as any)?.name || 'N/A',
-          'Registration Date': new Date(reward.createdAt!).toLocaleDateString(),
+          'Installer Code': populatedReward.installerCode,
+          'Installer Name': populatedReward.installer?.fullName || 'N/A',
+          'Phone Number': populatedReward.installer?.phoneNumber || 'N/A',
+          'Serial Number': populatedReward.serialNumber,
+          'Product Model': populatedReward.productModel,
+          'City of Installation': populatedReward.cityOfInstallation,
+          'Reward Amount': populatedReward.rewardAmount,
+          'Payment Status': populatedReward.paymentStatus,
+          'Transaction ID': populatedReward.transactionId || 'N/A',
+          'Bank Name': populatedReward.bankName,
+          'Account Number': populatedReward.accountNumber,
+          'Account Title': populatedReward.accountTitle,
+          'Payment Method': populatedReward.paymentMethod || 'N/A',
+          'Sending Date': populatedReward.sendingDate ? new Date(populatedReward.sendingDate).toLocaleDateString() : 'N/A',
+          'Registered By': populatedReward.registeredBy?.name || 'N/A',
+          'Registration Date': new Date(populatedReward.createdAt).toLocaleDateString(),
         };
       });
 
@@ -96,7 +140,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate statistics
-    const stats = await InstallerReward.aggregate([
+    const stats = await InstallerReward.aggregate<RewardStatistics>([
       { $match: query },
       {
         $group: {
@@ -126,7 +170,17 @@ export async function GET(request: NextRequest) {
     ]);
 
     return ApiResponse.success({
-      statistics: stats[0] || {},
+      statistics: stats[0] || {
+        _id: null,
+        totalRewards: 0,
+        totalAmount: 0,
+        pendingCount: 0,
+        paidCount: 0,
+        failedCount: 0,
+        pendingAmount: 0,
+        paidAmount: 0,
+        failedAmount: 0,
+      },
       rewards,
     });
   } catch (error) {

@@ -17,6 +17,12 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 // Digital payment methods (mobile wallets)
 const DIGITAL_PAYMENT_METHODS = ['jazzcash', 'easypaisa', 'nayapay', 'sadapay', 'finja', 'keenu', 'upaisa'];
 
+interface InstallerResponse {
+  _id: string;
+  cnic?: string;
+  installerCode?: string;
+}
+
 export default function NewInstallerPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -132,7 +138,7 @@ export default function NewInstallerPage() {
       const data = await response.json();
 
       if (data.success && data.data.installers.length > 0) {
-        const existing = data.data.installers.find((i: any) => i.cnic === cnic);
+        const existing = data.data.installers.find((i: InstallerResponse) => i.cnic === cnic);
         if (existing) {
           toast.error('This CNIC is already registered');
           setCnicChecked(false);
@@ -169,7 +175,7 @@ export default function NewInstallerPage() {
       const data = await response.json();
 
       if (data.success && data.data.installers.length > 0) {
-        const exists = data.data.installers.find((i: any) => i.installerCode === proposedCode);
+        const exists = data.data.installers.find((i: InstallerResponse) => i.installerCode === proposedCode);
         if (exists) {
           // Try again with new random part
           setTimeout(generateInstallerCode, 100);
@@ -201,7 +207,7 @@ export default function NewInstallerPage() {
 
       if (data.success && data.data.installers.length > 0) {
         const referrer = data.data.installers.find(
-          (i: any) => i.installerCode.toUpperCase() === referrerCode.toUpperCase()
+          (i: InstallerResponse) => i.installerCode?.toUpperCase() === referrerCode.toUpperCase()
         );
 
         if (referrer) {
@@ -360,7 +366,7 @@ export default function NewInstallerPage() {
         console.error('API Error Response:', data);
         // Show validation errors if available
         if (data.errors && Array.isArray(data.errors)) {
-          data.errors.forEach((err: any) => {
+          data.errors.forEach((err: { path?: string[]; message: string }) => {
             toast.error(`${err.path?.join('.')}: ${err.message}`);
           });
         } else {

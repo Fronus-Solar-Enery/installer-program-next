@@ -22,16 +22,19 @@ export const authConfig: NextAuthConfig = {
           throw new Error('Please enter both email and password');
         }
 
-        if (!credentials.email.trim()) {
+        const email = String(credentials.email);
+        const password = String(credentials.password);
+
+        if (!email.trim()) {
           throw new Error('Email cannot be empty');
         }
 
-        if (!credentials.password.trim()) {
+        if (!password.trim()) {
           throw new Error('Password cannot be empty');
         }
 
         await dbConnect();
-        const user = await TeamMember.findOne({ email: credentials.email.trim().toLowerCase() });
+        const user = await TeamMember.findOne({ email: email.trim().toLowerCase() });
 
         if (!user) {
           throw new Error('No account found with this email address');
@@ -42,7 +45,7 @@ export const authConfig: NextAuthConfig = {
         }
 
         const passwordHash: string = user.password as string;
-        const isValid = await bcrypt.compare(credentials.password as string, passwordHash as string);
+        const isValid = await bcrypt.compare(password, passwordHash);
 
         if (!isValid) {
           throw new Error('Incorrect password. Please try again.');

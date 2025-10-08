@@ -5,6 +5,7 @@ import dbConnect from '@/lib/mongodb';
 import TeamMember from '@/models/TeamMember';
 import { changePasswordSchema } from '@/lib/validation';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
+import { ZodError } from 'zod';
 
 
 export async function POST(request: NextRequest) {
@@ -39,9 +40,9 @@ export async function POST(request: NextRequest) {
     await user.save();
 
     return ApiResponse.success(null, 'Password changed successfully');
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
-      return ApiResponse.validationError(error.errors);
+  } catch (error: unknown) {
+    if (error instanceof ZodError) {
+      return ApiResponse.validationError(error.issues);
     }
     return handleApiError(error);
   }

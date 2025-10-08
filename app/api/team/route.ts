@@ -1,9 +1,10 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
-import TeamMember, { TeamRole } from '@/models/TeamMember';
+import TeamMember, { TeamRole, ITeamMember } from '@/models/TeamMember';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
 import bcrypt from 'bcryptjs';
+import { FilterQuery } from 'mongoose';
 
 
 // GET all team members (ADMIN/MANAGER only)
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
     const role = searchParams.get('role');
     const search = searchParams.get('search');
 
-    const query: any = {};
+    const query: FilterQuery<ITeamMember> = {};
 
     if (role) {
       query.role = role;
@@ -128,8 +129,8 @@ export async function POST(request: NextRequest) {
     const { password: _, ...teamMemberWithoutPassword } = newTeamMember.toObject();
 
     return ApiResponse.success(teamMemberWithoutPassword, 'Team member created successfully');
-  } catch (error: any) {
-    if (error.code === 11000) {
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
       return ApiResponse.error('Email already exists', 400);
     }
     return handleApiError(error);

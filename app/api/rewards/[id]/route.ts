@@ -1,15 +1,37 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
-import InstallerReward from '@/models/InstallerReward';
+import InstallerReward, { IInstallerReward } from '@/models/InstallerReward';
 import { updateRewardSchema } from '@/lib/validation';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
 import { logActivity, getChanges } from '@/lib/activityLogger';
 import { ActivityType } from '@/models/Activity';
 import { sendRewardPaymentMessage } from '@/lib/whatsappService';
 import { PaymentStatus } from '@/types/rewards';
+import { ZodError } from 'zod';
 
 import { TeamRole } from '@/models/TeamMember';
+
+interface PopulatedInstaller {
+  _id: string;
+  installerCode: string;
+  fullName: string;
+  phoneNumber?: string;
+  whatsappNumber?: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountTitle?: string;
+}
+
+interface PopulatedReward {
+  installer: PopulatedInstaller;
+  referrer?: PopulatedInstaller;
+  serialNumber: string;
+  productModel: string;
+  rewardAmount: number;
+  transactionId?: string;
+  sendingDate?: Date;
+}
 
 // GET single reward
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -89,13 +111,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Log activity
+    const populatedReward = updatedReward as unknown as PopulatedReward;
     await logActivity({
       type: ActivityType.REWARD_UPDATED,
       performedBy: session.user.id,
       targetType: 'InstallerReward',
       targetId: reward._id,
-      targetName: `${(updatedReward.installer as any).installerCode} - ${updatedReward.serialNumber}`,
-      description: `Updated reward for ${(updatedReward.installer as any).fullName}`,
+      targetName: `${populatedReward.installer.installerCode} - ${updatedReward.serialNumber}`,
+      description: `Updated reward for ${populatedReward.installer.fullName}`,
       metadata: { changes },
       ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
       userAgent: request.headers.get('user-agent') || undefined,
@@ -107,8 +130,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       sendRewardPaymentMessage(
         {
           installer: {
-            fullName: (updatedReward.installer as any).fullName,
-            whatsappNumber: (updatedReward.installer as any).whatsappNumber,
+            fullName: populatedReward.installer.fullName,
+            whatsappNumber: populatedReward.installer.whatsappNumber || '',
           },
           serialNumber: updatedReward.serialNumber,
           productModel: updatedReward.productModel,
@@ -125,15 +148,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         performedBy: session.user.id,
         targetType: 'InstallerReward',
         targetId: reward._id,
-        targetName: `${(updatedReward.installer as any).installerCode} - ${updatedReward.serialNumber}`,
-        description: `Marked reward as PAID for ${(updatedReward.installer as any).fullName} - Rs. ${updatedReward.rewardAmount.toLocaleString()}`,
+        targetName: `${populatedReward.installer.installerCode} - ${updatedReward.serialNumber}`,
+        description: `Marked reward as PAID for ${populatedReward.installer.fullName} - Rs. ${updatedReward.rewardAmount.toLocaleString()}`,
       });
     }
 
     return ApiResponse.success(updatedReward, 'Reward updated successfully');
-  } catch (error: any) {
-    if (error.name === 'ZodError') {
-      return ApiResponse.validationError(error.errors);
+  } catch (error: unknown) {
+    if (error instanceof ZodError) {
+      return ApiResponse.validationError(error.issues);
     }
     return handleApiError(error);
   }
@@ -164,10 +187,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     // Store info before deletion
+    const installerData = reward.installer as unknown as PopulatedInstaller;
     const rewardInfo = {
       serialNumber: reward.serialNumber,
       installerCode: reward.installerCode,
-      installerName: (reward.installer as any)?.fullName,
+      installerName: installerData?.fullName,
     };
 
     await reward.deleteOne();

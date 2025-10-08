@@ -4,6 +4,16 @@ import dbConnect from '@/lib/mongodb';
 import InstallerReward from '@/models/InstallerReward';
 import Activity from '@/models/Activity';
 
+interface RewardUpdateInput {
+  serialNumber: string;
+  transactionId: string;
+  referrerTransactionId?: string;
+  paymentStatus: string;
+  sendingDate?: string;
+  paymentMethod?: string;
+  isValid?: boolean;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
@@ -16,10 +26,10 @@ export async function POST(req: NextRequest) {
 
     await dbConnect();
 
-    let body;
+    let body: { rewards: RewardUpdateInput[] };
     try {
       body = await req.json();
-    } catch (parseError) {
+    } catch (parseError: unknown) {
       return NextResponse.json(
         { success: false, error: 'Invalid JSON in request body' },
         { status: 400 }
@@ -51,7 +61,7 @@ export async function POST(req: NextRequest) {
     };
 
     // Only process valid rewards (those without validation issues from frontend)
-    const validRewards = rewards.filter((r: any) => r.isValid !== false);
+    const validRewards = rewards.filter((r) => r.isValid !== false);
 
     if (validRewards.length === 0) {
       return NextResponse.json(
@@ -75,7 +85,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Build update object
-        const updateData: any = {
+        const updateData: Record<string, unknown> = {
           transactionId: rewardUpdate.transactionId,
           paymentStatus: rewardUpdate.paymentStatus,
         };
@@ -115,9 +125,9 @@ export async function POST(req: NextRequest) {
 
         results.success++;
         results.successfulSerials.push(rewardUpdate.serialNumber);
-      } catch (err: any) {
+      } catch (err: unknown) {
         results.failed++;
-        const errorMessage = err.message || 'Unknown error';
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
 
         // Provide more specific error messages
         if (errorMessage.includes('validation failed')) {
@@ -129,7 +139,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Return results with detailed summary
-    const response: any = {
+    const response = {
       success: results.success > 0,
       message: results.success > 0
         ? `Successfully updated ${results.success} of ${validRewards.length} reward(s)`
@@ -152,10 +162,11 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(response);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Bulk update error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update rewards';
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to update rewards' },
+      { success: false, error: errorMessage },
       { status: 500 }
     );
   }

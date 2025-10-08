@@ -5,6 +5,31 @@ import Installer from '@/models/Installer';
 import InstallerReward from '@/models/InstallerReward';
 import TeamMember from '@/models/TeamMember';
 
+interface RewardInput {
+  installerCode?: string;
+  installerName?: string;
+  serialNumber?: string;
+  teamMemberEmail?: string;
+  referrerCode?: string;
+  referrerRewardAmount?: string | number;
+  issues?: string[];
+  isValid?: boolean;
+}
+
+interface ExistingRewardLean {
+  serialNumber: string;
+}
+
+interface InstallerLean {
+  installerCode: string;
+  fullName: string;
+  referredBy?: unknown;
+}
+
+interface TeamMemberLean {
+  email: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -28,20 +53,20 @@ export async function POST(request: NextRequest) {
     const existingRewards = await InstallerReward.find(
       {},
       { serialNumber: 1, _id: 0 }
-    ).lean();
+    ).lean<ExistingRewardLean[]>();
 
     const existingSerialNumbers = new Set(
-      existingRewards.map((r: any) => r.serialNumber?.toUpperCase())
+      existingRewards.map((r) => r.serialNumber?.toUpperCase())
     );
 
     // Fetch all installers with full name and referrer info
     const installers = await Installer.find(
       {},
       { installerCode: 1, fullName: 1, referredBy: 1, _id: 0 }
-    ).lean();
+    ).lean<InstallerLean[]>();
 
     const installerMap = new Map(
-      installers.map((i: any) => [
+      installers.map((i) => [
         i.installerCode.toUpperCase(),
         { fullName: i.fullName, hasReferrer: !!i.referredBy }
       ])
@@ -49,19 +74,19 @@ export async function POST(request: NextRequest) {
 
     // Create set of all installer codes for referrer validation
     const installerCodes = new Set(
-      installers.map((i: any) => i.installerCode.toUpperCase())
+      installers.map((i) => i.installerCode.toUpperCase())
     );
 
     // Fetch all team member emails
-    const teamMembers = await TeamMember.find({}, { email: 1, _id: 0 }).lean();
+    const teamMembers = await TeamMember.find({}, { email: 1, _id: 0 }).lean<TeamMemberLean[]>();
     const teamMemberEmails = new Set(
-      teamMembers.map((tm: any) => tm.email.toLowerCase())
+      teamMembers.map((tm) => tm.email.toLowerCase())
     );
 
     // Track duplicates in batch
     const serialNumbersInBatch = new Map<string, number>();
 
-    const validatedRewards = rewards.map((reward: any, index: number) => {
+    const validatedRewards = rewards.map((reward: RewardInput, index: number) => {
       const newIssues: string[] = [];
       const installerCode = reward.installerCode?.toString().toUpperCase();
       const serialNumber = reward.serialNumber?.toString().toUpperCase();
@@ -131,12 +156,13 @@ export async function POST(request: NextRequest) {
         validatedRewards,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error validating bulk rewards:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to validate rewards';
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Failed to validate rewards',
+        error: errorMessage,
       },
       { status: 500 }
     );

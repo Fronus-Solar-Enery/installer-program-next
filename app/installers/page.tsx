@@ -11,10 +11,15 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import PageHeader from '@/components/PageHeader';
+import { IInstaller } from '@/models/Installer';
+
+interface InstallerWithId extends IInstaller {
+  _id: string;
+}
 
 export default function InstallersPage() {
   const router = useRouter();
-  const [installers, setInstallers] = useState([]);
+  const [installers, setInstallers] = useState<InstallerWithId[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [googleAuthStatus, setGoogleAuthStatus] = useState<{
@@ -28,7 +33,7 @@ export default function InstallersPage() {
   const [selectedInstallerId, setSelectedInstallerId] = useState('');
 
   // Sorting state
-  const [sortField, setSortField] = useState<string>('createdAt');
+  const [sortField, setSortField] = useState<keyof InstallerWithId>('createdAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   // Column visibility state
@@ -57,6 +62,21 @@ export default function InstallersPage() {
       checkGoogleAuthStatus(); // Refresh status
       window.history.replaceState({}, '', '/installers');
     }
+
+    // Check for search result ID from navbar
+    const searchId = params.get('id');
+    if (searchId) {
+      setSelectedInstallerId(searchId);
+      // Scroll to the row after a short delay
+      setTimeout(() => {
+        const element = document.getElementById(`installer-${searchId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.classList.add('bg-primary/10');
+          setTimeout(() => element.classList.remove('bg-primary/10'), 2000);
+        }
+      }, 500);
+    }
   }, []);
 
   const checkGoogleAuthStatus = async () => {
@@ -78,7 +98,7 @@ export default function InstallersPage() {
       if (data.authUrl) {
         window.location.href = data.authUrl;
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to authenticate:', err);
     } finally {
       setAuthLoading(false);
@@ -100,7 +120,7 @@ export default function InstallersPage() {
     }
   };
 
-  const handleSort = (field: string) => {
+  const handleSort = (field: keyof InstallerWithId) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -125,13 +145,21 @@ export default function InstallersPage() {
       : <ArrowDown className="h-4 w-4 ml-1 inline" />;
   };
 
-  const filteredInstallers = installers.filter((installer: any) =>
-    installer.fullName.toLowerCase().includes(search.toLowerCase()) ||
-    installer.installerCode.toLowerCase().includes(search.toLowerCase()) ||
-    installer.cnic.includes(search)
-  );
+  const filteredInstallers = installers.filter((installer: InstallerWithId) => {
+    const searchLower = search.toLowerCase();
+    return (
+      installer.fullName?.toLowerCase().includes(searchLower) ||
+      installer.installerCode?.toLowerCase().includes(searchLower) ||
+      installer.cnic?.includes(search) ||
+      installer.phoneNumber?.includes(search) ||
+      installer.whatsappNumber?.includes(search) ||
+      installer.accountNumber?.includes(search) ||
+      installer.accountTitle?.toLowerCase().includes(searchLower) ||
+      installer.companyName?.toLowerCase().includes(searchLower)
+    );
+  });
 
-  const sortedInstallers = [...filteredInstallers].sort((a: any, b: any) => {
+  const sortedInstallers = [...filteredInstallers].sort((a: InstallerWithId, b: InstallerWithId) => {
     const aVal = a[sortField];
     const bVal = b[sortField];
 
@@ -150,7 +178,14 @@ export default function InstallersPage() {
         : (aVal === bVal ? 0 : bVal ? 1 : -1);
     }
 
-    return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+    }
+
+    // For dates and other types, convert to string for comparison
+    return sortDirection === 'asc'
+      ? String(aVal).localeCompare(String(bVal))
+      : String(bVal).localeCompare(String(aVal));
   });
 
   return (
@@ -208,7 +243,7 @@ export default function InstallersPage() {
             <div className="mb-4 flex gap-3">
               <Input
                 type="text"
-                placeholder="Search by name, code, or CNIC..."
+                placeholder="Search by name, code, CNIC, phone, WhatsApp, account, company..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="flex-1"
@@ -314,8 +349,12 @@ export default function InstallersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedInstallers.map((installer: any) => (
-                    <TableRow key={installer._id}>
+                  {sortedInstallers.map((installer: InstallerWithId) => (
+                    <TableRow
+                      key={installer._id}
+                      id={`installer-${installer._id}`}
+                      className="transition-colors"
+                    >
                       {visibleColumns.installerCode && (
                         <TableCell className="font-medium">
                           <Button

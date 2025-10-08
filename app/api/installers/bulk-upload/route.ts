@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
-import Installer from '@/models/Installer';
+import Installer, { IInstaller } from '@/models/Installer';
 import Activity from '@/models/Activity';
+
+interface BulkInstallerData extends Partial<IInstaller> {
+  isValid?: boolean;
+}
+
+interface BulkUploadResults {
+  success: number;
+  failed: number;
+  errors: string[];
+  duplicates: string[];
+  successfulCodes: string[];
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,12 +55,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const results = {
+    const results: BulkUploadResults = {
       success: 0,
       failed: 0,
-      errors: [] as string[],
-      duplicates: [] as string[],
-      successfulCodes: [] as string[],
+      errors: [],
+      duplicates: [],
+      successfulCodes: [],
     };
 
     // Validate that all installers have required fields
@@ -69,7 +81,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Only process valid installers (those without frontend validation issues)
-    const validInstallers = installers.filter((i: any) => i.isValid !== false);
+    const validInstallers = installers.filter((i: BulkInstallerData) => i.isValid !== false);
 
     if (validInstallers.length === 0) {
       return NextResponse.json(
@@ -145,9 +157,9 @@ export async function POST(req: NextRequest) {
 
         results.success++;
         results.successfulCodes.push(newInstaller.installerCode);
-      } catch (err: any) {
+      } catch (err: unknown) {
         results.failed++;
-        const errorMessage = err.message || 'Unknown error';
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
 
         // Provide more specific error messages
         if (errorMessage.includes('duplicate key') || errorMessage.includes('E11000')) {
@@ -167,7 +179,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Return results with detailed summary
-    const response: any = {
+    const response = {
       success: results.success > 0,
       message: results.success > 0
         ? `Successfully uploaded ${results.success} of ${validInstallers.length} installer(s)`
@@ -190,10 +202,10 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(response);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Bulk upload error:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to upload installers' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to upload installers' },
       { status: 500 }
     );
   }

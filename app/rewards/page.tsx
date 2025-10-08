@@ -57,10 +57,39 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import PageHeader from "@/components/PageHeader";
+import { IInstallerReward } from "@/models/InstallerReward";
+
+interface RewardWithId extends Omit<IInstallerReward, 'installer' | 'registeredBy' | 'referrer'> {
+  _id: string;
+  installer?: {
+    _id: string;
+    installerCode: string;
+    fullName: string;
+    cnic: string;
+    phoneNumber: string;
+    whatsappNumber: string;
+  };
+  registeredBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  referrer?: {
+    _id: string;
+    installerCode: string;
+    fullName: string;
+  };
+}
+
+interface TeamMember {
+  _id: string;
+  name: string;
+  email: string;
+}
 
 export default function RewardsPage() {
   const router = useRouter();
-  const [rewards, setRewards] = useState([]);
+  const [rewards, setRewards] = useState<RewardWithId[]>([]);
   const [loading, setLoading] = useState(true);
   const { copiedText, copyToClipboard } = useCopyToClipboard();
 
@@ -71,6 +100,7 @@ export default function RewardsPage() {
   const [serialNumberStatusFilter, setSerialNumberStatusFilter] = useState("all");
   const [productModelFilter, setProductModelFilter] = useState("all");
   const [teamMemberFilter, setTeamMemberFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Unique values for filters
   const [paymentMethods, setPaymentMethods] = useState<string[]>([]);
@@ -78,14 +108,14 @@ export default function RewardsPage() {
     []
   );
   const [productModels, setProductModels] = useState<string[]>([]);
-  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
 
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedRewardId, setSelectedRewardId] = useState("");
 
   // Sorting state
-  const [sortField, setSortField] = useState<string>("createdAt");
+  const [sortField, setSortField] = useState<keyof RewardWithId | 'installer' | 'registeredBy'>("createdAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   // Column visibility state
@@ -110,6 +140,22 @@ export default function RewardsPage() {
 
   useEffect(() => {
     fetchRewards();
+
+    // Check for search result ID from navbar
+    const params = new URLSearchParams(window.location.search);
+    const searchId = params.get('id');
+    if (searchId) {
+      setSelectedRewardId(searchId);
+      // Scroll to the row after rewards are loaded
+      setTimeout(() => {
+        const element = document.getElementById(`reward-${searchId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.classList.add('bg-primary/10');
+          setTimeout(() => element.classList.remove('bg-primary/10'), 2000);
+        }
+      }, 500);
+    }
   }, [
     paymentStatusFilter,
     sendingDateFilter,
@@ -153,28 +199,28 @@ export default function RewardsPage() {
         const allRewards = data.data.rewards;
         setPaymentMethods([
           ...new Set(
-            allRewards.map((r: any) => r.paymentMethod).filter(Boolean)
+            allRewards.map((r: RewardWithId) => r.paymentMethod).filter(Boolean)
           ),
         ] as string[]);
         setSerialNumberStatuses([
           ...new Set(
-            allRewards.map((r: any) => r.serialNumberStatus).filter(Boolean)
+            allRewards.map((r: RewardWithId) => r.serialNumberStatus).filter(Boolean)
           ),
         ] as string[]);
         setProductModels([
           ...new Set(
-            allRewards.map((r: any) => r.productModel).filter(Boolean)
+            allRewards.map((r: RewardWithId) => r.productModel).filter(Boolean)
           ),
         ] as string[]);
 
         // Get unique team members
         const uniqueTeamMembers = allRewards
-          .map((r: any) => r.registeredBy)
+          .map((r: RewardWithId) => r.registeredBy)
           .filter(
-            (value: any, index: number, self: any[]) =>
+            (value: TeamMember | undefined, index: number, self: (TeamMember | undefined)[]) =>
               value &&
-              self.findIndex((t: any) => t?._id === value?._id) === index
-          );
+              self.findIndex((t: TeamMember | undefined) => t?._id === value?._id) === index
+          ) as TeamMember[];
         setTeamMembers(uniqueTeamMembers);
       }
     } catch (error) {
@@ -188,7 +234,7 @@ export default function RewardsPage() {
     await copyToClipboard(text);
   };
 
-  const handleSort = (field: string) => {
+  const handleSort = (field: keyof RewardWithId | 'installer' | 'registeredBy') => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
@@ -215,7 +261,22 @@ export default function RewardsPage() {
     );
   };
 
-  const sortedRewards = [...rewards].sort((a: any, b: any) => {
+  const filteredRewards = rewards.filter((reward: RewardWithId) => {
+    if (!searchQuery) return true;
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      reward.serialNumber?.toLowerCase().includes(searchLower) ||
+      reward.transactionId?.toLowerCase().includes(searchLower) ||
+      reward.referrerTransactionId?.toLowerCase().includes(searchLower) ||
+      reward.installer?.installerCode?.toLowerCase().includes(searchLower) ||
+      reward.installer?.fullName?.toLowerCase().includes(searchLower) ||
+      reward.installer?.cnic?.includes(searchQuery) ||
+      reward.installer?.phoneNumber?.includes(searchQuery) ||
+      reward.installer?.whatsappNumber?.includes(searchQuery)
+    );
+  });
+
+  const sortedRewards = [...filteredRewards].sort((a: RewardWithId, b: RewardWithId) => {
     let aVal = a[sortField];
     let bVal = b[sortField];
 
@@ -301,6 +362,7 @@ export default function RewardsPage() {
     setSerialNumberStatusFilter("all");
     setProductModelFilter("all");
     setTeamMemberFilter("all");
+    setSearchQuery("");
   };
 
   return (
@@ -360,6 +422,19 @@ export default function RewardsPage() {
             </div>
           </CardHeader>
           <CardContent>
+
+          {/* Search Input */}
+          <div className="mb-4">
+            <Label htmlFor="search">Search</Label>
+            <Input
+              id="search"
+              type="text"
+              placeholder="Search by serial number, transaction ID, installer code, name, CNIC, phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="mt-2"
+            />
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Payment Status Filter */}
@@ -554,8 +629,12 @@ export default function RewardsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedRewards.map((reward: any) => (
-                    <TableRow key={reward._id}>
+                  {sortedRewards.map((reward: RewardWithId) => (
+                    <TableRow
+                      key={reward._id}
+                      id={`reward-${reward._id}`}
+                      className="transition-colors"
+                    >
                       {visibleColumns.serialNumber && (
                         <TableCell className="font-medium">
                           <div className="flex items-center">
