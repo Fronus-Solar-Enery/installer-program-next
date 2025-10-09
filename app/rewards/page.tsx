@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import RewardEditModal from "@/components/RewardEditModal";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
@@ -48,14 +48,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
+  DropdownMenuContent, 
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+} from "@/components/ui/dropdown-menu"; 
 import PageHeader from "@/components/PageHeader";
 import { IInstallerReward } from "@/models/InstallerReward";
 
@@ -138,34 +136,7 @@ export default function RewardsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [rewardToDelete, setRewardToDelete] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchRewards();
-
-    // Check for search result ID from navbar
-    const params = new URLSearchParams(window.location.search);
-    const searchId = params.get('id');
-    if (searchId) {
-      setSelectedRewardId(searchId);
-      // Scroll to the row after rewards are loaded
-      setTimeout(() => {
-        const element = document.getElementById(`reward-${searchId}`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          element.classList.add('bg-primary/10');
-          setTimeout(() => element.classList.remove('bg-primary/10'), 2000);
-        }
-      }, 500);
-    }
-  }, [
-    paymentStatusFilter,
-    sendingDateFilter,
-    paymentMethodFilter,
-    serialNumberStatusFilter,
-    productModelFilter,
-    teamMemberFilter,
-  ]);
-
-  const fetchRewards = async () => {
+  const fetchRewards = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -228,7 +199,42 @@ export default function RewardsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    paymentStatusFilter,
+    sendingDateFilter,
+    paymentMethodFilter,
+    serialNumberStatusFilter,
+    productModelFilter,
+    teamMemberFilter,
+  ]);
+
+  useEffect(() => {
+    fetchRewards();
+
+    // Check for search result ID from navbar
+    const params = new URLSearchParams(window.location.search);
+    const searchId = params.get('id');
+    if (searchId) {
+      setSelectedRewardId(searchId);
+      // Scroll to the row after rewards are loaded
+      setTimeout(() => {
+        const element = document.getElementById(`reward-${searchId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.classList.add('bg-primary/10');
+          setTimeout(() => element.classList.remove('bg-primary/10'), 2000);
+        }
+      }, 500);
+    }
+  }, [
+    fetchRewards,
+    paymentStatusFilter,
+    sendingDateFilter,
+    paymentMethodFilter,
+    serialNumberStatusFilter,
+    productModelFilter,
+    teamMemberFilter,
+  ]);
 
   const handleCopy = async (text: string) => {
     await copyToClipboard(text);
@@ -261,10 +267,11 @@ export default function RewardsPage() {
     );
   };
 
-  const filteredRewards = rewards.filter((reward: RewardWithId) => {
-    if (!searchQuery) return true;
+  const filteredRewards = useMemo(() => {
+    if (!searchQuery) return rewards;
+
     const searchLower = searchQuery.toLowerCase();
-    return (
+    return rewards.filter((reward) => (
       reward.serialNumber?.toLowerCase().includes(searchLower) ||
       reward.transactionId?.toLowerCase().includes(searchLower) ||
       reward.referrerTransactionId?.toLowerCase().includes(searchLower) ||
@@ -273,10 +280,10 @@ export default function RewardsPage() {
       reward.installer?.cnic?.includes(searchQuery) ||
       reward.installer?.phoneNumber?.includes(searchQuery) ||
       reward.installer?.whatsappNumber?.includes(searchQuery)
-    );
-  });
+    ));
+  }, [rewards, searchQuery]);
 
-  const sortedRewards = [...filteredRewards].sort((a: RewardWithId, b: RewardWithId) => {
+  const sortedRewards = useMemo(() => [...filteredRewards].sort((a, b) => {
     let aVal = a[sortField];
     let bVal = b[sortField];
 
@@ -303,7 +310,7 @@ export default function RewardsPage() {
     }
 
     return 0;
-  });
+  }), [filteredRewards, sortField, sortDirection]);
 
   const handleDeleteClick = (id: string) => {
     setRewardToDelete(id);

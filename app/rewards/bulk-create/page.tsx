@@ -303,9 +303,9 @@ export default function BulkCreateRewardsPage() {
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<string, unknown>[];
 
-        const parsedRewards: RewardCreate[] = jsonData.map((row: any) => {
+        const parsedRewards: RewardCreate[] = jsonData.map((row) => {
           const rawPaymentMethod = row['Payment Method']?.toString().trim() || '';
           const rawProductModel = row['Product Model']?.toString().trim() || '';
           const rawBankName = row['Bank Name']?.toString().trim() || '';
@@ -345,8 +345,8 @@ export default function BulkCreateRewardsPage() {
         setError('');
 
         validateAgainstDatabase(parsedRewards);
-      } catch (err: any) {
-        setError('Failed to parse Excel file: ' + err.message);
+      } catch (err: unknown) {
+        setError('Failed to parse Excel file: ' + (err instanceof Error ? err.message : 'Unknown error'));
         setPreview([]);
       }
     };
@@ -367,7 +367,7 @@ export default function BulkCreateRewardsPage() {
       if (response.ok && data.data?.validatedRewards) {
         setPreview(data.data.validatedRewards);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Validation error:', err);
     } finally {
       setValidating(false);
@@ -460,8 +460,8 @@ export default function BulkCreateRewardsPage() {
       } else {
         setError(data.error || 'Upload failed');
       }
-    } catch (err: any) {
-      setError('Failed to create rewards: ' + err.message);
+    } catch (err: unknown) {
+      setError('Failed to create rewards: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -503,7 +503,7 @@ export default function BulkCreateRewardsPage() {
                   3. Review the data and fix any validation issues
                 </p>
                 <p className="text-sm text-muted-foreground mb-4">
-                  4. Click "Upload All Valid Records" to finalize
+                  4. Click &quot;Upload All Valid Records&quot; to finalize
                 </p>
                 <Button onClick={downloadTemplate} variant="outline">
                   <Download className="h-4 w-4 mr-2" />
@@ -530,7 +530,7 @@ export default function BulkCreateRewardsPage() {
                   <li>Reward amount must be a valid number</li>
                   <li>Referrer reward amount required if referrer code exists</li>
                   <li>Payment method: UBANK, UPaisa, or NayaPay</li>
-                  <li>Sending date format: "07 Oct 2025" (optional)</li>
+                  <li>Sending date format: &quot;07 Oct 2025&quot; (optional)</li>
                 </ul>
               </div>
             </CardContent>

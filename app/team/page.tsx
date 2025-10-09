@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { TeamRole } from "@/types/roles";
@@ -35,24 +35,14 @@ export default function TeamPage() {
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [selectedTeamMemberId, setSelectedTeamMemberId] = useState("");
 
-  // Check authorization
-  const canAccessTeamManagement =
+  // Check authorization - memoized to prevent recalculation
+  const canAccessTeamManagement = useMemo(() =>
     session?.user?.role === TeamRole.ADMIN ||
-    session?.user?.role === TeamRole.MANAGER;
+    session?.user?.role === TeamRole.MANAGER,
+    [session?.user?.role]
+  );
 
-  useEffect(() => {
-    if (session && !canAccessTeamManagement) {
-      router.push("/dashboard");
-    }
-  }, [session, canAccessTeamManagement, router]);
-
-  useEffect(() => {
-    if (canAccessTeamManagement) {
-      fetchTeamMembers();
-    }
-  }, [canAccessTeamManagement]);
-
-  const fetchTeamMembers = async () => {
+  const fetchTeamMembers = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch("/api/team");
@@ -64,15 +54,27 @@ export default function TeamPage() {
         setError("Failed to load team members");
         setTeamMembers([]);
       }
-    } catch (err) {
+    } catch {
       setError("An error occurred while fetching team members");
       setTeamMembers([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleDelete = async (id: string, name: string) => {
+  useEffect(() => {
+    if (session && !canAccessTeamManagement) {
+      router.push("/dashboard");
+    }
+  }, [session, canAccessTeamManagement, router]);
+
+  useEffect(() => {
+    if (canAccessTeamManagement) {
+      fetchTeamMembers();
+    }
+  }, [canAccessTeamManagement, fetchTeamMembers]);
+
+  const handleDelete = useCallback(async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete ${name}?`)) {
       return;
     }
@@ -93,20 +95,7 @@ export default function TeamPage() {
     } catch (err) {
       toast.error("An error occurred while deleting team member");
     }
-  };
-
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case TeamRole.ADMIN:
-        return "bg-red-100 text-red-800";
-      case TeamRole.MANAGER:
-        return "bg-blue-100 text-blue-800";
-      case TeamRole.USER:
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-muted text-foreground";
-    }
-  };
+  }, [fetchTeamMembers]);
 
   if (!canAccessTeamManagement) {
     return null;

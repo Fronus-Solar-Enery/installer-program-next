@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
 import { Button } from "@/components/ui/button";
@@ -167,15 +167,28 @@ export default function BulkUploadInstallersPage() {
     return issues;
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      parseExcelFile(selectedFile);
-    }
-  };
+  const validateAgainstDatabase = useCallback(async (installers: InstallerUpload[]) => {
+    setValidating(true);
+    try {
+      const response = await fetch('/api/installers/validate-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ installers }),
+      });
 
-  const parseExcelFile = (file: File) => {
+      const data = await response.json();
+
+      if (response.ok && data.data?.validatedInstallers) {
+        setPreview(data.data.validatedInstallers);
+      }
+    } catch (err: unknown) {
+      console.error('Validation error:', err);
+    } finally {
+      setValidating(false);
+    }
+  }, []);
+
+  const parseExcelFile = useCallback((file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
@@ -225,26 +238,13 @@ export default function BulkUploadInstallersPage() {
       }
     };
     reader.readAsArrayBuffer(file);
-  };
+  }, [validateInstaller, validateAgainstDatabase]);
 
-  const validateAgainstDatabase = async (installers: InstallerUpload[]) => {
-    setValidating(true);
-    try {
-      const response = await fetch('/api/installers/validate-bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ installers }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.data?.validatedInstallers) {
-        setPreview(data.data.validatedInstallers);
-      }
-    } catch (err: unknown) {
-      console.error('Validation error:', err);
-    } finally {
-      setValidating(false);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      parseExcelFile(selectedFile);
     }
   };
 
@@ -347,8 +347,8 @@ export default function BulkUploadInstallersPage() {
     }
   };
 
-  const validCount = preview.filter(p => p.isValid).length;
-  const invalidCount = preview.filter(p => !p.isValid).length;
+  const validCount = useMemo(() => preview.filter(p => p.isValid).length, [preview]);
+  const invalidCount = useMemo(() => preview.filter(p => !p.isValid).length, [preview]);
 
   return (
     <div className="flex-1 overflow-auto">

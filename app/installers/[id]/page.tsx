@@ -1,15 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
 import { Copy, Check, Edit, Trash2, ArrowLeft, Award, TrendingUp, Activity as ActivityIcon, Package, UserPlus, User, Clock, AlertCircle } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
+import { TeamRole } from '@/types/roles';
 import PageHeader from '@/components/PageHeader';
 
 interface InstallerDetails {
@@ -86,8 +100,10 @@ export default function InstallerDetailsPage() {
   const params = useParams();
   const installerId = params.id as string;
   const { copiedText, copyToClipboard } = useCopyToClipboard();
+  const { data: session } = useSession();
 
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const [installer, setInstaller] = useState<InstallerDetails | null>(null);
   const [statistics, setStatistics] = useState<Statistics | null>(null);
   const [error, setError] = useState('');
@@ -96,11 +112,7 @@ export default function InstallerDetailsPage() {
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
 
-  useEffect(() => {
-    fetchInstaller();
-  }, [installerId]);
-
-  const fetchInstaller = async () => {
+  const fetchInstaller = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/installers/${installerId}`);
@@ -117,7 +129,11 @@ export default function InstallerDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [installerId]);
+
+  useEffect(() => {
+    fetchInstaller();
+  }, [fetchInstaller]);
 
   const fetchActivities = async () => {
     try {
@@ -185,8 +201,7 @@ export default function InstallerDetailsPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this installer? This action cannot be undone.')) return;
-
+    setDeleting(true);
     try {
       const response = await fetch(`/api/installers/${installerId}`, {
         method: 'DELETE',
@@ -195,16 +210,21 @@ export default function InstallerDetailsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert('Installer deleted successfully!');
+        toast.success('Installer deleted successfully!');
         router.push('/installers');
       } else {
-        alert(data.error || 'Failed to delete installer');
+        toast.error(data.error || 'Failed to delete installer');
       }
     } catch (error) {
       console.error('Failed to delete installer:', error);
-      alert('An error occurred while deleting the installer');
+      toast.error('An error occurred while deleting the installer');
+    } finally {
+      setDeleting(false);
     }
   };
+
+  // Check if user is admin
+  const isAdmin = session?.user?.role === TeamRole.ADMIN;
 
   const CopyButton = ({ text, label }: { text: string; label: string }) => {
     const isCopied = copiedText === text;
@@ -275,13 +295,40 @@ export default function InstallerDetailsPage() {
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </Button>
-            <Button
-              onClick={handleDelete}
-              variant="destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </Button>
+            {isAdmin && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete the installer <strong>{installer.fullName}</strong> ({installer.installerCode}).
+                      This action cannot be undone.
+                      {statistics && statistics.totalRewards > 0 && (
+                        <span className="block mt-2 text-destructive font-medium">
+                          ⚠️ This installer has {statistics.totalRewards} reward(s). You must delete all rewards first.
+                        </span>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {deleting ? 'Deleting...' : 'Delete Installer'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         }
       />
@@ -754,7 +801,7 @@ export default function InstallerDetailsPage() {
                                 <Alert className="mt-2">
                                   <AlertDescription>
                                     <dl className="space-y-2">
-                                      {Object.entries(activity.metadata.changes).map(([key, value]: [string, any]) => (
+                                      {Object.entries(activity.metadata.changes).map(([key, value]: [string, { before: unknown; after: unknown }]) => (
                                         <div key={key} className="text-xs">
                                           <dt className="font-medium capitalize">
                                             {key.replace(/([A-Z])/g, ' $1').trim()}:

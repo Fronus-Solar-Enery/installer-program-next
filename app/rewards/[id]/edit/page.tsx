@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { PaymentStatus } from '@/types/rewards';
 import { PRODUCT_MODELS, PAYMENT_METHOD } from '@/lib/constants';
@@ -26,7 +26,20 @@ export default function EditRewardPage() {
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [error, setError] = useState('');
-  const [reward, setReward] = useState<any>(null);
+  const [reward, setReward] = useState<{
+    serialNumber?: string;
+    productModel?: string;
+    inverterSerialNumber?: string;
+    paymentStatus?: PaymentStatus;
+    transactionId?: string;
+    referrerTransactionId?: string;
+    sendingDate?: string;
+    paymentMethod?: string;
+    installer?: { fullName?: string; installerCode?: string };
+    referrer?: { fullName?: string; installerCode?: string };
+    rewardAmount?: number;
+    referrerRewardAmount?: number;
+  } | null>(null);
 
   // Form fields - all editable fields
   const [serialNumber, setSerialNumber] = useState('');
@@ -38,11 +51,7 @@ export default function EditRewardPage() {
   const [sendingDate, setSendingDate] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
 
-  useEffect(() => {
-    fetchReward();
-  }, [rewardId]);
-
-  const fetchReward = async () => {
+  const fetchReward = useCallback(async () => {
     try {
       setFetchLoading(true);
       const response = await fetch(`/api/rewards/${rewardId}`);
@@ -62,12 +71,16 @@ export default function EditRewardPage() {
       setReferrerTransactionId(data.data.referrerTransactionId || '');
       setSendingDate(data.data.sendingDate ? new Date(data.data.sendingDate).toISOString().split('T')[0] : '');
       setPaymentMethod(data.data.paymentMethod || '');
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch reward');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch reward');
     } finally {
       setFetchLoading(false);
     }
-  };
+  }, [rewardId]);
+
+  useEffect(() => {
+    fetchReward();
+  }, [fetchReward]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,8 +130,8 @@ export default function EditRewardPage() {
 
       alert('Reward updated successfully!');
       router.push('/rewards');
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }

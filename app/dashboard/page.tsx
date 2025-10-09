@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -211,7 +211,7 @@ export default function DashboardPage() {
     });
   }, [timePeriod, getDateRange]);
 
-  const getPeriodLabel = (period: TimePeriod): string => {
+  const getPeriodLabel = useCallback((period: TimePeriod): string => {
     const now = new Date();
     const currentYear = now.getFullYear();
 
@@ -239,7 +239,7 @@ export default function DashboardPage() {
       default:
         return 'Last 30 Days';
     }
-  };
+  }, [customStartDate, customEndDate]);
 
   const fetchStats = useCallback(async () => {
       try {
@@ -441,6 +441,26 @@ export default function DashboardPage() {
       }
   }, [filterByDateRange]);
 
+  const paidCount = useMemo(
+    () => stats.totalRewards > 0 ? Math.round((stats.paidAmount / stats.totalAmount) * stats.totalRewards) : 0,
+    [stats.totalRewards, stats.paidAmount, stats.totalAmount]
+  );
+
+  const avgPerProduct = useMemo(
+    () => productData.length > 0 ? Math.round(stats.totalRewards / productData.length) : 0,
+    [productData.length, stats.totalRewards]
+  );
+
+  const grandTotalPaidPercentage = useMemo(
+    () => stats.grandTotal > 0 ? Math.round((stats.grandTotalPaid / stats.grandTotal) * 100) : 0,
+    [stats.grandTotal, stats.grandTotalPaid]
+  );
+
+  const grandTotalPendingPercentage = useMemo(
+    () => stats.grandTotal > 0 ? Math.round((stats.grandTotalPending / stats.grandTotal) * 100) : 0,
+    [stats.grandTotal, stats.grandTotalPending]
+  );
+
   useEffect(() => {
     if (session) {
       fetchStats();
@@ -458,8 +478,6 @@ export default function DashboardPage() {
   if (!session) {
     return null;
   }
-
-  const paidCount = stats.totalRewards > 0 ? Math.round((stats.paidAmount / stats.totalAmount) * stats.totalRewards) : 0;
 
   return (
     <div className="flex-1 overflow-auto">
@@ -654,28 +672,28 @@ export default function DashboardPage() {
             <div className="mt-6 space-y-2">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>Payment Progress</span>
-                <span>{stats.grandTotal > 0 ? Math.round((stats.grandTotalPaid / stats.grandTotal) * 100) : 0}% Completed</span>
+                <span>{grandTotalPaidPercentage}% Completed</span>
               </div>
               <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
                 <div className="flex h-full">
                   <div
                     className="bg-green-500 transition-all duration-500"
-                    style={{ width: `${stats.grandTotal > 0 ? (stats.grandTotalPaid / stats.grandTotal) * 100 : 0}%` }}
+                    style={{ width: `${grandTotalPaidPercentage}%` }}
                   />
                   <div
                     className="bg-orange-500 transition-all duration-500"
-                    style={{ width: `${stats.grandTotal > 0 ? (stats.grandTotalPending / stats.grandTotal) * 100 : 0}%` }}
+                    style={{ width: `${grandTotalPendingPercentage}%` }}
                   />
                 </div>
               </div>
               <div className="flex items-center gap-4 text-xs">
                 <div className="flex items-center gap-1">
                   <div className="h-2 w-2 rounded-full bg-green-500" />
-                  <span className="text-muted-foreground">Paid {stats.grandTotal > 0 ? Math.round((stats.grandTotalPaid / stats.grandTotal) * 100) : 0}%</span>
+                  <span className="text-muted-foreground">Paid {grandTotalPaidPercentage}%</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="h-2 w-2 rounded-full bg-orange-500" />
-                  <span className="text-muted-foreground">Pending {stats.grandTotal > 0 ? Math.round((stats.grandTotalPending / stats.grandTotal) * 100) : 0}%</span>
+                  <span className="text-muted-foreground">Pending {grandTotalPendingPercentage}%</span>
                 </div>
                 {stats.failedAmount > 0 && (
                   <div className="flex items-center gap-1">
@@ -821,7 +839,7 @@ export default function DashboardPage() {
                     <div className="text-right">
                       <div className="text-2xl font-bold">{stats.totalRewards}</div>
                       <div className="text-xs text-muted-foreground">
-                        Avg: {productData.length > 0 ? Math.round(stats.totalRewards / productData.length) : 0} per product
+                        Avg: {avgPerProduct} per product
                       </div>
                     </div>
                   </div>
