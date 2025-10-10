@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertCircle, CheckCircle2, Download, Trash2, Upload, ArrowLeft } from "lucide-react";
+import { AlertCircle, CheckCircle2, Download, Trash2, Upload, ArrowLeft, Loader2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { PAYMENT_METHOD, PRODUCT_MODELS, BANKS } from "@/lib/constants";
 
@@ -53,46 +53,53 @@ export default function BulkCreateRewardsPage() {
   const [success, setSuccess] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<RewardCreate[]>([]);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const [downloadingInvalid, setDownloadingInvalid] = useState(false);
 
   const downloadTemplate = () => {
-    const template = [
-      {
-        'Timestamp': '10/2/2025 17:21:47',
-        'Team Member Email': 'user@example.com',
-        'Installer Name': 'John Doe',
-        'Installer Code': 'IP-0001',
-        'Referrer Code': 'REF-001 (optional)',
-        'Product Model': 'TP LD-51 Battery',
-        'Serial Number': 'SN123456',
-        'Inverter Serial Number': 'INV123456 (required for batteries)',
-        'Serial Number Status': 'ACTIVE',
-        'City of Installation': 'Karachi',
-        'Bank Name': 'Habib Bank Ltd',
-        'Account Number': '1234567890',
-        'Account Title': 'John Doe',
-        'Payment Status': 'PENDING',
-        'Transaction ID': 'TXN123456 (optional)',
-        'Reward Amount': '6500',
-        'Referrer Reward Amount': '1000 (required if referrer exists)',
-        'Referrer Transaction ID': 'REF_TXN123 (optional)',
-        'Sending Date': '07 Oct 2025 (optional)',
-        'Payment Method': 'UBANK',
-      }
-    ];
+    setDownloadingTemplate(true);
+    try {
+      const template = [
+        {
+          'Timestamp': '10/2/2025 17:21:47',
+          'Team Member Email': 'user@example.com',
+          'Installer Name': 'John Doe',
+          'Installer Code': 'IP-0001',
+          'Referrer Code': 'REF-001 (optional)',
+          'Product Model': 'TP LD-51 Battery',
+          'Serial Number': 'SN123456',
+          'Inverter Serial Number': 'INV123456 (required for batteries)',
+          'Serial Number Status': 'ACTIVE',
+          'City of Installation': 'Karachi',
+          'Bank Name': 'Habib Bank Ltd',
+          'Account Number': '1234567890',
+          'Account Title': 'John Doe',
+          'Payment Status': 'PENDING',
+          'Transaction ID': 'TXN123456 (optional)',
+          'Reward Amount': '6500',
+          'Referrer Reward Amount': '1000 (required if referrer exists)',
+          'Referrer Transaction ID': 'REF_TXN123 (optional)',
+          'Sending Date': '07 Oct 2025 (optional)',
+          'Payment Method': 'UBANK',
+        }
+      ];
 
-    const ws = XLSX.utils.json_to_sheet(template);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Rewards Template');
+      const ws = XLSX.utils.json_to_sheet(template);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Rewards Template');
 
-    ws['!cols'] = [
-      { wch: 20 }, { wch: 25 }, { wch: 20 }, { wch: 15 },
-      { wch: 15 }, { wch: 35 }, { wch: 15 }, { wch: 35 },
-      { wch: 20 }, { wch: 20 }, { wch: 25 }, { wch: 20 },
-      { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 15 },
-      { wch: 35 }, { wch: 25 }, { wch: 25 }, { wch: 15 },
-    ];
+      ws['!cols'] = [
+        { wch: 20 }, { wch: 25 }, { wch: 20 }, { wch: 15 },
+        { wch: 15 }, { wch: 35 }, { wch: 15 }, { wch: 35 },
+        { wch: 20 }, { wch: 20 }, { wch: 25 }, { wch: 20 },
+        { wch: 20 }, { wch: 15 }, { wch: 25 }, { wch: 15 },
+        { wch: 35 }, { wch: 25 }, { wch: 25 }, { wch: 15 },
+      ];
 
-    XLSX.writeFile(wb, 'rewards_bulk_create_template.xlsx');
+      XLSX.writeFile(wb, 'rewards_bulk_create_template.xlsx');
+    } finally {
+      setTimeout(() => setDownloadingTemplate(false), 500);
+    }
   };
 
   const validatePaymentStatus = (status: string): boolean => {
@@ -379,13 +386,15 @@ export default function BulkCreateRewardsPage() {
   };
 
   const downloadInvalidRecords = () => {
-    const invalidRecords = preview.filter(p => !p.isValid);
+    setDownloadingInvalid(true);
+    try {
+      const invalidRecords = preview.filter(p => !p.isValid);
 
-    if (invalidRecords.length === 0) {
-      return;
-    }
+      if (invalidRecords.length === 0) {
+        return;
+      }
 
-    const excelData = invalidRecords.map(record => ({
+      const excelData = invalidRecords.map(record => ({
       'Timestamp': record.timestamp,
       'Team Member Email': record.teamMemberEmail,
       'Installer Name': record.installerName,
@@ -418,8 +427,11 @@ export default function BulkCreateRewardsPage() {
       { wch: 15 }, { wch: 25 }, { wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 60 },
     ];
 
-    const timestamp = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `invalid_rewards_create_${timestamp}.xlsx`);
+      const timestamp = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `invalid_rewards_create_${timestamp}.xlsx`);
+    } finally {
+      setTimeout(() => setDownloadingInvalid(false), 500);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -505,9 +517,13 @@ export default function BulkCreateRewardsPage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   4. Click &quot;Upload All Valid Records&quot; to finalize
                 </p>
-                <Button onClick={downloadTemplate} variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Template
+                <Button onClick={downloadTemplate} variant="outline" disabled={downloadingTemplate}>
+                  {downloadingTemplate ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {downloadingTemplate ? 'Downloading...' : 'Download Template'}
                 </Button>
               </div>
 
@@ -594,9 +610,14 @@ export default function BulkCreateRewardsPage() {
                         variant="outline"
                         onClick={downloadInvalidRecords}
                         size="sm"
+                        disabled={downloadingInvalid}
                       >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download Invalid Records
+                        {downloadingInvalid ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4 mr-2" />
+                        )}
+                        {downloadingInvalid ? 'Downloading...' : 'Download Invalid Records'}
                       </Button>
                     )}
                   </div>
@@ -604,8 +625,12 @@ export default function BulkCreateRewardsPage() {
 
                 {preview.length > 0 && (
                   <Button type="submit" disabled={loading || invalidCount > 0 || validating}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    {loading ? 'Creating...' : `Create ${validCount} Valid Record(s)`}
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    {loading ? 'Creating...' : validating ? 'Validating...' : `Create ${validCount} Valid Record(s)`}
                   </Button>
                 )}
               </form>

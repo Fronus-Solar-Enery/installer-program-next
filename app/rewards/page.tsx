@@ -14,6 +14,11 @@ import {
   ArrowUp,
   ArrowDown,
   Settings2,
+  FileDown,
+  TrendingUp,
+  Users,
+  DollarSign,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -135,6 +140,7 @@ export default function RewardsPage() {
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [rewardToDelete, setRewardToDelete] = useState<string | null>(null);
+  const [downloadingReport, setDownloadingReport] = useState(false);
 
   const fetchRewards = useCallback(async () => {
     try {
@@ -342,6 +348,93 @@ export default function RewardsPage() {
     }
   };
 
+  // Calculate statistics
+  const statistics = useMemo(() => {
+    const stats = {
+      totalRewards: filteredRewards.length,
+      totalAmount: 0,
+      paidAmount: 0,
+      pendingAmount: 0,
+      uniqueInstallers: new Set<string>(),
+      byStatus: {
+        PAID: 0,
+        PENDING: 0,
+        FAILED: 0,
+      },
+      byPaymentMethod: {} as Record<string, number>,
+    };
+
+    filteredRewards.forEach(reward => {
+      stats.totalAmount += reward.rewardAmount || 0;
+
+      if (reward.paymentStatus === 'PAID') {
+        stats.paidAmount += reward.rewardAmount || 0;
+        stats.byStatus.PAID++;
+      } else if (reward.paymentStatus === 'PENDING') {
+        stats.pendingAmount += reward.rewardAmount || 0;
+        stats.byStatus.PENDING++;
+      } else if (reward.paymentStatus === 'FAILED') {
+        stats.byStatus.FAILED++;
+      }
+
+      if (reward.installer?._id) {
+        stats.uniqueInstallers.add(reward.installer._id);
+      }
+
+      if (reward.paymentMethod) {
+        stats.byPaymentMethod[reward.paymentMethod] = (stats.byPaymentMethod[reward.paymentMethod] || 0) + 1;
+      }
+    });
+
+    return {
+      ...stats,
+      uniqueInstallersCount: stats.uniqueInstallers.size,
+    };
+  }, [filteredRewards]);
+
+  // Download filtered report
+  const handleDownloadReport = async () => {
+    setDownloadingReport(true);
+    try {
+      toast.loading('Generating report...');
+
+      const queryParams = new URLSearchParams({
+        paymentStatus: paymentStatusFilter !== 'ALL' ? paymentStatusFilter : '',
+        sendingDate: sendingDateFilter || '',
+        paymentMethod: paymentMethodFilter !== 'all' ? paymentMethodFilter : '',
+        serialNumberStatus: serialNumberStatusFilter !== 'all' ? serialNumberStatusFilter : '',
+        productModel: productModelFilter !== 'all' ? productModelFilter : '',
+        teamMember: teamMemberFilter !== 'all' ? teamMemberFilter : '',
+        format: 'excel',
+      });
+
+      const response = await fetch(`/api/reports/rewards?${queryParams}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to generate report');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `rewards_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.dismiss();
+      toast.success('Report downloaded successfully');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.dismiss();
+      toast.error('Failed to download report');
+    } finally {
+      setTimeout(() => setDownloadingReport(false), 500);
+    }
+  };
+
   const CopyButton = ({ text, label }: { text: string; label: string }) => {
     const isCopied = copiedText === text;
 
@@ -391,12 +484,92 @@ export default function RewardsPage() {
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
 
+        {/* Statistics/Reports Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Total Rewards
+              </CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{statistics.totalRewards}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Rs. {statistics.totalAmount.toLocaleString()}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Paid Amount
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                Rs. {statistics.paidAmount.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {statistics.byStatus.PAID} paid rewards
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Pending Amount
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-yellow-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-600">
+                Rs. {statistics.pendingAmount.toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {statistics.byStatus.PENDING} pending rewards
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Unique Installers
+              </CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{statistics.uniqueInstallersCount}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {statistics.byStatus.FAILED > 0 && `${statistics.byStatus.FAILED} failed`}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Filters Section */}
         <Card className="mb-6">
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle>Filters</CardTitle>
               <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadReport}
+                  disabled={filteredRewards.length === 0 || downloadingReport}
+                >
+                  {downloadingReport ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileDown className="h-4 w-4 mr-2" />
+                  )}
+                  {downloadingReport ? 'Downloading...' : 'Download Report'}
+                </Button>
                 <DropdownMenu open={showColumnMenu} onOpenChange={setShowColumnMenu}>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">

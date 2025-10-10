@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
-import { Copy, Check, Edit, Trash2, ArrowLeft } from "lucide-react";
+import { Copy, Check, Edit, Trash2, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +53,7 @@ export default function RewardDetailsPage() {
   } | null>(null);
   const [error, setError] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchReward = useCallback(async () => {
     try {
@@ -81,6 +82,7 @@ export default function RewardDetailsPage() {
   };
 
   const handleDeleteConfirm = async () => {
+    setDeleting(true);
     try {
       const response = await fetch(`/api/rewards/${rewardId}`, {
         method: "DELETE",
@@ -94,6 +96,7 @@ export default function RewardDetailsPage() {
     } catch (error) {
       console.error("Failed to delete reward:", error);
     } finally {
+      setDeleting(false);
       setDeleteDialogOpen(false);
     }
   };
@@ -487,8 +490,15 @@ export default function RewardDetailsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm}>
-              Delete
+            <AlertDialogAction onClick={handleDeleteConfirm} disabled={deleting}>
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

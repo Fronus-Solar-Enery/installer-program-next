@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import InstallerEditModal from '@/components/InstallerEditModal';
-import { Edit, Eye, ArrowUpDown, ArrowUp, ArrowDown, Settings2, Trash2, Users, CheckCircle, XCircle, MapPin, Building2, GraduationCap, Filter, X, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit, Eye, ArrowUpDown, ArrowUp, ArrowDown, Settings2, Trash2, Users, CheckCircle, XCircle, MapPin, Filter, X, Calendar, ChevronLeft, ChevronRight, FileDown, TrendingUp, DollarSign, Gift, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,10 +29,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { toast } from 'sonner';
 import { TeamRole } from '@/types/roles';
 import PageHeader from '@/components/PageHeader';
 import { IInstaller } from '@/models/Installer';
+import { RangeCalendar } from '@heroui/react';
+import { parseDate, today, getLocalTimeZone } from '@internationalized/date';
+import type { DateRange } from '@react-types/calendar';
 
 interface InstallerWithId extends IInstaller {
   _id: string;
@@ -87,10 +95,13 @@ export default function InstallersPage() {
     customEndDate: '',
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [calendarPopoverOpen, setCalendarPopoverOpen] = useState(false);
+  const [calendarValue, setCalendarValue] = useState<DateRange | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [downloadingReport, setDownloadingReport] = useState(false);
 
   useEffect(() => {
     fetchInstallers();
@@ -181,6 +192,51 @@ export default function InstallersPage() {
       toast.error('An error occurred while deleting the installer');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  // Download filtered report
+  const handleDownloadReport = async () => {
+    setDownloadingReport(true);
+    try {
+      toast.loading('Generating report...');
+
+      const queryParams = new URLSearchParams({
+        city: filters.city || '',
+        province: filters.province || '',
+        trainingCenter: filters.trainingCenter || '',
+        certified: filters.certified || '',
+        bankName: filters.bankName || '',
+        dateRange: filters.dateRange !== 'all' ? filters.dateRange : '',
+        customStartDate: filters.customStartDate || '',
+        customEndDate: filters.customEndDate || '',
+        format: 'excel',
+      });
+
+      const response = await fetch(`/api/reports/installers?${queryParams}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to generate report');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `installers_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.dismiss();
+      toast.success('Report downloaded successfully');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.dismiss();
+      toast.error('Failed to download report');
+    } finally {
+      setTimeout(() => setDownloadingReport(false), 500);
     }
   };
 
@@ -469,13 +525,28 @@ export default function InstallersPage() {
                   <Filter className="h-4 w-4" />
                   Filters
                 </CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  {showFilters ? 'Hide' : 'Show'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadReport}
+                    disabled={filteredInstallers.length === 0 || downloadingReport}
+                  >
+                    {downloadingReport ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <FileDown className="h-4 w-4 mr-2" />
+                    )}
+                    {downloadingReport ? 'Downloading...' : 'Download Report'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowFilters(!showFilters)}
+                  >
+                    {showFilters ? 'Hide' : 'Show'}
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             {showFilters && (
@@ -512,24 +583,108 @@ export default function InstallersPage() {
                     </div>
 
                     {filters.dateRange === 'custom' && (
-                      <>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Start Date</label>
-                          <Input
-                            type="date"
-                            value={filters.customStartDate}
-                            onChange={(e) => setFilters(prev => ({ ...prev, customStartDate: e.target.value }))}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">End Date</label>
-                          <Input
-                            type="date"
-                            value={filters.customEndDate}
-                            onChange={(e) => setFilters(prev => ({ ...prev, customEndDate: e.target.value }))}
-                          />
-                        </div>
-                      </>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Select Date Range</label>
+                        <Popover open={calendarPopoverOpen} onOpenChange={(open) => {
+                          setCalendarPopoverOpen(open);
+                          // Initialize calendar value from filters when opening
+                          if (open && filters.customStartDate && filters.customEndDate) {
+                            try {
+                              setCalendarValue({
+                                start: parseDate(filters.customStartDate),
+                                end: parseDate(filters.customEndDate)
+                              });
+                            } catch {
+                              setCalendarValue(null);
+                            }
+                          }
+                        }}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal"
+                            >
+                              <Calendar className="mr-2 h-4 w-4" />
+                              {filters.customStartDate && filters.customEndDate
+                                ? `${new Date(filters.customStartDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - ${new Date(filters.customEndDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                                : <span className="text-muted-foreground">Pick a date range</span>
+                              }
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-4" align="start">
+                            <div className="space-y-4">
+                              <RangeCalendar
+                                aria-label="Select date range"
+                                value={calendarValue}
+                                onChange={setCalendarValue}
+                                maxValue={today(getLocalTimeZone())}
+                                visibleMonths={2}
+                                pageBehavior="visible"
+                                showMonthAndYearPickers
+                                className="rounded-lg"
+                                classNames={{
+                                  base: "gap-4",
+                                  headerWrapper: "pt-0",
+                                  prevButton: "rounded-md hover:bg-accent",
+                                  nextButton: "rounded-md hover:bg-accent",
+                                  gridHeader: "bg-accent/50 rounded-md shadow-sm",
+                                  cellButton: [
+                                    "data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground",
+                                    "data-[range-start=true]:rounded-l-md",
+                                    "data-[range-end=true]:rounded-r-md",
+                                    "data-[selection-start=true]:rounded-l-md",
+                                    "data-[selection-end=true]:rounded-r-md",
+                                    "data-[selected=true]:data-[selection-start=true]:data-[range-selection=true]:rounded-l-md",
+                                    "data-[selected=true]:data-[selection-end=true]:data-[range-selection=true]:rounded-r-md",
+                                  ],
+                                }}
+                              />
+                              <div className="flex items-center justify-between gap-2 pt-2 border-t">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setCalendarValue(null);
+                                    setFilters(prev => ({
+                                      ...prev,
+                                      customStartDate: '',
+                                      customEndDate: ''
+                                    }));
+                                    setCalendarPopoverOpen(false);
+                                  }}
+                                >
+                                  Clear
+                                </Button>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => setCalendarPopoverOpen(false)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      if (calendarValue?.start && calendarValue?.end) {
+                                        setFilters(prev => ({
+                                          ...prev,
+                                          customStartDate: calendarValue.start.toString(),
+                                          customEndDate: calendarValue.end.toString()
+                                        }));
+                                        setCalendarPopoverOpen(false);
+                                      }
+                                    }}
+                                    disabled={!calendarValue?.start || !calendarValue?.end}
+                                  >
+                                    Apply
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                     )}
                   </div>
 

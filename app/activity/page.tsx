@@ -26,7 +26,7 @@ interface ActivityData {
     errorMessage?: string;
     code?: string;
     name?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 

@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 export default function EditRewardPage() {
   const router = useRouter();
@@ -360,7 +360,14 @@ export default function EditRewardPage() {
                 type="submit"
                 disabled={loading}
               >
-                {loading ? 'Updating...' : 'Update Reward'}
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Reward'
+                )}
               </Button>
             </div>
           </div>

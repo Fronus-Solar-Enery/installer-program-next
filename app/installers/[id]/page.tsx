@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
-import { Copy, Check, Edit, Trash2, ArrowLeft, Award, TrendingUp, Activity as ActivityIcon, Package, UserPlus, User, Clock, AlertCircle } from 'lucide-react';
+import { Copy, Check, Edit, Trash2, ArrowLeft, Award, TrendingUp, Activity as ActivityIcon, Package, UserPlus, User, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -323,7 +323,14 @@ export default function InstallerDetailsPage() {
                       disabled={deleting}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      {deleting ? 'Deleting...' : 'Delete Installer'}
+                      {deleting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        'Delete Installer'
+                      )}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

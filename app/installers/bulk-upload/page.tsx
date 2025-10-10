@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertCircle, CheckCircle2, Download, Trash2, Upload, ArrowLeft } from "lucide-react";
+import { AlertCircle, CheckCircle2, Download, Trash2, Upload, ArrowLeft, Loader2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { BANKS } from "@/lib/constants";
 
@@ -44,45 +44,52 @@ export default function BulkUploadInstallersPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const [downloadingInvalid, setDownloadingInvalid] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<InstallerUpload[]>([]);
 
   const downloadTemplate = () => {
-    const template = [
-      {
-        'Installer Code': 'IP-0001',
-        'Full Name': 'John Doe',
-        'Referrer Code': 'IP-0000 (optional)',
-        'CNIC': '12345-1234567-1',
-        'Phone Number': '03001234567',
-        'WhatsApp Number': '03001234567',
-        'Address': '123 Main Street',
-        'City': 'Karachi',
-        'Province': 'Sindh',
-        'Training Center': 'Center A',
-        'Company Name': 'ABC Company (optional)',
-        'Bank Name': 'HBL',
-        'Account Number': '12345678901234',
-        'Account Title': 'John Doe',
-        'Certified': 'true',
-      }
-    ];
+    setDownloadingTemplate(true);
+    try {
+      const template = [
+        {
+          'Installer Code': 'IP-0001',
+          'Full Name': 'John Doe',
+          'Referrer Code': 'IP-0000 (optional)',
+          'CNIC': '12345-1234567-1',
+          'Phone Number': '03001234567',
+          'WhatsApp Number': '03001234567',
+          'Address': '123 Main Street',
+          'City': 'Karachi',
+          'Province': 'Sindh',
+          'Training Center': 'Center A',
+          'Company Name': 'ABC Company (optional)',
+          'Bank Name': 'HBL',
+          'Account Number': '12345678901234',
+          'Account Title': 'John Doe',
+          'Certified': 'true',
+        }
+      ];
 
-    const ws = XLSX.utils.json_to_sheet(template);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Installers Template');
+      const ws = XLSX.utils.json_to_sheet(template);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Installers Template');
 
-    // Set column widths
-    ws['!cols'] = [
-      { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 18 },
-      { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 15 },
-      { wch: 12 }, { wch: 15 }, { wch: 20 }, { wch: 12 },
-      { wch: 20 }, { wch: 20 }, { wch: 10 },
-    ];
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 18 },
+        { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 15 },
+        { wch: 12 }, { wch: 15 }, { wch: 20 }, { wch: 12 },
+        { wch: 20 }, { wch: 20 }, { wch: 10 },
+      ];
 
-    XLSX.writeFile(wb, 'installers_bulk_upload_template.xlsx');
+      XLSX.writeFile(wb, 'installers_bulk_upload_template.xlsx');
+    } finally {
+      setTimeout(() => setDownloadingTemplate(false), 500);
+    }
   };
 
   const validateCNIC = (cnic: string): boolean => {
@@ -112,16 +119,16 @@ export default function BulkUploadInstallersPage() {
     return matchedBank ? matchedBank.label : bankName;
   };
 
-  const validateBankName = (bankName: string): boolean => {
+  const validateBankName = useCallback((bankName: string): boolean => {
     const normalizedInput = bankName.toLowerCase().trim();
     return BANKS.some(bank =>
       bank.label.toLowerCase() === normalizedInput ||
       bank.value.toLowerCase() === normalizedInput ||
       bank.shortcut.toLowerCase() === normalizedInput
     );
-  };
+  }, []);
 
-  const validateInstaller = (installer: Omit<InstallerUpload, 'issues' | 'isValid'>): string[] => {
+  const validateInstaller = useCallback((installer: Omit<InstallerUpload, 'issues' | 'isValid'>): string[] => {
     const issues: string[] = [];
 
     // Required field validations
@@ -165,7 +172,7 @@ export default function BulkUploadInstallersPage() {
     }
 
     return issues;
-  };
+  }, [validateBankName]);
 
   const validateAgainstDatabase = useCallback(async (installers: InstallerUpload[]) => {
     setValidating(true);
@@ -253,56 +260,61 @@ export default function BulkUploadInstallersPage() {
   };
 
   const downloadInvalidRecords = () => {
-    const invalidRecords = preview.filter(p => !p.isValid);
+    setDownloadingInvalid(true);
+    try {
+      const invalidRecords = preview.filter(p => !p.isValid);
 
-    if (invalidRecords.length === 0) {
-      return;
+      if (invalidRecords.length === 0) {
+        return;
+      }
+
+      const excelData = invalidRecords.map(record => ({
+        'Installer Code': record.installerCode,
+        'Full Name': record.fullName,
+        'Referrer Code': record.referrerCode || '',
+        'CNIC': record.cnic,
+        'Phone Number': record.phoneNumber,
+        'WhatsApp Number': record.whatsappNumber,
+        'Address': record.address,
+        'City': record.city,
+        'Province': record.province,
+        'Training Center': record.trainingCenter,
+        'Company Name': record.companyName || '',
+        'Bank Name': record.bankName,
+        'Account Number': record.accountNumber,
+        'Account Title': record.accountTitle,
+        'Certified': record.certified ? 'true' : 'false',
+        'ISSUES': record.issues.join(' | '),
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Invalid Records');
+
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 18 },
+        { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 15 },
+        { wch: 12 }, { wch: 15 }, { wch: 20 }, { wch: 12 },
+        { wch: 20 }, { wch: 20 }, { wch: 10 }, { wch: 60 },
+      ];
+
+      // Style the header row
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+      for (let col = range.s.c; col <= range.e.c; col++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+        if (!ws[cellAddress]) continue;
+        ws[cellAddress].s = {
+          font: { bold: true },
+          fill: { fgColor: { rgb: 'FFE0E0E0' } },
+        };
+      }
+
+      const timestamp = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `invalid_installers_${timestamp}.xlsx`);
+    } finally {
+      setTimeout(() => setDownloadingInvalid(false), 500);
     }
-
-    const excelData = invalidRecords.map(record => ({
-      'Installer Code': record.installerCode,
-      'Full Name': record.fullName,
-      'Referrer Code': record.referrerCode || '',
-      'CNIC': record.cnic,
-      'Phone Number': record.phoneNumber,
-      'WhatsApp Number': record.whatsappNumber,
-      'Address': record.address,
-      'City': record.city,
-      'Province': record.province,
-      'Training Center': record.trainingCenter,
-      'Company Name': record.companyName || '',
-      'Bank Name': record.bankName,
-      'Account Number': record.accountNumber,
-      'Account Title': record.accountTitle,
-      'Certified': record.certified ? 'true' : 'false',
-      'ISSUES': record.issues.join(' | '),
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(excelData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Invalid Records');
-
-    // Set column widths
-    ws['!cols'] = [
-      { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 18 },
-      { wch: 15 }, { wch: 15 }, { wch: 30 }, { wch: 15 },
-      { wch: 12 }, { wch: 15 }, { wch: 20 }, { wch: 12 },
-      { wch: 20 }, { wch: 20 }, { wch: 10 }, { wch: 60 },
-    ];
-
-    // Style the header row
-    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-    for (let col = range.s.c; col <= range.e.c; col++) {
-      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-      if (!ws[cellAddress]) continue;
-      ws[cellAddress].s = {
-        font: { bold: true },
-        fill: { fgColor: { rgb: 'FFE0E0E0' } },
-      };
-    }
-
-    const timestamp = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `invalid_installers_${timestamp}.xlsx`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -386,9 +398,13 @@ export default function BulkUploadInstallersPage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   4. Click &quot;Upload All Valid Records&quot; to finalize
                 </p>
-                <Button onClick={downloadTemplate} variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Template
+                <Button onClick={downloadTemplate} variant="outline" disabled={downloadingTemplate}>
+                  {downloadingTemplate ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {downloadingTemplate ? 'Downloading...' : 'Download Template'}
                 </Button>
               </div>
 
@@ -463,9 +479,14 @@ export default function BulkUploadInstallersPage() {
                         variant="outline"
                         onClick={downloadInvalidRecords}
                         size="sm"
+                        disabled={downloadingInvalid}
                       >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download Invalid Records
+                        {downloadingInvalid ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4 mr-2" />
+                        )}
+                        {downloadingInvalid ? 'Downloading...' : 'Download Invalid Records'}
                       </Button>
                     )}
                   </div>
@@ -473,8 +494,12 @@ export default function BulkUploadInstallersPage() {
 
                 {preview.length > 0 && (
                   <Button type="submit" disabled={loading || invalidCount > 0 || validating}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    {loading ? 'Uploading...' : `Upload ${validCount} Valid Record(s)`}
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    {loading ? 'Uploading...' : validating ? 'Validating...' : `Upload ${validCount} Valid Record(s)`}
                   </Button>
                 )}
               </form>

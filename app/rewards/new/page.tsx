@@ -727,7 +727,14 @@ export default function NewRewardPage() {
                   disabled={loading}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  {loading ? "Submitting..." : "Submit Reward Registration"}
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit Reward Registration"
+                  )}
                 </Button>
               </div>
             </CardContent>

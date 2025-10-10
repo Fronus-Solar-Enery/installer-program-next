@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertCircle, CheckCircle2, Download, Trash2, Upload, ArrowLeft } from "lucide-react";
+import { AlertCircle, CheckCircle2, Download, Trash2, Upload, ArrowLeft, Loader2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { PAYMENT_METHOD } from "@/lib/constants";
 
@@ -39,34 +39,41 @@ export default function BulkUploadRewardsPage() {
   const [success, setSuccess] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<RewardUpdate[]>([]);
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false);
+  const [downloadingInvalid, setDownloadingInvalid] = useState(false);
 
   const downloadTemplate = () => {
-    const template = [
-      {
-        'Serial Number': 'SN123456',
-        'Installer Transaction ID': 'TXN001',
-        'Referrer Transaction ID': 'TXN002 (optional)',
-        'Payment Status': 'PAID',
-        'Sending Date': '2025-10-03 (optional)',
-        'Payment Method': 'UBANK',
-      }
-    ];
+    setDownloadingTemplate(true);
+    try {
+      const template = [
+        {
+          'Serial Number': 'SN123456',
+          'Installer Transaction ID': 'TXN001',
+          'Referrer Transaction ID': 'TXN002 (optional)',
+          'Payment Status': 'PAID',
+          'Sending Date': '2025-10-03 (optional)',
+          'Payment Method': 'UBANK',
+        }
+      ];
 
-    const ws = XLSX.utils.json_to_sheet(template);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Rewards Template');
+      const ws = XLSX.utils.json_to_sheet(template);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Rewards Template');
 
-    // Set column widths
-    ws['!cols'] = [
-      { wch: 15 },
-      { wch: 25 },
-      { wch: 25 },
-      { wch: 15 },
-      { wch: 20 },
-      { wch: 25 },
-    ];
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 15 },
+        { wch: 25 },
+        { wch: 25 },
+        { wch: 15 },
+        { wch: 20 },
+        { wch: 25 },
+      ];
 
-    XLSX.writeFile(wb, 'rewards_bulk_update_template.xlsx');
+      XLSX.writeFile(wb, 'rewards_bulk_update_template.xlsx');
+    } finally {
+      setTimeout(() => setDownloadingTemplate(false), 500);
+    }
   };
 
   const validatePaymentStatus = (status: string): boolean => {
@@ -206,34 +213,39 @@ export default function BulkUploadRewardsPage() {
   };
 
   const downloadInvalidRecords = () => {
-    const invalidRecords = preview.filter(p => !p.isValid);
+    setDownloadingInvalid(true);
+    try {
+      const invalidRecords = preview.filter(p => !p.isValid);
 
-    if (invalidRecords.length === 0) {
-      return;
+      if (invalidRecords.length === 0) {
+        return;
+      }
+
+      const excelData = invalidRecords.map(record => ({
+        'Serial Number': record.serialNumber,
+        'Installer Transaction ID': record.transactionId,
+        'Referrer Transaction ID': record.referrerTransactionId || '',
+        'Payment Status': record.paymentStatus,
+        'Sending Date': record.sendingDate || '',
+        'Payment Method': record.paymentMethod || '',
+        'ISSUES': record.issues.join(' | '),
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Invalid Records');
+
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 15 }, { wch: 25 }, { wch: 25 }, { wch: 15 },
+        { wch: 20 }, { wch: 25 }, { wch: 60 },
+      ];
+
+      const timestamp = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `invalid_rewards_${timestamp}.xlsx`);
+    } finally {
+      setTimeout(() => setDownloadingInvalid(false), 500);
     }
-
-    const excelData = invalidRecords.map(record => ({
-      'Serial Number': record.serialNumber,
-      'Installer Transaction ID': record.transactionId,
-      'Referrer Transaction ID': record.referrerTransactionId || '',
-      'Payment Status': record.paymentStatus,
-      'Sending Date': record.sendingDate || '',
-      'Payment Method': record.paymentMethod || '',
-      'ISSUES': record.issues.join(' | '),
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(excelData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Invalid Records');
-
-    // Set column widths
-    ws['!cols'] = [
-      { wch: 15 }, { wch: 25 }, { wch: 25 }, { wch: 15 },
-      { wch: 20 }, { wch: 25 }, { wch: 60 },
-    ];
-
-    const timestamp = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `invalid_rewards_${timestamp}.xlsx`);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -320,9 +332,13 @@ export default function BulkUploadRewardsPage() {
                 <p className="text-sm text-muted-foreground mb-4">
                   4. Click &quot;Update All Valid Records&quot; to finalize
                 </p>
-                <Button onClick={downloadTemplate} variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download Template
+                <Button onClick={downloadTemplate} variant="outline" disabled={downloadingTemplate}>
+                  {downloadingTemplate ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {downloadingTemplate ? 'Downloading...' : 'Download Template'}
                 </Button>
               </div>
 
@@ -398,9 +414,14 @@ export default function BulkUploadRewardsPage() {
                         variant="outline"
                         onClick={downloadInvalidRecords}
                         size="sm"
+                        disabled={downloadingInvalid}
                       >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download Invalid Records
+                        {downloadingInvalid ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4 mr-2" />
+                        )}
+                        {downloadingInvalid ? 'Downloading...' : 'Download Invalid Records'}
                       </Button>
                     )}
                   </div>
@@ -408,8 +429,12 @@ export default function BulkUploadRewardsPage() {
 
                 {preview.length > 0 && (
                   <Button type="submit" disabled={loading || invalidCount > 0 || validating}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    {loading ? 'Updating...' : `Update ${validCount} Valid Record(s)`}
+                    {loading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4 mr-2" />
+                    )}
+                    {loading ? 'Updating...' : validating ? 'Validating...' : `Update ${validCount} Valid Record(s)`}
                   </Button>
                 )}
               </form>
