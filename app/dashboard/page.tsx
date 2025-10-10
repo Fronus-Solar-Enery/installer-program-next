@@ -54,12 +54,28 @@ interface ActiveInstallersData {
   label: string;
 }
 
-interface TopInstaller {
+interface ActiveInstaller {
+  installerName: string;
   installerCode: string;
-  fullName: string;
+  totalProducts: number;
+  rewardAmount: number;
+  referralRewardAmount: number;
+}
+
+interface TrainingCenterActive {
+  trainingCenter: string;
+  activeInstallersCount: number;
+  totalInstallations: number;
+}
+
+interface InstallerByCenter {
+  installerName: string;
+  installerCode: string;
+  trainingCenter: string;
   city: string;
-  totalRewards: number;
-  totalAmount: number;
+  totalProducts: number;
+  rewardAmount: number;
+  referralRewardAmount: number;
 }
 
 interface RecentInstallation {
@@ -139,11 +155,15 @@ export default function DashboardPage() {
   const [productData, setProductData] = useState<ProductData[]>([]);
   const [cityData, setCityData] = useState<CityData[]>([]);
   const [activeInstallersData, setActiveInstallersData] = useState<ActiveInstallersData[]>([]);
-  const [topInstallers, setTopInstallers] = useState<TopInstaller[]>([]);
+  const [activeInstallers, setActiveInstallers] = useState<ActiveInstaller[]>([]);
+  const [trainingCenterActive, setTrainingCenterActive] = useState<TrainingCenterActive[]>([]);
+  const [selectedCenter, setSelectedCenter] = useState<string | null>(null);
+  const [centerInstallers, setCenterInstallers] = useState<InstallerByCenter[]>([]);
   const [recentInstallations, setRecentInstallations] = useState<RecentInstallation[]>([]);
   const [recentInstallers, setRecentInstallers] = useState<RecentInstaller[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -244,17 +264,28 @@ export default function DashboardPage() {
   const fetchStats = useCallback(async () => {
       try {
         setLoading(true);
-        const [installersRes, rewardsRes, allRewardsRes, allInstallersRes] = await Promise.all([
+
+        // Build date range params for active installers API
+        const { startDate, endDate } = getDateRange(timePeriod);
+        const dateParams = startDate && endDate
+          ? `?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+          : '';
+
+        const [installersRes, rewardsRes, allRewardsRes, allInstallersRes, activeInstallersRes, trainingCenterRes] = await Promise.all([
           fetch('/api/installers?limit=5&sortBy=createdAt&sortOrder=desc'),
           fetch('/api/rewards?limit=5&sortBy=createdAt&sortOrder=desc'),
           fetch('/api/rewards?limit=5000'),
           fetch('/api/installers?limit=5000'),
+          fetch(`/api/dashboard/active-installers${dateParams}`),
+          fetch(`/api/dashboard/active-by-training-center${dateParams}`),
         ]);
 
         const installersData = await installersRes.json();
         const rewardsData = await rewardsRes.json();
         const allRewards = await allRewardsRes.json();
         const allInstallers = await allInstallersRes.json();
+        const activeInstallersData = await activeInstallersRes.json();
+        const trainingCenterData = await trainingCenterRes.json();
 
         // Filter data by date range
         const filteredRewards = filterByDateRange(allRewards.data?.rewards || []) as DashboardReward[];
@@ -401,36 +432,11 @@ export default function DashboardPage() {
 
         setActiveInstallersData(activeInstallersArray);
 
-        // Calculate top installers using the same date range as everything else
-        const installerStats: { [key: string]: { installer: DashboardReward['installer']; count: number; amount: number } } = {};
-        filteredRewards.forEach((reward: DashboardReward) => {
-          const installerId = reward.installer?._id;
-          if (!installerId) return;
+        // Set active installers from API
+        setActiveInstallers(activeInstallersData.data || []);
 
-          if (!installerStats[installerId]) {
-            installerStats[installerId] = {
-              installer: reward.installer,
-              count: 0,
-              amount: 0,
-            };
-          }
-          installerStats[installerId].count += 1;
-          installerStats[installerId].amount += reward.rewardAmount || 0;
-        });
-
-        const topInstallersArray = Object.values(installerStats)
-          .filter((stat) => stat.installer) // Filter out entries without installer
-          .map((stat) => ({
-            installerCode: stat.installer!.installerCode,
-            fullName: stat.installer!.fullName,
-            city: stat.installer!.city || 'N/A',
-            totalRewards: stat.count,
-            totalAmount: stat.amount,
-          }))
-          .sort((a, b) => b.totalRewards - a.totalRewards)
-          .slice(0, 5);
-
-        setTopInstallers(topInstallersArray);
+        // Set training center active data
+        setTrainingCenterActive(trainingCenterData.data || []);
 
         setRecentInstallations(rewardsData.data?.rewards || []);
         setRecentInstallers(installersData.data?.installers || []);
@@ -439,7 +445,7 @@ export default function DashboardPage() {
       } finally {
         setLoading(false);
       }
-  }, [filterByDateRange]);
+  }, [filterByDateRange, getDateRange, timePeriod]);
 
   const paidCount = useMemo(
     () => stats.totalRewards > 0 ? Math.round((stats.paidAmount / stats.totalAmount) * stats.totalRewards) : 0,
@@ -859,12 +865,12 @@ export default function DashboardPage() {
                 <Award className="h-5 w-5 text-primary" />
                 Top Performers
               </CardTitle>
-              <CardDescription>Best performing installers in selected period</CardDescription>
+              <CardDescription>Top 5 installers by installations in selected period</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {topInstallers.length > 0 ? (
-                  topInstallers.map((installer, index) => (
+                {activeInstallers.length > 0 ? (
+                  activeInstallers.map((installer, index) => (
                     <div
                       key={installer.installerCode}
                       className={cn(
@@ -885,16 +891,24 @@ export default function DashboardPage() {
                         #{index + 1}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">{installer.fullName}</div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-                          <span className="truncate">{installer.installerCode}</span>
-                          <span>•</span>
-                          <span className="truncate">{installer.city}</span>
-                        </div>
+                        <div className="font-medium text-sm truncate">{installer.installerName}</div>
+                        <div className="text-xs text-muted-foreground truncate">{installer.installerCode}</div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-bold text-sm text-primary">{installer.totalRewards}</div>
-                        <div className="text-xs text-muted-foreground whitespace-nowrap">rewards</div>
+                      <div className="grid grid-cols-2 gap-3 text-right">
+                        <div>
+                          <div className="text-xs text-muted-foreground">Products</div>
+                          <div className="font-bold text-sm text-primary">{installer.totalProducts}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground">Reward</div>
+                          <div className="font-bold text-sm text-green-600 dark:text-green-500">Rs. {installer.rewardAmount.toLocaleString()}</div>
+                        </div>
+                        {installer.referralRewardAmount > 0 && (
+                          <div className="col-span-2">
+                            <div className="text-xs text-muted-foreground">Referral</div>
+                            <div className="font-semibold text-xs text-purple-600 dark:text-purple-500">Rs. {installer.referralRewardAmount.toLocaleString()}</div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))
@@ -907,6 +921,68 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Active Installers by Training Center */}
+        <Card className="transition-all hover:shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-primary" />
+              Active Installers by Training Center
+            </CardTitle>
+            <CardDescription>Installers with at least 1 installation in selected period</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {trainingCenterActive.length > 0 ? (
+                trainingCenterActive.map((center, index) => (
+                  <div
+                    key={center.trainingCenter}
+                    onClick={async () => {
+                      setSelectedCenter(center.trainingCenter);
+                      setModalOpen(true);
+
+                      // Fetch installers for this training center
+                      const { startDate, endDate } = getDateRange(timePeriod);
+                      const dateParams = startDate && endDate
+                        ? `&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+                        : '';
+
+                      const res = await fetch(`/api/dashboard/installers-by-center?trainingCenter=${encodeURIComponent(center.trainingCenter)}${dateParams}`);
+                      const data = await res.json();
+                      setCenterInstallers(data.data || []);
+                    }}
+                    className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                  >
+                    <div className={cn(
+                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-bold",
+                      "bg-primary/10 text-primary"
+                    )}>
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-base truncate">{center.trainingCenter}</div>
+                      <div className="text-sm text-muted-foreground">Click to view installers</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-right">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Active</div>
+                        <div className="font-bold text-lg text-primary">{center.activeInstallersCount}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">Installations</div>
+                        <div className="font-bold text-sm text-green-600 dark:text-green-500">{center.totalInstallations}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No active installers in selected period
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Charts Row 2 - City Distribution & Active Installers */}
         <div className="grid gap-4 md:grid-cols-2">
@@ -950,14 +1026,14 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Active Installers */}
+          {/* Active Installers Timeline */}
           <Card className="transition-all hover:shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <UserCheck className="h-5 w-5 text-primary" />
-                Active Installers
+                Active Installers Timeline
               </CardTitle>
-              <CardDescription>Installers with at least 1 installation in period</CardDescription>
+              <CardDescription>Historical view of installer activity</CardDescription>
             </CardHeader>
             <CardContent>
               {activeInstallersData.length > 0 ? (
@@ -1100,6 +1176,73 @@ export default function DashboardPage() {
         </div>
       </div>
       <GlobalSearchModal open={searchOpen} onOpenChange={setSearchOpen} />
+
+      {/* Training Center Installers Modal */}
+      {modalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setModalOpen(false)}>
+          <div className="bg-background rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">{selectedCenter}</h2>
+                  <p className="text-sm text-muted-foreground mt-1">Active installers in selected period</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setModalOpen(false)}>
+                  ✕
+                </Button>
+              </div>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[calc(80vh-140px)]">
+              <div className="space-y-3">
+                {centerInstallers.length > 0 ? (
+                  centerInstallers.map((installer, index) => (
+                    <div
+                      key={installer.installerCode}
+                      className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold bg-primary/10 text-primary">
+                        {index + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-base truncate">{installer.installerName}</div>
+                        <div className="text-sm text-muted-foreground flex items-center gap-2">
+                          <span className="truncate">{installer.installerCode}</span>
+                          <span>•</span>
+                          <span className="truncate">{installer.city}</span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 text-right">
+                        <div>
+                          <div className="text-xs text-muted-foreground">Products</div>
+                          <div className="font-bold text-lg text-primary">{installer.totalProducts}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground">Reward</div>
+                          <div className="font-bold text-sm text-green-600 dark:text-green-500">
+                            Rs. {installer.rewardAmount.toLocaleString()}
+                          </div>
+                        </div>
+                        {installer.referralRewardAmount > 0 && (
+                          <div className="col-span-2">
+                            <div className="text-xs text-muted-foreground">Referral Reward</div>
+                            <div className="font-semibold text-sm text-purple-600 dark:text-purple-500">
+                              Rs. {installer.referralRewardAmount.toLocaleString()}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Loading installers...
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

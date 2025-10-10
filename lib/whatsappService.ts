@@ -77,7 +77,8 @@ export async function sendWhatsAppMessage({
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('Failed to send WhatsApp message:', error);
 
     // Log failed WhatsApp send
@@ -90,12 +91,12 @@ export async function sendWhatsAppMessage({
         description: `Failed to send WhatsApp to ${phoneNumber}`,
         metadata: {
           whatsappNumber: phoneNumber,
-          errorMessage: error.message,
+          errorMessage,
         },
       });
     }
 
-    return { success: false, error: error.message };
+    return { success: false, error: errorMessage };
   }
 }
 

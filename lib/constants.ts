@@ -497,7 +497,7 @@ export interface TrainingCenter {
 }
 
 export const TRAINING_CENTER: TrainingCenter[] = [
-  { city: "Rawalpindi / Islamabad", short: "ISB" },
+  { city: "Islamabad", short: "ISB" },
   { city: "Peshawar", short: "PEW" },
   { city: "Quetta", short: "QTA" },
   { city: "Karachi", short: "KHI" },
@@ -517,76 +517,57 @@ export interface Bank {
   value: string;
   label: string;
   shortcut: string;
-  mobile?: boolean; // Indicates if the bank is primarily a mobile payment method
+  matchcase: string;
+  mobile?: boolean;
 }
 
 export const BANKS: Bank[] = [
   // DIGITAL PAYMENT METHODS
-  { value: "jazzcash", label: "Jazzcash", shortcut: "JCS", mobile: true },
-  { value: "easypaisa", label: "Easypaisa", shortcut: "ETP", mobile: true },
-  { value: "nayapay", label: "NayaPay", shortcut: "NPY", mobile: true },
-  { value: "sadapay", label: "SadaPay", shortcut: "SDP", mobile: true },
-  { value: "finja", label: "Finja", shortcut: "FNJ", mobile: true },
-  { value: "keenu", label: "Keenu", shortcut: "KNU", mobile: true },
-  { value: "upaisa", label: "UPaisa", shortcut: "UPA", mobile: true },
+  { matchcase: "Mobilink Bank/JazzCash", value: "jazzcash", label: "Jazzcash", shortcut: "JCS", mobile: true },
+  { matchcase: "Telenor Microfinance Bank", value: "easypaisa", label: "Easypaisa", shortcut: "ETP", mobile: true },
+  { matchcase: "NayaPay", value: "nayapay", label: "NayaPay", shortcut: "NPY", mobile: true },
+  { matchcase: "SadaPay", value: "sadapay", label: "SadaPay", shortcut: "SDP", mobile: true },
+  { matchcase: "FINJA EMI", value: "finja", label: "Finja", shortcut: "FNJ", mobile: true },
+  { matchcase: "Keenu", value: "keenu", label: "Keenu", shortcut: "KNU", mobile: true },
 
   // COMMERCIAL BANKS
-  { value: "abl", label: "Allied Bank Ltd", shortcut: "ABL" },
-  { value: "askari", label: "Askari Bank Ltd", shortcut: "ASK" },
-  { value: "bok", label: "The Bank of Khyber", shortcut: "BOK" },
-  { value: "bop", label: "The Bank of Punjab", shortcut: "BOP" },
-  { value: "citibank", label: "Citibank N.A.", shortcut: "CIT" },
-  { value: "deutsche", label: "Deutsche Bank AG", shortcut: "DBA" },
-  { value: "faysal", label: "Faysal Bank Ltd", shortcut: "FBL" },
-  { value: "firstwomen", label: "First Women Bank Ltd", shortcut: "FWB" },
-  { value: "hbl", label: "Habib Bank Ltd", shortcut: "HBL" },
-  {
-    value: "habibmetro",
-    label: "Habib Metropolitan Bank Ltd",
-    shortcut: "HMB",
-  },
-  {
-    value: "icbc",
-    label: "Industrial and Commercial Bank of China Ltd",
-    shortcut: "ICBC",
-  },
-  {
-    value: "idbp",
-    label: "Industrial Development Bank of Pakistan",
-    shortcut: "IDBP",
-  },
-  { value: "js", label: "JS Bank Ltd", shortcut: "JSB" },
-  { value: "mcb", label: "MCB Bank Ltd", shortcut: "MCB" },
-  { value: "nbp", label: "National Bank of Pakistan", shortcut: "NBP" },
-  {
-    value: "ppcbl",
-    label: "Punjab Provincial Cooperative Bank Ltd.",
-    shortcut: "PPC",
-  },
-  { value: "sindh", label: "Sindh Bank Ltd", shortcut: "SBL" },
-  { value: "silkbank", label: "Silkbank Ltd", shortcut: "SLB" },
-  { value: "sme", label: "SME Bank Ltd", shortcut: "SME" },
-  { value: "soneri", label: "Soneri Bank Ltd", shortcut: "SBL" },
-  { value: "scb", label: "Standard Chartered Bank Ltd", shortcut: "SCB" },
-  { value: "summit", label: "Summit Bank Ltd", shortcut: "SBL" },
-  {
-    value: "tokyo",
-    label: "Bank of Tokyo-Mitsubishi UFJ Ltd.",
-    shortcut: "TBT",
-  },
-  { value: "ubl", label: "United Bank Ltd", shortcut: "UBL" },
-  { value: "ztbl", label: "Zarai Taraqiati Bank Ltd.", shortcut: "ZTB" },
+  { matchcase: "ABL", value: "abl", label: "Allied Bank Ltd", shortcut: "ABL" },
+  { matchcase: "Apna Bank", value: "apnabank", label: "Apna Bank", shortcut: "AMBL" },
+  { matchcase: "Ubank", value: "ubank", label: "Ubank", shortcut: "UBK" },
+  { matchcase: "National Savings", value: "nationalsavings", label: "National Savings", shortcut: "NSB" },
+  { matchcase: "Samba", value: "sambabank", label: "Samba Bank Ltd", shortcut: "SMBL" },
+  { matchcase: "Digitt", value: "Digittbank", label: "Digitt Bank", shortcut: "DGT" },
+  { matchcase: "FINCA Microfinance", value: "finca", label: "FINCA Microfinance Bank", shortcut: "FMB" },
+  { matchcase: "Askari Bank", value: "askari", label: "Askari Bank Ltd", shortcut: "ASK" },
+  { matchcase: "Bank of Khyber", value: "bok", label: "The Bank of Khyber", shortcut: "BOK" },
+  { matchcase: "Bank of Punjab", value: "bop", label: "The Bank of Punjab", shortcut: "BOP" },
+  { matchcase: "Burj Bank", value: "burjbank", label: "Burj Bank Ltd", shortcut: "BRJ" },
+  { matchcase: "Citi Bank", value: "citibank", label: "Citibank N.A.", shortcut: "CIT" },
+  { matchcase: "Faysal Bank", value: "faysal", label: "Faysal Bank Ltd", shortcut: "FBL" },
+  { matchcase: "HBL/KONNECT", value: "hbl", label: "Habib Bank Ltd", shortcut: "HBL" },
+  { matchcase: "ICBC", value: "icbc", label: "Industrial and Commercial Bank of China", shortcut: "ICBC" },
+  { matchcase: "Habib Metro", value: "habibmetro", label: "Habib Metropolitan Bank Ltd", shortcut: "HMB" },
+  { matchcase: "Khushhali Bank", value: "khushhali", label: "Khushhali Microfinance Bank Ltd", shortcut: "KMBL" },
+  { matchcase: "JS Bank", value: "js", label: "JS Bank Ltd", shortcut: "JSB" },
+  { matchcase: "MCB", value: "mcb", label: "MCB Bank Ltd", shortcut: "MCB" },
+  { matchcase: "NBP", value: "nbp", label: "National Bank of Pakistan", shortcut: "NBP" },
+  { matchcase: "NBP Funds", value: "nbpfunds", label: "National Bank of Pakistan Funds", shortcut: "NBPF" },
+  { matchcase: "NRSP Bank", value: "nrsp", label: "NRSP Bank Ltd", shortcut: "NRSP" },
+  { matchcase: "Sindh Bank", value: "sindh", label: "Sindh Bank Ltd", shortcut: "SIBL" },
+  { matchcase: "Silk Bank", value: "silkbank", label: "Silkbank Ltd", shortcut: "SILB" },
+  { matchcase: "Soneri", value: "soneri", label: "Soneri Bank Ltd", shortcut: "SNBL" },
+  { matchcase: "Standard Chartered", value: "scb", label: "Standard Chartered Bank Ltd", shortcut: "SCB" },
+  { matchcase: "Summit Bank", value: "summit", label: "Summit Bank Ltd", shortcut: "SBL" },
+  { matchcase: "UBL", value: "ubl", label: "United Bank Ltd", shortcut: "UBL" },
+  { matchcase: "ZTBL", value: "ztbl", label: "Zarai Taraqiati Bank Ltd.", shortcut: "ZTB" },
 
   // ISLAMIC BANKS
-  { value: "albaraka", label: "AlBaraka Bank Ltd", shortcut: "ABB" },
-  { value: "alhabib", label: "Bank AL Habib Ltd", shortcut: "BAH" },
-  { value: "alfalah", label: "Bank Alfalah Ltd", shortcut: "BAF" },
-  { value: "bankislami", label: "BankIslami Pakistan Ltd", shortcut: "BIP" },
-  {
-    value: "dubaiislamic",
-    label: "Dubai Islamic Bank Pakistan Ltd",
-    shortcut: "DIB",
-  },
-  { value: "meezan", label: "Meezan Bank Ltd", shortcut: "MBL" },
-  { value: "mcbislamic", label: "MCB Islamic Bank", shortcut: "MCBI" },
+  { matchcase: "Al Baraka", value: "albaraka", label: "AlBaraka Bank Ltd", shortcut: "ABB" },
+  { matchcase: "Bank AlHabib", value: "alhabib", label: "Bank AL Habib Ltd", shortcut: "BAH" },
+  { matchcase: "Bank Alfalah", value: "alfalah", label: "Bank Alfalah Ltd", shortcut: "BAF" },
+  { matchcase: "Bank Islami", value: "bankislami", label: "BankIslami Pakistan Ltd", shortcut: "BIP" },
+  { matchcase: "Dubai Islamic", value: "dubaiislamic", label: "Dubai Islamic Bank Pakistan Ltd", shortcut: "DIB" },
+  { matchcase: "Meezan Bank", value: "meezan", label: "Meezan Bank Ltd", shortcut: "MBL" },
+  { matchcase: "MCB Islamic", value: "mcbislamic", label: "MCB Islamic Bank", shortcut: "MCBI" },
+  { matchcase: "MCB ARIF HABIB", value: "mcbarifhabib", label: "MCB Arif Habib Bank Ltd", shortcut: "MCBAH" },
 ];

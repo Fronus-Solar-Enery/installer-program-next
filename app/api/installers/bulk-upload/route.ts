@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/mongodb';
 import Installer, { IInstaller } from '@/models/Installer';
 import Activity from '@/models/Activity';
+import { createGoogleContact } from '@/lib/googleContacts';
 
 interface BulkInstallerData extends Partial<IInstaller> {
   isValid?: boolean;
@@ -14,6 +15,8 @@ interface BulkUploadResults {
   errors: string[];
   duplicates: string[];
   successfulCodes: string[];
+  googleContactsCreated: number;
+  googleContactsFailed: number;
 }
 
 export async function POST(req: NextRequest) {
@@ -61,6 +64,8 @@ export async function POST(req: NextRequest) {
       errors: [],
       duplicates: [],
       successfulCodes: [],
+      googleContactsCreated: 0,
+      googleContactsFailed: 0,
     };
 
     // Validate that all installers have required fields
@@ -157,6 +162,34 @@ export async function POST(req: NextRequest) {
 
         results.success++;
         results.successfulCodes.push(newInstaller.installerCode);
+
+        // Try to create Google Contact (non-blocking)
+        try {
+          const googleContactId = await createGoogleContact(session.user.id, {
+            fullName: newInstaller.fullName,
+            phoneNumber: newInstaller.phoneNumber,
+            whatsappNumber: newInstaller.whatsappNumber,
+            address: newInstaller.address,
+            city: newInstaller.city,
+            province: newInstaller.province,
+            companyName: newInstaller.companyName,
+            installerCode: newInstaller.installerCode,
+            referrerCode: newInstaller.referrerCode,
+            cnic: newInstaller.cnic,
+          });
+
+          // Save googleContactId to installer if created successfully
+          if (googleContactId) {
+            newInstaller.googleContactId = googleContactId;
+            await newInstaller.save();
+          }
+
+          results.googleContactsCreated++;
+        } catch (googleErr) {
+          console.error(`Failed to create Google contact for ${newInstaller.installerCode}:`, googleErr);
+          results.googleContactsFailed++;
+          // Don't fail the entire operation if Google contact creation fails
+        }
       } catch (err: unknown) {
         results.failed++;
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';

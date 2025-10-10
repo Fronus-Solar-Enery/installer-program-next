@@ -19,6 +19,8 @@ import {
 import { AlertCircle, CheckCircle2, Download, Trash2, Upload, ArrowLeft, Loader2 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { BANKS } from "@/lib/constants";
+import BulkUploadProgressModal, { UploadStep } from "@/components/BulkUploadProgressModal";
+import { toast } from "sonner";
 
 interface InstallerUpload {
   installerCode: string;
@@ -50,9 +52,15 @@ export default function BulkUploadInstallersPage() {
   const [success, setSuccess] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<InstallerUpload[]>([]);
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [uploadSteps, setUploadSteps] = useState<UploadStep[]>([]);
+  const [processedRecords, setProcessedRecords] = useState(0);
+  const [successCount, setSuccessCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
 
   const downloadTemplate = () => {
     setDownloadingTemplate(true);
+    toast.loading('Generating template...');
     try {
       const template = [
         {
@@ -67,7 +75,7 @@ export default function BulkUploadInstallersPage() {
           'Province': 'Sindh',
           'Training Center': 'Center A',
           'Company Name': 'ABC Company (optional)',
-          'Bank Name': 'HBL',
+          'Bank Name': 'HBL/KONNECT',
           'Account Number': '12345678901234',
           'Account Title': 'John Doe',
           'Certified': 'true',
@@ -87,9 +95,55 @@ export default function BulkUploadInstallersPage() {
       ];
 
       XLSX.writeFile(wb, 'installers_bulk_upload_template.xlsx');
+      toast.dismiss();
+      toast.success('Template downloaded successfully!');
+    } catch (err) {
+      console.error('Failed to download template:', err);
+      toast.dismiss();
+      toast.error('Failed to download template');
     } finally {
       setTimeout(() => setDownloadingTemplate(false), 500);
     }
+  };
+
+  // Formatting utilities
+  const formatCNIC = (cnic: string): string => {
+    // Remove all non-digit characters
+    const cleaned = cnic.replace(/\D/g, '');
+
+    // Format as #####-#######-#
+    if (cleaned.length === 13) {
+      return `${cleaned.slice(0, 5)}-${cleaned.slice(5, 12)}-${cleaned.slice(12)}`;
+    }
+
+    return cnic; // Return original if not 13 digits
+  };
+
+  const formatPhoneNumber = (phone: string): string => {
+    // Remove all non-digit characters
+    let cleaned = phone.replace(/\D/g, '');
+
+    // Remove leading 0 or 92
+    if (cleaned.startsWith('0')) {
+      cleaned = cleaned.substring(1);
+    } else if (cleaned.startsWith('92')) {
+      cleaned = cleaned.substring(2);
+    }
+
+    // Add +92 prefix
+    if (cleaned.length === 10) {
+      return `+92${cleaned}`;
+    }
+
+    return phone; // Return original if not valid
+  };
+
+  const capitalizeEachWord = (text: string): string => {
+    return text
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
   const validateCNIC = (cnic: string): boolean => {
@@ -99,9 +153,9 @@ export default function BulkUploadInstallersPage() {
   };
 
   const validatePhoneNumber = (phone: string): boolean => {
-    // Pakistan phone format: 03001234567 (11 digits starting with 03)
-    const phoneRegex = /^03\d{9}$/;
-    return phoneRegex.test(phone.replace(/[\s-]/g, ''));
+    // Pakistan phone format: +92XXXXXXXXXX (10 digits after +92)
+    const phoneRegex = /^\+92\d{10}$/;
+    return phoneRegex.test(phone);
   };
 
   const validateInstallerCode = (code: string): boolean => {
@@ -110,22 +164,20 @@ export default function BulkUploadInstallersPage() {
   };
 
   const normalizeBankName = (bankName: string): string => {
-    const normalizedInput = bankName.toLowerCase().trim();
-    const matchedBank = BANKS.find(bank =>
-      bank.label.toLowerCase() === normalizedInput ||
-      bank.value.toLowerCase() === normalizedInput ||
-      bank.shortcut.toLowerCase() === normalizedInput
-    );
-    return matchedBank ? matchedBank.label : bankName;
+    const trimmedInput = bankName.trim();
+
+    // STRICTLY match using case-sensitive matchcase field ONLY
+    // If matched, return the matchcase value (NOT label) for storage
+    const matchedBank = BANKS.find(bank => bank.matchcase === trimmedInput);
+
+    return matchedBank ? matchedBank.matchcase : bankName;
   };
 
   const validateBankName = useCallback((bankName: string): boolean => {
-    const normalizedInput = bankName.toLowerCase().trim();
-    return BANKS.some(bank =>
-      bank.label.toLowerCase() === normalizedInput ||
-      bank.value.toLowerCase() === normalizedInput ||
-      bank.shortcut.toLowerCase() === normalizedInput
-    );
+    const trimmedInput = bankName.trim();
+
+    // STRICTLY validate using case-sensitive matchcase field ONLY
+    return BANKS.some(bank => bank.matchcase === trimmedInput);
   }, []);
 
   const validateInstaller = useCallback((installer: Omit<InstallerUpload, 'issues' | 'isValid'>): string[] => {
@@ -142,10 +194,10 @@ export default function BulkUploadInstallersPage() {
       issues.push('Invalid CNIC format (should be: 12345-1234567-1)');
     }
     if (!installer.phoneNumber || !validatePhoneNumber(installer.phoneNumber)) {
-      issues.push('Invalid phone number format (should be: 03XXXXXXXXX)');
+      issues.push('Invalid phone number format (should be: +92XXXXXXXXXX)');
     }
     if (!installer.whatsappNumber || !validatePhoneNumber(installer.whatsappNumber)) {
-      issues.push('Invalid WhatsApp number format (should be: 03XXXXXXXXX)');
+      issues.push('Invalid WhatsApp number format (should be: +92XXXXXXXXXX)');
     }
     if (!installer.address || installer.address.length < 5) {
       issues.push('Address must be at least 5 characters');
@@ -162,7 +214,7 @@ export default function BulkUploadInstallersPage() {
     if (!installer.bankName || installer.bankName.length < 2) {
       issues.push('Bank name is required');
     } else if (!validateBankName(installer.bankName)) {
-      issues.push(`Bank name "${installer.bankName}" is not in the approved list`);
+      issues.push(`Bank name "${installer.bankName}" must match exactly (case-sensitive) with approved list`);
     }
     if (!installer.accountNumber || installer.accountNumber.length < 10) {
       issues.push('Account number must be at least 10 characters');
@@ -207,21 +259,39 @@ export default function BulkUploadInstallersPage() {
 
         const parsedInstallers: InstallerUpload[] = jsonData.map((row) => {
           const rawBankName = row['Bank Name']?.toString().trim() || '';
+          const rawFullName = row['Full Name']?.toString().trim() || '';
+          const rawAddress = row['Address']?.toString().trim() || '';
+          const rawCity = row['City']?.toString().trim() || '';
+          const rawProvince = row['Province']?.toString().trim() || '';
+          const rawTrainingCenter = row['Training Center']?.toString().trim() || '';
+          const rawCompanyName = row['Company Name']?.toString().trim() || '';
+          const rawAccountTitle = row['Account Title']?.toString().trim() || '';
+          const rawCNIC = row['CNIC']?.toString().trim() || '';
+          const rawPhoneNumber = row['Phone Number']?.toString().trim() || '';
+          const rawWhatsappNumber = row['WhatsApp Number']?.toString().trim() || '';
+
           const installer = {
+            // UPPERCASE fields
             installerCode: row['Installer Code']?.toString().trim().toUpperCase() || '',
-            fullName: row['Full Name']?.toString().trim() || '',
             referrerCode: row['Referrer Code']?.toString().trim().toUpperCase() || undefined,
-            cnic: row['CNIC']?.toString().trim() || '',
-            phoneNumber: row['Phone Number']?.toString().trim().replace(/[\s-]/g, '') || '',
-            whatsappNumber: row['WhatsApp Number']?.toString().trim().replace(/[\s-]/g, '') || '',
-            address: row['Address']?.toString().trim() || '',
-            city: row['City']?.toString().trim() || '',
-            province: row['Province']?.toString().trim() || '',
-            trainingCenter: row['Training Center']?.toString().trim() || '',
-            companyName: row['Company Name']?.toString().trim() || undefined,
+            accountNumber: row['Account Number']?.toString().trim().toUpperCase() || '',
+
+            // Capitalize Each Word fields
+            fullName: rawFullName ? capitalizeEachWord(rawFullName) : '',
+            address: rawAddress ? capitalizeEachWord(rawAddress) : '',
+            city: rawCity ? capitalizeEachWord(rawCity) : '',
+            province: rawProvince ? capitalizeEachWord(rawProvince) : '',
+            trainingCenter: rawTrainingCenter ? capitalizeEachWord(rawTrainingCenter) : '',
+            companyName: rawCompanyName ? capitalizeEachWord(rawCompanyName) : undefined,
+            accountTitle: rawAccountTitle ? capitalizeEachWord(rawAccountTitle) : '',
+
+            // Formatted fields
+            cnic: formatCNIC(rawCNIC),
+            phoneNumber: formatPhoneNumber(rawPhoneNumber),
+            whatsappNumber: formatPhoneNumber(rawWhatsappNumber),
+
+            // Other fields
             bankName: normalizeBankName(rawBankName),
-            accountNumber: row['Account Number']?.toString().trim() || '',
-            accountTitle: row['Account Title']?.toString().trim() || '',
             certified: row['Certified']?.toString().toLowerCase() === 'true' ? true : false,
           };
 
@@ -236,11 +306,14 @@ export default function BulkUploadInstallersPage() {
 
         setPreview(parsedInstallers);
         setError('');
+        toast.success(`Loaded ${parsedInstallers.length} records from file`);
 
         // Automatically validate against database after parsing
         validateAgainstDatabase(parsedInstallers);
       } catch (err: unknown) {
-        setError('Failed to parse Excel file: ' + (err instanceof Error ? err.message : 'Unknown error'));
+        const errorMsg = 'Failed to parse Excel file: ' + (err instanceof Error ? err.message : 'Unknown error');
+        setError(errorMsg);
+        toast.error(errorMsg);
         setPreview([]);
       }
     };
@@ -259,12 +332,31 @@ export default function BulkUploadInstallersPage() {
     setPreview(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleReset = () => {
+    setFile(null);
+    setPreview([]);
+    setError('');
+    setSuccess('');
+    setValidating(false);
+
+    // Reset file input
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+
+    toast.success('Form reset successfully');
+  };
+
   const downloadInvalidRecords = () => {
     setDownloadingInvalid(true);
+    const toastId = toast.loading('Generating invalid records file...');
     try {
       const invalidRecords = preview.filter(p => !p.isValid);
 
       if (invalidRecords.length === 0) {
+        toast.dismiss(toastId);
+        toast.error('No invalid records to download');
         return;
       }
 
@@ -312,6 +404,11 @@ export default function BulkUploadInstallersPage() {
 
       const timestamp = new Date().toISOString().slice(0, 10);
       XLSX.writeFile(wb, `invalid_installers_${timestamp}.xlsx`);
+      toast.dismiss(toastId);
+      toast.success(`Downloaded ${invalidRecords.length} invalid record(s)`);
+    } catch (err) {
+      toast.dismiss(toastId);
+      toast.error('Failed to download invalid records');
     } finally {
       setTimeout(() => setDownloadingInvalid(false), 500);
     }
@@ -321,21 +418,83 @@ export default function BulkUploadInstallersPage() {
     e.preventDefault();
 
     if (preview.length === 0) {
-      setError('No data to upload. Please select a valid Excel file.');
+      toast.error('No data to upload. Please select a valid Excel file.');
       return;
     }
 
     const invalidRows = preview.filter(p => !p.isValid);
     if (invalidRows.length > 0) {
-      setError(`Cannot upload: ${invalidRows.length} row(s) have validation issues. Please fix them first.`);
+      toast.error(`Cannot upload: ${invalidRows.length} row(s) have validation issues. Please fix them first.`);
       return;
     }
 
+    const validInstallers = preview.filter(p => p.isValid);
+    const totalRecords = validInstallers.length;
+
+    // Initialize progress modal
+    setShowProgressModal(true);
+    setProcessedRecords(0);
+    setSuccessCount(0);
+    setFailedCount(0);
     setLoading(true);
     setError('');
     setSuccess('');
 
+    // Initialize steps
+    const initialSteps: UploadStep[] = [
+      {
+        id: 'validate',
+        title: 'Validating Data',
+        description: 'Checking for duplicates and validating installer data',
+        status: 'processing',
+        progress: 0,
+      },
+      {
+        id: 'register',
+        title: 'Registering Installers',
+        description: `Processing ${totalRecords} installer(s)`,
+        status: 'pending',
+        progress: 0,
+      },
+      {
+        id: 'google',
+        title: 'Creating Google Contacts',
+        description: 'Syncing installer data with Google Contacts',
+        status: 'pending',
+        progress: 0,
+      },
+      {
+        id: 'activity',
+        title: 'Logging Activities',
+        description: 'Recording installation activities',
+        status: 'pending',
+        progress: 0,
+      },
+      {
+        id: 'complete',
+        title: 'Finalizing Upload',
+        description: 'Completing the bulk upload process',
+        status: 'pending',
+        progress: 0,
+      },
+    ];
+
+    setUploadSteps(initialSteps);
+
     try {
+      // Step 1: Validation
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setUploadSteps(prev => prev.map(step =>
+        step.id === 'validate'
+          ? { ...step, status: 'completed', progress: 100, details: `Validated ${totalRecords} records` }
+          : step
+      ));
+
+      // Step 2: Start registering installers
+      setUploadSteps(prev => prev.map(step =>
+        step.id === 'register' ? { ...step, status: 'processing' } : step
+      ));
+
       const response = await fetch('/api/installers/bulk-upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -345,15 +504,89 @@ export default function BulkUploadInstallersPage() {
       const data = await response.json();
 
       if (response.ok) {
+        // Step 2: Complete registration
+        setProcessedRecords(totalRecords);
+        setSuccessCount(data.data.success || 0);
+        setFailedCount(data.data.failed || 0);
+
+        setUploadSteps(prev => prev.map(step =>
+          step.id === 'register'
+            ? {
+                ...step,
+                status: 'completed',
+                progress: 100,
+                details: `Registered ${data.data.success} out of ${totalRecords} installers`,
+              }
+            : step
+        ));
+
+        // Step 3: Google Contacts
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setUploadSteps(prev => prev.map(step =>
+          step.id === 'google' ? { ...step, status: 'processing' } : step
+        ));
+
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setUploadSteps(prev => prev.map(step =>
+          step.id === 'google'
+            ? {
+                ...step,
+                status: 'completed',
+                progress: 100,
+                details: `Created ${data.data.googleContactsCreated || 0} Google contacts`,
+              }
+            : step
+        ));
+
+        // Step 4: Activity Logging
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setUploadSteps(prev => prev.map(step =>
+          step.id === 'activity' ? { ...step, status: 'processing' } : step
+        ));
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+        setUploadSteps(prev => prev.map(step =>
+          step.id === 'activity'
+            ? {
+                ...step,
+                status: 'completed',
+                progress: 100,
+                details: `Logged ${data.data.success} activities`,
+              }
+            : step
+        ));
+
+        // Step 5: Complete
+        await new Promise(resolve => setTimeout(resolve, 300));
+        setUploadSteps(prev => prev.map(step =>
+          step.id === 'complete'
+            ? {
+                ...step,
+                status: 'completed',
+                progress: 100,
+                details: 'Upload process completed successfully',
+              }
+            : { ...step, status: step.status === 'pending' ? 'completed' : step.status }
+        ));
+
         setSuccess(`Successfully uploaded ${data.data.success} installer(s)!`);
-        setTimeout(() => {
-          router.push('/installers');
-        }, 2000);
       } else {
+        // Handle error
+        setUploadSteps(prev => prev.map(step =>
+          step.status === 'processing'
+            ? { ...step, status: 'error', error: data.error || 'Upload failed' }
+            : step
+        ));
         setError(data.error || 'Upload failed');
       }
     } catch (err: unknown) {
-      setError('Failed to upload installers: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setUploadSteps(prev => prev.map(step =>
+        step.status === 'processing'
+          ? { ...step, status: 'error', error: errorMessage }
+          : step
+      ));
+      setError('Failed to upload installers: ' + errorMessage);
     } finally {
       setLoading(false);
     }
@@ -409,13 +642,28 @@ export default function BulkUploadInstallersPage() {
               </div>
 
               <div className="pt-4 border-t">
-                <p className="text-sm font-medium mb-2">Validation Rules:</p>
+                <p className="text-sm font-medium mb-2">Formatting Rules:</p>
                 <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>CNIC format: 12345-1234567-1 (13 digits with dashes)</li>
-                  <li>Phone numbers: 03XXXXXXXXX (11 digits starting with 03)</li>
+                  <li>CNIC: Auto-formatted as #####-#######-# (enter 13 digits)</li>
+                  <li>Phone/WhatsApp: Auto-formatted as +92XXXXXXXXXX (enter 11 digits)</li>
+                  <li>Names/Addresses: Auto-capitalized (Each Word Capitalized)</li>
+                  <li>Codes/Account Numbers: Auto-converted to UPPERCASE</li>
+                </ul>
+                <p className="text-sm font-medium mb-2 mt-3">Validation Rules:</p>
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                   <li>Installer code must be unique</li>
                   <li>All required fields must be filled</li>
+                  <li><strong className="text-amber-600">Bank name MUST match exactly (case-sensitive)</strong></li>
                 </ul>
+                <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md">
+                  <p className="text-xs font-medium text-amber-900 dark:text-amber-100 mb-1">Valid Bank Name Examples:</p>
+                  <p className="text-xs text-amber-800 dark:text-amber-200 font-mono">
+                    HBL/KONNECT, MCB, UBL, ABL, NBP, Meezan Bank, Bank Alfalah, Mobilink Bank/JazzCash, Telenor Microfinance Bank
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-2">
+                    ⚠️ Must match exactly - &quot;HBL&quot; will NOT work, use &quot;HBL/KONNECT&quot;
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -493,14 +741,25 @@ export default function BulkUploadInstallersPage() {
                 )}
 
                 {preview.length > 0 && (
-                  <Button type="submit" disabled={loading || invalidCount > 0 || validating}>
-                    {loading ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Upload className="h-4 w-4 mr-2" />
-                    )}
-                    {loading ? 'Uploading...' : validating ? 'Validating...' : `Upload ${validCount} Valid Record(s)`}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={loading || invalidCount > 0 || validating}>
+                      {loading ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-2" />
+                      )}
+                      {loading ? 'Uploading...' : validating ? 'Validating...' : `Upload ${validCount} Valid Record(s)`}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleReset}
+                      disabled={loading || validating}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Reset
+                    </Button>
+                  </div>
                 )}
               </form>
             </CardContent>
@@ -588,6 +847,22 @@ export default function BulkUploadInstallersPage() {
           )}
         </div>
       </div>
+
+      {/* Progress Modal */}
+      <BulkUploadProgressModal
+        isOpen={showProgressModal}
+        steps={uploadSteps}
+        totalRecords={preview.filter(p => p.isValid).length}
+        processedRecords={processedRecords}
+        successCount={successCount}
+        failedCount={failedCount}
+        onClose={() => {
+          setShowProgressModal(false);
+          if (success) {
+            setTimeout(() => router.push('/installers'), 500);
+          }
+        }}
+      />
     </div>
   );
 }

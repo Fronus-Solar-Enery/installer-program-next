@@ -122,7 +122,7 @@ export async function createGoogleContact(
     const formattedWhatsApp = formatPhoneNumber(data.whatsappNumber);
 
     // Build phone numbers array - only add WhatsApp separately if different
-    const phoneNumbers: any[] = [
+    const phoneNumbers: Array<{ value: string; type: string; formattedType?: string }> = [
       {
         value: formattedPhone,
         type: "mobile",
@@ -187,16 +187,17 @@ export async function createGoogleContact(
       response.data.resourceName
     );
     return response.data.resourceName || null;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating Google contact:", error);
-    if (error.response) {
+    if (error && typeof error === 'object' && 'response' in error) {
+      const apiError = error as { response?: { status?: number; statusText?: string; data?: unknown } };
       console.error("API Response Error:", {
-        status: error.response.status,
-        statusText: error.response.statusText,
-        data: error.response.data,
+        status: apiError.response?.status,
+        statusText: apiError.response?.statusText,
+        data: apiError.response?.data,
       });
     }
-    if (error.message) {
+    if (error instanceof Error) {
       console.error("Error message:", error.message);
     }
     return null;
@@ -233,7 +234,7 @@ export async function updateGoogleContact(
     const formattedWhatsApp = formatPhoneNumber(data.whatsappNumber);
 
     // Build phone numbers array - only add WhatsApp separately if different
-    const phoneNumbers: any[] = [
+    const phoneNumbers: Array<{ value: string; type: string; formattedType?: string }> = [
       {
         value: formattedPhone,
         type: "mobile",
@@ -333,9 +334,10 @@ export async function deleteGoogleContact(
     });
 
     return true;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // If contact not found (404), consider it as successfully deleted (contact doesn't exist anymore)
-    if (error.code === 404 || error.status === 404) {
+    const apiError = error as { code?: number; status?: number };
+    if (apiError.code === 404 || apiError.status === 404) {
       console.warn(`Google contact not found (already deleted or doesn't exist): ${resourceName}`);
       return true;
     }

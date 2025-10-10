@@ -185,10 +185,18 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     // Delete Google Contact
     if (installer.googleContactId) {
       try {
-        await deleteGoogleContact(session.user.id, installer.googleContactId);
+        console.log(`Attempting to delete Google contact: ${installer.googleContactId} for installer: ${installer.installerCode}`);
+        const deleted = await deleteGoogleContact(session.user.id, installer.googleContactId);
+        if (deleted) {
+          console.log(`Successfully deleted Google contact for installer: ${installer.installerCode}`);
+        } else {
+          console.warn(`Failed to delete Google contact for installer: ${installer.installerCode}`);
+        }
       } catch (error) {
-        console.error('Failed to delete Google contact:', error);
+        console.error(`Error deleting Google contact for installer ${installer.installerCode}:`, error);
       }
+    } else {
+      console.log(`No Google contact ID found for installer: ${installer.installerCode}`);
     }
 
     await installer.deleteOne();

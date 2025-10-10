@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 
 export class ApiResponse {
-  static success(data: any, message?: string, status = 200) {
+  static success(data: unknown, message?: string, status = 200) {
     return NextResponse.json(
       {
         success: true,
@@ -13,7 +13,7 @@ export class ApiResponse {
     );
   }
 
-  static error(message: string, status = 400, errors?: any) {
+  static error(message: string, status = 400, errors?: Record<string, string[]> | unknown) {
     return NextResponse.json(
       {
         success: false,
@@ -24,18 +24,20 @@ export class ApiResponse {
     );
   }
 
-  static validationError(errors: any, message?: string) {
+  static validationError(errors: Array<{ path?: (string | number)[]; message: string }> | Record<string, string[]>, message?: string) {
     // Format Zod errors into field-level errors
     const formattedErrors: Record<string, string[]> = {};
 
     if (Array.isArray(errors)) {
-      errors.forEach((error: any) => {
+      errors.forEach((error) => {
         const path = error.path?.join('.') || 'general';
         if (!formattedErrors[path]) {
           formattedErrors[path] = [];
         }
         formattedErrors[path].push(error.message);
       });
+    } else {
+      return this.error(message || 'Please check the form for errors', 400, errors);
     }
 
     return this.error(
@@ -80,7 +82,18 @@ function formatFieldName(field: string): string {
     .replace(/^\w/, (c) => c.toUpperCase());
 }
 
-export function handleApiError(error: any) {
+interface MongoError {
+  name?: string;
+  code?: number;
+  keyPattern?: Record<string, unknown>;
+  keyValue?: Record<string, unknown>;
+  errors?: Record<string, { message: string }>;
+  message?: string;
+  statusCode?: number;
+  status?: number;
+}
+
+export function handleApiError(error: unknown) {
   console.error('API Error:', error);
 
   // Handle Zod validation errors
@@ -88,20 +101,22 @@ export function handleApiError(error: any) {
     return ApiResponse.validationError(error.issues);
   }
 
+  const mongoError = error as MongoError;
+
   // Handle Mongoose validation errors
-  if (error.name === 'ValidationError') {
+  if (mongoError.name === 'ValidationError' && mongoError.errors) {
     const formattedErrors: Record<string, string[]> = {};
-    Object.keys(error.errors).forEach((field) => {
-      formattedErrors[field] = [error.errors[field].message];
+    Object.keys(mongoError.errors).forEach((field) => {
+      formattedErrors[field] = [mongoError.errors![field].message];
     });
     return ApiResponse.validationError(formattedErrors, 'Please check the form for errors');
   }
 
   // Handle MongoDB duplicate key error (11000)
-  if (error.code === 11000) {
-    const field = Object.keys(error.keyPattern)[0];
+  if (mongoError.code === 11000 && mongoError.keyPattern && mongoError.keyValue) {
+    const field = Object.keys(mongoError.keyPattern)[0];
     const fieldName = formatFieldName(field);
-    const value = error.keyValue[field];
+    const value = mongoError.keyValue[field];
 
     let message = `${fieldName} "${value}" is already in use`;
 
@@ -120,39 +135,45 @@ export function handleApiError(error: any) {
   }
 
   // Handle Cast errors (invalid MongoDB ObjectId)
-  if (error.name === 'CastError') {
+  if (mongoError.name === 'CastError') {
     return ApiResponse.badRequest('Invalid ID format provided');
   }
 
   // Handle network/connection errors
-  if (error.message?.includes('ECONNREFUSED') || error.message?.includes('ETIMEDOUT')) {
+  if (mongoError.message?.includes('ECONNREFUSED') || mongoError.message?.includes('ETIMEDOUT')) {
     return ApiResponse.serverError('Database connection failed. Please try again later.');
   }
 
   // Handle authentication errors
-  if (error.message?.includes('jwt') || error.message?.includes('token')) {
+  if (mongoError.message?.includes('jwt') || mongoError.message?.includes('token')) {
     return ApiResponse.unauthorized('Your session has expired. Please sign in again.');
   }
 
   // Generic error handler
-  const message = error.message || 'An unexpected error occurred';
-  const status = error.statusCode || error.status || 500;
+  const message = mongoError.message || 'An unexpected error occurred';
+  const status = mongoError.statusCode || mongoError.status || 500;
 
   return ApiResponse.error(message, status);
 }
 
 // Helper to extract error message from various error formats
-export function extractErrorMessage(error: any): string {
+export function extractErrorMessage(error: unknown): string {
   if (typeof error === 'string') return error;
-  if (error?.message) return error.message;
-  if (error?.error) return extractErrorMessage(error.error);
+  if (error && typeof error === 'object') {
+    const err = error as { message?: string; error?: unknown };
+    if (err.message) return err.message;
+    if (err.error) return extractErrorMessage(err.error);
+  }
   return 'An unexpected error occurred';
 }
 
 // Helper to extract field errors from API response
-export function extractFieldErrors(error: any): Record<string, string[]> | null {
-  if (error?.errors && typeof error.errors === 'object') {
-    return error.errors;
+export function extractFieldErrors(error: unknown): Record<string, string[]> | null {
+  if (error && typeof error === 'object' && 'errors' in error) {
+    const err = error as { errors: unknown };
+    if (typeof err.errors === 'object' && err.errors !== null) {
+      return err.errors as Record<string, string[]>;
+    }
   }
   return null;
 }

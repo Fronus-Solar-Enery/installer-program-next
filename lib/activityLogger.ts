@@ -8,7 +8,7 @@ interface LogActivityParams {
   targetId: string | Types.ObjectId;
   targetName?: string;
   description: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
 }
@@ -39,8 +39,8 @@ export async function logActivity(params: LogActivityParams): Promise<void> {
 /**
  * Helper to extract before/after changes for updates
  */
-export function getChanges(oldData: any, newData: any): Record<string, any> {
-  const changes: Record<string, any> = {};
+export function getChanges(oldData: Record<string, unknown>, newData: Record<string, unknown>): Record<string, { before: unknown; after: unknown }> {
+  const changes: Record<string, { before: unknown; after: unknown }> = {};
 
   for (const key in newData) {
     if (newData[key] !== undefined && oldData[key] !== newData[key]) {

@@ -59,6 +59,10 @@ export default function InstallersPage() {
   const [authLoading, setAuthLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Bulk selection state
+  const [selectedInstallers, setSelectedInstallers] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedInstallerId, setSelectedInstallerId] = useState('');
@@ -184,6 +188,12 @@ export default function InstallersPage() {
         toast.success(`Installer "${installerName}" deleted successfully!`);
         // Remove from local state
         setInstallers(prev => prev.filter(i => i._id !== installerId));
+        // Remove from selection if selected
+        setSelectedInstallers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(installerId);
+          return newSet;
+        });
       } else {
         toast.error(data.error || 'Failed to delete installer');
       }
@@ -192,6 +202,97 @@ export default function InstallersPage() {
       toast.error('An error occurred while deleting the installer');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  // Bulk delete handler
+  const handleBulkDelete = async () => {
+    if (selectedInstallers.size === 0) return;
+
+    setBulkDeleting(true);
+    const toastId = toast.loading(`Deleting ${selectedInstallers.size} installer(s)...`);
+
+    try {
+      let successCount = 0;
+      let failCount = 0;
+      const errors: string[] = [];
+
+      // Delete installers one by one
+      for (const installerId of selectedInstallers) {
+        try {
+          const response = await fetch(`/api/installers/${installerId}`, {
+            method: 'DELETE',
+          });
+
+          if (response.ok) {
+            successCount++;
+            // Remove from local state
+            setInstallers(prev => prev.filter(i => i._id !== installerId));
+          } else {
+            failCount++;
+            const data = await response.json();
+            errors.push(data.error || 'Unknown error');
+          }
+        } catch (error) {
+          failCount++;
+          errors.push('Network error');
+        }
+      }
+
+      // Clear selection
+      setSelectedInstallers(new Set());
+
+      // Show results
+      toast.dismiss(toastId);
+      if (successCount > 0 && failCount === 0) {
+        toast.success(`Successfully deleted ${successCount} installer(s)!`);
+      } else if (successCount > 0 && failCount > 0) {
+        toast.warning(`Deleted ${successCount} installer(s), ${failCount} failed`);
+      } else {
+        toast.error(`Failed to delete installers: ${errors[0]}`);
+      }
+    } catch (error) {
+      toast.dismiss(toastId);
+      console.error('Bulk delete error:', error);
+      toast.error('An error occurred during bulk delete');
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  // Toggle individual selection
+  const toggleSelection = (installerId: string) => {
+    setSelectedInstallers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(installerId)) {
+        newSet.delete(installerId);
+      } else {
+        newSet.add(installerId);
+      }
+      return newSet;
+    });
+  };
+
+  // Toggle all on current page
+  const toggleSelectAll = () => {
+    const currentPageIds = paginatedInstallers.map(i => i._id);
+
+    // If all on current page are selected, deselect all
+    const allSelected = currentPageIds.every(id => selectedInstallers.has(id));
+
+    if (allSelected) {
+      setSelectedInstallers(prev => {
+        const newSet = new Set(prev);
+        currentPageIds.forEach(id => newSet.delete(id));
+        return newSet;
+      });
+    } else {
+      // Select all on current page
+      setSelectedInstallers(prev => {
+        const newSet = new Set(prev);
+        currentPageIds.forEach(id => newSet.add(id));
+        return newSet;
+      });
     }
   };
 
@@ -539,6 +640,43 @@ export default function InstallersPage() {
                     )}
                     {downloadingReport ? 'Downloading...' : 'Download Report'}
                   </Button>
+                  {selectedInstallers.size > 0 && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={bulkDeleting}
+                        >
+                          {bulkDeleting ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 mr-2" />
+                          )}
+                          Delete Selected ({selectedInstallers.size})
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete {selectedInstallers.size} Installer(s)?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the selected installers and their Google Contacts.
+                            <br /><br />
+                            <strong>Note:</strong> Installers with existing rewards cannot be deleted.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleBulkDelete}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete {selectedInstallers.size} Installer(s)
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -911,6 +1049,15 @@ export default function InstallersPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <input
+                        type="checkbox"
+                        className="cursor-pointer h-4 w-4 rounded border-gray-300"
+                        checked={paginatedInstallers.length > 0 && paginatedInstallers.every(i => selectedInstallers.has(i._id))}
+                        onChange={toggleSelectAll}
+                        aria-label="Select all installers on this page"
+                      />
+                    </TableHead>
                     {visibleColumns.installerCode && (
                       <TableHead
                         className="cursor-pointer hover:bg-muted/50"
@@ -984,6 +1131,15 @@ export default function InstallersPage() {
                       id={`installer-${installer._id}`}
                       className="transition-colors"
                     >
+                      <TableCell>
+                        <input
+                          type="checkbox"
+                          className="cursor-pointer h-4 w-4 rounded border-gray-300"
+                          checked={selectedInstallers.has(installer._id)}
+                          onChange={() => toggleSelection(installer._id)}
+                          aria-label={`Select ${installer.fullName}`}
+                        />
+                      </TableCell>
                       {visibleColumns.installerCode && (
                         <TableCell className="font-medium">
                           <Button
