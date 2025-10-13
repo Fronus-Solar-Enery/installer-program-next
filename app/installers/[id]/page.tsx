@@ -25,6 +25,7 @@ import {
 import { toast } from 'sonner';
 import { TeamRole } from '@/types/roles';
 import PageHeader from '@/components/PageHeader';
+import InstallerEditModal from '@/components/InstallerEditModal';
 
 interface InstallerDetails {
   _id: string;
@@ -106,6 +107,7 @@ export default function InstallerDetailsPage() {
   const [deleting, setDeleting] = useState(false);
   const [installer, setInstaller] = useState<InstallerDetails | null>(null);
   const [statistics, setStatistics] = useState<Statistics | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
   const [error, setError] = useState('');
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -289,7 +291,7 @@ export default function InstallerDetailsPage() {
               Back to Installers
             </Button>
             <Button
-              onClick={() => router.push(`/installers/${installerId}/edit`)}
+              onClick={() => setEditModalOpen(true)}
               variant="default"
             >
               <Edit className="h-4 w-4 mr-2" />
@@ -420,9 +422,9 @@ export default function InstallerDetailsPage() {
 
         {/* Revenue Statistics */}
         {statistics && (
-          <Card className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white mb-6">
+          <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="text-white">Revenue Statistics</CardTitle>
+              <CardTitle>Revenue Statistics</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -924,6 +926,14 @@ export default function InstallerDetailsPage() {
         </Tabs>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      <InstallerEditModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        installerId={installerId}
+        onSuccess={fetchInstaller}
+      />
     </div>
   );
 }

@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useSession } from 'next-auth/react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import Sidebar from '@/components/Sidebar';
-import TopNavbar from '@/components/TopNavbar';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useSession } from "next-auth/react";
+import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import Sidebar from "@/components/Sidebar";
+import TopNavbar from "@/components/TopNavbar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -18,15 +18,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Don't show layout on auth pages
-  const isAuthPage = pathname?.startsWith('/auth');
+  const isAuthPage = pathname?.startsWith("/auth");
 
   useEffect(() => {
-    if (status === 'unauthenticated' && !isAuthPage) {
-      router.push('/auth/signin');
+    if (status === "unauthenticated" && !isAuthPage) {
+      router.push("/auth/signin");
     }
   }, [status, router, isAuthPage]);
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Skeleton className="h-8 w-32" />
@@ -44,19 +44,23 @@ export default function AppLayout({ children }: AppLayoutProps) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen overflow-hidden bg-zinc-200 dark:bg-zinc-950">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onCollapsedChange={setSidebarCollapsed}
+      />
 
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col overflow-hidden" style={{ marginLeft: sidebarCollapsed ? '64px' : '256px' }}>
+      <div
+        className="flex flex-1 flex-col overflow-hidden transition-all duration-300"
+        style={{ marginLeft: sidebarCollapsed ? "64px" : "256px" }}
+      >
         {/* Top Navbar */}
         <TopNavbar />
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-muted/10">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto bg-muted/10">{children}</main>
       </div>
     </div>
   );

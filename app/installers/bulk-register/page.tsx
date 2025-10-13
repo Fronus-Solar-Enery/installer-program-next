@@ -495,7 +495,7 @@ export default function BulkUploadInstallersPage() {
         step.id === 'register' ? { ...step, status: 'processing' } : step
       ));
 
-      const response = await fetch('/api/installers/bulk-upload', {
+      const response = await fetch('/api/installers/bulk-register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ installers: preview }),

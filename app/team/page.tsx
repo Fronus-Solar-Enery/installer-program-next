@@ -10,7 +10,14 @@ import TeamRegisterModal from "@/components/TeamRegisterModal";
 import { Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -36,9 +43,10 @@ export default function TeamPage() {
   const [selectedTeamMemberId, setSelectedTeamMemberId] = useState("");
 
   // Check authorization - memoized to prevent recalculation
-  const canAccessTeamManagement = useMemo(() =>
-    session?.user?.role === TeamRole.ADMIN ||
-    session?.user?.role === TeamRole.MANAGER,
+  const canAccessTeamManagement = useMemo(
+    () =>
+      session?.user?.role === TeamRole.ADMIN ||
+      session?.user?.role === TeamRole.MANAGER,
     [session?.user?.role]
   );
 
@@ -74,28 +82,31 @@ export default function TeamPage() {
     }
   }, [canAccessTeamManagement, fetchTeamMembers]);
 
-  const handleDelete = useCallback(async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete ${name}?`)) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/team/${id}`, {
-        method: "DELETE",
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        toast.success("Team member deleted successfully");
-        fetchTeamMembers();
-      } else {
-        toast.error(data.error || "Failed to delete team member");
+  const handleDelete = useCallback(
+    async (id: string, name: string) => {
+      if (!confirm(`Are you sure you want to delete ${name}?`)) {
+        return;
       }
-    } catch (err) {
-      toast.error("An error occurred while deleting team member");
-    }
-  }, [fetchTeamMembers]);
+
+      try {
+        const response = await fetch(`/api/team/${id}`, {
+          method: "DELETE",
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          toast.success("Team member deleted successfully");
+          fetchTeamMembers();
+        } else {
+          toast.error(data.error || "Failed to delete team member");
+        }
+      } catch (err) {
+        toast.error("An error occurred while deleting team member");
+      }
+    },
+    [fetchTeamMembers]
+  );
 
   if (!canAccessTeamManagement) {
     return null;
@@ -122,7 +133,7 @@ export default function TeamPage() {
             <p className="text-muted-foreground">Loading team members...</p>
           </Card>
         ) : (
-          <Card>
+          <Card className="overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -154,11 +165,15 @@ export default function TeamPage() {
                         {member.email}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={
-                          member.role === TeamRole.ADMIN ? "destructive" :
-                          member.role === TeamRole.MANAGER ? "default" :
-                          "secondary"
-                        }>
+                        <Badge
+                          variant={
+                            member.role === TeamRole.ADMIN
+                              ? "destructive"
+                              : member.role === TeamRole.MANAGER
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
                           {member.role}
                         </Badge>
                       </TableCell>
@@ -238,8 +253,8 @@ export default function TeamPage() {
                 and USER accounts
               </p>
               <p>
-                <span className="font-medium">USER:</span> Can register installers
-                and rewards
+                <span className="font-medium">USER:</span> Can register
+                installers and rewards
               </p>
             </div>
           </AlertDescription>

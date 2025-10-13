@@ -1,10 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import Modal from './Modal';
-import { TeamRole } from '@/types/roles';
-import { toast } from 'sonner';
+import { useState, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
+import Modal from "./Modal";
+import { TeamRole } from "@/types/roles";
+import { toast } from "sonner";
+import { Label } from "./ui/label";
+import { Input } from "./ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Button } from "./ui/button";
 
 interface TeamEditModalProps {
   open: boolean;
@@ -13,38 +23,41 @@ interface TeamEditModalProps {
   onSuccess: () => void;
 }
 
-export default function TeamEditModal({ open, onOpenChange, teamMemberId, onSuccess }: TeamEditModalProps) {
+interface TeamMemberData {
+  _id: string;
+  name: string;
+  email: string;
+  role: TeamRole;
+  googleId?: string;
+}
+
+interface UpdateTeamData {
+  name: string;
+  email: string;
+  role: TeamRole;
+  password?: string;
+}
+
+export default function TeamEditModal({
+  open,
+  onOpenChange,
+  teamMemberId,
+  onSuccess,
+}: TeamEditModalProps) {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
-  const [teamMember, setTeamMember] = useState<any>(null);
+  const [teamMember, setTeamMember] = useState<TeamMemberData | null>(null);
 
   // Form fields
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [role, setRole] = useState<TeamRole>(TeamRole.USER);
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState("");
 
   const isAdmin = session?.user?.role === TeamRole.ADMIN;
   const isManager = session?.user?.role === TeamRole.MANAGER;
 
-  useEffect(() => {
-    if (open && teamMemberId) {
-      fetchTeamMember();
-    }
-  }, [open, teamMemberId]);
-
-  useEffect(() => {
-    if (!open) {
-      // Reset form when modal closes
-      setName('');
-      setEmail('');
-      setRole(TeamRole.USER);
-      setPassword('');
-      setTeamMember(null);
-    }
-  }, [open]);
-
-  const fetchTeamMember = async () => {
+  const fetchTeamMember = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`/api/team/${teamMemberId}`);
@@ -53,26 +66,43 @@ export default function TeamEditModal({ open, onOpenChange, teamMemberId, onSucc
       if (data.success) {
         const member = data.data;
         setTeamMember(member);
-        setName(member.name || '');
-        setEmail(member.email || '');
+        setName(member.name || "");
+        setEmail(member.email || "");
         setRole(member.role || TeamRole.USER);
       } else {
-        toast.error('Failed to load team member');
+        toast.error("Failed to load team member");
       }
     } catch (error) {
-      console.error('Error fetching team member:', error);
-      toast.error('Failed to load team member data');
+      console.error("Error fetching team member:", error);
+      toast.error("Failed to load team member data");
     } finally {
       setLoading(false);
     }
-  };
+  }, [teamMemberId]);
+
+  useEffect(() => {
+    if (open && teamMemberId) {
+      fetchTeamMember();
+    }
+  }, [open, teamMemberId, fetchTeamMember]);
+
+  useEffect(() => {
+    if (!open) {
+      // Reset form when modal closes
+      setName("");
+      setEmail("");
+      setRole(TeamRole.USER);
+      setPassword("");
+      setTeamMember(null);
+    }
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const updateData: any = {
+      const updateData: UpdateTeamData = {
         name,
         email,
         role,
@@ -84,23 +114,23 @@ export default function TeamEditModal({ open, onOpenChange, teamMemberId, onSucc
       }
 
       const response = await fetch(`/api/team/${teamMemberId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updateData),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Team member updated successfully');
+        toast.success("Team member updated successfully");
         onSuccess();
         onOpenChange(false);
       } else {
-        toast.error(data.error || 'Failed to update team member');
+        toast.error(data.error || "Failed to update team member");
       }
     } catch (error) {
-      console.error('Error updating team member:', error);
-      toast.error('An error occurred while updating team member');
+      console.error("Error updating team member:", error);
+      toast.error("An error occurred while updating team member");
     } finally {
       setLoading(false);
     }
@@ -123,7 +153,6 @@ export default function TeamEditModal({ open, onOpenChange, teamMemberId, onSucc
       title="Edit Team Member"
       description="Update team member details"
       size="md"
-      openInTabUrl={`/team/${teamMemberId}/edit`}
     >
       {loading && !teamMember ? (
         <div className="py-8 text-center">
@@ -133,53 +162,55 @@ export default function TeamEditModal({ open, onOpenChange, teamMemberId, onSucc
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-foreground">
+            <Label htmlFor="name">
               Name <span className="text-red-500">*</span>
-            </label>
-            <input
+            </Label>
+            <Input
               type="text"
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
             />
           </div>
 
           {/* Email */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-foreground">
+            <Label htmlFor="email">
               Email <span className="text-red-500">*</span>
-            </label>
-            <input
+            </Label>
+            <Input
               type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
             />
           </div>
 
           {/* Role */}
           <div>
-            <label htmlFor="role" className="block text-sm font-medium text-foreground">
+            <Label htmlFor="role">
               Role <span className="text-red-500">*</span>
-            </label>
-            <select
-              id="role"
+            </Label>
+
+            <Select
               value={role}
-              onChange={(e) => setRole(e.target.value as TeamRole)}
-              required
-              disabled={!isAdmin && !isManager}
-              className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border disabled:bg-muted disabled:cursor-not-allowed"
+              onValueChange={(value) => setRole(value as TeamRole)}
             >
-              {availableRoles().map((roleOption) => (
-                <option key={roleOption} value={roleOption}>
-                  {roleOption}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder="All cities" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All cities</SelectItem>
+                {availableRoles().map((roleOption) => (
+                  <SelectItem key={roleOption} value={roleOption}>
+                    {roleOption}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             {!isAdmin && !isManager && (
               <p className="mt-1 text-sm text-muted-foreground">
                 Only admins and managers can change roles
@@ -189,16 +220,18 @@ export default function TeamEditModal({ open, onOpenChange, teamMemberId, onSucc
 
           {/* Password (Optional) */}
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-foreground">
-              New Password <span className="text-muted-foreground text-xs">(leave blank to keep current)</span>
-            </label>
-            <input
+            <Label htmlFor="password">
+              New Password{" "}
+              <span className="text-muted-foreground text-xs">
+                (leave blank to keep current)
+              </span>
+            </Label>
+            <Input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter new password (optional)"
-              className="mt-1 block w-full rounded-md border-border shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"
             />
           </div>
 
@@ -231,20 +264,16 @@ export default function TeamEditModal({ open, onOpenChange, teamMemberId, onSucc
 
           {/* Submit Button */}
           <div className="flex justify-end gap-3 pt-4">
-            <button
+            <Button
               type="button"
+              variant={"secondary"}
               onClick={() => onOpenChange(false)}
-              className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-border rounded-md hover:bg-muted"
             >
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:bg-muted disabled:cursor-not-allowed"
-            >
-              {loading ? 'Updating...' : 'Update Team Member'}
-            </button>
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Updating..." : "Update Team Member"}
+            </Button>
           </div>
         </form>
       )}

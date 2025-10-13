@@ -1,23 +1,52 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import InstallerEditModal from '@/components/InstallerEditModal';
-import { Edit, Eye, ArrowUpDown, ArrowUp, ArrowDown, Settings2, Trash2, Users, CheckCircle, XCircle, MapPin, Filter, X, Calendar, ChevronLeft, ChevronRight, FileDown, TrendingUp, DollarSign, Gift, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useEffect, useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import InstallerEditModal from "@/components/InstallerEditModal";
+import {
+  Edit,
+  Eye,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
+  Users,
+  CheckCircle,
+  XCircle,
+  MapPin,
+  Filter,
+  X,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  FileDown,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableFooter,
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,19 +57,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { toast } from 'sonner';
-import { TeamRole } from '@/types/roles';
-import PageHeader from '@/components/PageHeader';
-import { IInstaller } from '@/models/Installer';
-import { RangeCalendar } from '@heroui/react';
-import { parseDate, today, getLocalTimeZone } from '@internationalized/date';
-import type { DateRange } from '@react-types/calendar';
+} from "@/components/ui/popover";
+import { toast } from "sonner";
+import { TeamRole } from "@/types/roles";
+import PageHeader from "@/components/PageHeader";
+import { IInstaller } from "@/models/Installer";
+import { RangeCalendar } from "@heroui/react";
+import { parseDate, today, getLocalTimeZone } from "@internationalized/date";
+import type { DateRange } from "@react-types/calendar";
+import Dropdown, {
+  DropdownContent,
+  DropdownTrigger,
+} from "@/components/ui/dropdown";
+import IconArrowUpDown from "@/components/icons/ArrowUpDown";
+import IconSettings from "@/components/icons/Settings";
+import IconLayer from "@/components/icons/Layer";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 interface InstallerWithId extends IInstaller {
   _id: string;
@@ -51,7 +89,7 @@ export default function InstallersPage() {
   const { data: session } = useSession();
   const [installers, setInstallers] = useState<InstallerWithId[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [googleAuthStatus, setGoogleAuthStatus] = useState<{
     isAuthenticated: boolean;
     hasRefreshToken: boolean;
@@ -60,16 +98,19 @@ export default function InstallersPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Bulk selection state
-  const [selectedInstallers, setSelectedInstallers] = useState<Set<string>>(new Set());
+  const [selectedInstallers, setSelectedInstallers] = useState<Set<string>>(
+    new Set()
+  );
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
   // Edit modal state
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [selectedInstallerId, setSelectedInstallerId] = useState('');
+  const [selectedInstallerId, setSelectedInstallerId] = useState("");
 
   // Sorting state
-  const [sortField, setSortField] = useState<keyof InstallerWithId>('createdAt');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [sortField, setSortField] =
+    useState<keyof InstallerWithId>("createdAt");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState({
@@ -89,14 +130,14 @@ export default function InstallersPage() {
 
   // Filter state
   const [filters, setFilters] = useState({
-    city: '',
-    province: '',
-    trainingCenter: '',
-    certified: '',
-    bankName: '',
-    dateRange: 'all' as 'all' | 'today' | 'week' | 'month' | 'year' | 'custom',
-    customStartDate: '',
-    customEndDate: '',
+    city: "",
+    province: "",
+    trainingCenter: "",
+    certified: "",
+    bankName: "",
+    dateRange: "all" as "all" | "today" | "week" | "month" | "year" | "custom",
+    customStartDate: "",
+    customEndDate: "",
   });
   const [showFilters, setShowFilters] = useState(false);
   const [calendarPopoverOpen, setCalendarPopoverOpen] = useState(false);
@@ -104,7 +145,7 @@ export default function InstallersPage() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [downloadingReport, setDownloadingReport] = useState(false);
 
   useEffect(() => {
@@ -113,22 +154,22 @@ export default function InstallersPage() {
 
     // Check for auth callback success
     const params = new URLSearchParams(window.location.search);
-    if (params.get('auth_success')) {
+    if (params.get("auth_success")) {
       checkGoogleAuthStatus(); // Refresh status
-      window.history.replaceState({}, '', '/installers');
+      window.history.replaceState({}, "", "/installers");
     }
 
     // Check for search result ID from navbar
-    const searchId = params.get('id');
+    const searchId = params.get("id");
     if (searchId) {
       setSelectedInstallerId(searchId);
       // Scroll to the row after a short delay
       setTimeout(() => {
         const element = document.getElementById(`installer-${searchId}`);
         if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          element.classList.add('bg-primary/10');
-          setTimeout(() => element.classList.remove('bg-primary/10'), 2000);
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+          element.classList.add("bg-primary/10");
+          setTimeout(() => element.classList.remove("bg-primary/10"), 2000);
         }
       }, 500);
     }
@@ -136,25 +177,25 @@ export default function InstallersPage() {
 
   const checkGoogleAuthStatus = async () => {
     try {
-      const response = await fetch('/api/google-auth/status');
+      const response = await fetch("/api/google-auth/status");
       const data = await response.json();
       setGoogleAuthStatus(data);
     } catch (err) {
-      console.error('Failed to check Google auth status:', err);
+      console.error("Failed to check Google auth status:", err);
     }
   };
 
   const handleAuthenticateGoogle = async () => {
     setAuthLoading(true);
     try {
-      const response = await fetch('/api/google-auth/initiate');
+      const response = await fetch("/api/google-auth/initiate");
       const data = await response.json();
 
       if (data.authUrl) {
         window.location.href = data.authUrl;
       }
     } catch (err: unknown) {
-      console.error('Failed to authenticate:', err);
+      console.error("Failed to authenticate:", err);
     } finally {
       setAuthLoading(false);
     }
@@ -162,14 +203,16 @@ export default function InstallersPage() {
 
   const fetchInstallers = async () => {
     try {
-      const response = await fetch('/api/installers');
+      setLoading(true);
+      // Fetch all installers without pagination - frontend handles pagination
+      const response = await fetch("/api/installers?limit=10000");
       const data = await response.json();
 
       if (data.success) {
         setInstallers(data.data.installers);
       }
     } catch (error) {
-      console.error('Failed to fetch installers:', error);
+      console.error("Failed to fetch installers:", error);
     } finally {
       setLoading(false);
     }
@@ -179,7 +222,7 @@ export default function InstallersPage() {
     setDeletingId(installerId);
     try {
       const response = await fetch(`/api/installers/${installerId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       const data = await response.json();
@@ -187,19 +230,19 @@ export default function InstallersPage() {
       if (response.ok) {
         toast.success(`Installer "${installerName}" deleted successfully!`);
         // Remove from local state
-        setInstallers(prev => prev.filter(i => i._id !== installerId));
+        setInstallers((prev) => prev.filter((i) => i._id !== installerId));
         // Remove from selection if selected
-        setSelectedInstallers(prev => {
+        setSelectedInstallers((prev) => {
           const newSet = new Set(prev);
           newSet.delete(installerId);
           return newSet;
         });
       } else {
-        toast.error(data.error || 'Failed to delete installer');
+        toast.error(data.error || "Failed to delete installer");
       }
     } catch (error) {
-      console.error('Failed to delete installer:', error);
-      toast.error('An error occurred while deleting the installer');
+      console.error("Failed to delete installer:", error);
+      toast.error("An error occurred while deleting the installer");
     } finally {
       setDeletingId(null);
     }
@@ -210,7 +253,9 @@ export default function InstallersPage() {
     if (selectedInstallers.size === 0) return;
 
     setBulkDeleting(true);
-    const toastId = toast.loading(`Deleting ${selectedInstallers.size} installer(s)...`);
+    const toastId = toast.loading(
+      `Deleting ${selectedInstallers.size} installer(s)...`
+    );
 
     try {
       let successCount = 0;
@@ -221,21 +266,21 @@ export default function InstallersPage() {
       for (const installerId of selectedInstallers) {
         try {
           const response = await fetch(`/api/installers/${installerId}`, {
-            method: 'DELETE',
+            method: "DELETE",
           });
 
           if (response.ok) {
             successCount++;
             // Remove from local state
-            setInstallers(prev => prev.filter(i => i._id !== installerId));
+            setInstallers((prev) => prev.filter((i) => i._id !== installerId));
           } else {
             failCount++;
             const data = await response.json();
-            errors.push(data.error || 'Unknown error');
+            errors.push(data.error || "Unknown error");
           }
         } catch (error) {
           failCount++;
-          errors.push('Network error');
+          errors.push("Network error");
         }
       }
 
@@ -247,14 +292,16 @@ export default function InstallersPage() {
       if (successCount > 0 && failCount === 0) {
         toast.success(`Successfully deleted ${successCount} installer(s)!`);
       } else if (successCount > 0 && failCount > 0) {
-        toast.warning(`Deleted ${successCount} installer(s), ${failCount} failed`);
+        toast.warning(
+          `Deleted ${successCount} installer(s), ${failCount} failed`
+        );
       } else {
         toast.error(`Failed to delete installers: ${errors[0]}`);
       }
     } catch (error) {
       toast.dismiss(toastId);
-      console.error('Bulk delete error:', error);
-      toast.error('An error occurred during bulk delete');
+      console.error("Bulk delete error:", error);
+      toast.error("An error occurred during bulk delete");
     } finally {
       setBulkDeleting(false);
     }
@@ -262,7 +309,7 @@ export default function InstallersPage() {
 
   // Toggle individual selection
   const toggleSelection = (installerId: string) => {
-    setSelectedInstallers(prev => {
+    setSelectedInstallers((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(installerId)) {
         newSet.delete(installerId);
@@ -275,22 +322,24 @@ export default function InstallersPage() {
 
   // Toggle all on current page
   const toggleSelectAll = () => {
-    const currentPageIds = paginatedInstallers.map(i => i._id);
+    const currentPageIds = paginatedInstallers.map((i) => i._id);
 
     // If all on current page are selected, deselect all
-    const allSelected = currentPageIds.every(id => selectedInstallers.has(id));
+    const allSelected = currentPageIds.every((id) =>
+      selectedInstallers.has(id)
+    );
 
     if (allSelected) {
-      setSelectedInstallers(prev => {
+      setSelectedInstallers((prev) => {
         const newSet = new Set(prev);
-        currentPageIds.forEach(id => newSet.delete(id));
+        currentPageIds.forEach((id) => newSet.delete(id));
         return newSet;
       });
     } else {
       // Select all on current page
-      setSelectedInstallers(prev => {
+      setSelectedInstallers((prev) => {
         const newSet = new Set(prev);
-        currentPageIds.forEach(id => newSet.add(id));
+        currentPageIds.forEach((id) => newSet.add(id));
         return newSet;
       });
     }
@@ -300,42 +349,44 @@ export default function InstallersPage() {
   const handleDownloadReport = async () => {
     setDownloadingReport(true);
     try {
-      toast.loading('Generating report...');
+      toast.loading("Generating report...");
 
       const queryParams = new URLSearchParams({
-        city: filters.city || '',
-        province: filters.province || '',
-        trainingCenter: filters.trainingCenter || '',
-        certified: filters.certified || '',
-        bankName: filters.bankName || '',
-        dateRange: filters.dateRange !== 'all' ? filters.dateRange : '',
-        customStartDate: filters.customStartDate || '',
-        customEndDate: filters.customEndDate || '',
-        format: 'excel',
+        city: filters.city || "",
+        province: filters.province || "",
+        trainingCenter: filters.trainingCenter || "",
+        certified: filters.certified || "",
+        bankName: filters.bankName || "",
+        dateRange: filters.dateRange !== "all" ? filters.dateRange : "",
+        customStartDate: filters.customStartDate || "",
+        customEndDate: filters.customEndDate || "",
+        format: "excel",
       });
 
       const response = await fetch(`/api/reports/installers?${queryParams}`);
 
       if (!response.ok) {
-        throw new Error('Failed to generate report');
+        throw new Error("Failed to generate report");
       }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `installers_report_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `installers_report_${
+        new Date().toISOString().split("T")[0]
+      }.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
       toast.dismiss();
-      toast.success('Report downloaded successfully');
+      toast.success("Report downloaded successfully");
     } catch (error) {
-      console.error('Download error:', error);
+      console.error("Download error:", error);
       toast.dismiss();
-      toast.error('Failed to download report');
+      toast.error("Failed to download report");
     } finally {
       setTimeout(() => setDownloadingReport(false), 500);
     }
@@ -343,15 +394,15 @@ export default function InstallersPage() {
 
   const handleSort = (field: keyof InstallerWithId) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
   };
 
   const toggleColumn = (column: string) => {
-    setVisibleColumns(prev => ({
+    setVisibleColumns((prev) => ({
       ...prev,
       [column]: !prev[column as keyof typeof prev],
     }));
@@ -361,9 +412,11 @@ export default function InstallersPage() {
     if (sortField !== field) {
       return <ArrowUpDown className="h-4 w-4 ml-1 inline" />;
     }
-    return sortDirection === 'asc'
-      ? <ArrowUp className="h-4 w-4 ml-1 inline" />
-      : <ArrowDown className="h-4 w-4 ml-1 inline" />;
+    return sortDirection === "asc" ? (
+      <ArrowUp className="h-4 w-4 ml-1 inline" />
+    ) : (
+      <ArrowDown className="h-4 w-4 ml-1 inline" />
+    );
   };
 
   // Check if user is admin
@@ -390,29 +443,40 @@ export default function InstallersPage() {
     }
 
     // Apply date range filter
-    if (filters.dateRange !== 'all') {
+    if (filters.dateRange !== "all") {
       const now = new Date();
       let startDate: Date | null = null;
       let endDate: Date | null = null;
 
-      if (filters.dateRange === 'today') {
+      if (filters.dateRange === "today") {
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-      } else if (filters.dateRange === 'week') {
+        endDate = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          23,
+          59,
+          59
+        );
+      } else if (filters.dateRange === "week") {
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      } else if (filters.dateRange === 'month') {
+      } else if (filters.dateRange === "month") {
         startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      } else if (filters.dateRange === 'year') {
+      } else if (filters.dateRange === "year") {
         startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-      } else if (filters.dateRange === 'custom' && filters.customStartDate && filters.customEndDate) {
+      } else if (
+        filters.dateRange === "custom" &&
+        filters.customStartDate &&
+        filters.customEndDate
+      ) {
         startDate = new Date(filters.customStartDate);
         endDate = new Date(filters.customEndDate);
         endDate.setHours(23, 59, 59, 999);
       }
 
       if (startDate) {
-        result = result.filter(i => {
-          const createdAt = new Date(i.createdAt || '');
+        result = result.filter((i) => {
+          const createdAt = new Date(i.createdAt || "");
           return createdAt >= startDate! && (!endDate || createdAt <= endDate);
         });
       }
@@ -420,20 +484,22 @@ export default function InstallersPage() {
 
     // Apply filters
     if (filters.city) {
-      result = result.filter(i => i.city === filters.city);
+      result = result.filter((i) => i.city === filters.city);
     }
     if (filters.province) {
-      result = result.filter(i => i.province === filters.province);
+      result = result.filter((i) => i.province === filters.province);
     }
     if (filters.trainingCenter) {
-      result = result.filter(i => i.trainingCenter === filters.trainingCenter);
+      result = result.filter(
+        (i) => i.trainingCenter === filters.trainingCenter
+      );
     }
-    if (filters.certified !== '') {
-      const isCertified = filters.certified === 'true';
-      result = result.filter(i => i.certified === isCertified);
+    if (filters.certified !== "") {
+      const isCertified = filters.certified === "true";
+      result = result.filter((i) => i.certified === isCertified);
     }
     if (filters.bankName) {
-      result = result.filter(i => i.bankName === filters.bankName);
+      result = result.filter((i) => i.bankName === filters.bankName);
     }
 
     return result;
@@ -442,11 +508,14 @@ export default function InstallersPage() {
   // Calculate statistics
   const statistics = useMemo(() => {
     const total = installers.length;
-    const certified = installers.filter(i => i.certified).length;
+    const certified = installers.filter((i) => i.certified).length;
     const notCertified = total - certified;
-    const cities = new Set(installers.map(i => i.city).filter(Boolean)).size;
-    const provinces = new Set(installers.map(i => i.province).filter(Boolean)).size;
-    const trainingCenters = new Set(installers.map(i => i.trainingCenter).filter(Boolean)).size;
+    const cities = new Set(installers.map((i) => i.city).filter(Boolean)).size;
+    const provinces = new Set(installers.map((i) => i.province).filter(Boolean))
+      .size;
+    const trainingCenters = new Set(
+      installers.map((i) => i.trainingCenter).filter(Boolean)
+    ).size;
 
     return {
       total,
@@ -461,10 +530,18 @@ export default function InstallersPage() {
 
   // Get unique values for filters
   const uniqueValues = useMemo(() => {
-    const cities = [...new Set(installers.map(i => i.city).filter(Boolean))].sort();
-    const provinces = [...new Set(installers.map(i => i.province).filter(Boolean))].sort();
-    const trainingCenters = [...new Set(installers.map(i => i.trainingCenter).filter(Boolean))].sort();
-    const banks = [...new Set(installers.map(i => i.bankName).filter(Boolean))].sort();
+    const cities = [
+      ...new Set(installers.map((i) => i.city).filter(Boolean)),
+    ].sort();
+    const provinces = [
+      ...new Set(installers.map((i) => i.province).filter(Boolean)),
+    ].sort();
+    const trainingCenters = [
+      ...new Set(installers.map((i) => i.trainingCenter).filter(Boolean)),
+    ].sort();
+    const banks = [
+      ...new Set(installers.map((i) => i.bankName).filter(Boolean)),
+    ].sort();
 
     return { cities, provinces, trainingCenters, banks };
   }, [installers]);
@@ -479,34 +556,46 @@ export default function InstallersPage() {
     setCurrentPage(1);
   }, [filters, search]);
 
-  const sortedInstallers = useMemo(() => [...filteredInstallers].sort((a, b) => {
-    const aVal = a[sortField];
-    const bVal = b[sortField];
+  const sortedInstallers = useMemo(
+    () =>
+      [...filteredInstallers].sort((a, b) => {
+        const aVal = a[sortField];
+        const bVal = b[sortField];
 
-    if (aVal === null || aVal === undefined) return 1;
-    if (bVal === null || bVal === undefined) return -1;
+        if (aVal === null || aVal === undefined) return 1;
+        if (bVal === null || bVal === undefined) return -1;
 
-    if (typeof aVal === 'string' && typeof bVal === 'string') {
-      return sortDirection === 'asc'
-        ? aVal.localeCompare(bVal)
-        : bVal.localeCompare(aVal);
-    }
+        if (typeof aVal === "string" && typeof bVal === "string") {
+          return sortDirection === "asc"
+            ? aVal.localeCompare(bVal)
+            : bVal.localeCompare(aVal);
+        }
 
-    if (typeof aVal === 'boolean' && typeof bVal === 'boolean') {
-      return sortDirection === 'asc'
-        ? (aVal === bVal ? 0 : aVal ? 1 : -1)
-        : (aVal === bVal ? 0 : bVal ? 1 : -1);
-    }
+        if (typeof aVal === "boolean" && typeof bVal === "boolean") {
+          return sortDirection === "asc"
+            ? aVal === bVal
+              ? 0
+              : aVal
+              ? 1
+              : -1
+            : aVal === bVal
+            ? 0
+            : bVal
+            ? 1
+            : -1;
+        }
 
-    if (typeof aVal === 'number' && typeof bVal === 'number') {
-      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
-    }
+        if (typeof aVal === "number" && typeof bVal === "number") {
+          return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+        }
 
-    // For dates and other types, convert to string for comparison
-    return sortDirection === 'asc'
-      ? String(aVal).localeCompare(String(bVal))
-      : String(bVal).localeCompare(String(aVal));
-  }), [filteredInstallers, sortField, sortDirection]);
+        // For dates and other types, convert to string for comparison
+        return sortDirection === "asc"
+          ? String(aVal).localeCompare(String(bVal))
+          : String(bVal).localeCompare(String(aVal));
+      }),
+    [filteredInstallers, sortField, sortDirection]
+  );
 
   // Get paginated data
   const paginatedInstallers = sortedInstallers.slice(startIndex, endIndex);
@@ -538,19 +627,19 @@ export default function InstallersPage() {
                     d="M13 10V3L4 14h7v7l9-11h-7z"
                   />
                 </svg>
-                {authLoading ? 'Authenticating...' : 'Authenticate Google Contacts'}
+                {authLoading
+                  ? "Authenticating..."
+                  : "Authenticate Google Contacts"}
               </Button>
             ) : (
               <>
                 <Button
-                  onClick={() => router.push('/installers/bulk-upload')}
+                  onClick={() => router.push("/installers/bulk-register")}
                   variant="secondary"
                 >
-                  Bulk Upload
+                  Bulk Register
                 </Button>
-                <Button
-                  onClick={() => router.push('/installers/new')}
-                >
+                <Button onClick={() => router.push("/installers/new")}>
                   + Register New Installer
                 </Button>
               </>
@@ -560,12 +649,13 @@ export default function InstallersPage() {
       />
       <div className="p-6">
         <div className="max-w-7xl mx-auto space-y-6">
-
           {/* Statistics Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Installers</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Total Installers
+                </CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -586,20 +676,34 @@ export default function InstallersPage() {
               <CardContent>
                 <div className="text-2xl font-bold">{statistics.certified}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {statistics.total > 0 ? Math.round((statistics.certified / statistics.total) * 100) : 0}% of total
+                  {statistics.total > 0
+                    ? Math.round(
+                        (statistics.certified / statistics.total) * 100
+                      )
+                    : 0}
+                  % of total
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Not Certified</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  Not Certified
+                </CardTitle>
                 <XCircle className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{statistics.notCertified}</div>
+                <div className="text-2xl font-bold">
+                  {statistics.notCertified}
+                </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {statistics.total > 0 ? Math.round((statistics.notCertified / statistics.total) * 100) : 0}% of total
+                  {statistics.total > 0
+                    ? Math.round(
+                        (statistics.notCertified / statistics.total) * 100
+                      )
+                    : 0}
+                  % of total
                 </p>
               </CardContent>
             </Card>
@@ -612,7 +716,8 @@ export default function InstallersPage() {
               <CardContent>
                 <div className="text-2xl font-bold">{statistics.cities}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {statistics.provinces} provinces, {statistics.trainingCenters} training centers
+                  {statistics.provinces} provinces, {statistics.trainingCenters}{" "}
+                  training centers
                 </p>
               </CardContent>
             </Card>
@@ -631,14 +736,16 @@ export default function InstallersPage() {
                     variant="outline"
                     size="sm"
                     onClick={handleDownloadReport}
-                    disabled={filteredInstallers.length === 0 || downloadingReport}
+                    disabled={
+                      filteredInstallers.length === 0 || downloadingReport
+                    }
                   >
                     {downloadingReport ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     ) : (
                       <FileDown className="h-4 w-4 mr-2" />
                     )}
-                    {downloadingReport ? 'Downloading...' : 'Download Report'}
+                    {downloadingReport ? "Downloading..." : "Download Report"}
                   </Button>
                   {selectedInstallers.size > 0 && (
                     <AlertDialog>
@@ -658,11 +765,17 @@ export default function InstallersPage() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Delete {selectedInstallers.size} Installer(s)?</AlertDialogTitle>
+                          <AlertDialogTitle>
+                            Delete {selectedInstallers.size} Installer(s)?
+                          </AlertDialogTitle>
                           <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete the selected installers and their Google Contacts.
-                            <br /><br />
-                            <strong>Note:</strong> Installers with existing rewards cannot be deleted.
+                            This action cannot be undone. This will permanently
+                            delete the selected installers and their Google
+                            Contacts.
+                            <br />
+                            <br />
+                            <strong>Note:</strong> Installers with existing
+                            rewards cannot be deleted.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -682,7 +795,7 @@ export default function InstallersPage() {
                     size="sm"
                     onClick={() => setShowFilters(!showFilters)}
                   >
-                    {showFilters ? 'Hide' : 'Show'}
+                    {showFilters ? "Hide" : "Show"}
                   </Button>
                 </div>
               </div>
@@ -699,12 +812,16 @@ export default function InstallersPage() {
                       </label>
                       <Select
                         value={filters.dateRange}
-                        onValueChange={(value) => setFilters(prev => ({
-                          ...prev,
-                          dateRange: value as typeof prev.dateRange,
-                          customStartDate: value !== 'custom' ? '' : prev.customStartDate,
-                          customEndDate: value !== 'custom' ? '' : prev.customEndDate,
-                        }))}
+                        onValueChange={(value) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            dateRange: value as typeof prev.dateRange,
+                            customStartDate:
+                              value !== "custom" ? "" : prev.customStartDate,
+                            customEndDate:
+                              value !== "custom" ? "" : prev.customEndDate,
+                          }))
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="All time" />
@@ -720,33 +837,58 @@ export default function InstallersPage() {
                       </Select>
                     </div>
 
-                    {filters.dateRange === 'custom' && (
+                    {filters.dateRange === "custom" && (
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Select Date Range</label>
-                        <Popover open={calendarPopoverOpen} onOpenChange={(open) => {
-                          setCalendarPopoverOpen(open);
-                          // Initialize calendar value from filters when opening
-                          if (open && filters.customStartDate && filters.customEndDate) {
-                            try {
-                              setCalendarValue({
-                                start: parseDate(filters.customStartDate),
-                                end: parseDate(filters.customEndDate)
-                              });
-                            } catch {
-                              setCalendarValue(null);
+                        <label className="text-sm font-medium">
+                          Select Date Range
+                        </label>
+                        <Popover
+                          open={calendarPopoverOpen}
+                          onOpenChange={(open) => {
+                            setCalendarPopoverOpen(open);
+                            // Initialize calendar value from filters when opening
+                            if (
+                              open &&
+                              filters.customStartDate &&
+                              filters.customEndDate
+                            ) {
+                              try {
+                                setCalendarValue({
+                                  start: parseDate(filters.customStartDate),
+                                  end: parseDate(filters.customEndDate),
+                                });
+                              } catch {
+                                setCalendarValue(null);
+                              }
                             }
-                          }
-                        }}>
+                          }}
+                        >
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
                               className="w-full justify-start text-left font-normal"
                             >
                               <Calendar className="mr-2 h-4 w-4" />
-                              {filters.customStartDate && filters.customEndDate
-                                ? `${new Date(filters.customStartDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - ${new Date(filters.customEndDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-                                : <span className="text-muted-foreground">Pick a date range</span>
-                              }
+                              {filters.customStartDate &&
+                              filters.customEndDate ? (
+                                `${new Date(
+                                  filters.customStartDate
+                                ).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })} - ${new Date(
+                                  filters.customEndDate
+                                ).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })}`
+                              ) : (
+                                <span className="text-muted-foreground">
+                                  Pick a date range
+                                </span>
+                              )}
                             </Button>
                           </PopoverTrigger>
                           <PopoverContent className="w-auto p-4" align="start">
@@ -765,7 +907,8 @@ export default function InstallersPage() {
                                   headerWrapper: "pt-0",
                                   prevButton: "rounded-md hover:bg-accent",
                                   nextButton: "rounded-md hover:bg-accent",
-                                  gridHeader: "bg-accent/50 rounded-md shadow-sm",
+                                  gridHeader:
+                                    "bg-accent/50 rounded-md shadow-sm",
                                   cellButton: [
                                     "data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground",
                                     "data-[range-start=true]:rounded-l-md",
@@ -783,10 +926,10 @@ export default function InstallersPage() {
                                   variant="outline"
                                   onClick={() => {
                                     setCalendarValue(null);
-                                    setFilters(prev => ({
+                                    setFilters((prev) => ({
                                       ...prev,
-                                      customStartDate: '',
-                                      customEndDate: ''
+                                      customStartDate: "",
+                                      customEndDate: "",
                                     }));
                                     setCalendarPopoverOpen(false);
                                   }}
@@ -797,23 +940,33 @@ export default function InstallersPage() {
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    onClick={() => setCalendarPopoverOpen(false)}
+                                    onClick={() =>
+                                      setCalendarPopoverOpen(false)
+                                    }
                                   >
                                     Cancel
                                   </Button>
                                   <Button
                                     size="sm"
                                     onClick={() => {
-                                      if (calendarValue?.start && calendarValue?.end) {
-                                        setFilters(prev => ({
+                                      if (
+                                        calendarValue?.start &&
+                                        calendarValue?.end
+                                      ) {
+                                        setFilters((prev) => ({
                                           ...prev,
-                                          customStartDate: calendarValue.start.toString(),
-                                          customEndDate: calendarValue.end.toString()
+                                          customStartDate:
+                                            calendarValue.start.toString(),
+                                          customEndDate:
+                                            calendarValue.end.toString(),
                                         }));
                                         setCalendarPopoverOpen(false);
                                       }
                                     }}
-                                    disabled={!calendarValue?.start || !calendarValue?.end}
+                                    disabled={
+                                      !calendarValue?.start ||
+                                      !calendarValue?.end
+                                    }
                                   >
                                     Apply
                                   </Button>
@@ -828,111 +981,160 @@ export default function InstallersPage() {
 
                   {/* Other Filters */}
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">City</label>
-                    <Select
-                      value={filters.city || 'all'}
-                      onValueChange={(value) => setFilters(prev => ({ ...prev, city: value === 'all' ? '' : value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All cities" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All cities</SelectItem>
-                        {uniqueValues.cities.map(city => (
-                          <SelectItem key={city} value={city}>{city}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">City</label>
+                      <Select
+                        value={filters.city || "all"}
+                        onValueChange={(value) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            city: value === "all" ? "" : value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All cities" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All cities</SelectItem>
+                          {uniqueValues.cities.map((city) => (
+                            <SelectItem key={city} value={city}>
+                              {city}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Province</label>
-                    <Select
-                      value={filters.province || 'all'}
-                      onValueChange={(value) => setFilters(prev => ({ ...prev, province: value === 'all' ? '' : value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All provinces" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All provinces</SelectItem>
-                        {uniqueValues.provinces.map(province => (
-                          <SelectItem key={province} value={province}>{province}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Province</label>
+                      <Select
+                        value={filters.province || "all"}
+                        onValueChange={(value) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            province: value === "all" ? "" : value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All provinces" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All provinces</SelectItem>
+                          {uniqueValues.provinces.map((province) => (
+                            <SelectItem key={province} value={province}>
+                              {province}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Training Center</label>
-                    <Select
-                      value={filters.trainingCenter || 'all'}
-                      onValueChange={(value) => setFilters(prev => ({ ...prev, trainingCenter: value === 'all' ? '' : value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All centers" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All centers</SelectItem>
-                        {uniqueValues.trainingCenters.map(center => (
-                          <SelectItem key={center} value={center}>{center}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Training Center
+                      </label>
+                      <Select
+                        value={filters.trainingCenter || "all"}
+                        onValueChange={(value) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            trainingCenter: value === "all" ? "" : value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All centers" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All centers</SelectItem>
+                          {uniqueValues.trainingCenters.map((center) => (
+                            <SelectItem key={center} value={center}>
+                              {center}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Certification</label>
-                    <Select
-                      value={filters.certified || 'all'}
-                      onValueChange={(value) => setFilters(prev => ({ ...prev, certified: value === 'all' ? '' : value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All statuses" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All statuses</SelectItem>
-                        <SelectItem value="true">Certified</SelectItem>
-                        <SelectItem value="false">Not Certified</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Certification
+                      </label>
+                      <Select
+                        value={filters.certified || "all"}
+                        onValueChange={(value) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            certified: value === "all" ? "" : value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All statuses</SelectItem>
+                          <SelectItem value="true">Certified</SelectItem>
+                          <SelectItem value="false">Not Certified</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Bank</label>
-                    <Select
-                      value={filters.bankName || 'all'}
-                      onValueChange={(value) => setFilters(prev => ({ ...prev, bankName: value === 'all' ? '' : value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="All banks" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All banks</SelectItem>
-                        {uniqueValues.banks.map(bank => (
-                          <SelectItem key={bank} value={bank}>{bank}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Bank</label>
+                      <Select
+                        value={filters.bankName || "all"}
+                        onValueChange={(value) =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            bankName: value === "all" ? "" : value,
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All banks" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All banks</SelectItem>
+                          {uniqueValues.banks.map((bank) => (
+                            <SelectItem key={bank} value={bank}>
+                              {bank}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 
-                </div>
-
-                {(filters.city || filters.province || filters.trainingCenter || filters.certified || filters.bankName || filters.dateRange !== 'all') && (
+                {(filters.city ||
+                  filters.province ||
+                  filters.trainingCenter ||
+                  filters.certified ||
+                  filters.bankName ||
+                  filters.dateRange !== "all") && (
                   <div className="mt-4 flex items-center justify-between">
                     <div className="flex flex-wrap gap-2">
-                      {filters.dateRange !== 'all' && (
+                      {filters.dateRange !== "all" && (
                         <Badge variant="secondary" className="gap-1">
-                          {filters.dateRange === 'today' && 'Today'}
-                          {filters.dateRange === 'week' && 'Last 7 days'}
-                          {filters.dateRange === 'month' && 'Last 30 days'}
-                          {filters.dateRange === 'year' && 'Last year'}
-                          {filters.dateRange === 'custom' && `${filters.customStartDate} to ${filters.customEndDate}`}
+                          {filters.dateRange === "today" && "Today"}
+                          {filters.dateRange === "week" && "Last 7 days"}
+                          {filters.dateRange === "month" && "Last 30 days"}
+                          {filters.dateRange === "year" && "Last year"}
+                          {filters.dateRange === "custom" &&
+                            `${filters.customStartDate} to ${filters.customEndDate}`}
                           <X
                             className="h-3 w-3 cursor-pointer"
-                            onClick={() => setFilters(prev => ({ ...prev, dateRange: 'all', customStartDate: '', customEndDate: '' }))}
+                            onClick={() =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                dateRange: "all",
+                                customStartDate: "",
+                                customEndDate: "",
+                              }))
+                            }
                           />
                         </Badge>
                       )}
@@ -941,7 +1143,9 @@ export default function InstallersPage() {
                           City: {filters.city}
                           <X
                             className="h-3 w-3 cursor-pointer"
-                            onClick={() => setFilters(prev => ({ ...prev, city: '' }))}
+                            onClick={() =>
+                              setFilters((prev) => ({ ...prev, city: "" }))
+                            }
                           />
                         </Badge>
                       )}
@@ -950,7 +1154,9 @@ export default function InstallersPage() {
                           Province: {filters.province}
                           <X
                             className="h-3 w-3 cursor-pointer"
-                            onClick={() => setFilters(prev => ({ ...prev, province: '' }))}
+                            onClick={() =>
+                              setFilters((prev) => ({ ...prev, province: "" }))
+                            }
                           />
                         </Badge>
                       )}
@@ -959,16 +1165,25 @@ export default function InstallersPage() {
                           Center: {filters.trainingCenter}
                           <X
                             className="h-3 w-3 cursor-pointer"
-                            onClick={() => setFilters(prev => ({ ...prev, trainingCenter: '' }))}
+                            onClick={() =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                trainingCenter: "",
+                              }))
+                            }
                           />
                         </Badge>
                       )}
                       {filters.certified && (
                         <Badge variant="secondary" className="gap-1">
-                          {filters.certified === 'true' ? 'Certified' : 'Not Certified'}
+                          {filters.certified === "true"
+                            ? "Certified"
+                            : "Not Certified"}
                           <X
                             className="h-3 w-3 cursor-pointer"
-                            onClick={() => setFilters(prev => ({ ...prev, certified: '' }))}
+                            onClick={() =>
+                              setFilters((prev) => ({ ...prev, certified: "" }))
+                            }
                           />
                         </Badge>
                       )}
@@ -977,7 +1192,9 @@ export default function InstallersPage() {
                           Bank: {filters.bankName}
                           <X
                             className="h-3 w-3 cursor-pointer"
-                            onClick={() => setFilters(prev => ({ ...prev, bankName: '' }))}
+                            onClick={() =>
+                              setFilters((prev) => ({ ...prev, bankName: "" }))
+                            }
                           />
                         </Badge>
                       )}
@@ -985,16 +1202,18 @@ export default function InstallersPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setFilters({
-                        city: '',
-                        province: '',
-                        trainingCenter: '',
-                        certified: '',
-                        bankName: '',
-                        dateRange: 'all',
-                        customStartDate: '',
-                        customEndDate: '',
-                      })}
+                      onClick={() =>
+                        setFilters({
+                          city: "",
+                          province: "",
+                          trainingCenter: "",
+                          certified: "",
+                          bankName: "",
+                          dateRange: "all",
+                          customStartDate: "",
+                          customEndDate: "",
+                        })
+                      }
                     >
                       Clear All
                     </Button>
@@ -1004,361 +1223,459 @@ export default function InstallersPage() {
             )}
           </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="mb-4 flex gap-3">
-              <Input
-                type="text"
-                placeholder="Search by name, code, CNIC, phone, WhatsApp, account, company..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="flex-1"
-              />
-              <DropdownMenu open={showColumnMenu} onOpenChange={setShowColumnMenu}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline">
-                    <Settings2 className="h-4 w-4 mr-2" />
-                    Columns
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Show/Hide Columns</DropdownMenuLabel>
-                  {Object.entries(visibleColumns).map(([key, value]) => (
-                    <DropdownMenuCheckboxItem
-                      key={key}
-                      checked={value}
-                      onCheckedChange={() => toggleColumn(key)}
-                    >
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            {loading ? (
-              <div className="text-center py-12">
-                <div className="text-muted-foreground">Loading installers...</div>
+          <Card>
+            <CardHeader className="!flex-row items-center justify-between w-full bg-muted/50">
+              <CardTitle className="text-lg font-semibold">
+                Installers Database
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  onClick={fetchInstallers}
+                  disabled={loading}
+                  title="Refresh data"
+                  size={"icon"}
+                >
+                  <RefreshCw
+                    className={cn("h-4 w-4", loading && "animate-spin")}
+                  />
+                </Button>
+                <Dropdown>
+                  <DropdownTrigger asChild>
+                    <Button variant="outline">
+                      Columns
+                      <IconLayer className="ml-2 h-4 w-4" duotone={false} />
+                    </Button>
+                  </DropdownTrigger>
+                  <DropdownContent className="w-54 p-2 pr-0.5">
+                    <ScrollArea className="h-72 pr-2 rounded-xl">
+                      <div className="space-y-1 w-[98%]">
+                        {Object.entries(visibleColumns).map(([key, value]) => (
+                          <label
+                            key={key}
+                            className={cn(
+                              "flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-accent transition-colors whitespace-nowrap",
+                              value && "bg-accent"
+                            )}
+                          >
+                            <Checkbox
+                              checked={value}
+                              onCheckedChange={() => toggleColumn(key)}
+                              aria-label={`Toggle ${key
+                                .replace(/([A-Z])/g, " $1")
+                                .trim()} column`}
+                            />
+                            <span className="capitalize text-sm">
+                              {key.replace(/([A-Z])/g, " $1").trim()}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </DropdownContent>
+                </Dropdown>
               </div>
-            ) : sortedInstallers.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-muted-foreground">No installers found</div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="mb-4">
+                <Input
+                  type="text"
+                  placeholder="Search by name, code, CNIC, phone, WhatsApp, account, company..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="flex-1"
+                />
               </div>
-            ) : (
-              <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <input
-                        type="checkbox"
-                        className="cursor-pointer h-4 w-4 rounded border-gray-300"
-                        checked={paginatedInstallers.length > 0 && paginatedInstallers.every(i => selectedInstallers.has(i._id))}
-                        onChange={toggleSelectAll}
-                        aria-label="Select all installers on this page"
-                      />
-                    </TableHead>
-                    {visibleColumns.installerCode && (
-                      <TableHead
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleSort('installerCode')}
-                      >
-                        Installer Code {getSortIcon('installerCode')}
-                      </TableHead>
-                    )}
-                    {visibleColumns.fullName && (
-                      <TableHead
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleSort('fullName')}
-                      >
-                        Name {getSortIcon('fullName')}
-                      </TableHead>
-                    )}
-                    {visibleColumns.cnic && (
-                      <TableHead
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleSort('cnic')}
-                      >
-                        CNIC {getSortIcon('cnic')}
-                      </TableHead>
-                    )}
-                    {visibleColumns.phoneNumber && (
-                      <TableHead>Phone</TableHead>
-                    )}
-                    {visibleColumns.city && (
-                      <TableHead
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleSort('city')}
-                      >
-                        City {getSortIcon('city')}
-                      </TableHead>
-                    )}
-                    {visibleColumns.province && (
-                      <TableHead
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleSort('province')}
-                      >
-                        Province {getSortIcon('province')}
-                      </TableHead>
-                    )}
-                    {visibleColumns.trainingCenter && (
-                      <TableHead>Training Center</TableHead>
-                    )}
-                    {visibleColumns.companyName && (
-                      <TableHead>Company</TableHead>
-                    )}
-                    {visibleColumns.certified && (
-                      <TableHead
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleSort('certified')}
-                      >
-                        Certified {getSortIcon('certified')}
-                      </TableHead>
-                    )}
-                    {visibleColumns.bankName && (
-                      <TableHead>Bank</TableHead>
-                    )}
-                    {visibleColumns.accountNumber && (
-                      <TableHead>Account</TableHead>
-                    )}
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedInstallers.map((installer: InstallerWithId) => (
-                    <TableRow
-                      key={installer._id}
-                      id={`installer-${installer._id}`}
-                      className="transition-colors"
-                    >
-                      <TableCell>
-                        <input
-                          type="checkbox"
-                          className="cursor-pointer h-4 w-4 rounded border-gray-300"
-                          checked={selectedInstallers.has(installer._id)}
-                          onChange={() => toggleSelection(installer._id)}
-                          aria-label={`Select ${installer.fullName}`}
-                        />
-                      </TableCell>
-                      {visibleColumns.installerCode && (
-                        <TableCell className="font-medium">
-                          <Button
-                            variant="link"
-                            onClick={() => router.push(`/installers/${installer._id}`)}
-                            className="font-mono p-0 h-auto"
-                          >
-                            {installer.installerCode}
-                          </Button>
-                        </TableCell>
-                      )}
-                      {visibleColumns.fullName && (
-                        <TableCell>
-                          {installer.fullName}
-                        </TableCell>
-                      )}
-                      {visibleColumns.cnic && (
-                        <TableCell className="text-muted-foreground">
-                          {installer.cnic}
-                        </TableCell>
-                      )}
-                      {visibleColumns.phoneNumber && (
-                        <TableCell className="text-muted-foreground">
-                          {installer.phoneNumber}
-                        </TableCell>
-                      )}
-                      {visibleColumns.city && (
-                        <TableCell className="text-muted-foreground">
-                          {installer.city}
-                        </TableCell>
-                      )}
-                      {visibleColumns.province && (
-                        <TableCell className="text-muted-foreground">
-                          {installer.province}
-                        </TableCell>
-                      )}
-                      {visibleColumns.trainingCenter && (
-                        <TableCell className="text-muted-foreground">
-                          {installer.trainingCenter}
-                        </TableCell>
-                      )}
-                      {visibleColumns.companyName && (
-                        <TableCell className="text-muted-foreground">
-                          {installer.companyName}
-                        </TableCell>
-                      )}
-                      {visibleColumns.certified && (
-                        <TableCell>
-                          <Badge variant={installer.certified ? "default" : "secondary"}>
-                            {installer.certified ? "Yes" : "No"}
-                          </Badge>
-                        </TableCell>
-                      )}
-                      {visibleColumns.bankName && (
-                        <TableCell className="text-muted-foreground">
-                          {installer.bankName}
-                        </TableCell>
-                      )}
-                      {visibleColumns.accountNumber && (
-                        <TableCell className="text-muted-foreground">
-                          {installer.accountNumber}
-                        </TableCell>
-                      )}
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => router.push(`/installers/${installer._id}`)}
-                            title="View Details"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setSelectedInstallerId(installer._id);
-                              setEditModalOpen(true);
-                            }}
-                            title="Edit"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          {isAdmin && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  title="Delete"
-                                  disabled={deletingId === installer._id}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Installer?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete <strong>{installer.fullName}</strong> ({installer.installerCode})?
-                                    This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDelete(installer._id, installer.fullName)}
-                                    disabled={deletingId === installer._id}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    {deletingId === installer._id ? 'Deleting...' : 'Delete'}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
 
-              {/* Pagination Controls */}
-              <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
-                <div className="flex items-center gap-4">
-                  <div className="text-sm text-muted-foreground">
-                    Showing {startIndex + 1} to {Math.min(endIndex, filteredInstallers.length)} of {filteredInstallers.length} results
-                    {filteredInstallers.length !== installers.length && (
-                      <span className="ml-1">(filtered from {installers.length} total)</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">Rows per page:</label>
-                    <Select
-                      value={rowsPerPage.toString()}
-                      onValueChange={(value) => {
-                        setRowsPerPage(Number(value));
-                        setCurrentPage(1);
-                      }}
-                    >
-                      <SelectTrigger className="w-[80px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="10">10</SelectItem>
-                        <SelectItem value="25">25</SelectItem>
-                        <SelectItem value="50">50</SelectItem>
-                        <SelectItem value="100">100</SelectItem>
-                      </SelectContent>
-                    </Select>
+              {loading ? (
+                <div className="text-center py-12">
+                  <div className="text-muted-foreground">
+                    Loading installers...
                   </div>
                 </div>
+              ) : filteredInstallers.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-muted-foreground">
+                    No installers found
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="border border-border rounded-2xl overflow-hidden">
+                    <Table>
+                      <TableHeader className="bg-muted/50">
+                        <TableRow className="hover:bg-muted/50 ">
+                          <TableHead className="w-12">
+                            <Checkbox
+                              checked={
+                                paginatedInstallers.length > 0 &&
+                                paginatedInstallers.every((i) =>
+                                  selectedInstallers.has(i._id)
+                                )
+                              }
+                              onCheckedChange={toggleSelectAll}
+                              aria-label="Select all installers on this page"
+                            />
+                          </TableHead>
+                          {visibleColumns.installerCode && (
+                            <TableHead
+                              className="cursor-pointer font-semibold"
+                              onClick={() => handleSort("installerCode")}
+                            >
+                              Installer Code {getSortIcon("installerCode")}
+                            </TableHead>
+                          )}
+                          {visibleColumns.fullName && (
+                            <TableHead
+                              className="cursor-pointer font-semibold"
+                              onClick={() => handleSort("fullName")}
+                            >
+                              Name {getSortIcon("fullName")}
+                            </TableHead>
+                          )}
+                          {visibleColumns.cnic && (
+                            <TableHead
+                              className="cursor-pointer font-semibold"
+                              onClick={() => handleSort("cnic")}
+                            >
+                              CNIC {getSortIcon("cnic")}
+                            </TableHead>
+                          )}
+                          {visibleColumns.phoneNumber && (
+                            <TableHead className="font-semibold">
+                              Phone
+                            </TableHead>
+                          )}
+                          {visibleColumns.city && (
+                            <TableHead
+                              className="cursor-pointer font-semibold"
+                              onClick={() => handleSort("city")}
+                            >
+                              City {getSortIcon("city")}
+                            </TableHead>
+                          )}
+                          {visibleColumns.province && (
+                            <TableHead
+                              className="cursor-pointer font-semibold"
+                              onClick={() => handleSort("province")}
+                            >
+                              Province {getSortIcon("province")}
+                            </TableHead>
+                          )}
+                          {visibleColumns.trainingCenter && (
+                            <TableHead className="font-semibold">
+                              Training Center
+                            </TableHead>
+                          )}
+                          {visibleColumns.companyName && (
+                            <TableHead className="font-semibold">
+                              Company
+                            </TableHead>
+                          )}
+                          {visibleColumns.certified && (
+                            <TableHead
+                              className="cursor-pointer font-semibold"
+                              onClick={() => handleSort("certified")}
+                            >
+                              Certified {getSortIcon("certified")}
+                            </TableHead>
+                          )}
+                          {visibleColumns.bankName && (
+                            <TableHead className="font-semibold">
+                              Bank
+                            </TableHead>
+                          )}
+                          {visibleColumns.accountNumber && (
+                            <TableHead className="font-semibold">
+                              Account
+                            </TableHead>
+                          )}
+                          <TableHead className="font-semibold">
+                            Actions
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
+                      <TableBody>
+                        {paginatedInstallers.map(
+                          (installer: InstallerWithId) => (
+                            <TableRow
+                              key={installer._id}
+                              id={`installer-${installer._id}`}
+                              className="transition-colors"
+                            >
+                              <TableCell>
+                                <Checkbox
+                                  checked={selectedInstallers.has(
+                                    installer._id
+                                  )}
+                                  onCheckedChange={() =>
+                                    toggleSelection(installer._id)
+                                  }
+                                  aria-label={`Select ${installer.fullName}`}
+                                />
+                              </TableCell>
+                              {visibleColumns.installerCode && (
+                                <TableCell className="font-medium">
+                                  <Button
+                                    variant="link"
+                                    onClick={() =>
+                                      router.push(
+                                        `/installers/${installer._id}`
+                                      )
+                                    }
+                                    className="font-mono p-0 h-auto"
+                                  >
+                                    {installer.installerCode}
+                                  </Button>
+                                </TableCell>
+                              )}
+                              {visibleColumns.fullName && (
+                                <TableCell>{installer.fullName}</TableCell>
+                              )}
+                              {visibleColumns.cnic && (
+                                <TableCell className="text-muted-foreground">
+                                  {installer.cnic}
+                                </TableCell>
+                              )}
+                              {visibleColumns.phoneNumber && (
+                                <TableCell className="text-muted-foreground">
+                                  {installer.phoneNumber}
+                                </TableCell>
+                              )}
+                              {visibleColumns.city && (
+                                <TableCell className="text-muted-foreground">
+                                  {installer.city}
+                                </TableCell>
+                              )}
+                              {visibleColumns.province && (
+                                <TableCell className="text-muted-foreground">
+                                  {installer.province}
+                                </TableCell>
+                              )}
+                              {visibleColumns.trainingCenter && (
+                                <TableCell className="text-muted-foreground">
+                                  {installer.trainingCenter}
+                                </TableCell>
+                              )}
+                              {visibleColumns.companyName && (
+                                <TableCell className="text-muted-foreground">
+                                  {installer.companyName}
+                                </TableCell>
+                              )}
+                              {visibleColumns.certified && (
+                                <TableCell>
+                                  <Badge
+                                    variant={
+                                      installer.certified
+                                        ? "default"
+                                        : "secondary"
+                                    }
+                                  >
+                                    {installer.certified ? "Yes" : "No"}
+                                  </Badge>
+                                </TableCell>
+                              )}
+                              {visibleColumns.bankName && (
+                                <TableCell className="text-muted-foreground">
+                                  {installer.bankName}
+                                </TableCell>
+                              )}
+                              {visibleColumns.accountNumber && (
+                                <TableCell className="text-muted-foreground">
+                                  {installer.accountNumber}
+                                </TableCell>
+                              )}
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() =>
+                                      router.push(
+                                        `/installers/${installer._id}`
+                                      )
+                                    }
+                                    title="View Details"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      setSelectedInstallerId(installer._id);
+                                      setEditModalOpen(true);
+                                    }}
+                                    title="Edit"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  {isAdmin && (
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          title="Delete"
+                                          disabled={
+                                            deletingId === installer._id
+                                          }
+                                        >
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>
+                                            Delete Installer?
+                                          </AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to delete{" "}
+                                            <strong>
+                                              {installer.fullName}
+                                            </strong>{" "}
+                                            ({installer.installerCode})? This
+                                            action cannot be undone.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>
+                                            Cancel
+                                          </AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() =>
+                                              handleDelete(
+                                                installer._id,
+                                                installer.fullName
+                                              )
+                                            }
+                                            disabled={
+                                              deletingId === installer._id
+                                            }
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                          >
+                                            {deletingId === installer._id
+                                              ? "Deleting..."
+                                              : "Delete"}
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        )}
+                      </TableBody>
 
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={currentPage === pageNum ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setCurrentPage(pageNum)}
-                          className="w-8 h-8 p-0"
+                      {/* Table Footer */}
+                      <TableFooter>
+                        <TableRow>
+                          <TableCell
+                            colSpan={
+                              Object.values(visibleColumns).filter(Boolean)
+                                .length + 2
+                            }
+                            className="py-4"
+                          >
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <div>
+                                Total: {filteredInstallers.length} installers
+                                {filteredInstallers.length !==
+                                  installers.length && (
+                                  <span className="ml-2">
+                                    (filtered from {installers.length} total)
+                                  </span>
+                                )}{" "}
+                                | Certified: {statistics.certified} | Not
+                                Certified: {statistics.notCertified}
+                              </div>
+                              <div>
+                                Last updated: {new Date().toLocaleString()}
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      </TableFooter>
+                    </Table>
+                  </div>
+                  {/* Pagination Controls */}
+                  <div className="flex items-center justify-between px-2 py-4">
+                    <div className="flex items-center gap-4">
+                      <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
+                        Showing {startIndex + 1} to{" "}
+                        <Select
+                          value={rowsPerPage.toString()}
+                          onValueChange={(value) => {
+                            setRowsPerPage(Number(value));
+                            setCurrentPage(1);
+                          }}
                         >
-                          {pageNum}
-                        </Button>
-                      );
-                    })}
-                    {totalPages > 5 && currentPage < totalPages - 2 && (
-                      <>
-                        <span className="text-muted-foreground">...</span>
+                          <SelectTrigger className="h-8 w-max gap-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="25">25</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                            <SelectItem value="100">100</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        of {filteredInstallers.length} results
+                        {filteredInstallers.length !== installers.length && (
+                          <span className="ml-1">
+                            (filtered from {installers.length} total)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <Button
                           variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(totalPages)}
-                          className="w-8 h-8 p-0"
+                          size="icon"
+                          onClick={() => setCurrentPage(1)}
+                          disabled={currentPage === 1}
                         >
-                          {totalPages}
+                          <ChevronsLeft className="h-4 w-4" />
                         </Button>
-                      </>
-                    )}
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setCurrentPage(currentPage - 1)}
+                          disabled={currentPage === 1}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm px-3">
+                          Page {currentPage} of {totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setCurrentPage(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setCurrentPage(totalPages)}
+                          disabled={currentPage === totalPages}
+                        >
+                          <ChevronsRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 

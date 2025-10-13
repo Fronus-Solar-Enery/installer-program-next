@@ -152,8 +152,8 @@ export async function POST(req: NextRequest) {
           targetType: 'Installer',
           targetId: newInstaller._id,
           metadata: {
-            installerCode: newInstaller.installerCode,
-            fullName: newInstaller.fullName,
+            code: newInstaller.installerCode,
+            name: newInstaller.fullName,
             cnic: newInstaller.cnic,
             city: newInstaller.city,
             method: 'bulk_upload',

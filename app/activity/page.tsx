@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Activity, Clock, User, FileText, UserPlus, Check, Edit, Trash2, AlertCircle } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Activity, Clock, User, FileText, UserPlus, Check, Edit, Trash2, AlertCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PageHeader from '@/components/PageHeader';
 
 interface ActivityData {
@@ -34,6 +35,10 @@ export default function ActivityPage() {
   const [activities, setActivities] = useState<ActivityData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('ALL');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchActivities();
@@ -114,6 +119,19 @@ export default function ActivityPage() {
     ? activities
     : activities.filter(a => a.type.includes(filter));
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredActivities.length / itemsPerPage);
+  const paginatedActivities = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredActivities.slice(startIndex, endIndex);
+  }, [filteredActivities, currentPage, itemsPerPage]);
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter]);
+
   return (
     <div className="flex-1 overflow-auto">
       <PageHeader
@@ -167,7 +185,8 @@ export default function ActivityPage() {
               </CardContent>
             </Card>
           ) : (
-            filteredActivities.map((activity) => {
+            <>
+              {paginatedActivities.map((activity) => {
               const metadataItems = getMetadataDisplay(activity);
               const isCreated = activity.type.includes('REGISTERED') || activity.type.includes('CREATED');
 
@@ -286,7 +305,95 @@ export default function ActivityPage() {
                   </CardContent>
                 </Card>
               );
-            })
+            })}
+
+            {/* Pagination Controls */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+                      {Math.min(currentPage * itemsPerPage, filteredActivities.length)} of{" "}
+                      {filteredActivities.length} activities
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={String(itemsPerPage)}
+                      onValueChange={(value) => {
+                        setItemsPerPage(Number(value));
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">5 / page</SelectItem>
+                        <SelectItem value="10">10 / page</SelectItem>
+                        <SelectItem value="20">20 / page</SelectItem>
+                        <SelectItem value="50">50 / page</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronsLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setCurrentPage(currentPage - 1)}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm px-3">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setCurrentPage(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage === totalPages}
+                      >
+                        <ChevronsRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Footer Section */}
+            <Card className="bg-muted/30">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div>
+                    Total: {filteredActivities.length} activities
+                  </div>
+                  <div>
+                    Last updated: {new Date().toLocaleString()}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
           )}
         </div>
       </div>

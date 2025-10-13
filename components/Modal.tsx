@@ -1,15 +1,13 @@
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
+import { ReactNode } from "react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ExternalLink } from 'lucide-react';
+} from "@/components/ui/dialog";
 
 interface ModalProps {
   open: boolean;
@@ -17,8 +15,7 @@ interface ModalProps {
   title: string;
   description?: string;
   children: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
-  openInTabUrl?: string; // URL to open in new tab
+  size?: "sm" | "md" | "lg" | "xl" | "full";
 }
 
 export default function Modal({
@@ -27,22 +24,14 @@ export default function Modal({
   title,
   description,
   children,
-  size = 'lg',
-  openInTabUrl,
+  size = "lg",
 }: ModalProps) {
   const sizeClasses = {
-    sm: 'sm:max-w-[425px]',
-    md: 'sm:max-w-[600px]',
-    lg: 'sm:max-w-[800px]',
-    xl: 'sm:max-w-[1000px]',
-    full: 'sm:max-w-[1200px]',
-  };
-
-  const handleOpenInTab = () => {
-    if (openInTabUrl) {
-      window.open(openInTabUrl, '_blank');
-      onOpenChange(false); // Close modal after opening in tab
-    }
+    sm: "sm:max-w-[425px]",
+    md: "sm:max-w-[600px]",
+    lg: "sm:max-w-[800px]",
+    xl: "sm:max-w-[1000px]",
+    full: "sm:max-w-[1200px]",
   };
 
   return (
@@ -56,17 +45,6 @@ export default function Modal({
                 <DialogDescription>{description}</DialogDescription>
               )}
             </div>
-            {openInTabUrl && (
-              <Button
-                onClick={handleOpenInTab}
-                variant="ghost"
-                size="icon"
-                className="ml-4"
-                title="Open in new tab"
-              >
-                <ExternalLink className="h-4 w-4" />
-              </Button>
-            )}
           </div>
         </DialogHeader>
         <div className="mt-4">{children}</div>

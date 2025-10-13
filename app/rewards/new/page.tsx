@@ -17,6 +17,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function NewRewardPage() {
   const router = useRouter();
@@ -90,7 +91,9 @@ export default function NewRewardPage() {
       setInstallerData(installer);
       setError("");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to validate installer");
+      setError(
+        err instanceof Error ? err.message : "Failed to validate installer"
+      );
       setInstallerData(null);
     } finally {
       setInstallerValidating(false);
@@ -125,7 +128,9 @@ export default function NewRewardPage() {
       setSerialValid(true);
       setError("");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to validate serial number");
+      setError(
+        err instanceof Error ? err.message : "Failed to validate serial number"
+      );
       setSerialValid(false);
     } finally {
       setSerialValidating(false);
@@ -224,7 +229,7 @@ export default function NewRewardPage() {
         throw new Error(data.error || "Failed to register reward");
       }
 
-      alert("Reward registered successfully!");
+      toast.success("Reward registered successfully!");
       router.push("/rewards");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -444,8 +449,8 @@ export default function NewRewardPage() {
                     <SelectContent>
                       {PRODUCT_MODELS.map((model) => (
                         <SelectItem key={model.value} value={model.value}>
-                          {model.label} - Rs. {model.reward.toLocaleString()}{" "}
-                          {model.isBattery ? "(Battery)" : ""}
+                          {model.label} - Rs. {model.reward.toLocaleString()}
+                          {/* {model.isBattery ? "(Battery)" : ""} */}
                         </SelectItem>
                       ))}
                     </SelectContent>

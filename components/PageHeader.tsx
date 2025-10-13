@@ -1,8 +1,10 @@
 'use client';
 
-import { ChevronRight } from 'lucide-react';
-import Link from 'next/link';
+import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
+import Breadcrumb from '@/components/Breadcrumb';
+import { BreadcrumbItem } from '@/contexts/BreadcrumbContext';
+import { getRouteIcon } from '@/components/breadcrumbIcons';
 
 interface PageHeaderProps {
   title: string;
@@ -14,7 +16,7 @@ interface PageHeaderProps {
 export default function PageHeader({ title, description, action, breadcrumbLabel }: PageHeaderProps) {
   const pathname = usePathname();
 
-  const generateBreadcrumbs = () => {
+  const breadcrumbItems = useMemo<BreadcrumbItem[]>(() => {
     const paths = pathname.split('/').filter(Boolean);
 
     // If we're on the dashboard, only show "Home"
@@ -22,7 +24,7 @@ export default function PageHeader({ title, description, action, breadcrumbLabel
       return [{ label: 'Home', href: '/dashboard' }];
     }
 
-    const breadcrumbs = [{ label: 'Home', href: '/dashboard' }];
+    const breadcrumbs: BreadcrumbItem[] = [{ label: 'Home', href: '/dashboard' }];
 
     let currentPath = '';
     paths.forEach((path, index) => {
@@ -38,37 +40,24 @@ export default function PageHeader({ title, description, action, breadcrumbLabel
       const label = isLast && breadcrumbLabel
         ? breadcrumbLabel
         : path.charAt(0).toUpperCase() + path.slice(1).replace(/-/g, ' ');
+
+      // Get icon for this route segment
+      const icon = getRouteIcon(path);
+
       breadcrumbs.push({
         label,
         href: currentPath,
+        icon,
       });
     });
 
     return breadcrumbs;
-  };
-
-  const breadcrumbs = generateBreadcrumbs();
+  }, [pathname, breadcrumbLabel]);
 
   return (
     <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center px-6">
-        <div className="flex items-center text-sm text-muted-foreground">
-          {breadcrumbs.map((crumb, index) => (
-            <div key={crumb.href} className="flex items-center">
-              {index > 0 && <ChevronRight className="h-4 w-4 mx-2" />}
-              {index === breadcrumbs.length - 1 ? (
-                <span className="text-foreground font-medium">{crumb.label}</span>
-              ) : (
-                <Link
-                  href={crumb.href}
-                  className="hover:text-foreground transition-colors"
-                >
-                  {crumb.label}
-                </Link>
-              )}
-            </div>
-          ))}
-        </div>
+        <Breadcrumb items={breadcrumbItems} />
       </div>
       <div className="flex items-center justify-between px-6 pb-6">
         <div>
