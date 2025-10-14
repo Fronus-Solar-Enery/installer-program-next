@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, FC } from "react";
 import {
   Card,
   CardContent,
@@ -23,7 +23,7 @@ import {
   Award,
   Target,
   ArrowUpRight,
-  TrendingUp,
+  BarChart3,
 } from "lucide-react";
 import {
   BarChart,
@@ -52,6 +52,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import IconChart from "@/components/icons/Chart";
+import IconCourseUp from "@/components/icons/CourseUp";
 
 interface Stats {
   totalInstallers: number;
@@ -176,6 +178,16 @@ type TimePeriod =
   | "thisYear"
   | "previousYear"
   | "custom";
+
+const timeLabels: Record<TimePeriod, string> = {
+  all: "All Time",
+  lastWeek: "Last Week",
+  last30days: "Last 30 Days",
+  previousMonth: "Previous Month",
+  thisYear: "This Year",
+  previousYear: "Previous Year",
+  custom: "Custom Range",
+};
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -944,22 +956,11 @@ export default function DashboardPage() {
         <div className="grid gap-4 lg:grid-cols-7">
           {/* Product Installations - Takes 4 columns */}
           <Card className="lg:col-span-4 transition-all hover:shadow-lg">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-primary" />
-                    Product Installations
-                  </CardTitle>
-                  <CardDescription className="mt-1">
-                    Installation count by product type
-                  </CardDescription>
-                </div>
-                <Badge variant="secondary" className="ml-auto">
-                  Top 6
-                </Badge>
-              </div>
-            </CardHeader>
+            <DashboardCardHeader
+              title="Product Installations"
+              description={`Installation count by product type in ${timeLabels[timePeriod]}`}
+              Icon={IconChart}
+            />
             <CardContent>
               {productData.length > 0 ? (
                 <>
@@ -1039,14 +1040,26 @@ export default function DashboardPage() {
 
           {/* Top Performers - Takes 3 columns */}
           <Card className="lg:col-span-3 transition-all hover:shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Award className="h-5 w-5 text-primary" />
-                Top Performers
-              </CardTitle>
-              <CardDescription>
-                Top 5 installers by installations in selected period
-              </CardDescription>
+            <DashboardCardHeader
+              title="Top Performers"
+              description={`Top 5 installers by installations in ${timeLabels[timePeriod]}`}
+              Icon={IconCourseUp}
+            />
+            <CardHeader className="pb-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                    Top Performers
+                  </CardTitle>
+                  <CardDescription className="text-zinc-600 dark:text-zinc-400">
+                    Top 5 installers by installations in{" "}
+                    {timeLabels[timePeriod]}
+                  </CardDescription>
+                </div>
+                <div className="rounded-lg bg-zinc-100 dark:bg-zinc-900 p-2">
+                  <IconChart className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -1055,7 +1068,7 @@ export default function DashboardPage() {
                     <div
                       key={installer.installerCode}
                       className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg transition-colors",
+                        "flex items-center gap-3 p-3 rounded-2xl transition-colors",
                         index === 0 &&
                           "bg-gradient-to-r from-yellow-500/10 to-transparent",
                         index === 1 &&
@@ -1271,7 +1284,8 @@ export default function DashboardPage() {
                 Active Installers Timeline
               </CardTitle>
               <CardDescription>
-                Historical view of installer activity
+                Historical view of installer activity in{" "}
+                {timeLabels[timePeriod]}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -1545,3 +1559,36 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+interface DashboardCardHeaderProps {
+  title: string;
+  description: string;
+  Icon: FC<IconProps>;
+}
+
+const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
+  title,
+  description,
+  Icon,
+}) => {
+  return (
+    <CardHeader className="flex flex-row items-center gap-2 border-b border-border">
+      <div className="flex-1 flex items-center gap-4 mb-0">
+        <div>
+          <Icon className="w-12 h-12 mb-0 text-primary" fill />
+        </div>
+        <div>
+          <CardTitle className="flex items-center text-xl">{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </div>
+      </div>
+      <div className="rounded-lg bg-emerald-100 dark:bg-emerald-950 p-2">
+        <Icon
+          duotone={false}
+          fill
+          className="h-5 w-5 text-emerald-600 dark:text-emerald-400"
+        />
+      </div>
+    </CardHeader>
+  );
+};

@@ -2,7 +2,6 @@
 
 import { signOut, useSession } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "./UserAvatar";
@@ -106,7 +105,7 @@ export default function TopNavbar() {
           {/* User Menu */}
 
           <Dropdown>
-            <DropdownTrigger>
+            <DropdownTrigger asChild>
               <Button
                 variant="secondary"
                 className="gap-2 pl-1 pr-3 text-left font-normal rounded-full"
