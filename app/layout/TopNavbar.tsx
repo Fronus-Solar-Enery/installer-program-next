@@ -4,18 +4,22 @@ import { signOut, useSession } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { UserAvatar } from "./UserAvatar";
-import IconQuitFullScreen from "./icons/QuitFullScreen";
-import IconFullScreen from "./icons/FullScreen";
-import { Dropdown, DropdownContent, DropdownTrigger } from "./ui/dropdown";
-import IconLogout2 from "./icons/Logout2";
-import IconSettings from "./icons/Settings";
-import IconUserRounded from "./icons/UserRounded";
-import { Badge } from "./ui/badge";
+import { UserAvatar } from "@/components/UserAvatar";
+import IconQuitFullScreen from "@/components/icons/QuitFullScreen";
+import IconFullScreen from "@/components/icons/FullScreen";
+import {
+  Dropdown,
+  DropdownContent,
+  DropdownTrigger,
+} from "@/components/ui/dropdown";
+import IconLogout2 from "@/components/icons/Logout2";
+import IconSettings from "@/components/icons/Settings";
+import IconUserRounded from "@/components/icons/UserRounded";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import IconArrowUpDown from "./icons/ArrowUpDown";
-import IconMagnifer from "./icons/Magnifer";
-import GlobalSearchModal from "./GlobalSearchModal";
+import IconArrowUpDown from "@/components/icons/ArrowUpDown";
+import IconMagnifer from "@/components/icons/Magnifer";
+import GlobalSearchModal from "@/components/GlobalSearchModal";
 
 export default function TopNavbar() {
   const { data: session } = useSession();

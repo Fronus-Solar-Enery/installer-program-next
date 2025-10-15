@@ -7,6 +7,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -77,7 +78,7 @@ interface ProductData {
 
 interface CityData {
   city: string;
-  count: number;
+  installations: number;
 }
 
 interface ActiveInstallersData {
@@ -450,11 +451,11 @@ export default function DashboardPage() {
       });
 
       const cityArray = Object.entries(cityCounts)
-        .map(([city, count]) => ({
+        .map(([city, installations]) => ({
           city,
-          count: count as number,
+          installations: installations as number,
         }))
-        .sort((a, b) => b.count - a.count)
+        .sort((a, b) => b.installations - a.installations)
         .slice(0, 5);
 
       setCityData(cityArray);
@@ -961,7 +962,7 @@ export default function DashboardPage() {
               description={`Installation count by product type in ${timeLabels[timePeriod]}`}
               Icon={IconChart}
             />
-            <CardContent>
+            <CardContent className="py-4">
               {productData.length > 0 ? (
                 <>
                   <ChartContainer
@@ -1015,20 +1016,6 @@ export default function DashboardPage() {
                       </Bar>
                     </BarChart>
                   </ChartContainer>
-
-                  <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Total Installations
-                    </span>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">
-                        {stats.totalRewards}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Avg: {avgPerProduct} per product
-                      </div>
-                    </div>
-                  </div>
                 </>
               ) : (
                 <div className="h-[280px] flex items-center justify-center text-muted-foreground">
@@ -1036,6 +1023,17 @@ export default function DashboardPage() {
                 </div>
               )}
             </CardContent>
+            <CardFooter className="pt-4 border-t border-border flex items-center justify-between">
+              <span className="text-sm font-medium text-muted-foreground">
+                Total Installations
+              </span>
+              <div className="text-right">
+                <div className="text-2xl font-bold">{stats.totalRewards}</div>
+                <div className="text-xs text-muted-foreground">
+                  Avg: {avgPerProduct} per product
+                </div>
+              </div>
+            </CardFooter>
           </Card>
 
           {/* Top Performers - Takes 3 columns */}
@@ -1045,182 +1043,158 @@ export default function DashboardPage() {
               description={`Top 5 installers by installations in ${timeLabels[timePeriod]}`}
               Icon={IconCourseUp}
             />
-            <CardHeader className="pb-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                    Top Performers
-                  </CardTitle>
-                  <CardDescription className="text-zinc-600 dark:text-zinc-400">
-                    Top 5 installers by installations in{" "}
-                    {timeLabels[timePeriod]}
-                  </CardDescription>
-                </div>
-                <div className="rounded-lg bg-zinc-100 dark:bg-zinc-900 p-2">
-                  <IconChart className="h-5 w-5 text-zinc-600 dark:text-zinc-400" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {activeInstallers.length > 0 ? (
-                  activeInstallers.map((installer, index) => (
+            <CardContent className="space-y-3 p-4">
+              {activeInstallers.length > 0 ? (
+                activeInstallers.map((installer, index) => (
+                  <div
+                    key={installer.installerCode}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-2xl transition-colors",
+                      index === 0 &&
+                        "bg-gradient-to-r from-yellow-500/10 to-transparent",
+                      index === 1 &&
+                        "bg-gradient-to-r from-gray-400/10 to-transparent",
+                      index === 2 &&
+                        "bg-gradient-to-r from-orange-600/10 to-transparent",
+                      index > 2 && "bg-muted/50 hover:bg-muted"
+                    )}
+                  >
                     <div
-                      key={installer.installerCode}
                       className={cn(
-                        "flex items-center gap-3 p-3 rounded-2xl transition-colors",
+                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-sm",
                         index === 0 &&
-                          "bg-gradient-to-r from-yellow-500/10 to-transparent",
+                          "bg-yellow-500/20 text-yellow-600 dark:text-yellow-500",
                         index === 1 &&
-                          "bg-gradient-to-r from-gray-400/10 to-transparent",
+                          "bg-gray-400/20 text-gray-600 dark:text-gray-400",
                         index === 2 &&
-                          "bg-gradient-to-r from-orange-600/10 to-transparent",
-                        index > 2 && "bg-muted/50 hover:bg-muted"
+                          "bg-orange-600/20 text-orange-600 dark:text-orange-500",
+                        index > 2 && "bg-primary/10 text-primary"
                       )}
                     >
-                      <div
-                        className={cn(
-                          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-sm",
-                          index === 0 &&
-                            "bg-yellow-500/20 text-yellow-600 dark:text-yellow-500",
-                          index === 1 &&
-                            "bg-gray-400/20 text-gray-600 dark:text-gray-400",
-                          index === 2 &&
-                            "bg-orange-600/20 text-orange-600 dark:text-orange-500",
-                          index > 2 && "bg-primary/10 text-primary"
-                        )}
-                      >
-                        #{index + 1}
+                      #{index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm truncate">
+                        {installer.installerName}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">
-                          {installer.installerName}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {installer.installerCode}
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 text-right">
-                        <div>
-                          <div className="text-xs text-muted-foreground">
-                            Products
-                          </div>
-                          <div className="font-bold text-sm text-primary">
-                            {installer.totalProducts}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground">
-                            Reward
-                          </div>
-                          <div className="font-bold text-sm text-green-600 dark:text-green-500">
-                            Rs. {installer.rewardAmount.toLocaleString()}
-                          </div>
-                        </div>
-                        {installer.referralRewardAmount > 0 && (
-                          <div className="col-span-2">
-                            <div className="text-xs text-muted-foreground">
-                              Referral
-                            </div>
-                            <div className="font-semibold text-xs text-purple-600 dark:text-purple-500">
-                              Rs.{" "}
-                              {installer.referralRewardAmount.toLocaleString()}
-                            </div>
-                          </div>
-                        )}
+                      <div className="text-xs text-muted-foreground truncate">
+                        {installer.installerCode}
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    No data available
+                    <div className="grid grid-cols-2 gap-3 text-right">
+                      <div>
+                        <div className="text-xs text-muted-foreground">
+                          Products
+                        </div>
+                        <div className="font-bold text-sm text-primary">
+                          {installer.totalProducts}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">
+                          Reward
+                        </div>
+                        <div className="font-bold text-sm text-green-600 dark:text-green-500">
+                          Rs. {installer.rewardAmount.toLocaleString()}
+                        </div>
+                      </div>
+                      {installer.referralRewardAmount > 0 && (
+                        <div className="col-span-2">
+                          <div className="text-xs text-muted-foreground">
+                            Referral
+                          </div>
+                          <div className="font-semibold text-xs text-purple-600 dark:text-purple-500">
+                            Rs.{" "}
+                            {installer.referralRewardAmount.toLocaleString()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No data available
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
         {/* Active Installers by Training Center */}
         <Card className="transition-all hover:shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <UserCheck className="h-5 w-5 text-primary" />
-              Active Installers by Training Center
-            </CardTitle>
-            <CardDescription>
-              Installers with at least 1 installation in selected period
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {trainingCenterActive.length > 0 ? (
-                trainingCenterActive.map((center, index) => (
+          <DashboardCardHeader
+            title="Active Installers by Training Center"
+            description={`Installers with at least 1 installation in ${timeLabels[timePeriod]}`}
+            Icon={IconCourseUp}
+          />
+          <CardContent className="space-y-3 p-4">
+            {trainingCenterActive.length > 0 ? (
+              trainingCenterActive.map((center, index) => (
+                <div
+                  key={center.trainingCenter}
+                  onClick={async () => {
+                    setSelectedCenter(center.trainingCenter);
+                    setModalOpen(true);
+
+                    // Fetch installers for this training center
+                    const { startDate, endDate } = getDateRange(timePeriod);
+                    const dateParams =
+                      startDate && endDate
+                        ? `&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+                        : "";
+
+                    const res = await fetch(
+                      `/api/dashboard/installers-by-center?trainingCenter=${encodeURIComponent(
+                        center.trainingCenter
+                      )}${dateParams}`
+                    );
+                    const data = await res.json();
+                    setCenterInstallers(data.data || []);
+                  }}
+                  className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                >
                   <div
-                    key={center.trainingCenter}
-                    onClick={async () => {
-                      setSelectedCenter(center.trainingCenter);
-                      setModalOpen(true);
-
-                      // Fetch installers for this training center
-                      const { startDate, endDate } = getDateRange(timePeriod);
-                      const dateParams =
-                        startDate && endDate
-                          ? `&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
-                          : "";
-
-                      const res = await fetch(
-                        `/api/dashboard/installers-by-center?trainingCenter=${encodeURIComponent(
-                          center.trainingCenter
-                        )}${dateParams}`
-                      );
-                      const data = await res.json();
-                      setCenterInstallers(data.data || []);
-                    }}
-                    className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                    className={cn(
+                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-bold",
+                      "bg-primary/10 text-primary"
+                    )}
                   >
-                    <div
-                      className={cn(
-                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-bold",
-                        "bg-primary/10 text-primary"
-                      )}
-                    >
-                      {index + 1}
+                    {index + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-base truncate">
+                      {center.trainingCenter}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-base truncate">
-                        {center.trainingCenter}
+                    <div className="text-sm text-muted-foreground">
+                      Click to view installers
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-right">
+                    <div>
+                      <div className="text-xs text-muted-foreground">
+                        Active
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        Click to view installers
+                      <div className="font-bold text-lg text-primary">
+                        {center.activeInstallersCount}
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 text-right">
-                      <div>
-                        <div className="text-xs text-muted-foreground">
-                          Active
-                        </div>
-                        <div className="font-bold text-lg text-primary">
-                          {center.activeInstallersCount}
-                        </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">
+                        Installations
                       </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">
-                          Installations
-                        </div>
-                        <div className="font-bold text-sm text-green-600 dark:text-green-500">
-                          {center.totalInstallations}
-                        </div>
+                      <div className="font-bold text-sm text-green-600 dark:text-green-500">
+                        {center.totalInstallations}
                       </div>
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  No active installers in selected period
                 </div>
-              )}
-            </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                No active installers in selected period
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -1228,46 +1202,66 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2">
           {/* City Distribution */}
           <Card className="transition-all hover:shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <MapPin className="h-5 w-5 text-primary" />
-                City Distribution
-              </CardTitle>
-              <CardDescription>
-                Top 5 cities by product installations
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+            <DashboardCardHeader
+              title="City Distribution"
+              description={`Top 5 cities by product installations in ${timeLabels[timePeriod]}`}
+              Icon={IconCourseUp}
+            />
+            <CardContent className="space-y-3 p-4">
               {cityData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={cityData} layout="vertical">
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="hsl(var(--border))"
-                      opacity={0.3}
-                    />
-                    <XAxis
-                      type="number"
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={12}
-                    />
-                    <YAxis
-                      dataKey="city"
-                      type="category"
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={11}
-                      width={80}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
+                <>
+                  <ChartContainer
+                    config={chartConfig}
+                    className="min-h-[250px] w-full"
+                  >
+                    <BarChart
+                      accessibilityLayer
+                      data={cityData}
+                      layout="vertical"
+                      margin={{
+                        right: 16,
                       }}
-                    />
-                    <Bar dataKey="count" fill="#10b981" radius={[0, 8, 8, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                    >
+                      <CartesianGrid horizontal={false} />
+                      <YAxis
+                        dataKey="city"
+                        type="category"
+                        tickLine={false}
+                        tickMargin={10}
+                        axisLine={false}
+                        tickFormatter={(value) => value.slice(0, 3)}
+                        hide
+                      />
+                      <XAxis dataKey="installations" type="number" hide />
+                      <ChartTooltip
+                        cursor={false}
+                        content={
+                          <ChartTooltipContent indicator="line" hideLabel />
+                        }
+                      />
+                      <Bar
+                        dataKey="installations"
+                        radius={16}
+                        className="fill-primary"
+                      >
+                        <LabelList
+                          dataKey="city"
+                          position="insideLeft"
+                          offset={14}
+                          className="fill-primary-foreground font-semibold"
+                          fontSize={12}
+                        />
+                        <LabelList
+                          dataKey="installations"
+                          position="right"
+                          offset={8}
+                          className="fill-foreground"
+                          fontSize={12}
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ChartContainer>
+                </>
               ) : (
                 <div className="h-[280px] flex items-center justify-center text-muted-foreground">
                   No city data available

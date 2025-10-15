@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@google-cloud/local-auth": "^3.0.1",
+    "@gsap/react": "^2.1.2",
     "@heroui/react": "^2.8.5",
     "@heroui/system": "^2.4.23",
     "@heroui/theme": "^2.4.23",
@@ -49,6 +50,7 @@
     "dotenv": "^16.4.7",
     "framer-motion": "^12.23.22",
     "googleapis": "^161.0.0",
+    "gsap": "^3.13.0",
     "lucide-react": "^0.544.0",
     "mongodb": "^6.20.0",
     "mongoose": "^8.18.3",

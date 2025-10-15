@@ -2,10 +2,16 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import Sidebar from "@/components/Sidebar";
-import TopNavbar from "@/components/TopNavbar";
+import { useEffect, useRef, useState } from "react";
+import Sidebar from "./Sidebar";
+import TopNavbar from "@/app/layout/TopNavbar";
 import { Skeleton } from "@/components/ui/skeleton";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(useGSAP);
+}
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -25,6 +31,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
       router.push("/auth/signin");
     }
   }, [status, router, isAuthPage]);
+
+  const mainRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    const mainElem = mainRef.current;
+    gsap.to(mainElem, {
+      marginLeft: sidebarCollapsed ? "64px" : "256px",
+      duration: 0.4,
+      ease: "power1.inOut",
+    });
+  }, [sidebarCollapsed]);
 
   if (status === "loading") {
     return (
@@ -53,8 +70,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Main Content Area */}
       <div
-        className="flex flex-1 flex-col overflow-hidden transition-all duration-300"
-        style={{ marginLeft: sidebarCollapsed ? "64px" : "256px" }}
+        ref={mainRef}
+        className="flex flex-1 flex-col overflow-hidden transition-all duration-300 main-elem ml-64"
+        // style={{ marginLeft: sidebarCollapsed ? "64px" : "256px" }}
       >
         {/* Top Navbar */}
         <TopNavbar />

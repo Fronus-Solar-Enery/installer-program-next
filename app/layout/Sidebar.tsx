@@ -1,29 +1,31 @@
 "use client";
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { TeamRole } from "@/types/roles";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { FC, useMemo, useCallback, memo, useRef, forwardRef } from "react";
+import IconDashboard from "@/components/icons/Dashboard";
+import IconUserCog from "@/components/icons/UserCog";
+import IconUsersGroupRounded from "@/components/icons/UsersGroupRounded";
+import IconSettings from "@/components/icons/Settings";
+import IconDocument from "@/components/icons/Document";
+import IconActivity from "@/components/icons/Activity";
+import IconGift from "@/components/icons/Gift";
+import ProgramLogo from "@/components/ProgramLogo";
+import { UserAvatar } from "@/components/UserAvatar";
+import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "./ui/tooltip";
-import { FC, useMemo, useCallback, memo } from "react";
-import IconDashboard from "./icons/Dashboard";
-import IconUserCog from "./icons/UserCog";
-import IconUsersGroupRounded from "./icons/UsersGroupRounded";
-import IconSettings from "./icons/Settings";
-import IconDocument from "./icons/Document";
-import IconActivity from "./icons/Activity";
-import IconGift from "./icons/Gift";
-import ProgramLogo from "./ProgramLogo";
-import { UserAvatar } from "./UserAvatar";
-import { Badge } from "./ui/badge";
+} from "@/components/ui/tooltip";
+
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 
 // Types
 export interface NavItem {
@@ -126,7 +128,7 @@ function Sidebar({
   showUserInfo = true,
   collapsible = true,
   sectionLabel = "Main",
-  width = { expanded: "w-64", collapsed: "w-18" },
+  width = { expanded: "16rem", collapsed: "4.5rem" },
   user,
 }: SidebarProps) {
   const { data: session } = useSession();
@@ -169,11 +171,128 @@ function Sidebar({
     [branding]
   );
 
+  const sideBarRef = useRef<HTMLDivElement>(null);
+  const navItemRef = useRef<HTMLAnchorElement>(null);
+  const logoRef = useRef<SVGSVGElement>(null);
+  useGSAP(() => {
+    const sidebar = sideBarRef.current;
+    const logo = logoRef.current;
+    const navItems = gsap.utils.toArray<HTMLElement>(".navitem-link");
+    const navTitles = gsap.utils.toArray<HTMLElement>(".navlink-title");
+
+    if (!sidebar || !logo) return;
+
+    const ctx = gsap.context(() => {
+      // helpers must return void, not a Tween
+      const showTitles = () => {
+        gsap.set(navTitles, { display: "inline-flex" });
+      };
+
+      const hideTitles = () => {
+        gsap.set(navTitles, { display: "none" });
+      };
+
+      const tl = gsap.timeline();
+
+      if (collapsed) {
+        tl.to(navTitles, {
+          x: -20,
+          opacity: 0,
+          duration: 0.22,
+          stagger: 0.04,
+          ease: "power2.inOut",
+          onComplete: () => {
+            hideTitles();
+          },
+        });
+
+        tl.to(
+          navItems,
+          {
+            width: "3rem",
+            duration: 0.36,
+            ease: "power2.inOut",
+            stagger: 0.03,
+          },
+          "-=0.12"
+        );
+
+        tl.to(
+          logo,
+          {
+            width: "3.5rem",
+            duration: 0.36,
+            ease: "power2.inOut",
+          },
+          "<"
+        );
+
+        tl.to(
+          sidebar,
+          {
+            width: "72px",
+            duration: 0.36,
+            ease: "power2.inOut",
+          },
+          ">"
+        );
+      } else {
+        tl.to(
+          sidebar,
+          {
+            width: "256px",
+            duration: 0.36,
+            ease: "power2.inOut",
+          },
+          "<"
+        );
+        tl.to(
+          logo,
+          {
+            width: "6rem",
+            duration: 0.36,
+            ease: "power2.inOut",
+          },
+          0
+        );
+
+        tl.to(
+          navItems,
+          {
+            width: "100%",
+            duration: 0.36,
+            ease: "power2.inOut",
+            stagger: 0.03,
+          },
+          0
+        );
+
+        // add a callback (returns void) to set display before animating titles
+        tl.add(() => showTitles(), "+=0");
+
+        tl.fromTo(
+          navTitles,
+          { x: -20, opacity: 0 },
+          {
+            x: 0,
+            opacity: 1,
+            duration: 0.22,
+            stagger: 0.04,
+            ease: "power2.out",
+          },
+          "-=0.08"
+        );
+      }
+    }, sidebar);
+
+    return () => ctx.revert();
+  }, [collapsed]);
+
   return (
     <div
+      ref={sideBarRef}
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen border-r border-border bg-sidebar transition-[width] duration-300 flex flex-col",
-        collapsed ? width.collapsed : width.expanded
+        "fixed left-0 top-0 z-40 h-screen border-r border-border bg-sidebar transition-[width] duration-300 flex flex-col w-64"
       )}
     >
       {/* Logo Section */}
@@ -183,8 +302,9 @@ function Sidebar({
           className="flex items-center justify-center w-full"
         >
           <ProgramLogo
+            ref={logoRef}
             className={cn(
-              "transition-[width] duration-300 ease-fluid shrink-0 !m-0 !h-max",
+              "transition-[width] duration-300 ease-fluid shrink-0 !m-0 !h-max w-24",
               collapsed ? "w-14" : "w-24"
             )}
           />
@@ -221,6 +341,7 @@ function Sidebar({
 
         {visibleNavItems.map((item) => (
           <NavItem
+            ref={navItemRef}
             key={item.href}
             to={item.href}
             Icon={item.Icon}
@@ -287,57 +408,54 @@ interface NavItemProps {
   isActive?: boolean;
 }
 
-const NavItem = memo(
-  ({ to, Icon, label, badge, isActive, isExpanded }: NavItemProps) => {
+const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
+  ({ to, Icon, label, badge, isActive, isExpanded }, ref) => {
     const content = (
       <Link
         title={label}
+        ref={ref}
         href={to}
         className={cn(
-          "flex items-center gap-2 px-3 py-3 rounded-2xl transition-all duration-200",
-          isExpanded ? "h-12" : "w-12 h-12",
-          isActive
-            ? "bg-sidebar-primary text-primary font-medium"
-            : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground"
+          "navitem-link flex items-center gap-2 px-3 py-3 rounded-2xl transition-all duration-200 w-full",
+          // isExpanded ? "h-12" : "w-12 h-12",
+          // isActive
+          "bg-sidebar-primary text-primary font-medium"
+          // : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground"
         )}
       >
         <div className="flex items-center justify-center transition-all">
-          <Icon className={cn("shrink-0w-5 h-5")} fill={isActive} />
+          <Icon className={cn("shrink-0 w-5 h-5")} fill={isActive} />
         </div>
-        {isExpanded && (
-          <div className="flex items-center justify-between flex-1 overflow-hidden">
-            <span
-              className={cn(
-                "text-sm transition-all whitespace-nowrap",
-                isActive ? "font-semibold translate-x-0.5" : "font-medium"
-              )}
-            >
-              {label}
-            </span>
-            <div className="flex items-center gap-2">{badge}</div>
-          </div>
-        )}
+        {/* {isExpanded && ( */}
+        <div className="flex items-center justify-between flex-1 overflow-hidden navlink-title">
+          <span
+            className={cn(
+              "text-sm transition-all whitespace-nowrap",
+              isActive ? "font-semibold translate-x-0.5" : "font-medium"
+            )}
+          >
+            {label}
+          </span>
+          <div className="flex items-center gap-2">{badge}</div>
+        </div>
+        {/* )} */}
       </Link>
     );
 
-    if (!isExpanded) {
-      return (
-        <TooltipProvider delayDuration={200}>
-          <Tooltip>
-            <TooltipTrigger asChild>{content}</TooltipTrigger>
-            <TooltipContent
-              side="right"
-              className="flex items-center gap-2 py-1"
-            >
-              <span className="font-medium">{label}</span>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    }
-
-    return content;
+    return (
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>{content}</TooltipTrigger>
+          <TooltipContent side="right" className="flex items-center gap-2 py-1">
+            <span className="font-medium">{label}</span>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   }
 );
 
+NavItemBase.displayName = "NavItemBase";
+
+export const NavItem = memo(NavItemBase);
 NavItem.displayName = "NavItem";
