@@ -418,9 +418,9 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
         className={cn(
           "navitem-link flex items-center gap-2 px-3 py-3 rounded-2xl transition-all duration-200 w-full",
           // isExpanded ? "h-12" : "w-12 h-12",
-          // isActive
-          "bg-sidebar-primary text-primary font-medium"
-          // : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground"
+          isActive
+            ? "bg-sidebar-primary text-primary font-medium"
+            : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground"
         )}
       >
         <div className="flex items-center justify-center transition-all">
