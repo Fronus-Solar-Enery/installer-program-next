@@ -1,29 +1,38 @@
-"use client";
 interface PageHeaderProps {
   title: string;
-  description?: string;
-  action?: React.ReactNode;
-  breadcrumbLabel?: string; // Custom label for the current page in breadcrumb
+  description?: string | React.ReactNode;
+  Icon?: React.ComponentType<{ className?: string }>;
+  action?: React.ReactNode; // Add action prop
 }
 
 export default function PageHeader({
   title,
   description,
+  Icon,
   action,
 }: PageHeaderProps) {
   return (
-    <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex items-center justify-between px-6 pb-6">
+    <div className="flex w-full flex-wrap items-center justify-between gap-4 p-6 border lg:flex-nowrap bg-card rounded-3xl border-border">
+      <div className="flex items-center gap-4">
+        {Icon && (
+          <Icon className="hidden md:block w-12 h-12 text-primary shrink-0" />
+        )}
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+          <h1 className="text-2xl font-medium tracking-wide text-foreground font-clash">
             {title}
           </h1>
           {description && (
-            <p className="text-muted-foreground mt-1">{description}</p>
+            <div className="max-w-2xl mt-1 text-muted-foreground">
+              {description}
+            </div>
           )}
         </div>
-        {action && <div>{action}</div>}
       </div>
+      {action && (
+        <div className="flex space-x-2 justify-end flex-shrink-0 w-full flex-wrap md:flex-nowrap md:w-auto md:block">
+          {action}
+        </div>
+      )}
     </div>
   );
 }

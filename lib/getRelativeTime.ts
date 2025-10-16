@@ -1,24 +1,51 @@
-export function getRelativeTime(date: Date): string {
-  const now = new Date();
-  const diff = (now.getTime() - date.getTime()) / 1000; // seconds
+import { useState, useEffect, useCallback, useMemo } from "react";
 
-  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+export function useRelativeTime(
+  input: Date | string,
+  updateInterval: number = 5000
+): string {
+  const date = useMemo(
+    () => (typeof input === "string" ? new Date(input) : input),
+    [input]
+  );
 
-  const units: [Intl.RelativeTimeFormatUnit, number][] = [
-    ["year", 60 * 60 * 24 * 365],
-    ["month", 60 * 60 * 24 * 30],
-    ["day", 60 * 60 * 24],
-    ["hour", 60 * 60],
-    ["minute", 60],
-    ["second", 1],
-  ];
+  const getRelativeTimeString = useCallback((): string => {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-  for (const [unit, secondsInUnit] of units) {
-    const value = Math.floor(diff / secondsInUnit);
-    if (Math.abs(value) >= 1) {
-      return rtf.format(-value, unit);
+    if (diffInSeconds < 5) return "Just Now";
+    if (diffInSeconds < 60)
+      return `${diffInSeconds} second${diffInSeconds !== 1 ? "s" : ""} ago`;
+
+    if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      const seconds = diffInSeconds % 60;
+      return `${minutes} minute${minutes !== 1 ? "s" : ""}${
+        seconds ? ` ${seconds} second${seconds !== 1 ? "s" : ""}` : ""
+      } ago`;
     }
-  }
 
-  return "just now";
+    if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+    }
+
+    const days = Math.floor(diffInSeconds / 86400);
+    return `${days} day${days !== 1 ? "s" : ""} ago`;
+  }, [date]);
+
+  const [relativeTime, setRelativeTime] = useState<string>(
+    getRelativeTimeString
+  );
+
+  useEffect(() => {
+    setRelativeTime(getRelativeTimeString());
+    const id = setInterval(
+      () => setRelativeTime(getRelativeTimeString()),
+      updateInterval
+    );
+    return () => clearInterval(id);
+  }, [getRelativeTimeString, updateInterval]);
+
+  return relativeTime;
 }

@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Bloxat";
+  src: url("/fonts/bloxat.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "ClashDisplay";
+  src: url("/fonts/ClashDisplay.woff2") format("woff2"),
+    url("/fonts/ClashDisplay.woff") format("woff"),
+    url("/fonts/ClashDisplay.ttf") format("truetype");
+  font-weight: 200 700;
+  font-display: swap;
+  font-style: normal;
+  unicode-range: U+0000-001F, U+0021-007F;
+}
+
 :root {
   --radius: 0.65rem;
   --background: oklch(1 0 0);
@@ -16,7 +34,8 @@
   --muted-foreground: oklch(0.556 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
+  --destructive: oklch(51.4% 0.222 16.935);
+  --destructive-hover: oklch(58.6% 0.253 17.585);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -51,7 +70,8 @@
   --muted-foreground: oklch(0.708 0 0);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+  --destructive: oklch(45.5% 0.188 13.697);
+  --destructive-hover: oklch(51.4% 0.222 16.935);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
@@ -74,6 +94,9 @@
 
 @theme inline {
   /* Base variables mapped to Tailwind theme tokens */
+  --font-number: "Bloxat", sans-serif;
+  --font-clash: "ClashDisplay", sans-serif;
+
   --radius: var(--radius);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -90,6 +113,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-destructive-hover: var(--destructive-hover);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -156,4 +180,13 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   @apply bg-zinc-900;
+}
+
+ol:has(li.my-toast) {
+  @apply !flex !justify-center;
+}
+[data-expanded="true"].my-toast,
+[data-type="success"].my-toast {
+  @apply !border-none !rounded-full !shadow-none !ease-fluid !py-3 !px-6 !flex !items-center !justify-center !w-max;
+  @apply !bg-emerald-50 !text-emerald-700 dark:!bg-emerald-950 dark:!text-emerald-300 shadow-accent-foreground;
 }

@@ -22,9 +22,7 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  FileDown,
   Loader2,
-  RefreshCw,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -77,7 +75,22 @@ import Dropdown, {
 import IconLayer from "@/components/icons/Layer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { getRelativeTime } from "@/lib/getRelativeTime";
+import { useRelativeTime } from "@/lib/getRelativeTime";
+import { TableSkeleton } from "@/components/TableSkeleton";
+import {
+  IconActivity,
+  IconAdd,
+  IconEdit2,
+  IconEye,
+  IconRefresh2,
+  IconUserCog,
+} from "@/components/icons";
+import IconTrashBin2 from "@/components/icons/TrashBin2";
+import { EmptyState } from "@/components/EmptyState";
+import Loading from "@/components/ui/loading";
+import { PillIndicator } from "@/components/ui/pill";
+import IconDocumentDownload from "@/components/icons/DocumentDownload";
+import IconSetting4 from "@/components/icons/Setting4";
 
 interface InstallerWithId extends IInstaller {
   _id: string;
@@ -125,7 +138,6 @@ export default function InstallersPage() {
     bankName: false,
     accountNumber: false,
   });
-  const [showColumnMenu, setShowColumnMenu] = useState(false);
 
   // Filter state
   const [filters, setFilters] = useState({
@@ -210,6 +222,7 @@ export default function InstallersPage() {
       if (data.success) {
         setInstallers(data.data.installers);
       }
+      setLastUpdated(new Date());
     } catch (error) {
       console.error("Failed to fetch installers:", error);
     } finally {
@@ -595,17 +608,35 @@ export default function InstallersPage() {
       }),
     [filteredInstallers, sortField, sortDirection]
   );
-
+  const activeColumnsLength =
+    Object.values(visibleColumns).filter(Boolean).length;
   // Get paginated data
   const paginatedInstallers = sortedInstallers.slice(startIndex, endIndex);
+
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const refreshRelTime = useRelativeTime(lastUpdated);
 
   return (
     <div className="flex-1 overflow-auto">
       <PageHeader
         title="Installers"
-        description="Manage installer registrations and information"
+        Icon={IconUserCog}
+        description={
+          <>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Manage installers, view details, and add new entries
+            </p>
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span>Live data</span>
+                <PillIndicator pulse variant="success" className="size-1.5" />
+              </div>
+              <span>Updated {refreshRelTime}</span>
+            </div>
+          </>
+        }
         action={
-          <div className="flex gap-3">
+          <>
             {googleAuthStatus && !googleAuthStatus.isAuthenticated ? (
               <Button
                 onClick={handleAuthenticateGoogle}
@@ -633,17 +664,51 @@ export default function InstallersPage() {
             ) : (
               <>
                 <Button
+                  variant="outline"
+                  onClick={fetchInstallers}
+                  disabled={loading}
+                  title="Refresh data"
+                  className="gap-2"
+                  // size={"icon"}
+                >
+                  Refresh
+                  <IconRefresh2
+                    duotone={false}
+                    width={2}
+                    className={cn("h-3.5 w-3.5", loading && "animate-spin")}
+                  />
+                </Button>
+
+                <Button
                   onClick={() => router.push("/installers/bulk-register")}
-                  variant="secondary"
+                  variant="outline"
+                  disabled={loading}
+                  title="Bulk Register"
+                  className="gap-2"
                 >
                   Bulk Register
+                  <IconLayer
+                    duotone={false}
+                    width={2}
+                    className={cn("h-3.5 w-3.5")}
+                  />
                 </Button>
-                <Button onClick={() => router.push("/installers/new")}>
-                  + Register New Installer
+                <Button
+                  onClick={() => router.push("/installers/new")}
+                  disabled={loading}
+                  title="Register New Installer"
+                  className="gap-2"
+                >
+                  <IconAdd
+                    duotone={false}
+                    width={2}
+                    className={cn("h-3.5 w-3.5")}
+                  />
+                  Register New Installer
                 </Button>
               </>
             )}
-          </div>
+          </>
         }
       />
       <div className="p-6">
@@ -731,21 +796,6 @@ export default function InstallersPage() {
                   Filters
                 </CardTitle>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDownloadReport}
-                    disabled={
-                      filteredInstallers.length === 0 || downloadingReport
-                    }
-                  >
-                    {downloadingReport ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <FileDown className="h-4 w-4 mr-2" />
-                    )}
-                    {downloadingReport ? "Downloading..." : "Download Report"}
-                  </Button>
                   {selectedInstallers.size > 0 && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -789,455 +839,44 @@ export default function InstallersPage() {
                       </AlertDialogContent>
                     </AlertDialog>
                   )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowFilters(!showFilters)}
-                  >
-                    {showFilters ? "Hide" : "Show"}
-                  </Button>
                 </div>
               </div>
             </CardHeader>
-            {showFilters && (
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Date Range Filter */}
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        Date Range
-                      </label>
-                      <Select
-                        value={filters.dateRange}
-                        onValueChange={(value) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            dateRange: value as typeof prev.dateRange,
-                            customStartDate:
-                              value !== "custom" ? "" : prev.customStartDate,
-                            customEndDate:
-                              value !== "custom" ? "" : prev.customEndDate,
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="All time" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All time</SelectItem>
-                          <SelectItem value="today">Today</SelectItem>
-                          <SelectItem value="week">Last 7 days</SelectItem>
-                          <SelectItem value="month">Last 30 days</SelectItem>
-                          <SelectItem value="year">Last year</SelectItem>
-                          <SelectItem value="custom">Custom range</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {filters.dateRange === "custom" && (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">
-                          Select Date Range
-                        </label>
-                        <Popover
-                          open={calendarPopoverOpen}
-                          onOpenChange={(open) => {
-                            setCalendarPopoverOpen(open);
-                            // Initialize calendar value from filters when opening
-                            if (
-                              open &&
-                              filters.customStartDate &&
-                              filters.customEndDate
-                            ) {
-                              try {
-                                setCalendarValue({
-                                  start: parseDate(filters.customStartDate),
-                                  end: parseDate(filters.customEndDate),
-                                });
-                              } catch {
-                                setCalendarValue(null);
-                              }
-                            }
-                          }}
-                        >
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="w-full justify-start text-left font-normal"
-                            >
-                              <Calendar className="mr-2 h-4 w-4" />
-                              {filters.customStartDate &&
-                              filters.customEndDate ? (
-                                `${new Date(
-                                  filters.customStartDate
-                                ).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                })} - ${new Date(
-                                  filters.customEndDate
-                                ).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                })}`
-                              ) : (
-                                <span className="text-muted-foreground">
-                                  Pick a date range
-                                </span>
-                              )}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-4" align="start">
-                            <div className="space-y-4">
-                              <RangeCalendar
-                                aria-label="Select date range"
-                                value={calendarValue}
-                                onChange={setCalendarValue}
-                                maxValue={today(getLocalTimeZone())}
-                                visibleMonths={2}
-                                pageBehavior="visible"
-                                showMonthAndYearPickers
-                                className="rounded-lg"
-                                classNames={{
-                                  base: "gap-4",
-                                  headerWrapper: "pt-0",
-                                  prevButton: "rounded-md hover:bg-accent",
-                                  nextButton: "rounded-md hover:bg-accent",
-                                  gridHeader:
-                                    "bg-accent/50 rounded-md shadow-sm",
-                                  cellButton: [
-                                    "data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground",
-                                    "data-[range-start=true]:rounded-l-md",
-                                    "data-[range-end=true]:rounded-r-md",
-                                    "data-[selection-start=true]:rounded-l-md",
-                                    "data-[selection-end=true]:rounded-r-md",
-                                    "data-[selected=true]:data-[selection-start=true]:data-[range-selection=true]:rounded-l-md",
-                                    "data-[selected=true]:data-[selection-end=true]:data-[range-selection=true]:rounded-r-md",
-                                  ],
-                                }}
-                              />
-                              <div className="flex items-center justify-between gap-2 pt-2 border-t">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setCalendarValue(null);
-                                    setFilters((prev) => ({
-                                      ...prev,
-                                      customStartDate: "",
-                                      customEndDate: "",
-                                    }));
-                                    setCalendarPopoverOpen(false);
-                                  }}
-                                >
-                                  Clear
-                                </Button>
-                                <div className="flex gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() =>
-                                      setCalendarPopoverOpen(false)
-                                    }
-                                  >
-                                    Cancel
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    onClick={() => {
-                                      if (
-                                        calendarValue?.start &&
-                                        calendarValue?.end
-                                      ) {
-                                        setFilters((prev) => ({
-                                          ...prev,
-                                          customStartDate:
-                                            calendarValue.start.toString(),
-                                          customEndDate:
-                                            calendarValue.end.toString(),
-                                        }));
-                                        setCalendarPopoverOpen(false);
-                                      }
-                                    }}
-                                    disabled={
-                                      !calendarValue?.start ||
-                                      !calendarValue?.end
-                                    }
-                                  >
-                                    Apply
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Other Filters */}
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">City</label>
-                      <Select
-                        value={filters.city || "all"}
-                        onValueChange={(value) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            city: value === "all" ? "" : value,
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="All cities" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All cities</SelectItem>
-                          {uniqueValues.cities.map((city) => (
-                            <SelectItem key={city} value={city}>
-                              {city}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Province</label>
-                      <Select
-                        value={filters.province || "all"}
-                        onValueChange={(value) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            province: value === "all" ? "" : value,
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="All provinces" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All provinces</SelectItem>
-                          {uniqueValues.provinces.map((province) => (
-                            <SelectItem key={province} value={province}>
-                              {province}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        Training Center
-                      </label>
-                      <Select
-                        value={filters.trainingCenter || "all"}
-                        onValueChange={(value) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            trainingCenter: value === "all" ? "" : value,
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="All centers" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All centers</SelectItem>
-                          {uniqueValues.trainingCenters.map((center) => (
-                            <SelectItem key={center} value={center}>
-                              {center}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        Certification
-                      </label>
-                      <Select
-                        value={filters.certified || "all"}
-                        onValueChange={(value) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            certified: value === "all" ? "" : value,
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="All statuses" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All statuses</SelectItem>
-                          <SelectItem value="true">Certified</SelectItem>
-                          <SelectItem value="false">Not Certified</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Bank</label>
-                      <Select
-                        value={filters.bankName || "all"}
-                        onValueChange={(value) =>
-                          setFilters((prev) => ({
-                            ...prev,
-                            bankName: value === "all" ? "" : value,
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="All banks" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All banks</SelectItem>
-                          {uniqueValues.banks.map((bank) => (
-                            <SelectItem key={bank} value={bank}>
-                              {bank}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                {(filters.city ||
-                  filters.province ||
-                  filters.trainingCenter ||
-                  filters.certified ||
-                  filters.bankName ||
-                  filters.dateRange !== "all") && (
-                  <div className="mt-4 flex items-center justify-between">
-                    <div className="flex flex-wrap gap-2">
-                      {filters.dateRange !== "all" && (
-                        <Badge variant="secondary" className="gap-1">
-                          {filters.dateRange === "today" && "Today"}
-                          {filters.dateRange === "week" && "Last 7 days"}
-                          {filters.dateRange === "month" && "Last 30 days"}
-                          {filters.dateRange === "year" && "Last year"}
-                          {filters.dateRange === "custom" &&
-                            `${filters.customStartDate} to ${filters.customEndDate}`}
-                          <X
-                            className="h-3 w-3 cursor-pointer"
-                            onClick={() =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                dateRange: "all",
-                                customStartDate: "",
-                                customEndDate: "",
-                              }))
-                            }
-                          />
-                        </Badge>
-                      )}
-                      {filters.city && (
-                        <Badge variant="secondary" className="gap-1">
-                          City: {filters.city}
-                          <X
-                            className="h-3 w-3 cursor-pointer"
-                            onClick={() =>
-                              setFilters((prev) => ({ ...prev, city: "" }))
-                            }
-                          />
-                        </Badge>
-                      )}
-                      {filters.province && (
-                        <Badge variant="secondary" className="gap-1">
-                          Province: {filters.province}
-                          <X
-                            className="h-3 w-3 cursor-pointer"
-                            onClick={() =>
-                              setFilters((prev) => ({ ...prev, province: "" }))
-                            }
-                          />
-                        </Badge>
-                      )}
-                      {filters.trainingCenter && (
-                        <Badge variant="secondary" className="gap-1">
-                          Center: {filters.trainingCenter}
-                          <X
-                            className="h-3 w-3 cursor-pointer"
-                            onClick={() =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                trainingCenter: "",
-                              }))
-                            }
-                          />
-                        </Badge>
-                      )}
-                      {filters.certified && (
-                        <Badge variant="secondary" className="gap-1">
-                          {filters.certified === "true"
-                            ? "Certified"
-                            : "Not Certified"}
-                          <X
-                            className="h-3 w-3 cursor-pointer"
-                            onClick={() =>
-                              setFilters((prev) => ({ ...prev, certified: "" }))
-                            }
-                          />
-                        </Badge>
-                      )}
-                      {filters.bankName && (
-                        <Badge variant="secondary" className="gap-1">
-                          Bank: {filters.bankName}
-                          <X
-                            className="h-3 w-3 cursor-pointer"
-                            onClick={() =>
-                              setFilters((prev) => ({ ...prev, bankName: "" }))
-                            }
-                          />
-                        </Badge>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        setFilters({
-                          city: "",
-                          province: "",
-                          trainingCenter: "",
-                          certified: "",
-                          bankName: "",
-                          dateRange: "all",
-                          customStartDate: "",
-                          customEndDate: "",
-                        })
-                      }
-                    >
-                      Clear All
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            )}
           </Card>
 
           <Card>
-            <CardHeader className="!flex-row items-center justify-between w-full bg-muted/50">
+            <CardHeader className="!flex-row items-center justify-between w-full bg-muted">
               <CardTitle className="text-lg font-semibold">
                 Installers Database
               </CardTitle>
               <div className="flex items-center gap-2">
                 <Button
-                  variant="ghost"
-                  onClick={fetchInstallers}
-                  disabled={loading}
-                  title="Refresh data"
-                  size={"icon"}
+                  variant="outline"
+                  onClick={handleDownloadReport}
+                  disabled={
+                    filteredInstallers.length === 0 ||
+                    downloadingReport ||
+                    loading
+                  }
+                  className="gap-2"
                 >
-                  <RefreshCw
-                    className={cn("h-4 w-4", loading && "animate-spin")}
-                  />
+                  {downloadingReport ? (
+                    <>
+                      Downloading <Loading className="size-4" />
+                    </>
+                  ) : loading ? (
+                    <>
+                      Generating <Loading className="size-4" />
+                    </>
+                  ) : (
+                    <>
+                      Report
+                      <IconDocumentDownload
+                        duotone={false}
+                        className="h-4 w-4"
+                      />
+                    </>
+                  )}
                 </Button>
                 <Dropdown>
                   <DropdownTrigger asChild>
@@ -1247,6 +886,9 @@ export default function InstallersPage() {
                     </Button>
                   </DropdownTrigger>
                   <DropdownContent className="w-54 p-2 pr-0.5">
+                    <div className="px-2 pb-2 text-sm text-muted-foreground">
+                      Columns Visibility
+                    </div>
                     <ScrollArea className="h-72 pr-2 rounded-xl">
                       <div className="space-y-1 w-[98%]">
                         {Object.entries(visibleColumns).map(([key, value]) => (
@@ -1276,7 +918,7 @@ export default function InstallersPage() {
               </div>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="mb-4">
+              <div className="mb-4 flex items-center justify-between gap-2">
                 <Input
                   type="text"
                   placeholder="Search by name, code, CNIC, phone, WhatsApp, account, company..."
@@ -1284,388 +926,890 @@ export default function InstallersPage() {
                   onChange={(e) => setSearch(e.target.value)}
                   className="flex-1"
                 />
+                <Button
+                  className="gap-2 rounded-full"
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  Filters <IconSetting4 className="size-4" duotone={false} />
+                </Button>
               </div>
+              <Card className="mb-4 !p-4">
+                {showFilters && (
+                  <CardContent className="p-0">
+                    <div className="flex items-center gap-2">
+                      <IconSetting4 className="size-4" duotone={false} />
+                      Filters
+                    </div>
+                    <div className="space-y-4">
+                      {/* Date Range Filter */}
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            Date Range
+                          </label>
+                          <Select
+                            value={filters.dateRange}
+                            onValueChange={(value) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                dateRange: value as typeof prev.dateRange,
+                                customStartDate:
+                                  value !== "custom"
+                                    ? ""
+                                    : prev.customStartDate,
+                                customEndDate:
+                                  value !== "custom" ? "" : prev.customEndDate,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="All time" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All time</SelectItem>
+                              <SelectItem value="today">Today</SelectItem>
+                              <SelectItem value="week">Last 7 days</SelectItem>
+                              <SelectItem value="month">
+                                Last 30 days
+                              </SelectItem>
+                              <SelectItem value="year">Last year</SelectItem>
+                              <SelectItem value="custom">
+                                Custom range
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-              {loading ? (
-                <div className="text-center py-12">
-                  <div className="text-muted-foreground">
-                    Loading installers...
-                  </div>
-                </div>
-              ) : filteredInstallers.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-muted-foreground">
-                    No installers found
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="border border-border rounded-2xl overflow-hidden">
-                    <Table>
-                      <TableHeader className="bg-muted">
-                        <TableRow className="hover:bg-muted/50 ">
-                          <TableHead className="w-12">
-                            <Checkbox
-                              checked={
-                                paginatedInstallers.length > 0 &&
-                                paginatedInstallers.every((i) =>
-                                  selectedInstallers.has(i._id)
-                                )
-                              }
-                              onCheckedChange={toggleSelectAll}
-                              aria-label="Select all installers on this page"
-                            />
-                          </TableHead>
-                          {visibleColumns.installerCode && (
-                            <TableHead
-                              className="cursor-pointer font-semibold"
-                              onClick={() => handleSort("installerCode")}
+                        {filters.dateRange === "custom" && (
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">
+                              Select Date Range
+                            </label>
+                            <Popover
+                              open={calendarPopoverOpen}
+                              onOpenChange={(open) => {
+                                setCalendarPopoverOpen(open);
+                                // Initialize calendar value from filters when opening
+                                if (
+                                  open &&
+                                  filters.customStartDate &&
+                                  filters.customEndDate
+                                ) {
+                                  try {
+                                    setCalendarValue({
+                                      start: parseDate(filters.customStartDate),
+                                      end: parseDate(filters.customEndDate),
+                                    });
+                                  } catch {
+                                    setCalendarValue(null);
+                                  }
+                                }
+                              }}
                             >
-                              Installer Code {getSortIcon("installerCode")}
-                            </TableHead>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className="w-full justify-start text-left font-normal"
+                                >
+                                  <Calendar className="mr-2 h-4 w-4" />
+                                  {filters.customStartDate &&
+                                  filters.customEndDate ? (
+                                    `${new Date(
+                                      filters.customStartDate
+                                    ).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    })} - ${new Date(
+                                      filters.customEndDate
+                                    ).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    })}`
+                                  ) : (
+                                    <span className="text-muted-foreground">
+                                      Pick a date range
+                                    </span>
+                                  )}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent
+                                className="w-auto p-4"
+                                align="start"
+                              >
+                                <div className="space-y-4">
+                                  <RangeCalendar
+                                    aria-label="Select date range"
+                                    value={calendarValue}
+                                    onChange={setCalendarValue}
+                                    maxValue={today(getLocalTimeZone())}
+                                    visibleMonths={2}
+                                    pageBehavior="visible"
+                                    showMonthAndYearPickers
+                                    className="rounded-lg"
+                                    classNames={{
+                                      base: "gap-4",
+                                      headerWrapper: "pt-0",
+                                      prevButton: "rounded-md hover:bg-accent",
+                                      nextButton: "rounded-md hover:bg-accent",
+                                      gridHeader:
+                                        "bg-accent/50 rounded-md shadow-sm",
+                                      cellButton: [
+                                        "data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground",
+                                        "data-[range-start=true]:rounded-l-md",
+                                        "data-[range-end=true]:rounded-r-md",
+                                        "data-[selection-start=true]:rounded-l-md",
+                                        "data-[selection-end=true]:rounded-r-md",
+                                        "data-[selected=true]:data-[selection-start=true]:data-[range-selection=true]:rounded-l-md",
+                                        "data-[selected=true]:data-[selection-end=true]:data-[range-selection=true]:rounded-r-md",
+                                      ],
+                                    }}
+                                  />
+                                  <div className="flex items-center justify-between gap-2 pt-2 border-t">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        setCalendarValue(null);
+                                        setFilters((prev) => ({
+                                          ...prev,
+                                          customStartDate: "",
+                                          customEndDate: "",
+                                        }));
+                                        setCalendarPopoverOpen(false);
+                                      }}
+                                    >
+                                      Clear
+                                    </Button>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() =>
+                                          setCalendarPopoverOpen(false)
+                                        }
+                                      >
+                                        Cancel
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => {
+                                          if (
+                                            calendarValue?.start &&
+                                            calendarValue?.end
+                                          ) {
+                                            setFilters((prev) => ({
+                                              ...prev,
+                                              customStartDate:
+                                                calendarValue.start.toString(),
+                                              customEndDate:
+                                                calendarValue.end.toString(),
+                                            }));
+                                            setCalendarPopoverOpen(false);
+                                          }
+                                        }}
+                                        disabled={
+                                          !calendarValue?.start ||
+                                          !calendarValue?.end
+                                        }
+                                      >
+                                        Apply
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Other Filters */}
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">City</label>
+                          <Select
+                            value={filters.city || "all"}
+                            onValueChange={(value) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                city: value === "all" ? "" : value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="All cities" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All cities</SelectItem>
+                              {uniqueValues.cities.map((city) => (
+                                <SelectItem key={city} value={city}>
+                                  {city}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">
+                            Province
+                          </label>
+                          <Select
+                            value={filters.province || "all"}
+                            onValueChange={(value) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                province: value === "all" ? "" : value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="All provinces" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All provinces</SelectItem>
+                              {uniqueValues.provinces.map((province) => (
+                                <SelectItem key={province} value={province}>
+                                  {province}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">
+                            Training Center
+                          </label>
+                          <Select
+                            value={filters.trainingCenter || "all"}
+                            onValueChange={(value) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                trainingCenter: value === "all" ? "" : value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="All centers" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All centers</SelectItem>
+                              {uniqueValues.trainingCenters.map((center) => (
+                                <SelectItem key={center} value={center}>
+                                  {center}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">
+                            Certification
+                          </label>
+                          <Select
+                            value={filters.certified || "all"}
+                            onValueChange={(value) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                certified: value === "all" ? "" : value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="All statuses" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All statuses</SelectItem>
+                              <SelectItem value="true">Certified</SelectItem>
+                              <SelectItem value="false">
+                                Not Certified
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Bank</label>
+                          <Select
+                            value={filters.bankName || "all"}
+                            onValueChange={(value) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                bankName: value === "all" ? "" : value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="All banks" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All banks</SelectItem>
+                              {uniqueValues.banks.map((bank) => (
+                                <SelectItem key={bank} value={bank}>
+                                  {bank}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {(filters.city ||
+                      filters.province ||
+                      filters.trainingCenter ||
+                      filters.certified ||
+                      filters.bankName ||
+                      filters.dateRange !== "all") && (
+                      <div className="mt-4 flex items-center justify-between">
+                        <div className="flex flex-wrap gap-2">
+                          {filters.dateRange !== "all" && (
+                            <Badge variant="secondary" className="gap-1">
+                              {filters.dateRange === "today" && "Today"}
+                              {filters.dateRange === "week" && "Last 7 days"}
+                              {filters.dateRange === "month" && "Last 30 days"}
+                              {filters.dateRange === "year" && "Last year"}
+                              {filters.dateRange === "custom" &&
+                                `${filters.customStartDate} to ${filters.customEndDate}`}
+                              <X
+                                className="h-3 w-3 cursor-pointer"
+                                onClick={() =>
+                                  setFilters((prev) => ({
+                                    ...prev,
+                                    dateRange: "all",
+                                    customStartDate: "",
+                                    customEndDate: "",
+                                  }))
+                                }
+                              />
+                            </Badge>
+                          )}
+                          {filters.city && (
+                            <Badge variant="secondary" className="gap-1">
+                              City: {filters.city}
+                              <X
+                                className="h-3 w-3 cursor-pointer"
+                                onClick={() =>
+                                  setFilters((prev) => ({ ...prev, city: "" }))
+                                }
+                              />
+                            </Badge>
+                          )}
+                          {filters.province && (
+                            <Badge variant="secondary" className="gap-1">
+                              Province: {filters.province}
+                              <X
+                                className="h-3 w-3 cursor-pointer"
+                                onClick={() =>
+                                  setFilters((prev) => ({
+                                    ...prev,
+                                    province: "",
+                                  }))
+                                }
+                              />
+                            </Badge>
+                          )}
+                          {filters.trainingCenter && (
+                            <Badge variant="secondary" className="gap-1">
+                              Center: {filters.trainingCenter}
+                              <X
+                                className="h-3 w-3 cursor-pointer"
+                                onClick={() =>
+                                  setFilters((prev) => ({
+                                    ...prev,
+                                    trainingCenter: "",
+                                  }))
+                                }
+                              />
+                            </Badge>
+                          )}
+                          {filters.certified && (
+                            <Badge variant="secondary" className="gap-1">
+                              {filters.certified === "true"
+                                ? "Certified"
+                                : "Not Certified"}
+                              <X
+                                className="h-3 w-3 cursor-pointer"
+                                onClick={() =>
+                                  setFilters((prev) => ({
+                                    ...prev,
+                                    certified: "",
+                                  }))
+                                }
+                              />
+                            </Badge>
+                          )}
+                          {filters.bankName && (
+                            <Badge variant="secondary" className="gap-1">
+                              Bank: {filters.bankName}
+                              <X
+                                className="h-3 w-3 cursor-pointer"
+                                onClick={() =>
+                                  setFilters((prev) => ({
+                                    ...prev,
+                                    bankName: "",
+                                  }))
+                                }
+                              />
+                            </Badge>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setFilters({
+                              city: "",
+                              province: "",
+                              trainingCenter: "",
+                              certified: "",
+                              bankName: "",
+                              dateRange: "all",
+                              customStartDate: "",
+                              customEndDate: "",
+                            })
+                          }
+                        >
+                          Clear All
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                )}
+              </Card>
+
+              <div className="border border-border rounded-2xl overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-muted">
+                    <TableRow className="hover:bg-muted/50 ">
+                      <TableHead className="text-center w-12">
+                        <Checkbox
+                          checked={
+                            paginatedInstallers.length > 0 &&
+                            paginatedInstallers.every((i) =>
+                              selectedInstallers.has(i._id)
+                            )
+                          }
+                          onCheckedChange={toggleSelectAll}
+                          aria-label="Select all installers on this page"
+                        />
+                      </TableHead>
+                      {visibleColumns.installerCode && (
+                        <TableHead
+                          className="cursor-pointer font-semibold"
+                          onClick={() => handleSort("installerCode")}
+                        >
+                          Installer Code {getSortIcon("installerCode")}
+                        </TableHead>
+                      )}
+                      {visibleColumns.fullName && (
+                        <TableHead
+                          className="cursor-pointer font-semibold"
+                          onClick={() => handleSort("fullName")}
+                        >
+                          Name {getSortIcon("fullName")}
+                        </TableHead>
+                      )}
+                      {visibleColumns.cnic && (
+                        <TableHead
+                          className="cursor-pointer font-semibold"
+                          onClick={() => handleSort("cnic")}
+                        >
+                          CNIC {getSortIcon("cnic")}
+                        </TableHead>
+                      )}
+                      {visibleColumns.phoneNumber && (
+                        <TableHead className="font-semibold">Phone</TableHead>
+                      )}
+                      {visibleColumns.city && (
+                        <TableHead
+                          className="cursor-pointer font-semibold"
+                          onClick={() => handleSort("city")}
+                        >
+                          City {getSortIcon("city")}
+                        </TableHead>
+                      )}
+                      {visibleColumns.province && (
+                        <TableHead
+                          className="cursor-pointer font-semibold"
+                          onClick={() => handleSort("province")}
+                        >
+                          Province {getSortIcon("province")}
+                        </TableHead>
+                      )}
+                      {visibleColumns.trainingCenter && (
+                        <TableHead className="font-semibold">
+                          Training Center
+                        </TableHead>
+                      )}
+                      {visibleColumns.companyName && (
+                        <TableHead className="font-semibold">Company</TableHead>
+                      )}
+                      {visibleColumns.certified && (
+                        <TableHead
+                          className="cursor-pointer font-semibold"
+                          onClick={() => handleSort("certified")}
+                        >
+                          Certified {getSortIcon("certified")}
+                        </TableHead>
+                      )}
+                      {visibleColumns.bankName && (
+                        <TableHead className="font-semibold">Bank</TableHead>
+                      )}
+                      {visibleColumns.accountNumber && (
+                        <TableHead className="font-semibold">Account</TableHead>
+                      )}
+                      <TableHead className="font-semibold">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+
+                  <TableBody>
+                    {loading ? (
+                      <>
+                        <TableSkeleton
+                          rows={rowsPerPage}
+                          actionIcons={[IconEye, IconEdit2, IconTrashBin2]}
+                          excludeLastColumn={true}
+                        />
+                      </>
+                    ) : filteredInstallers.length === 0 ? (
+                      <TableRow className="p-4">
+                        <TableCell
+                          colSpan={activeColumnsLength + 2}
+                          className="w-full place-items-center p-0"
+                        >
+                          <EmptyState
+                            title="No Forms Created"
+                            description="You can create a new template to add in your pages."
+                            icons={[IconActivity]}
+                            className="w-full border-none rounded-none bg-card"
+                            action={{
+                              label: (
+                                <div className="flex items-center gap-2">
+                                  <IconAdd className="size-5" /> Register New
+                                  Installer
+                                </div>
+                              ),
+                              onClick: () => console.log("Create form clicked"),
+                            }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      paginatedInstallers.map((installer: InstallerWithId) => (
+                        <TableRow
+                          key={installer._id}
+                          id={`installer-${installer._id}`}
+                          className="transition-colors"
+                        >
+                          <TableCell className="text-center w-12">
+                            <Checkbox
+                              checked={selectedInstallers.has(installer._id)}
+                              onCheckedChange={() =>
+                                toggleSelection(installer._id)
+                              }
+                              aria-label={`Select ${installer.fullName}`}
+                            />
+                          </TableCell>
+                          {visibleColumns.installerCode && (
+                            <TableCell className="font-medium">
+                              <Button
+                                variant="link"
+                                onClick={() =>
+                                  router.push(`/installers/${installer._id}`)
+                                }
+                                className="font-mono p-0 h-auto"
+                              >
+                                {installer.installerCode}
+                              </Button>
+                            </TableCell>
                           )}
                           {visibleColumns.fullName && (
-                            <TableHead
-                              className="cursor-pointer font-semibold"
-                              onClick={() => handleSort("fullName")}
-                            >
-                              Name {getSortIcon("fullName")}
-                            </TableHead>
+                            <TableCell>{installer.fullName}</TableCell>
                           )}
                           {visibleColumns.cnic && (
-                            <TableHead
-                              className="cursor-pointer font-semibold"
-                              onClick={() => handleSort("cnic")}
-                            >
-                              CNIC {getSortIcon("cnic")}
-                            </TableHead>
+                            <TableCell className="text-muted-foreground">
+                              {installer.cnic}
+                            </TableCell>
                           )}
                           {visibleColumns.phoneNumber && (
-                            <TableHead className="font-semibold">
-                              Phone
-                            </TableHead>
+                            <TableCell className="text-muted-foreground">
+                              {installer.phoneNumber}
+                            </TableCell>
                           )}
                           {visibleColumns.city && (
-                            <TableHead
-                              className="cursor-pointer font-semibold"
-                              onClick={() => handleSort("city")}
-                            >
-                              City {getSortIcon("city")}
-                            </TableHead>
+                            <TableCell className="text-muted-foreground">
+                              {installer.city}
+                            </TableCell>
                           )}
                           {visibleColumns.province && (
-                            <TableHead
-                              className="cursor-pointer font-semibold"
-                              onClick={() => handleSort("province")}
-                            >
-                              Province {getSortIcon("province")}
-                            </TableHead>
+                            <TableCell className="text-muted-foreground">
+                              {installer.province}
+                            </TableCell>
                           )}
                           {visibleColumns.trainingCenter && (
-                            <TableHead className="font-semibold">
-                              Training Center
-                            </TableHead>
+                            <TableCell className="text-muted-foreground">
+                              {installer.trainingCenter}
+                            </TableCell>
                           )}
                           {visibleColumns.companyName && (
-                            <TableHead className="font-semibold">
-                              Company
-                            </TableHead>
+                            <TableCell className="text-muted-foreground">
+                              {installer.companyName}
+                            </TableCell>
                           )}
                           {visibleColumns.certified && (
-                            <TableHead
-                              className="cursor-pointer font-semibold"
-                              onClick={() => handleSort("certified")}
-                            >
-                              Certified {getSortIcon("certified")}
-                            </TableHead>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  installer.certified ? "default" : "secondary"
+                                }
+                              >
+                                {installer.certified ? "Yes" : "No"}
+                              </Badge>
+                            </TableCell>
                           )}
                           {visibleColumns.bankName && (
-                            <TableHead className="font-semibold">
-                              Bank
-                            </TableHead>
+                            <TableCell className="text-muted-foreground">
+                              {installer.bankName}
+                            </TableCell>
                           )}
                           {visibleColumns.accountNumber && (
-                            <TableHead className="font-semibold">
-                              Account
-                            </TableHead>
+                            <TableCell className="text-muted-foreground">
+                              {installer.accountNumber}
+                            </TableCell>
                           )}
-                          <TableHead className="font-semibold">
-                            Actions
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-
-                      <TableBody>
-                        {paginatedInstallers.map(
-                          (installer: InstallerWithId) => (
-                            <TableRow
-                              key={installer._id}
-                              id={`installer-${installer._id}`}
-                              className="transition-colors"
-                            >
-                              <TableCell>
-                                <Checkbox
-                                  checked={selectedInstallers.has(
-                                    installer._id
-                                  )}
-                                  onCheckedChange={() =>
-                                    toggleSelection(installer._id)
-                                  }
-                                  aria-label={`Select ${installer.fullName}`}
-                                />
-                              </TableCell>
-                              {visibleColumns.installerCode && (
-                                <TableCell className="font-medium">
-                                  <Button
-                                    variant="link"
-                                    onClick={() =>
-                                      router.push(
-                                        `/installers/${installer._id}`
-                                      )
-                                    }
-                                    className="font-mono p-0 h-auto"
-                                  >
-                                    {installer.installerCode}
-                                  </Button>
-                                </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() =>
+                                  router.push(`/installers/${installer._id}`)
+                                }
+                                title="View Details"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setSelectedInstallerId(installer._id);
+                                  setEditModalOpen(true);
+                                }}
+                                title="Edit"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              {isAdmin && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      title="Delete"
+                                      disabled={deletingId === installer._id}
+                                    >
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Delete Installer?
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete{" "}
+                                        <strong>{installer.fullName}</strong> (
+                                        {installer.installerCode})? This action
+                                        cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() =>
+                                          handleDelete(
+                                            installer._id,
+                                            installer.fullName
+                                          )
+                                        }
+                                        disabled={deletingId === installer._id}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        {deletingId === installer._id
+                                          ? "Deleting..."
+                                          : "Delete"}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               )}
-                              {visibleColumns.fullName && (
-                                <TableCell>{installer.fullName}</TableCell>
-                              )}
-                              {visibleColumns.cnic && (
-                                <TableCell className="text-muted-foreground">
-                                  {installer.cnic}
-                                </TableCell>
-                              )}
-                              {visibleColumns.phoneNumber && (
-                                <TableCell className="text-muted-foreground">
-                                  {installer.phoneNumber}
-                                </TableCell>
-                              )}
-                              {visibleColumns.city && (
-                                <TableCell className="text-muted-foreground">
-                                  {installer.city}
-                                </TableCell>
-                              )}
-                              {visibleColumns.province && (
-                                <TableCell className="text-muted-foreground">
-                                  {installer.province}
-                                </TableCell>
-                              )}
-                              {visibleColumns.trainingCenter && (
-                                <TableCell className="text-muted-foreground">
-                                  {installer.trainingCenter}
-                                </TableCell>
-                              )}
-                              {visibleColumns.companyName && (
-                                <TableCell className="text-muted-foreground">
-                                  {installer.companyName}
-                                </TableCell>
-                              )}
-                              {visibleColumns.certified && (
-                                <TableCell>
-                                  <Badge
-                                    variant={
-                                      installer.certified
-                                        ? "default"
-                                        : "secondary"
-                                    }
-                                  >
-                                    {installer.certified ? "Yes" : "No"}
-                                  </Badge>
-                                </TableCell>
-                              )}
-                              {visibleColumns.bankName && (
-                                <TableCell className="text-muted-foreground">
-                                  {installer.bankName}
-                                </TableCell>
-                              )}
-                              {visibleColumns.accountNumber && (
-                                <TableCell className="text-muted-foreground">
-                                  {installer.accountNumber}
-                                </TableCell>
-                              )}
-                              <TableCell>
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() =>
-                                      router.push(
-                                        `/installers/${installer._id}`
-                                      )
-                                    }
-                                    title="View Details"
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => {
-                                      setSelectedInstallerId(installer._id);
-                                      setEditModalOpen(true);
-                                    }}
-                                    title="Edit"
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                  {isAdmin && (
-                                    <AlertDialog>
-                                      <AlertDialogTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          title="Delete"
-                                          disabled={
-                                            deletingId === installer._id
-                                          }
-                                        >
-                                          <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                      </AlertDialogTrigger>
-                                      <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                          <AlertDialogTitle>
-                                            Delete Installer?
-                                          </AlertDialogTitle>
-                                          <AlertDialogDescription>
-                                            Are you sure you want to delete{" "}
-                                            <strong>
-                                              {installer.fullName}
-                                            </strong>{" "}
-                                            ({installer.installerCode})? This
-                                            action cannot be undone.
-                                          </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                          <AlertDialogCancel>
-                                            Cancel
-                                          </AlertDialogCancel>
-                                          <AlertDialogAction
-                                            onClick={() =>
-                                              handleDelete(
-                                                installer._id,
-                                                installer.fullName
-                                              )
-                                            }
-                                            disabled={
-                                              deletingId === installer._id
-                                            }
-                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                          >
-                                            {deletingId === installer._id
-                                              ? "Deleting..."
-                                              : "Delete"}
-                                          </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                      </AlertDialogContent>
-                                    </AlertDialog>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )
-                        )}
-                      </TableBody>
-
-                      {/* Table Footer */}
-                      <TableFooter>
-                        <TableRow>
-                          <TableCell
-                            colSpan={
-                              Object.values(visibleColumns).filter(Boolean)
-                                .length + 2
-                            }
-                            className="py-4"
-                          >
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                              {/* <div /> */}
-                              <div>
-                                Last Updated:{" "}
-                                <span className="capitalize">
-                                  {getRelativeTime(new Date())}
-                                </span>
-                              </div>
                             </div>
                           </TableCell>
                         </TableRow>
-                      </TableFooter>
-                    </Table>
-                  </div>
-                  {/* Pagination Controls */}
-                  <div className="flex items-center justify-between px-2 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
-                        Showing {startIndex + 1} to{" "}
-                        <Select
-                          value={rowsPerPage.toString()}
-                          onValueChange={(value) => {
-                            setRowsPerPage(Number(value));
-                            setCurrentPage(1);
-                          }}
-                        >
-                          <SelectTrigger className="h-8 w-max gap-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="10">10</SelectItem>
-                            <SelectItem value="25">25</SelectItem>
-                            <SelectItem value="50">50</SelectItem>
-                            <SelectItem value="100">100</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        of {filteredInstallers.length} results
-                        {filteredInstallers.length !== installers.length && (
-                          <span className="ml-1">
-                            (filtered from {installers.length} total)
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                      ))
+                    )}
+                  </TableBody>
 
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setCurrentPage(1)}
-                          disabled={currentPage === 1}
-                        >
-                          <ChevronsLeft className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setCurrentPage(currentPage - 1)}
-                          disabled={currentPage === 1}
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <span className="text-sm px-3">
-                          Page {currentPage} of {totalPages}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setCurrentPage(currentPage + 1)}
-                          disabled={currentPage === totalPages}
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setCurrentPage(totalPages)}
-                          disabled={currentPage === totalPages}
-                        >
-                          <ChevronsRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
+                  {/* Table Footer */}
+                  <TableFooter>
+                    <TableRow>
+                      <TableCell
+                        colSpan={activeColumnsLength + 2}
+                        className="py-4"
+                      >
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          {/* <div /> */}
+                          <div className="flex items-center gap-2">
+                            <span>Last Updated:</span>
+                            <span className="capitalize">
+                              {loading ? (
+                                <Loading className="size-4" />
+                              ) : (
+                                refreshRelTime
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              </div>
+              {/* Pagination Controls */}
+              <div className="flex items-center justify-between px-2 py-4 relative">
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
+                    Showing {startIndex + 1} to{" "}
+                    <Select
+                      value={rowsPerPage.toString()}
+                      onValueChange={(value) => {
+                        setRowsPerPage(Number(value));
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-max gap-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    of {filteredInstallers.length} results
+                    {filteredInstallers.length !== installers.length && (
+                      <span className="ml-1">
+                        (filtered from {installers.length} total)
+                      </span>
+                    )}
                   </div>
-                </>
-              )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm px-3">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="absolute inset-0 size-full flex items-center justify-center">
+                  {selectedInstallers.size > 0 && (
+                    <div className="border border-border rounded-2xl p-2 flex items-center gap-2">
+                      <div className="px-4 py-3 bg-background rounded-xl flex items-center justify-center leading-none select-none">
+                        Selected: {selectedInstallers.size}
+                      </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            size={"icon"}
+                            disabled={bulkDeleting}
+                            className="gap-1"
+                          >
+                            {bulkDeleting ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <IconTrashBin2
+                                width={2}
+                                duotone={false}
+                                className="h-4 w-4"
+                              />
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Delete {selectedInstallers.size} Installer(s)?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will
+                              permanently delete the selected installers and
+                              their Google Contacts.
+                              <br />
+                              <br />
+                              <strong>Note:</strong> Installers with existing
+                              rewards cannot be deleted.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleBulkDelete}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete {selectedInstallers.size} Installer(s)
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
