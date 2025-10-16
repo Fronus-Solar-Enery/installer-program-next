@@ -44,13 +44,6 @@ export interface SidebarBranding {
   homeHref?: string;
 }
 
-export interface SidebarUser {
-  name?: string | null;
-  role?: string | null;
-  email?: string | null;
-  avatar?: string | null;
-}
-
 interface SidebarProps {
   collapsed?: boolean;
   onCollapsedChange?: (collapsed: boolean) => void;
@@ -174,22 +167,42 @@ function Sidebar({
   const sideBarRef = useRef<HTMLDivElement>(null);
   const navItemRef = useRef<HTMLAnchorElement>(null);
   const logoRef = useRef<SVGSVGElement>(null);
+
   useGSAP(() => {
     const sidebar = sideBarRef.current;
     const logo = logoRef.current;
     const navItems = gsap.utils.toArray<HTMLElement>(".navitem-link");
     const navTitles = gsap.utils.toArray<HTMLElement>(".navlink-title");
+    const navIcons = gsap.utils.toArray<HTMLElement>(".navitem-icon");
+    const profileContainer = document.querySelector(".profile-container");
+    const profileName = document.querySelector(".profile-name");
+    const profileBadge = document.querySelector(".profile-badge");
+    const profileAvatar = document.querySelector(".profile-avatar");
 
-    if (!sidebar || !logo) return;
+    if (!sidebar || !logo || !navIcons || !navTitles || !navItems) return;
 
     const ctx = gsap.context(() => {
       // helpers must return void, not a Tween
       const showTitles = () => {
         gsap.set(navTitles, { display: "inline-flex" });
+        gsap.set(profileName, { display: "inline-flex" });
       };
 
       const hideTitles = () => {
         gsap.set(navTitles, { display: "none" });
+        gsap.set(profileName, { display: "none" });
+      };
+      // helpers must return void, not a Tween
+      const showProfile = () => {
+        [profileName, profileBadge].forEach((pi) => {
+          gsap.set(pi, { display: "inline-flex" });
+        });
+      };
+
+      const hideProfile = () => {
+        [profileName, profileBadge].forEach((pi) => {
+          gsap.set(pi, { display: "none" });
+        });
       };
 
       const tl = gsap.timeline();
@@ -198,7 +211,7 @@ function Sidebar({
         tl.to(navTitles, {
           x: -20,
           opacity: 0,
-          duration: 0.22,
+          duration: 0.36,
           stagger: 0.04,
           ease: "power2.inOut",
           onComplete: () => {
@@ -210,11 +223,74 @@ function Sidebar({
           navItems,
           {
             width: "3rem",
+            height: "3rem",
             duration: 0.36,
             ease: "power2.inOut",
             stagger: 0.03,
           },
-          "-=0.12"
+          0
+        );
+
+        tl.to(
+          navIcons,
+          {
+            width: "1.5rem",
+            height: "1.5rem",
+            duration: 0.6,
+            ease: "power2.inOut",
+            stagger: 0.03,
+          },
+          "<"
+        );
+
+        tl.to(
+          profileContainer,
+          {
+            padding: 0,
+            border: 0,
+            duration: 0.36,
+            ease: "power2.inOut",
+          },
+          "<"
+        );
+
+        tl.to(
+          profileName,
+          {
+            x: -20,
+            opacity: 0,
+            duration: 0.36,
+            ease: "power2.inOut",
+            onComplete: () => {
+              hideProfile();
+            },
+          },
+          "<"
+        );
+
+        tl.to(
+          profileBadge,
+          {
+            x: 20,
+            opacity: 0,
+            duration: 0.36,
+            ease: "power2.inOut",
+            onComplete: () => {
+              hideProfile();
+            },
+          },
+          "<"
+        );
+
+        tl.to(
+          profileAvatar,
+          {
+            height: "3rem",
+            width: "3rem",
+            duration: 0.36,
+            ease: "power2.inOut",
+          },
+          "<"
         );
 
         tl.to(
@@ -234,7 +310,7 @@ function Sidebar({
             duration: 0.36,
             ease: "power2.inOut",
           },
-          ">"
+          "-=0.739"
         );
       } else {
         tl.to(
@@ -244,7 +320,7 @@ function Sidebar({
             duration: 0.36,
             ease: "power2.inOut",
           },
-          "<"
+          "+=0.05"
         );
         tl.to(
           logo,
@@ -257,8 +333,21 @@ function Sidebar({
         );
 
         tl.to(
+          navIcons,
+          {
+            width: "1.25rem",
+            height: "1.25rem",
+            duration: 0.45,
+            ease: "power2.inOut",
+            stagger: 0.03,
+          },
+          "<"
+        );
+
+        tl.to(
           navItems,
           {
+            height: "atuo",
             width: "100%",
             duration: 0.36,
             ease: "power2.inOut",
@@ -281,6 +370,55 @@ function Sidebar({
             ease: "power2.out",
           },
           "-=0.08"
+        );
+
+        tl.to(
+          profileAvatar,
+          {
+            height: "2.25rem",
+            width: "2.25rem",
+            duration: 0.56,
+            ease: "power2.inOut",
+          },
+          0
+        );
+
+        // add a callback (returns void) to set display before animating titles
+        tl.add(() => showProfile(), "+=0");
+
+        tl.fromTo(
+          profileName,
+          { x: -20, opacity: 0 },
+          {
+            x: 0,
+            opacity: 1,
+            duration: 0.22,
+            ease: "power2.out",
+          },
+          "-=0.15"
+        );
+
+        tl.fromTo(
+          profileBadge,
+          { x: 20, opacity: 0 },
+          {
+            x: 0,
+            opacity: 1,
+            duration: 0.22,
+            ease: "power2.out",
+          },
+          "-=0.15"
+        );
+
+        tl.to(
+          profileContainer,
+          {
+            padding: "0.75rem",
+            border: 1,
+            duration: 0.6,
+            ease: "power2.inOut",
+          },
+          "-=1.05"
         );
       }
     }, sidebar);
@@ -356,40 +494,31 @@ function Sidebar({
       {/* User Profile */}
       {showUserInfo && currentUser && (
         <div className="mt-auto p-3 justify-center flex">
-          {!collapsed ? (
-            <div className="p-3 bg-card border shadow-sm rounded-2xl border-zinc-200/50 dark:border-zinc-700/50 w-full">
-              <div className="flex items-center gap-2">
-                <UserAvatar
-                  user={currentUser}
-                  size="small"
-                  className="rounded-2xl flex items-center justify-center"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium capitalize truncate text-zinc-900 dark:text-zinc-50">
-                    {currentUser?.name || "User"}
-                  </p>
-                </div>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "px-2.5 py-1 text-[10px] border-none rounded-md font-semibold !bg-background",
-                    currentUser?.role === "ADMIN"
-                      ? "dark:bg-zinc-950/40 dark:text-rose-400"
-                      : currentUser?.role === "MANAGER"
-                      ? "dark:bg-zinc-950/40 dark:text-cyan-400"
-                      : "dark:bg-zinc-950/40 dark:text-zinc-400"
-                  )}
-                >
-                  {currentUser?.role || "USER"}
-                </Badge>
-              </div>
-            </div>
-          ) : (
+          <div className="profile-container p-3 bg-card border shadow-sm rounded-2xl border-zinc-200/50 dark:border-zinc-700/50 w-full flex items-center gap-2">
             <UserAvatar
               user={currentUser}
-              className="rounded-2xl flex items-center justify-center text-sm"
+              className="profile-avatar rounded-2xl flex items-center justify-center size-9"
             />
-          )}
+            <div className="profile-name flex-1 min-w-0 relative">
+              <p className="text-sm font-medium capitalize truncate text-zinc-900 dark:text-zinc-50">
+                {currentUser?.name || "User"}
+              </p>
+            </div>
+            <Badge
+              variant="outline"
+              className={cn(
+                "profile-badge px-2.5 py-1 text-[10px] border-none rounded-md font-semibold !bg-background relative",
+                // collapsed && "hidden",
+                currentUser?.role === "ADMIN"
+                  ? "dark:bg-zinc-950/40 dark:text-rose-400"
+                  : currentUser?.role === "MANAGER"
+                  ? "dark:bg-zinc-950/40 dark:text-cyan-400"
+                  : "dark:bg-zinc-950/40 dark:text-zinc-400"
+              )}
+            >
+              {currentUser?.role || "USER"}
+            </Badge>
+          </div>
         </div>
       )}
     </div>
@@ -424,7 +553,10 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
         )}
       >
         <div className="flex items-center justify-center transition-all">
-          <Icon className={cn("shrink-0 w-5 h-5")} fill={isActive} />
+          <Icon
+            className={cn("navitem-icon shrink-0 w-5 h-5")}
+            fill={isActive}
+          />
         </div>
         {/* {isExpanded && ( */}
         <div className="flex items-center justify-between flex-1 overflow-hidden navlink-title">
@@ -446,7 +578,13 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
       <TooltipProvider delayDuration={200}>
         <Tooltip>
           <TooltipTrigger asChild>{content}</TooltipTrigger>
-          <TooltipContent side="right" className="flex items-center gap-2 py-1">
+          <TooltipContent
+            side="right"
+            className={cn(
+              "flex items-center gap-2 py-1",
+              isExpanded && "hidden"
+            )}
+          >
             <span className="font-medium">{label}</span>
           </TooltipContent>
         </Tooltip>

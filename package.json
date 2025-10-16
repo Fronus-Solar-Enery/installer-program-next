@@ -13,6 +13,7 @@
     "setup:admin": "node scripts/createAdmin.js",
     "setup": "npm run setup:secret && npm run setup:admin",
     "test:db": "node scripts/testDbConnection.js",
+    "icondex": "node icondex.mjs",
     "reset:admin": "node scripts/resetAdmin.js"
   },
   "dependencies": {

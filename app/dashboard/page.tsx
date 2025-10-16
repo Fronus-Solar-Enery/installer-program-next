@@ -20,11 +20,8 @@ import {
   DollarSign,
   Activity,
   UserCheck,
-  MapPin,
-  Award,
   Target,
   ArrowUpRight,
-  BarChart3,
 } from "lucide-react";
 import {
   BarChart,
@@ -32,8 +29,6 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
   LabelList,
 } from "recharts";
 import { cn } from "@/lib/utils";
@@ -159,17 +154,6 @@ interface DashboardInstaller extends ItemWithDate {
   city: string;
   createdAt: string;
 }
-
-const COLORS = [
-  "#3b82f6",
-  "#10b981",
-  "#f59e0b",
-  "#ef4444",
-  "#8b5cf6",
-  "#ec4899",
-  "#06b6d4",
-  "#84cc16",
-];
 
 type TimePeriod =
   | "all"
@@ -1317,7 +1301,7 @@ export default function DashboardPage() {
                                 ? (period.count / stats.totalInstallers) * 100
                                 : 0
                             }%`,
-                            backgroundColor: COLORS[index % COLORS.length],
+                            backgroundColor: "var(--color-primary)",
                           }}
                         />
                       </div>

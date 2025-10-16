@@ -74,11 +74,10 @@ import Dropdown, {
   DropdownContent,
   DropdownTrigger,
 } from "@/components/ui/dropdown";
-import IconArrowUpDown from "@/components/icons/ArrowUpDown";
-import IconSettings from "@/components/icons/Settings";
 import IconLayer from "@/components/icons/Layer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { getRelativeTime } from "@/lib/getRelativeTime";
 
 interface InstallerWithId extends IInstaller {
   _id: string;
@@ -1303,7 +1302,7 @@ export default function InstallersPage() {
                 <>
                   <div className="border border-border rounded-2xl overflow-hidden">
                     <Table>
-                      <TableHeader className="bg-muted/50">
+                      <TableHeader className="bg-muted">
                         <TableRow className="hover:bg-muted/50 ">
                           <TableHead className="w-12">
                             <Checkbox
@@ -1581,19 +1580,12 @@ export default function InstallersPage() {
                             className="py-4"
                           >
                             <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              {/* <div /> */}
                               <div>
-                                Total: {filteredInstallers.length} installers
-                                {filteredInstallers.length !==
-                                  installers.length && (
-                                  <span className="ml-2">
-                                    (filtered from {installers.length} total)
-                                  </span>
-                                )}{" "}
-                                | Certified: {statistics.certified} | Not
-                                Certified: {statistics.notCertified}
-                              </div>
-                              <div>
-                                Last updated: {new Date().toLocaleString()}
+                                Last Updated:{" "}
+                                <span className="capitalize">
+                                  {getRelativeTime(new Date())}
+                                </span>
                               </div>
                             </div>
                           </TableCell>

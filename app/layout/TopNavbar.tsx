@@ -115,7 +115,7 @@ export default function TopNavbar() {
                 className="gap-2 pl-1 pr-3 text-left font-normal rounded-full"
               >
                 <UserAvatar
-                  user={session?.user?.name}
+                  user={session?.user}
                   size="small"
                   className="w-8 h-8 bg-background"
                 />

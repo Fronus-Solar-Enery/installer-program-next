@@ -1,16 +1,38 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
-import { Copy, Check, Edit, Trash2, ArrowLeft, Award, TrendingUp, Activity as ActivityIcon, Package, UserPlus, User, Clock, AlertCircle, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useState, useEffect, useCallback } from "react";
+import { useRouter, useParams, usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import {
+  Copy,
+  Check,
+  Edit,
+  Trash2,
+  ArrowLeft,
+  Award,
+  TrendingUp,
+  Activity as ActivityIcon,
+  Package,
+  UserPlus,
+  User,
+  Clock,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,11 +43,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
-import { TeamRole } from '@/types/roles';
-import PageHeader from '@/components/PageHeader';
-import InstallerEditModal from '@/components/InstallerEditModal';
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { TeamRole } from "@/types/roles";
+import PageHeader from "@/components/PageHeader";
+import InstallerEditModal from "@/components/InstallerEditModal";
+import { useBreadcrumb } from "@/contexts/BreadcrumbContext";
+import IconUser from "@/components/icons/User";
+import Loading from "@/components/ui/loading";
 
 interface InstallerDetails {
   _id: string;
@@ -108,7 +133,7 @@ export default function InstallerDetailsPage() {
   const [installer, setInstaller] = useState<InstallerDetails | null>(null);
   const [statistics, setStatistics] = useState<Statistics | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
@@ -121,13 +146,15 @@ export default function InstallerDetailsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch installer');
+        throw new Error(data.error || "Failed to fetch installer");
       }
 
       setInstaller(data.data.installer);
       setStatistics(data.data.statistics);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch installer');
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch installer"
+      );
     } finally {
       setLoading(false);
     }
@@ -142,11 +169,15 @@ export default function InstallerDetailsPage() {
       setLoadingActivities(true);
 
       // Fetch installer-specific activities
-      const installerActivitiesRes = await fetch(`/api/activities?targetType=Installer&targetId=${installerId}&limit=100`);
+      const installerActivitiesRes = await fetch(
+        `/api/activities?targetType=Installer&targetId=${installerId}&limit=100`
+      );
       const installerActivitiesData = await installerActivitiesRes.json();
 
       // Fetch all reward activities for this installer's rewards
-      const productsRes = await fetch(`/api/rewards?installer=${installerId}&limit=1000`);
+      const productsRes = await fetch(
+        `/api/rewards?installer=${installerId}&limit=1000`
+      );
       const productsData = await productsRes.json();
 
       let allActivities: ActivityLog[] = [];
@@ -162,11 +193,14 @@ export default function InstallerDetailsPage() {
 
         // Fetch activities for all rewards
         const rewardActivitiesPromises = rewardIds.map((rewardId: string) =>
-          fetch(`/api/activities?targetType=InstallerReward&targetId=${rewardId}&limit=100`)
-            .then(res => res.json())
+          fetch(
+            `/api/activities?targetType=InstallerReward&targetId=${rewardId}&limit=100`
+          ).then((res) => res.json())
         );
 
-        const rewardActivitiesResults = await Promise.all(rewardActivitiesPromises);
+        const rewardActivitiesResults = await Promise.all(
+          rewardActivitiesPromises
+        );
 
         rewardActivitiesResults.forEach((result) => {
           if (result.success) {
@@ -176,11 +210,14 @@ export default function InstallerDetailsPage() {
       }
 
       // Sort all activities by date (newest first)
-      allActivities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      allActivities.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
 
       setActivities(allActivities);
     } catch (err) {
-      console.error('Failed to fetch activities:', err);
+      console.error("Failed to fetch activities:", err);
     } finally {
       setLoadingActivities(false);
     }
@@ -189,14 +226,16 @@ export default function InstallerDetailsPage() {
   const fetchProducts = async () => {
     try {
       setLoadingProducts(true);
-      const response = await fetch(`/api/rewards?installer=${installerId}&limit=1000`);
+      const response = await fetch(
+        `/api/rewards?installer=${installerId}&limit=1000`
+      );
       const data = await response.json();
 
       if (data.success) {
         setProducts(data.data.rewards);
       }
     } catch (err) {
-      console.error('Failed to fetch products:', err);
+      console.error("Failed to fetch products:", err);
     } finally {
       setLoadingProducts(false);
     }
@@ -206,20 +245,20 @@ export default function InstallerDetailsPage() {
     setDeleting(true);
     try {
       const response = await fetch(`/api/installers/${installerId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        toast.success('Installer deleted successfully!');
-        router.push('/installers');
+        toast.success("Installer deleted successfully!");
+        router.push("/installers");
       } else {
-        toast.error(data.error || 'Failed to delete installer');
+        toast.error(data.error || "Failed to delete installer");
       }
     } catch (error) {
-      console.error('Failed to delete installer:', error);
-      toast.error('An error occurred while deleting the installer');
+      console.error("Failed to delete installer:", error);
+      toast.error("An error occurred while deleting the installer");
     } finally {
       setDeleting(false);
     }
@@ -248,6 +287,28 @@ export default function InstallerDetailsPage() {
     );
   };
 
+  const pathname = usePathname();
+  const { setOverride, clearOverride } = useBreadcrumb();
+  useEffect(() => {
+    if (!pathname) return;
+
+    const isLoading = !installer?.installerCode || !installer?.fullName;
+    const label = isLoading ? (
+      <div className="flex items-center gap-2">
+        Loading <Loading className="size-3.5" />
+      </div>
+    ) : (
+      `${installer.installerCode} ${installer.fullName}`
+    );
+
+    setOverride(pathname, {
+      label,
+      icon: isLoading ? undefined : IconUser,
+    });
+
+    return () => clearOverride(pathname);
+  }, [pathname, installer, setOverride, clearOverride]);
+
   if (loading) {
     return (
       <div className="p-6">
@@ -264,9 +325,11 @@ export default function InstallerDetailsPage() {
         <div className="flex items-center justify-center h-96">
           <div className="text-center space-y-4">
             <Alert variant="destructive">
-              <AlertDescription>{error || 'Installer not found'}</AlertDescription>
+              <AlertDescription>
+                {error || "Installer not found"}
+              </AlertDescription>
             </Alert>
-            <Button onClick={() => router.push('/installers')}>
+            <Button onClick={() => router.push("/installers")}>
               Back to Installers
             </Button>
           </div>
@@ -280,20 +343,13 @@ export default function InstallerDetailsPage() {
       <PageHeader
         title={installer.fullName}
         description={`Installer Code: ${installer.installerCode}`}
-        breadcrumbLabel={installer.installerCode}
         action={
           <div className="flex gap-3">
-            <Button
-              variant="ghost"
-              onClick={() => router.push('/installers')}
-            >
+            <Button variant="ghost" onClick={() => router.push("/installers")}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Installers
             </Button>
-            <Button
-              onClick={() => setEditModalOpen(true)}
-              variant="default"
-            >
+            <Button onClick={() => setEditModalOpen(true)} variant="default">
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </Button>
@@ -307,13 +363,17 @@ export default function InstallerDetailsPage() {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogTitle>
+                      Are you absolutely sure?
+                    </AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will permanently delete the installer <strong>{installer.fullName}</strong> ({installer.installerCode}).
-                      This action cannot be undone.
+                      This will permanently delete the installer{" "}
+                      <strong>{installer.fullName}</strong> (
+                      {installer.installerCode}). This action cannot be undone.
                       {statistics && statistics.totalRewards > 0 && (
                         <span className="block mt-2 text-destructive font-medium">
-                          ⚠️ This installer has {statistics.totalRewards} reward(s). You must delete all rewards first.
+                          ⚠️ This installer has {statistics.totalRewards}{" "}
+                          reward(s). You must delete all rewards first.
                         </span>
                       )}
                     </AlertDialogDescription>
@@ -331,7 +391,7 @@ export default function InstallerDetailsPage() {
                           Deleting...
                         </>
                       ) : (
-                        'Delete Installer'
+                        "Delete Installer"
                       )}
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -346,7 +406,10 @@ export default function InstallerDetailsPage() {
           {/* Certified Badge */}
           {installer.certified && (
             <div className="mb-6">
-              <Badge variant="default" className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700">
+              <Badge
+                variant="default"
+                className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700"
+              >
                 <Award className="h-4 w-4 mr-2" />
                 Certified Installer
               </Badge>
@@ -354,576 +417,780 @@ export default function InstallerDetailsPage() {
           )}
 
           {/* Statistics Cards */}
-        {statistics && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <TrendingUp className="h-8 w-8 text-blue-600" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">Total Rewards</p>
-                    <p className="text-2xl font-semibold">{statistics.totalRewards}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
-                      <span className="text-yellow-600 dark:text-yellow-400 font-bold">P</span>
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">Pending</p>
-                    <p className="text-2xl font-semibold text-yellow-600 dark:text-yellow-500">{statistics.pendingRewards}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                      <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">Paid</p>
-                    <p className="text-2xl font-semibold text-green-600 dark:text-green-500">{statistics.paidRewards}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
-                      <span className="text-red-600 dark:text-red-400 font-bold">F</span>
-                    </div>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-muted-foreground">Failed</p>
-                    <p className="text-2xl font-semibold text-red-600 dark:text-red-500">{statistics.failedRewards}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Revenue Statistics */}
-        {statistics && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Revenue Statistics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <p className="text-sm opacity-90">Total Amount</p>
-                  <p className="text-2xl font-bold">Rs. {statistics.totalAmount?.toLocaleString() || 0}</p>
-                </div>
-                <div>
-                  <p className="text-sm opacity-90">Pending Amount</p>
-                  <p className="text-2xl font-bold">Rs. {statistics.pendingAmount?.toLocaleString() || 0}</p>
-                </div>
-                <div>
-                  <p className="text-sm opacity-90">Paid Amount</p>
-                  <p className="text-2xl font-bold">Rs. {statistics.paidAmount?.toLocaleString() || 0}</p>
-                </div>
-                <div>
-                  <p className="text-sm opacity-90">Failed Amount</p>
-                  <p className="text-2xl font-bold">Rs. {statistics.failedAmount?.toLocaleString() || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Tabs */}
-        <Tabs defaultValue="details" className="mb-6">
-          <TabsList>
-            <TabsTrigger value="details">
-              <Edit className="h-4 w-4 mr-2" />
-              Details
-            </TabsTrigger>
-            <TabsTrigger value="activity" onClick={() => activities.length === 0 && fetchActivities()}>
-              <ActivityIcon className="h-4 w-4 mr-2" />
-              Activity
-            </TabsTrigger>
-            <TabsTrigger value="products" onClick={() => products.length === 0 && fetchProducts()}>
-              <Package className="h-4 w-4 mr-2" />
-              Products ({statistics?.totalRewards || 0})
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Details Tab */}
-          <TabsContent value="details">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Personal Information */}
+          {statistics && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Personal Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <dl className="space-y-3">
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Full Name</dt>
-                      <dd className="mt-1 text-sm">{installer.fullName}</dd>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <TrendingUp className="h-8 w-8 text-blue-600" />
                     </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">CNIC</dt>
-                      <dd className="mt-1 text-sm flex items-center">
-                        {installer.cnic}
-                        <CopyButton text={installer.cnic} label="CNIC" />
-                      </dd>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Total Rewards
+                      </p>
+                      <p className="text-2xl font-semibold">
+                        {statistics.totalRewards}
+                      </p>
                     </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Phone Number</dt>
-                      <dd className="mt-1 text-sm flex items-center">
-                        {installer.phoneNumber}
-                        <CopyButton text={installer.phoneNumber} label="Phone Number" />
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">WhatsApp Number</dt>
-                      <dd className="mt-1 text-sm flex items-center">
-                        {installer.whatsappNumber}
-                        <CopyButton text={installer.whatsappNumber} label="WhatsApp Number" />
-                      </dd>
-                    </div>
-                  </dl>
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Location Information */}
               <Card>
-                <CardHeader>
-                  <CardTitle>Location Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <dl className="space-y-3">
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">City</dt>
-                      <dd className="mt-1 text-sm">{installer.city}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Province</dt>
-                      <dd className="mt-1 text-sm">{installer.province}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Address</dt>
-                      <dd className="mt-1 text-sm">{installer.address}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Training Center</dt>
-                      <dd className="mt-1 text-sm">{installer.trainingCenter}</dd>
-                    </div>
-                  </dl>
-                </CardContent>
-              </Card>
-
-              {/* Banking Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Banking Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <dl className="space-y-3">
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Bank Name</dt>
-                      <dd className="mt-1 text-sm">{installer.bankName}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Account Number</dt>
-                      <dd className="mt-1 text-sm flex items-center">
-                        {installer.accountNumber}
-                        <CopyButton text={installer.accountNumber} label="Account Number" />
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Account Title</dt>
-                      <dd className="mt-1 text-sm">{installer.accountTitle}</dd>
-                    </div>
-                  </dl>
-                </CardContent>
-              </Card>
-
-              {/* Professional Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Professional Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <dl className="space-y-3">
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Installer Code</dt>
-                      <dd className="mt-1 text-sm font-mono font-bold flex items-center">
-                        {installer.installerCode}
-                        <CopyButton text={installer.installerCode} label="Installer Code" />
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Certified</dt>
-                      <dd className="mt-1 text-sm">
-                        {installer.certified ? (
-                          <Badge variant="default" className="bg-green-600">Yes</Badge>
-                        ) : (
-                          <Badge variant="secondary">No</Badge>
-                        )}
-                      </dd>
-                    </div>
-                    {installer.companyName && (
-                      <div>
-                        <dt className="text-sm font-medium text-muted-foreground">Company Name</dt>
-                        <dd className="mt-1 text-sm">{installer.companyName}</dd>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="h-8 w-8 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
+                        <span className="text-yellow-600 dark:text-yellow-400 font-bold">
+                          P
+                        </span>
                       </div>
-                    )}
-                  </dl>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Pending
+                      </p>
+                      <p className="text-2xl font-semibold text-yellow-600 dark:text-yellow-500">
+                        {statistics.pendingRewards}
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
-              {/* Referrer Information */}
-              {installer.referrer && (
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                        <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Paid
+                      </p>
+                      <p className="text-2xl font-semibold text-green-600 dark:text-green-500">
+                        {statistics.paidRewards}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
+                        <span className="text-red-600 dark:text-red-400 font-bold">
+                          F
+                        </span>
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Failed
+                      </p>
+                      <p className="text-2xl font-semibold text-red-600 dark:text-red-500">
+                        {statistics.failedRewards}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Revenue Statistics */}
+          {statistics && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Revenue Statistics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-sm opacity-90">Total Amount</p>
+                    <p className="text-2xl font-bold">
+                      Rs. {statistics.totalAmount?.toLocaleString() || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm opacity-90">Pending Amount</p>
+                    <p className="text-2xl font-bold">
+                      Rs. {statistics.pendingAmount?.toLocaleString() || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm opacity-90">Paid Amount</p>
+                    <p className="text-2xl font-bold">
+                      Rs. {statistics.paidAmount?.toLocaleString() || 0}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm opacity-90">Failed Amount</p>
+                    <p className="text-2xl font-bold">
+                      Rs. {statistics.failedAmount?.toLocaleString() || 0}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Tabs */}
+          <Tabs defaultValue="details" className="mb-6">
+            <TabsList>
+              <TabsTrigger value="details">
+                <Edit className="h-4 w-4 mr-2" />
+                Details
+              </TabsTrigger>
+              <TabsTrigger
+                value="activity"
+                onClick={() => activities.length === 0 && fetchActivities()}
+              >
+                <ActivityIcon className="h-4 w-4 mr-2" />
+                Activity
+              </TabsTrigger>
+              <TabsTrigger
+                value="products"
+                onClick={() => products.length === 0 && fetchProducts()}
+              >
+                <Package className="h-4 w-4 mr-2" />
+                Products ({statistics?.totalRewards || 0})
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Details Tab */}
+            <TabsContent value="details">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Personal Information */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Referrer Information</CardTitle>
+                    <CardTitle>Personal Information</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <dl className="space-y-3">
                       <div>
-                        <dt className="text-sm font-medium text-muted-foreground">Referrer Code</dt>
+                        <dt className="text-sm font-medium text-muted-foreground">
+                          Full Name
+                        </dt>
+                        <dd className="mt-1 text-sm">{installer.fullName}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">
+                          CNIC
+                        </dt>
                         <dd className="mt-1 text-sm flex items-center">
-                          {installer.referrer.installerCode}
-                          <CopyButton text={installer.referrer.installerCode} label="Referrer Code" />
+                          {installer.cnic}
+                          <CopyButton text={installer.cnic} label="CNIC" />
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-sm font-medium text-muted-foreground">Referrer Name</dt>
-                        <dd className="mt-1 text-sm">{installer.referrer.fullName}</dd>
+                        <dt className="text-sm font-medium text-muted-foreground">
+                          Phone Number
+                        </dt>
+                        <dd className="mt-1 text-sm flex items-center">
+                          {installer.phoneNumber}
+                          <CopyButton
+                            text={installer.phoneNumber}
+                            label="Phone Number"
+                          />
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">
+                          WhatsApp Number
+                        </dt>
+                        <dd className="mt-1 text-sm flex items-center">
+                          {installer.whatsappNumber}
+                          <CopyButton
+                            text={installer.whatsappNumber}
+                            label="WhatsApp Number"
+                          />
+                        </dd>
                       </div>
                     </dl>
                   </CardContent>
                 </Card>
-              )}
 
-              {/* Registration Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Registration Information</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <dl className="space-y-3">
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Registered By</dt>
-                      <dd className="mt-1 text-sm">
-                        {installer.registeredBy?.name || 'N/A'} ({installer.registeredBy?.email || 'N/A'})
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Created At</dt>
-                      <dd className="mt-1 text-sm">
-                        {new Date(installer.createdAt).toLocaleString()}
-                      </dd>
-                    </div>
-                    {installer.updatedAt && (
+                {/* Location Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Location Information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="space-y-3">
                       <div>
-                        <dt className="text-sm font-medium text-muted-foreground">Last Updated</dt>
+                        <dt className="text-sm font-medium text-muted-foreground">
+                          City
+                        </dt>
+                        <dd className="mt-1 text-sm">{installer.city}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">
+                          Province
+                        </dt>
+                        <dd className="mt-1 text-sm">{installer.province}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">
+                          Address
+                        </dt>
+                        <dd className="mt-1 text-sm">{installer.address}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">
+                          Training Center
+                        </dt>
                         <dd className="mt-1 text-sm">
-                          {new Date(installer.updatedAt).toLocaleString()}
+                          {installer.trainingCenter}
                         </dd>
                       </div>
-                    )}
-                  </dl>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Activity Tab */}
-          <TabsContent value="activity">
-            <div className="space-y-3">
-              {loadingActivities ? (
-                <div className="space-y-3">
-                  {[...Array(3)].map((_, i) => (
-                    <Card key={i}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-4">
-                          <div className="h-10 w-10 rounded-lg bg-muted shrink-0" />
-                          <div className="flex-1 space-y-2">
-                            <div className="h-4 w-3/4 bg-muted rounded" />
-                            <div className="h-3 w-1/2 bg-muted rounded" />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : activities.length === 0 ? (
-                <Card>
-                  <CardContent className="p-12">
-                    <div className="text-center">
-                      <ActivityIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <div className="text-muted-foreground">No activities found</div>
-                    </div>
+                    </dl>
                   </CardContent>
                 </Card>
-              ) : (
-                activities.map((activity: ActivityLog) => {
-                  const isCreated = activity.type.includes('REGISTERED') || activity.type.includes('CREATED');
-                  const isUpdated = activity.type.includes('UPDATED');
-                  const isDeleted = activity.type.includes('DELETED');
-                  const isPaid = activity.type.includes('PAID');
-                  const isFailed = activity.type.includes('FAILED');
 
-                  const getActivityIcon = () => {
-                    if (activity.type.includes('INSTALLER_REGISTERED')) return <UserPlus className="h-4 w-4" />;
-                    if (isUpdated) return <Edit className="h-4 w-4" />;
-                    if (isDeleted) return <Trash2 className="h-4 w-4" />;
-                    return <ActivityIcon className="h-4 w-4" />;
-                  };
+                {/* Banking Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Banking Information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="space-y-3">
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">
+                          Bank Name
+                        </dt>
+                        <dd className="mt-1 text-sm">{installer.bankName}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">
+                          Account Number
+                        </dt>
+                        <dd className="mt-1 text-sm flex items-center">
+                          {installer.accountNumber}
+                          <CopyButton
+                            text={installer.accountNumber}
+                            label="Account Number"
+                          />
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">
+                          Account Title
+                        </dt>
+                        <dd className="mt-1 text-sm">
+                          {installer.accountTitle}
+                        </dd>
+                      </div>
+                    </dl>
+                  </CardContent>
+                </Card>
 
-                  const getActivityBgColor = () => {
-                    if (isDeleted) return 'bg-red-500/10 text-red-600 dark:text-red-400';
-                    if (isCreated || isPaid) return 'bg-green-500/10 text-green-600 dark:text-green-400';
-                    if (isUpdated) return 'bg-blue-500/10 text-blue-600 dark:text-blue-400';
-                    if (isFailed) return 'bg-orange-500/10 text-orange-600 dark:text-orange-400';
-                    return 'bg-muted text-muted-foreground';
-                  };
+                {/* Professional Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Professional Information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="space-y-3">
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">
+                          Installer Code
+                        </dt>
+                        <dd className="mt-1 text-sm font-mono font-bold flex items-center">
+                          {installer.installerCode}
+                          <CopyButton
+                            text={installer.installerCode}
+                            label="Installer Code"
+                          />
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">
+                          Certified
+                        </dt>
+                        <dd className="mt-1 text-sm">
+                          {installer.certified ? (
+                            <Badge variant="default" className="bg-green-600">
+                              Yes
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">No</Badge>
+                          )}
+                        </dd>
+                      </div>
+                      {installer.companyName && (
+                        <div>
+                          <dt className="text-sm font-medium text-muted-foreground">
+                            Company Name
+                          </dt>
+                          <dd className="mt-1 text-sm">
+                            {installer.companyName}
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
+                  </CardContent>
+                </Card>
 
-                  const getActivityVariant = (): 'default' | 'destructive' | 'outline' | 'secondary' => {
-                    if (isDeleted) return 'destructive';
-                    if (isCreated || isPaid) return 'default';
-                    if (isUpdated) return 'secondary';
-                    return 'outline';
-                  };
+                {/* Referrer Information */}
+                {installer.referrer && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Referrer Information</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <dl className="space-y-3">
+                        <div>
+                          <dt className="text-sm font-medium text-muted-foreground">
+                            Referrer Code
+                          </dt>
+                          <dd className="mt-1 text-sm flex items-center">
+                            {installer.referrer.installerCode}
+                            <CopyButton
+                              text={installer.referrer.installerCode}
+                              label="Referrer Code"
+                            />
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-sm font-medium text-muted-foreground">
+                            Referrer Name
+                          </dt>
+                          <dd className="mt-1 text-sm">
+                            {installer.referrer.fullName}
+                          </dd>
+                        </div>
+                      </dl>
+                    </CardContent>
+                  </Card>
+                )}
 
-                  const getActivityTitle = () => {
-                    if (activity.type === 'INSTALLER_REGISTERED' && activity.metadata) {
-                      const installerName = activity.metadata.name || activity.targetName || 'Unknown';
-                      const installerCode = activity.metadata.code || '';
-                      return `Created new installer: ${installerName} (${installerCode})`;
-                    }
-                    return activity.description;
-                  };
+                {/* Registration Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Registration Information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="space-y-3">
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">
+                          Registered By
+                        </dt>
+                        <dd className="mt-1 text-sm">
+                          {installer.registeredBy?.name || "N/A"} (
+                          {installer.registeredBy?.email || "N/A"})
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm font-medium text-muted-foreground">
+                          Created At
+                        </dt>
+                        <dd className="mt-1 text-sm">
+                          {new Date(installer.createdAt).toLocaleString()}
+                        </dd>
+                      </div>
+                      {installer.updatedAt && (
+                        <div>
+                          <dt className="text-sm font-medium text-muted-foreground">
+                            Last Updated
+                          </dt>
+                          <dd className="mt-1 text-sm">
+                            {new Date(installer.updatedAt).toLocaleString()}
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
 
-                  const getMetadataDisplay = () => {
-                    if (!activity.metadata) return null;
-                    const items: { label: string; value: string }[] = [];
-
-                    if (activity.type === 'INSTALLER_REGISTERED') {
-                      if (activity.metadata.entityId) items.push({ label: 'entityId', value: `"${activity.metadata.entityId}"` });
-                      if (activity.metadata.code) items.push({ label: 'code', value: `"${activity.metadata.code}"` });
-                      if (activity.metadata.name) items.push({ label: 'name', value: `"${activity.metadata.name}"` });
-                    }
-
-                    return items.length > 0 ? items : null;
-                  };
-
-                  const metadataItems = getMetadataDisplay();
-
-                  return (
-                    <Card key={activity._id} className="transition-all hover:shadow-md">
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-4">
-                          {/* Icon with Status Indicator */}
-                          <div className="relative shrink-0">
-                            <div className={`p-2 rounded-lg ${getActivityBgColor()}`}>
-                              {getActivityIcon()}
+            {/* Activity Tab */}
+            <TabsContent value="activity">
+              <div className="space-y-3">
+                {loadingActivities ? (
+                  <div className="space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <Card key={i}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-4">
+                            <div className="h-10 w-10 rounded-lg bg-muted shrink-0" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-4 w-3/4 bg-muted rounded" />
+                              <div className="h-3 w-1/2 bg-muted rounded" />
                             </div>
-                            {isCreated && (
-                              <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-green-500 flex items-center justify-center">
-                                <Check className="h-3 w-3 text-white" />
-                              </div>
-                            )}
                           </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : activities.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-12">
+                      <div className="text-center">
+                        <ActivityIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <div className="text-muted-foreground">
+                          No activities found
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  activities.map((activity: ActivityLog) => {
+                    const isCreated =
+                      activity.type.includes("REGISTERED") ||
+                      activity.type.includes("CREATED");
+                    const isUpdated = activity.type.includes("UPDATED");
+                    const isDeleted = activity.type.includes("DELETED");
+                    const isPaid = activity.type.includes("PAID");
+                    const isFailed = activity.type.includes("FAILED");
 
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-4 mb-2">
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium">
-                                  {getActivityTitle()}
-                                </p>
+                    const getActivityIcon = () => {
+                      if (activity.type.includes("INSTALLER_REGISTERED"))
+                        return <UserPlus className="h-4 w-4" />;
+                      if (isUpdated) return <Edit className="h-4 w-4" />;
+                      if (isDeleted) return <Trash2 className="h-4 w-4" />;
+                      return <ActivityIcon className="h-4 w-4" />;
+                    };
+
+                    const getActivityBgColor = () => {
+                      if (isDeleted)
+                        return "bg-red-500/10 text-red-600 dark:text-red-400";
+                      if (isCreated || isPaid)
+                        return "bg-green-500/10 text-green-600 dark:text-green-400";
+                      if (isUpdated)
+                        return "bg-blue-500/10 text-blue-600 dark:text-blue-400";
+                      if (isFailed)
+                        return "bg-orange-500/10 text-orange-600 dark:text-orange-400";
+                      return "bg-muted text-muted-foreground";
+                    };
+
+                    const getActivityVariant = ():
+                      | "default"
+                      | "destructive"
+                      | "outline"
+                      | "secondary" => {
+                      if (isDeleted) return "destructive";
+                      if (isCreated || isPaid) return "default";
+                      if (isUpdated) return "secondary";
+                      return "outline";
+                    };
+
+                    const getActivityTitle = () => {
+                      if (
+                        activity.type === "INSTALLER_REGISTERED" &&
+                        activity.metadata
+                      ) {
+                        const installerName =
+                          activity.metadata.name ||
+                          activity.targetName ||
+                          "Unknown";
+                        const installerCode = activity.metadata.code || "";
+                        return `Created new installer: ${installerName} (${installerCode})`;
+                      }
+                      return activity.description;
+                    };
+
+                    const getMetadataDisplay = () => {
+                      if (!activity.metadata) return null;
+                      const items: { label: string; value: string }[] = [];
+
+                      if (activity.type === "INSTALLER_REGISTERED") {
+                        if (activity.metadata.entityId)
+                          items.push({
+                            label: "entityId",
+                            value: `"${activity.metadata.entityId}"`,
+                          });
+                        if (activity.metadata.code)
+                          items.push({
+                            label: "code",
+                            value: `"${activity.metadata.code}"`,
+                          });
+                        if (activity.metadata.name)
+                          items.push({
+                            label: "name",
+                            value: `"${activity.metadata.name}"`,
+                          });
+                      }
+
+                      return items.length > 0 ? items : null;
+                    };
+
+                    const metadataItems = getMetadataDisplay();
+
+                    return (
+                      <Card
+                        key={activity._id}
+                        className="transition-all hover:shadow-md"
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-4">
+                            {/* Icon with Status Indicator */}
+                            <div className="relative shrink-0">
+                              <div
+                                className={`p-2 rounded-lg ${getActivityBgColor()}`}
+                              >
+                                {getActivityIcon()}
                               </div>
-
-                              {/* Activity Type Badge */}
-                              <Badge variant={getActivityVariant()} className="shrink-0">
-                                {activity.type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                              </Badge>
-                            </div>
-
-                            {/* Metadata Display */}
-                            {metadataItems && metadataItems.length > 0 && (
-                              <div className="mb-2 text-xs font-mono text-muted-foreground">
-                                {'{ '}{metadataItems.map((item, idx) => (
-                                  <span key={idx}>
-                                    <span className="text-muted-foreground/70">{item.label}:</span>{' '}
-                                    <span className="text-foreground/80">{item.value}</span>
-                                    {idx < metadataItems.length - 1 && ', '}
-                                  </span>
-                                ))}{' }'}
-                              </div>
-                            )}
-
-                            {/* User and Time Info */}
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <User className="h-3 w-3" />
-                                {activity.performedBy?.name || 'Unknown'}
-                              </span>
-                              <span className="text-muted-foreground/50">•</span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {new Date(activity.createdAt).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </span>
-                              {activity.targetName && !activity.type.includes('INSTALLER_REGISTERED') && (
-                                <>
-                                  <span className="text-muted-foreground/50">•</span>
-                                  <span>Target: {activity.targetName}</span>
-                                </>
+                              {isCreated && (
+                                <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-green-500 flex items-center justify-center">
+                                  <Check className="h-3 w-3 text-white" />
+                                </div>
                               )}
                             </div>
 
-                            {/* Changes Details */}
-                            {activity.metadata?.changes && Object.keys(activity.metadata.changes).length > 0 && (
-                              <details className="mt-3">
-                                <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1">
-                                  <AlertCircle className="h-3 w-3" />
-                                  View Changes
-                                </summary>
-                                <Alert className="mt-2">
-                                  <AlertDescription>
-                                    <dl className="space-y-2">
-                                      {Object.entries(activity.metadata.changes).map(([key, value]: [string, { before: unknown; after: unknown }]) => (
-                                        <div key={key} className="text-xs">
-                                          <dt className="font-medium capitalize">
-                                            {key.replace(/([A-Z])/g, ' $1').trim()}:
-                                          </dt>
-                                          <dd className="ml-4">
-                                            <span className="text-destructive line-through">{String(value.before || 'N/A')}</span>
-                                            {' → '}
-                                            <span className="text-green-600 dark:text-green-400">{String(value.after || 'N/A')}</span>
-                                          </dd>
-                                        </div>
-                                      ))}
-                                    </dl>
-                                  </AlertDescription>
-                                </Alert>
-                              </details>
-                            )}
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-4 mb-2">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium">
+                                    {getActivityTitle()}
+                                  </p>
+                                </div>
 
-                            {/* WhatsApp Metadata */}
-                            {activity.metadata?.whatsappNumber && (
-                              <div className="mt-2 text-xs">
-                                <Badge variant="outline" className="font-mono">
-                                  {String(activity.metadata.whatsappNumber)}
+                                {/* Activity Type Badge */}
+                                <Badge
+                                  variant={getActivityVariant()}
+                                  className="shrink-0"
+                                >
+                                  {activity.type
+                                    .replace(/_/g, " ")
+                                    .toLowerCase()
+                                    .replace(/\b\w/g, (l: string) =>
+                                      l.toUpperCase()
+                                    )}
                                 </Badge>
-                                {activity.metadata.errorMessage && (
-                                  <span className="ml-2 text-destructive">
-                                    Error: {String(activity.metadata.errorMessage)}
-                                  </span>
-                                )}
                               </div>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
-              )}
-            </div>
-          </TabsContent>
 
-          {/* Products Tab */}
-          <TabsContent value="products">
-            <Card>
-              <CardHeader>
-                <CardTitle>Installed Products</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loadingProducts ? (
-                  <p className="text-center text-muted-foreground py-8">Loading products...</p>
-                ) : products.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No products found</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Serial Number</TableHead>
-                        <TableHead>Product Model</TableHead>
-                        <TableHead>City</TableHead>
-                        <TableHead>Reward Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Installation Date</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {products.map((product: Product) => (
-                        <TableRow key={product._id}>
-                          <TableCell className="font-medium">
-                            {product.serialNumber}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {product.productModel}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {product.cityOfInstallation}
-                          </TableCell>
-                          <TableCell className="font-semibold text-green-600 dark:text-green-500">
-                            Rs. {product.rewardAmount?.toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={
-                              product.paymentStatus === 'PAID' ? 'default' :
-                              product.paymentStatus === 'PENDING' ? 'secondary' :
-                              'destructive'
-                            } className={
-                              product.paymentStatus === 'PAID' ? 'bg-green-600' :
-                              product.paymentStatus === 'PENDING' ? 'bg-yellow-600' :
-                              ''
-                            }>
-                              {product.paymentStatus}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {product.installationDate ? new Date(product.installationDate).toLocaleDateString() : 'N/A'}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="link"
-                              onClick={() => router.push(`/rewards/${product._id}`)}
-                              className="p-0 h-auto"
-                            >
-                              View Details
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                              {/* Metadata Display */}
+                              {metadataItems && metadataItems.length > 0 && (
+                                <div className="mb-2 text-xs font-mono text-muted-foreground">
+                                  {"{ "}
+                                  {metadataItems.map((item, idx) => (
+                                    <span key={idx}>
+                                      <span className="text-muted-foreground/70">
+                                        {item.label}:
+                                      </span>{" "}
+                                      <span className="text-foreground/80">
+                                        {item.value}
+                                      </span>
+                                      {idx < metadataItems.length - 1 && ", "}
+                                    </span>
+                                  ))}
+                                  {" }"}
+                                </div>
+                              )}
+
+                              {/* User and Time Info */}
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  {activity.performedBy?.name || "Unknown"}
+                                </span>
+                                <span className="text-muted-foreground/50">
+                                  •
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {new Date(
+                                    activity.createdAt
+                                  ).toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                                {activity.targetName &&
+                                  !activity.type.includes(
+                                    "INSTALLER_REGISTERED"
+                                  ) && (
+                                    <>
+                                      <span className="text-muted-foreground/50">
+                                        •
+                                      </span>
+                                      <span>Target: {activity.targetName}</span>
+                                    </>
+                                  )}
+                              </div>
+
+                              {/* Changes Details */}
+                              {activity.metadata?.changes &&
+                                Object.keys(activity.metadata.changes).length >
+                                  0 && (
+                                  <details className="mt-3">
+                                    <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1">
+                                      <AlertCircle className="h-3 w-3" />
+                                      View Changes
+                                    </summary>
+                                    <Alert className="mt-2">
+                                      <AlertDescription>
+                                        <dl className="space-y-2">
+                                          {Object.entries(
+                                            activity.metadata.changes
+                                          ).map(
+                                            ([key, value]: [
+                                              string,
+                                              {
+                                                before: unknown;
+                                                after: unknown;
+                                              }
+                                            ]) => (
+                                              <div
+                                                key={key}
+                                                className="text-xs"
+                                              >
+                                                <dt className="font-medium capitalize">
+                                                  {key
+                                                    .replace(/([A-Z])/g, " $1")
+                                                    .trim()}
+                                                  :
+                                                </dt>
+                                                <dd className="ml-4">
+                                                  <span className="text-destructive line-through">
+                                                    {String(
+                                                      value.before || "N/A"
+                                                    )}
+                                                  </span>
+                                                  {" → "}
+                                                  <span className="text-green-600 dark:text-green-400">
+                                                    {String(
+                                                      value.after || "N/A"
+                                                    )}
+                                                  </span>
+                                                </dd>
+                                              </div>
+                                            )
+                                          )}
+                                        </dl>
+                                      </AlertDescription>
+                                    </Alert>
+                                  </details>
+                                )}
+
+                              {/* WhatsApp Metadata */}
+                              {activity.metadata?.whatsappNumber && (
+                                <div className="mt-2 text-xs">
+                                  <Badge
+                                    variant="outline"
+                                    className="font-mono"
+                                  >
+                                    {String(activity.metadata.whatsappNumber)}
+                                  </Badge>
+                                  {activity.metadata.errorMessage && (
+                                    <span className="ml-2 text-destructive">
+                                      Error:{" "}
+                                      {String(activity.metadata.errorMessage)}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+            </TabsContent>
+
+            {/* Products Tab */}
+            <TabsContent value="products">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Installed Products</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loadingProducts ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      Loading products...
+                    </p>
+                  ) : products.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-8">
+                      No products found
+                    </p>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Serial Number</TableHead>
+                          <TableHead>Product Model</TableHead>
+                          <TableHead>City</TableHead>
+                          <TableHead>Reward Amount</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Installation Date</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {products.map((product: Product) => (
+                          <TableRow key={product._id}>
+                            <TableCell className="font-medium">
+                              {product.serialNumber}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {product.productModel}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {product.cityOfInstallation}
+                            </TableCell>
+                            <TableCell className="font-semibold text-green-600 dark:text-green-500">
+                              Rs. {product.rewardAmount?.toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  product.paymentStatus === "PAID"
+                                    ? "default"
+                                    : product.paymentStatus === "PENDING"
+                                    ? "secondary"
+                                    : "destructive"
+                                }
+                                className={
+                                  product.paymentStatus === "PAID"
+                                    ? "bg-green-600"
+                                    : product.paymentStatus === "PENDING"
+                                    ? "bg-yellow-600"
+                                    : ""
+                                }
+                              >
+                                {product.paymentStatus}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {product.installationDate
+                                ? new Date(
+                                    product.installationDate
+                                  ).toLocaleDateString()
+                                : "N/A"}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="link"
+                                onClick={() =>
+                                  router.push(`/rewards/${product._id}`)
+                                }
+                                className="p-0 h-auto"
+                              >
+                                View Details
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 
