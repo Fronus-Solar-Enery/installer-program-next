@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -10,12 +9,10 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Trash2,
   Users,
   CheckCircle,
   XCircle,
   MapPin,
-  Filter,
   X,
   Calendar,
   ChevronLeft,
@@ -74,15 +71,17 @@ import Dropdown, {
 } from "@/components/ui/dropdown";
 import IconLayer from "@/components/icons/Layer";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
+import { cn, MotionCard } from "@/lib/utils";
 import { useRelativeTime } from "@/lib/getRelativeTime";
 import { TableSkeleton } from "@/components/TableSkeleton";
 import {
   IconActivity,
   IconAdd,
+  IconClockCircle,
   IconEdit2,
   IconEye,
   IconRefresh2,
+  IconSquareShareLine,
   IconUserCog,
 } from "@/components/icons";
 import IconTrashBin2 from "@/components/icons/TrashBin2";
@@ -91,6 +90,9 @@ import Loading from "@/components/ui/loading";
 import { PillIndicator } from "@/components/ui/pill";
 import IconDocumentDownload from "@/components/icons/DocumentDownload";
 import IconSetting4 from "@/components/icons/Setting4";
+import { motion, AnimatePresence } from "framer-motion";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Label } from "@/components/ui/label";
 
 interface InstallerWithId extends IInstaller {
   _id: string;
@@ -787,63 +789,6 @@ export default function InstallersPage() {
             </Card>
           </div>
 
-          {/* Filters Section */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  Filters
-                </CardTitle>
-                <div className="flex gap-2">
-                  {selectedInstallers.size > 0 && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          disabled={bulkDeleting}
-                        >
-                          {bulkDeleting ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4 mr-2" />
-                          )}
-                          Delete Selected ({selectedInstallers.size})
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Delete {selectedInstallers.size} Installer(s)?
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. This will permanently
-                            delete the selected installers and their Google
-                            Contacts.
-                            <br />
-                            <br />
-                            <strong>Note:</strong> Installers with existing
-                            rewards cannot be deleted.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={handleBulkDelete}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete {selectedInstallers.size} Installer(s)
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-
           <Card>
             <CardHeader className="!flex-row items-center justify-between w-full bg-muted">
               <CardTitle className="text-lg font-semibold">
@@ -870,9 +815,10 @@ export default function InstallersPage() {
                     </>
                   ) : (
                     <>
-                      Report
-                      <IconDocumentDownload
+                      Export
+                      <IconSquareShareLine
                         duotone={false}
+                        width={2}
                         className="h-4 w-4"
                       />
                     </>
@@ -880,9 +826,13 @@ export default function InstallersPage() {
                 </Button>
                 <Dropdown>
                   <DropdownTrigger asChild>
-                    <Button variant="outline">
+                    <Button variant="outline" className="gap-2">
                       Columns
-                      <IconLayer className="ml-2 h-4 w-4" duotone={false} />
+                      <IconLayer
+                        duotone={false}
+                        width={2}
+                        className="h-4 w-4"
+                      />
                     </Button>
                   </DropdownTrigger>
                   <DropdownContent className="w-54 p-2 pr-0.5">
@@ -933,455 +883,610 @@ export default function InstallersPage() {
                   Filters <IconSetting4 className="size-4" duotone={false} />
                 </Button>
               </div>
-              <Card className="mb-4 !p-4">
-                {showFilters && (
-                  <CardContent className="p-0">
-                    <div className="flex items-center gap-2">
-                      <IconSetting4 className="size-4" duotone={false} />
-                      Filters
-                    </div>
-                    <div className="space-y-4">
-                      {/* Date Range Filter */}
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            Date Range
-                          </label>
-                          <Select
-                            value={filters.dateRange}
-                            onValueChange={(value) =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                dateRange: value as typeof prev.dateRange,
-                                customStartDate:
-                                  value !== "custom"
-                                    ? ""
-                                    : prev.customStartDate,
-                                customEndDate:
-                                  value !== "custom" ? "" : prev.customEndDate,
-                              }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="All time" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All time</SelectItem>
-                              <SelectItem value="today">Today</SelectItem>
-                              <SelectItem value="week">Last 7 days</SelectItem>
-                              <SelectItem value="month">
-                                Last 30 days
-                              </SelectItem>
-                              <SelectItem value="year">Last year</SelectItem>
-                              <SelectItem value="custom">
-                                Custom range
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {filters.dateRange === "custom" && (
+              {showFilters && (
+                <AnimatePresence>
+                  <MotionCard
+                    key="filters"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 5 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="mb-4 !p-4"
+                  >
+                    <CardContent className="p-0">
+                      <div className="flex items-center gap-2">
+                        <IconSetting4 className="size-4" duotone={false} />
+                        Filters
+                      </div>
+                      <div className="space-y-4">
+                        {/* Date Range Filter */}
+                        <div className="grid gap-4 md:grid-cols-2">
                           <div className="space-y-2">
-                            <label className="text-sm font-medium">
-                              Select Date Range
+                            <label className="text-sm font-medium flex items-center gap-2">
+                              <Calendar className="h-4 w-4" />
+                              Date Range
                             </label>
-                            <Popover
-                              open={calendarPopoverOpen}
-                              onOpenChange={(open) => {
-                                setCalendarPopoverOpen(open);
-                                // Initialize calendar value from filters when opening
-                                if (
-                                  open &&
-                                  filters.customStartDate &&
-                                  filters.customEndDate
-                                ) {
-                                  try {
-                                    setCalendarValue({
-                                      start: parseDate(filters.customStartDate),
-                                      end: parseDate(filters.customEndDate),
-                                    });
-                                  } catch {
-                                    setCalendarValue(null);
-                                  }
-                                }
-                              }}
+                            <Select
+                              value={filters.dateRange}
+                              onValueChange={(value) =>
+                                setFilters((prev) => ({
+                                  ...prev,
+                                  dateRange: value as typeof prev.dateRange,
+                                  customStartDate:
+                                    value !== "custom"
+                                      ? ""
+                                      : prev.customStartDate,
+                                  customEndDate:
+                                    value !== "custom"
+                                      ? ""
+                                      : prev.customEndDate,
+                                }))
+                              }
                             >
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  className="w-full justify-start text-left font-normal"
+                              <div className="flex items-center gap-3">
+                                <ToggleGroup
+                                  type="single"
+                                  defaultValue={filters.dateRange}
+                                  onValueChange={(value) =>
+                                    setFilters((prev) => ({
+                                      ...prev,
+                                      dateRange: value as typeof prev.dateRange,
+                                      customStartDate:
+                                        value !== "custom"
+                                          ? ""
+                                          : prev.customStartDate,
+                                      customEndDate:
+                                        value !== "custom"
+                                          ? ""
+                                          : prev.customEndDate,
+                                    }))
+                                  }
                                 >
-                                  <Calendar className="mr-2 h-4 w-4" />
-                                  {filters.customStartDate &&
-                                  filters.customEndDate ? (
-                                    `${new Date(
-                                      filters.customStartDate
-                                    ).toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    })} - ${new Date(
-                                      filters.customEndDate
-                                    ).toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    })}`
-                                  ) : (
-                                    <span className="text-muted-foreground">
-                                      Pick a date range
-                                    </span>
-                                  )}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className="w-auto p-4"
-                                align="start"
-                              >
-                                <div className="space-y-4">
-                                  <RangeCalendar
-                                    aria-label="Select date range"
-                                    value={calendarValue}
-                                    onChange={setCalendarValue}
-                                    maxValue={today(getLocalTimeZone())}
-                                    visibleMonths={2}
-                                    pageBehavior="visible"
-                                    showMonthAndYearPickers
-                                    className="rounded-lg"
-                                    classNames={{
-                                      base: "gap-4",
-                                      headerWrapper: "pt-0",
-                                      prevButton: "rounded-md hover:bg-accent",
-                                      nextButton: "rounded-md hover:bg-accent",
-                                      gridHeader:
-                                        "bg-accent/50 rounded-md shadow-sm",
-                                      cellButton: [
-                                        "data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground",
-                                        "data-[range-start=true]:rounded-l-md",
-                                        "data-[range-end=true]:rounded-r-md",
-                                        "data-[selection-start=true]:rounded-l-md",
-                                        "data-[selection-end=true]:rounded-r-md",
-                                        "data-[selected=true]:data-[selection-start=true]:data-[range-selection=true]:rounded-l-md",
-                                        "data-[selected=true]:data-[selection-end=true]:data-[range-selection=true]:rounded-r-md",
-                                      ],
-                                    }}
-                                  />
-                                  <div className="flex items-center justify-between gap-2 pt-2 border-t">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => {
-                                        setCalendarValue(null);
-                                        setFilters((prev) => ({
-                                          ...prev,
-                                          customStartDate: "",
-                                          customEndDate: "",
-                                        }));
-                                        setCalendarPopoverOpen(false);
-                                      }}
-                                    >
-                                      Clear
-                                    </Button>
-                                    <div className="flex gap-2">
+                                  <ToggleGroupItem value="all">
+                                    ALL
+                                  </ToggleGroupItem>
+                                  <ToggleGroupItem value="today">
+                                    1D
+                                  </ToggleGroupItem>
+                                  <ToggleGroupItem value="week">
+                                    1W
+                                  </ToggleGroupItem>
+                                  <ToggleGroupItem value="month">
+                                    1M
+                                  </ToggleGroupItem>
+                                  <ToggleGroupItem value="year">
+                                    1Y
+                                  </ToggleGroupItem>
+
+                                  <Popover
+                                  // open={isCustomDateOpen}
+                                  // onOpenChange={setIsCustomDateOpen}
+                                  >
+                                    <PopoverTrigger asChild>
                                       <Button
-                                        size="sm"
                                         variant="ghost"
-                                        onClick={() =>
-                                          setCalendarPopoverOpen(false)
-                                        }
+                                        size="sm"
+                                        className={cn(
+                                          "hidden sm:flex gap-2 rounded-xl text-zinc-400 px-2"
+                                        )}
                                       >
-                                        Cancel
+                                        <IconClockCircle
+                                          className="h-5 w-5"
+                                          duotone={false}
+                                        />
                                       </Button>
+                                    </PopoverTrigger>
+
+                                    <PopoverContent
+                                      className="w-80"
+                                      align="end"
+                                    >
+                                      <div className="space-y-4">
+                                        <div className="space-y-2">
+                                          <h4 className="font-medium text-sm">
+                                            Custom Date Range
+                                          </h4>
+                                          <p className="text-xs text-muted-foreground">
+                                            Select a custom date range for
+                                            filtering dashboard data
+                                          </p>
+                                        </div>
+                                        <div className="space-y-3">
+                                          <div className="space-y-1.5">
+                                            <Label
+                                              htmlFor="start-date"
+                                              className="text-xs"
+                                            >
+                                              Start Date
+                                            </Label>
+                                            <Input
+                                              id="start-date"
+                                              type="date"
+                                              // value={customStartDate}
+                                              // onChange={(e) =>
+                                              //   setCustomStartDate(
+                                              //     e.target.value
+                                              //   )
+                                              // }
+                                              // max={customEndDate || undefined}
+                                            />
+                                          </div>
+                                          <div className="space-y-1.5">
+                                            <Label
+                                              htmlFor="end-date"
+                                              className="text-xs"
+                                            >
+                                              End Date
+                                            </Label>
+                                            <Input
+                                              id="end-date"
+                                              type="date"
+                                              // value={customEndDate}
+                                              // onChange={(e) =>
+                                              //   setCustomEndDate(e.target.value)
+                                              // }
+                                              // min={customStartDate || undefined}
+                                              // max={
+                                              //   new Date()
+                                              //     .toISOString()
+                                              //     .split("T")[0]
+                                              // }
+                                            />
+                                          </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <Button
+                                            size="sm"
+                                            className="flex-1"
+                                            // onClick={() => {
+                                            //   if (
+                                            //     customStartDate &&
+                                            //     customEndDate
+                                            //   ) {
+                                            //     setTimePeriod("custom");
+                                            //     setIsCustomDateOpen(false);
+                                            //   }
+                                            // }}
+                                            // disabled={
+                                            //   !customStartDate || !customEndDate
+                                            // }
+                                          >
+                                            Apply
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                              // setCustomStartDate("");
+                                              // setCustomEndDate("");
+                                              // setTimePeriod("last30days");
+                                              // setIsCustomDateOpen(false);
+                                            }}
+                                          >
+                                            Clear
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+                                </ToggleGroup>
+                              </div>
+                            </Select>
+                          </div>
+
+                          {filters.dateRange === "custom" && (
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">
+                                Select Date Range
+                              </label>
+                              <Popover
+                                open={calendarPopoverOpen}
+                                onOpenChange={(open) => {
+                                  setCalendarPopoverOpen(open);
+                                  if (
+                                    open &&
+                                    filters.customStartDate &&
+                                    filters.customEndDate
+                                  ) {
+                                    try {
+                                      setCalendarValue({
+                                        start: parseDate(
+                                          filters.customStartDate
+                                        ),
+                                        end: parseDate(filters.customEndDate),
+                                      });
+                                    } catch {
+                                      setCalendarValue(null);
+                                    }
+                                  }
+                                }}
+                              >
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className="w-full justify-start text-left font-normal"
+                                  >
+                                    <Calendar className="mr-2 h-4 w-4" />
+                                    {filters.customStartDate &&
+                                    filters.customEndDate ? (
+                                      `${new Date(
+                                        filters.customStartDate
+                                      ).toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      })} - ${new Date(
+                                        filters.customEndDate
+                                      ).toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      })}`
+                                    ) : (
+                                      <span className="text-muted-foreground">
+                                        Pick a date range
+                                      </span>
+                                    )}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                  className="w-auto p-4"
+                                  align="start"
+                                >
+                                  <div className="space-y-4">
+                                    <RangeCalendar
+                                      aria-label="Select date range"
+                                      value={calendarValue}
+                                      onChange={setCalendarValue}
+                                      maxValue={today(getLocalTimeZone())}
+                                      visibleMonths={2}
+                                      pageBehavior="visible"
+                                      showMonthAndYearPickers
+                                      className="rounded-lg"
+                                      classNames={{
+                                        base: "gap-4",
+                                        headerWrapper: "pt-0",
+                                        prevButton:
+                                          "rounded-md hover:bg-accent",
+                                        nextButton:
+                                          "rounded-md hover:bg-accent",
+                                        gridHeader:
+                                          "bg-accent/50 rounded-md shadow-sm",
+                                        cellButton: [
+                                          "data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground",
+                                          "data-[range-start=true]:rounded-l-md",
+                                          "data-[range-end=true]:rounded-r-md",
+                                          "data-[selection-start=true]:rounded-l-md",
+                                          "data-[selection-end=true]:rounded-r-md",
+                                          "data-[selected=true]:data-[selection-start=true]:data-[range-selection=true]:rounded-l-md",
+                                          "data-[selected=true]:data-[selection-end=true]:data-[range-selection=true]:rounded-r-md",
+                                        ],
+                                      }}
+                                    />
+                                    <div className="flex items-center justify-between gap-2 pt-2 border-t">
                                       <Button
                                         size="sm"
+                                        variant="outline"
                                         onClick={() => {
-                                          if (
-                                            calendarValue?.start &&
-                                            calendarValue?.end
-                                          ) {
-                                            setFilters((prev) => ({
-                                              ...prev,
-                                              customStartDate:
-                                                calendarValue.start.toString(),
-                                              customEndDate:
-                                                calendarValue.end.toString(),
-                                            }));
-                                            setCalendarPopoverOpen(false);
-                                          }
+                                          setCalendarValue(null);
+                                          setFilters((prev) => ({
+                                            ...prev,
+                                            customStartDate: "",
+                                            customEndDate: "",
+                                          }));
+                                          setCalendarPopoverOpen(false);
                                         }}
-                                        disabled={
-                                          !calendarValue?.start ||
-                                          !calendarValue?.end
-                                        }
                                       >
-                                        Apply
+                                        Clear
                                       </Button>
+                                      <div className="flex gap-2">
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() =>
+                                            setCalendarPopoverOpen(false)
+                                          }
+                                        >
+                                          Cancel
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          onClick={() => {
+                                            if (
+                                              calendarValue?.start &&
+                                              calendarValue?.end
+                                            ) {
+                                              setFilters((prev) => ({
+                                                ...prev,
+                                                customStartDate:
+                                                  calendarValue.start.toString(),
+                                                customEndDate:
+                                                  calendarValue.end.toString(),
+                                              }));
+                                              setCalendarPopoverOpen(false);
+                                            }
+                                          }}
+                                          disabled={
+                                            !calendarValue?.start ||
+                                            !calendarValue?.end
+                                          }
+                                        >
+                                          Apply
+                                        </Button>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Other Filters */}
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">City</label>
+                            <Select
+                              value={filters.city || "all"}
+                              onValueChange={(value) =>
+                                setFilters((prev) => ({
+                                  ...prev,
+                                  city: value === "all" ? "" : value,
+                                }))
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="All cities" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All cities</SelectItem>
+                                {uniqueValues.cities.map((city) => (
+                                  <SelectItem key={city} value={city}>
+                                    {city}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
-                        )}
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">
+                              Province
+                            </label>
+                            <Select
+                              value={filters.province || "all"}
+                              onValueChange={(value) =>
+                                setFilters((prev) => ({
+                                  ...prev,
+                                  province: value === "all" ? "" : value,
+                                }))
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="All provinces" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">
+                                  All provinces
+                                </SelectItem>
+                                {uniqueValues.provinces.map((province) => (
+                                  <SelectItem key={province} value={province}>
+                                    {province}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">
+                              Training Center
+                            </label>
+                            <Select
+                              value={filters.trainingCenter || "all"}
+                              onValueChange={(value) =>
+                                setFilters((prev) => ({
+                                  ...prev,
+                                  trainingCenter: value === "all" ? "" : value,
+                                }))
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="All centers" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All centers</SelectItem>
+                                {uniqueValues.trainingCenters.map((center) => (
+                                  <SelectItem key={center} value={center}>
+                                    {center}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">
+                              Certification
+                            </label>
+                            <Select
+                              value={filters.certified || "all"}
+                              onValueChange={(value) =>
+                                setFilters((prev) => ({
+                                  ...prev,
+                                  certified: value === "all" ? "" : value,
+                                }))
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="All statuses" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">
+                                  All statuses
+                                </SelectItem>
+                                <SelectItem value="true">Certified</SelectItem>
+                                <SelectItem value="false">
+                                  Not Certified
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Bank</label>
+                            <Select
+                              value={filters.bankName || "all"}
+                              onValueChange={(value) =>
+                                setFilters((prev) => ({
+                                  ...prev,
+                                  bankName: value === "all" ? "" : value,
+                                }))
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="All banks" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All banks</SelectItem>
+                                {uniqueValues.banks.map((bank) => (
+                                  <SelectItem key={bank} value={bank}>
+                                    {bank}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Other Filters */}
-                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">City</label>
-                          <Select
-                            value={filters.city || "all"}
-                            onValueChange={(value) =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                city: value === "all" ? "" : value,
-                              }))
+                      {(filters.city ||
+                        filters.province ||
+                        filters.trainingCenter ||
+                        filters.certified ||
+                        filters.bankName ||
+                        filters.dateRange !== "all") && (
+                        <div className="mt-4 flex items-center justify-between">
+                          <div className="flex flex-wrap gap-2">
+                            {filters.dateRange !== "all" && (
+                              <Badge variant="secondary" className="gap-1">
+                                {filters.dateRange === "today" && "Today"}
+                                {filters.dateRange === "week" && "Last 7 days"}
+                                {filters.dateRange === "month" &&
+                                  "Last 30 days"}
+                                {filters.dateRange === "year" && "Last year"}
+                                {filters.dateRange === "custom" &&
+                                  `${filters.customStartDate} to ${filters.customEndDate}`}
+                                <X
+                                  className="h-3 w-3 cursor-pointer"
+                                  onClick={() =>
+                                    setFilters((prev) => ({
+                                      ...prev,
+                                      dateRange: "all",
+                                      customStartDate: "",
+                                      customEndDate: "",
+                                    }))
+                                  }
+                                />
+                              </Badge>
+                            )}
+                            {filters.city && (
+                              <Badge variant="secondary" className="gap-1">
+                                City: {filters.city}
+                                <X
+                                  className="h-3 w-3 cursor-pointer"
+                                  onClick={() =>
+                                    setFilters((prev) => ({
+                                      ...prev,
+                                      city: "",
+                                    }))
+                                  }
+                                />
+                              </Badge>
+                            )}
+                            {filters.province && (
+                              <Badge variant="secondary" className="gap-1">
+                                Province: {filters.province}
+                                <X
+                                  className="h-3 w-3 cursor-pointer"
+                                  onClick={() =>
+                                    setFilters((prev) => ({
+                                      ...prev,
+                                      province: "",
+                                    }))
+                                  }
+                                />
+                              </Badge>
+                            )}
+                            {filters.trainingCenter && (
+                              <Badge variant="secondary" className="gap-1">
+                                Center: {filters.trainingCenter}
+                                <X
+                                  className="h-3 w-3 cursor-pointer"
+                                  onClick={() =>
+                                    setFilters((prev) => ({
+                                      ...prev,
+                                      trainingCenter: "",
+                                    }))
+                                  }
+                                />
+                              </Badge>
+                            )}
+                            {filters.certified && (
+                              <Badge variant="secondary" className="gap-1">
+                                {filters.certified === "true"
+                                  ? "Certified"
+                                  : "Not Certified"}
+                                <X
+                                  className="h-3 w-3 cursor-pointer"
+                                  onClick={() =>
+                                    setFilters((prev) => ({
+                                      ...prev,
+                                      certified: "",
+                                    }))
+                                  }
+                                />
+                              </Badge>
+                            )}
+                            {filters.bankName && (
+                              <Badge variant="secondary" className="gap-1">
+                                Bank: {filters.bankName}
+                                <X
+                                  className="h-3 w-3 cursor-pointer"
+                                  onClick={() =>
+                                    setFilters((prev) => ({
+                                      ...prev,
+                                      bankName: "",
+                                    }))
+                                  }
+                                />
+                              </Badge>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setFilters({
+                                city: "",
+                                province: "",
+                                trainingCenter: "",
+                                certified: "",
+                                bankName: "",
+                                dateRange: "all",
+                                customStartDate: "",
+                                customEndDate: "",
+                              })
                             }
                           >
-                            <SelectTrigger>
-                              <SelectValue placeholder="All cities" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All cities</SelectItem>
-                              {uniqueValues.cities.map((city) => (
-                                <SelectItem key={city} value={city}>
-                                  {city}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            Clear All
+                          </Button>
                         </div>
-
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Province
-                          </label>
-                          <Select
-                            value={filters.province || "all"}
-                            onValueChange={(value) =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                province: value === "all" ? "" : value,
-                              }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="All provinces" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All provinces</SelectItem>
-                              {uniqueValues.provinces.map((province) => (
-                                <SelectItem key={province} value={province}>
-                                  {province}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Training Center
-                          </label>
-                          <Select
-                            value={filters.trainingCenter || "all"}
-                            onValueChange={(value) =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                trainingCenter: value === "all" ? "" : value,
-                              }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="All centers" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All centers</SelectItem>
-                              {uniqueValues.trainingCenters.map((center) => (
-                                <SelectItem key={center} value={center}>
-                                  {center}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Certification
-                          </label>
-                          <Select
-                            value={filters.certified || "all"}
-                            onValueChange={(value) =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                certified: value === "all" ? "" : value,
-                              }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="All statuses" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All statuses</SelectItem>
-                              <SelectItem value="true">Certified</SelectItem>
-                              <SelectItem value="false">
-                                Not Certified
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">Bank</label>
-                          <Select
-                            value={filters.bankName || "all"}
-                            onValueChange={(value) =>
-                              setFilters((prev) => ({
-                                ...prev,
-                                bankName: value === "all" ? "" : value,
-                              }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="All banks" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All banks</SelectItem>
-                              {uniqueValues.banks.map((bank) => (
-                                <SelectItem key={bank} value={bank}>
-                                  {bank}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </div>
-
-                    {(filters.city ||
-                      filters.province ||
-                      filters.trainingCenter ||
-                      filters.certified ||
-                      filters.bankName ||
-                      filters.dateRange !== "all") && (
-                      <div className="mt-4 flex items-center justify-between">
-                        <div className="flex flex-wrap gap-2">
-                          {filters.dateRange !== "all" && (
-                            <Badge variant="secondary" className="gap-1">
-                              {filters.dateRange === "today" && "Today"}
-                              {filters.dateRange === "week" && "Last 7 days"}
-                              {filters.dateRange === "month" && "Last 30 days"}
-                              {filters.dateRange === "year" && "Last year"}
-                              {filters.dateRange === "custom" &&
-                                `${filters.customStartDate} to ${filters.customEndDate}`}
-                              <X
-                                className="h-3 w-3 cursor-pointer"
-                                onClick={() =>
-                                  setFilters((prev) => ({
-                                    ...prev,
-                                    dateRange: "all",
-                                    customStartDate: "",
-                                    customEndDate: "",
-                                  }))
-                                }
-                              />
-                            </Badge>
-                          )}
-                          {filters.city && (
-                            <Badge variant="secondary" className="gap-1">
-                              City: {filters.city}
-                              <X
-                                className="h-3 w-3 cursor-pointer"
-                                onClick={() =>
-                                  setFilters((prev) => ({ ...prev, city: "" }))
-                                }
-                              />
-                            </Badge>
-                          )}
-                          {filters.province && (
-                            <Badge variant="secondary" className="gap-1">
-                              Province: {filters.province}
-                              <X
-                                className="h-3 w-3 cursor-pointer"
-                                onClick={() =>
-                                  setFilters((prev) => ({
-                                    ...prev,
-                                    province: "",
-                                  }))
-                                }
-                              />
-                            </Badge>
-                          )}
-                          {filters.trainingCenter && (
-                            <Badge variant="secondary" className="gap-1">
-                              Center: {filters.trainingCenter}
-                              <X
-                                className="h-3 w-3 cursor-pointer"
-                                onClick={() =>
-                                  setFilters((prev) => ({
-                                    ...prev,
-                                    trainingCenter: "",
-                                  }))
-                                }
-                              />
-                            </Badge>
-                          )}
-                          {filters.certified && (
-                            <Badge variant="secondary" className="gap-1">
-                              {filters.certified === "true"
-                                ? "Certified"
-                                : "Not Certified"}
-                              <X
-                                className="h-3 w-3 cursor-pointer"
-                                onClick={() =>
-                                  setFilters((prev) => ({
-                                    ...prev,
-                                    certified: "",
-                                  }))
-                                }
-                              />
-                            </Badge>
-                          )}
-                          {filters.bankName && (
-                            <Badge variant="secondary" className="gap-1">
-                              Bank: {filters.bankName}
-                              <X
-                                className="h-3 w-3 cursor-pointer"
-                                onClick={() =>
-                                  setFilters((prev) => ({
-                                    ...prev,
-                                    bankName: "",
-                                  }))
-                                }
-                              />
-                            </Badge>
-                          )}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            setFilters({
-                              city: "",
-                              province: "",
-                              trainingCenter: "",
-                              certified: "",
-                              bankName: "",
-                              dateRange: "all",
-                              customStartDate: "",
-                              customEndDate: "",
-                            })
-                          }
-                        >
-                          Clear All
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                )}
-              </Card>
+                      )}
+                    </CardContent>
+                  </MotionCard>
+                </AnimatePresence>
+              )}
 
               <div className="border border-border rounded-2xl overflow-hidden">
                 <Table>
@@ -1593,7 +1698,7 @@ export default function InstallersPage() {
                                 }
                                 title="View Details"
                               >
-                                <Eye className="h-4 w-4" />
+                                <IconEye duotone={false} className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -1604,7 +1709,10 @@ export default function InstallersPage() {
                                 }}
                                 title="Edit"
                               >
-                                <Edit className="h-4 w-4" />
+                                <IconEdit2
+                                  duotone={false}
+                                  className="h-4 w-4"
+                                />
                               </Button>
                               {isAdmin && (
                                 <AlertDialog>
@@ -1614,8 +1722,12 @@ export default function InstallersPage() {
                                       size="icon"
                                       title="Delete"
                                       disabled={deletingId === installer._id}
+                                      className="group"
                                     >
-                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                      <IconTrashBin2
+                                        duotone={false}
+                                        className="h-4.5 w-4.5 text-destructive-text group-hover:text-destructive-text-hover transition-colors duration-300"
+                                      />
                                     </Button>
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
@@ -1755,58 +1867,73 @@ export default function InstallersPage() {
                   </div>
                 </div>
 
-                <div className="absolute inset-0 size-full flex items-center justify-center">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-max h-full flex items-center justify-center">
                   {selectedInstallers.size > 0 && (
-                    <div className="border border-border rounded-2xl p-2 flex items-center gap-2">
-                      <div className="px-4 py-3 bg-background rounded-xl flex items-center justify-center leading-none select-none">
-                        Selected: {selectedInstallers.size}
-                      </div>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size={"icon"}
-                            disabled={bulkDeleting}
-                            className="gap-1"
-                          >
-                            {bulkDeleting ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <IconTrashBin2
-                                width={2}
-                                duotone={false}
-                                className="h-4 w-4"
-                              />
-                            )}
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Delete {selectedInstallers.size} Installer(s)?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will
-                              permanently delete the selected installers and
-                              their Google Contacts.
-                              <br />
-                              <br />
-                              <strong>Note:</strong> Installers with existing
-                              rewards cannot be deleted.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={handleBulkDelete}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    <AnimatePresence>
+                      <motion.div
+                        initial={{
+                          opacity: 0,
+                          y: 5,
+                        }}
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                        }}
+                        exit={{ opacity: 0, y: 5 }}
+                        className={cn(
+                          "border border-border rounded-2xl p-2 flex items-center gap-2 relative"
+                        )}
+                      >
+                        <div className="px-4 py-3 bg-background rounded-xl flex items-center justify-center leading-none select-none">
+                          Selected: {selectedInstallers.size}
+                        </div>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size={"icon"}
+                              disabled={bulkDeleting}
+                              className="gap-1"
                             >
-                              Delete {selectedInstallers.size} Installer(s)
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                              {bulkDeleting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <IconTrashBin2
+                                  width={2}
+                                  duotone={false}
+                                  className="h-4 w-4"
+                                />
+                              )}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Delete {selectedInstallers.size} Installer(s)?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will
+                                permanently delete the selected installers and
+                                their Google Contacts.
+                                <br />
+                                <br />
+                                <strong>Note:</strong> Installers with existing
+                                rewards cannot be deleted.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={handleBulkDelete}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete {selectedInstallers.size} Installer(s)
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </motion.div>
+                    </AnimatePresence>
                   )}
                 </div>
               </div>

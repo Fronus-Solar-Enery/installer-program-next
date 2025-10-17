@@ -108,7 +108,7 @@ export const TableSkeleton: React.FC<TableSkeletonProps> = ({
             <div className="flex items-center gap-2">
               {actionIcons.map((Icon, i) => (
                 <Button key={i} variant="ghost" size="icon" disabled>
-                  <Icon className="h-4 w-4" />
+                  <Icon duotone={false} className="h-4 w-4" />
                 </Button>
               ))}
             </div>
