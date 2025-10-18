@@ -1,36 +1,62 @@
-import * as React from "react";
-import { cva, type VariantProps } from "class-variance-authority";
-
+import React from "react";
+import type { VariantProps } from "class-variance-authority";
+import { badgeVariants } from "./constants";
 import { cn } from "@/lib/utils";
-
-const badgeVariants = cva(
-  "inline-flex items-center rounded-md border border-border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 select-none cursor-pointer",
-  {
-    variants: {
-      variant: {
-        default:
-          "border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80",
-        secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive:
-          "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
-        outline: "text-foreground",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-);
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
-
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
-  );
+    VariantProps<typeof badgeVariants> {
+  icon?: React.ReactNode;
+  dot?: boolean;
+  disabled?: boolean;
 }
 
-export { Badge, badgeVariants };
+const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
+  (
+    {
+      className,
+      variant,
+      size = "xs",
+      rounded = "xs",
+      dot,
+      icon,
+      disabled,
+      children,
+      ...props
+    },
+    ref
+  ) => {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          badgeVariants({ variant, size, rounded }),
+          disabled &&
+            "opacity-50 cursor-not-allowed pointer-events-none select-none",
+          className
+        )}
+        {...props}
+        role="button"
+        aria-disabled={disabled}
+      >
+        {dot && (
+          <span
+            className={cn("mr-1.5 h-2 w-2 rounded-full ", getBgColor(variant))}
+          />
+        )}
+        {icon && <span className="mr-1">{icon}</span>}
+        {children}
+      </div>
+    );
+  }
+);
+
+Badge.displayName = "Badge";
+
+export { Badge };
+
+export const getBgColor = (variant: BadgeProps["variant"]) => {
+  return typeof variant === "string" && variant.startsWith("outline-")
+    ? "bg-foreground"
+    : "bg-current";
+};

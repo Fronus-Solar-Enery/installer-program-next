@@ -21,7 +21,7 @@ import {
   ChevronsRight,
   Loader2,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, MotionCard } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -62,16 +62,13 @@ import { toast } from "sonner";
 import { TeamRole } from "@/types/roles";
 import PageHeader from "@/components/PageHeader";
 import { IInstaller } from "@/models/Installer";
-import { RangeCalendar } from "@heroui/react";
-import { parseDate, today, getLocalTimeZone } from "@internationalized/date";
-import type { DateRange } from "@react-types/calendar";
 import Dropdown, {
   DropdownContent,
   DropdownTrigger,
 } from "@/components/ui/dropdown";
 import IconLayer from "@/components/icons/Layer";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn, MotionCard } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useRelativeTime } from "@/lib/getRelativeTime";
 import { TableSkeleton } from "@/components/TableSkeleton";
 import {
@@ -88,7 +85,6 @@ import IconTrashBin2 from "@/components/icons/TrashBin2";
 import { EmptyState } from "@/components/EmptyState";
 import Loading from "@/components/ui/loading";
 import { PillIndicator } from "@/components/ui/pill";
-import IconDocumentDownload from "@/components/icons/DocumentDownload";
 import IconSetting4 from "@/components/icons/Setting4";
 import { motion, AnimatePresence } from "framer-motion";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -153,8 +149,6 @@ export default function InstallersPage() {
     customEndDate: "",
   });
   const [showFilters, setShowFilters] = useState(false);
-  const [calendarPopoverOpen, setCalendarPopoverOpen] = useState(false);
-  const [calendarValue, setCalendarValue] = useState<DateRange | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -628,13 +622,6 @@ export default function InstallersPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Manage installers, view details, and add new entries
             </p>
-            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <span>Live data</span>
-                <PillIndicator pulse variant="success" className="size-1.5" />
-              </div>
-              <span>Updated {refreshRelTime}</span>
-            </div>
           </>
         }
         action={
@@ -1077,147 +1064,45 @@ export default function InstallersPage() {
                           {filters.dateRange === "custom" && (
                             <div className="space-y-2">
                               <label className="text-sm font-medium">
-                                Select Date Range
+                                Custom Date Range
                               </label>
-                              <Popover
-                                open={calendarPopoverOpen}
-                                onOpenChange={(open) => {
-                                  setCalendarPopoverOpen(open);
-                                  if (
-                                    open &&
-                                    filters.customStartDate &&
-                                    filters.customEndDate
-                                  ) {
-                                    try {
-                                      setCalendarValue({
-                                        start: parseDate(
-                                          filters.customStartDate
-                                        ),
-                                        end: parseDate(filters.customEndDate),
-                                      });
-                                    } catch {
-                                      setCalendarValue(null);
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <Label htmlFor="custom-start-date" className="text-xs">
+                                    From
+                                  </Label>
+                                  <Input
+                                    id="custom-start-date"
+                                    type="date"
+                                    value={filters.customStartDate}
+                                    onChange={(e) =>
+                                      setFilters((prev) => ({
+                                        ...prev,
+                                        customStartDate: e.target.value,
+                                      }))
                                     }
-                                  }
-                                }}
-                              >
-                                <PopoverTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    className="w-full justify-start text-left font-normal"
-                                  >
-                                    <Calendar className="mr-2 h-4 w-4" />
-                                    {filters.customStartDate &&
-                                    filters.customEndDate ? (
-                                      `${new Date(
-                                        filters.customStartDate
-                                      ).toLocaleDateString("en-US", {
-                                        month: "short",
-                                        day: "numeric",
-                                        year: "numeric",
-                                      })} - ${new Date(
-                                        filters.customEndDate
-                                      ).toLocaleDateString("en-US", {
-                                        month: "short",
-                                        day: "numeric",
-                                        year: "numeric",
-                                      })}`
-                                    ) : (
-                                      <span className="text-muted-foreground">
-                                        Pick a date range
-                                      </span>
-                                    )}
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent
-                                  className="w-auto p-4"
-                                  align="start"
-                                >
-                                  <div className="space-y-4">
-                                    <RangeCalendar
-                                      aria-label="Select date range"
-                                      value={calendarValue}
-                                      onChange={setCalendarValue}
-                                      maxValue={today(getLocalTimeZone())}
-                                      visibleMonths={2}
-                                      pageBehavior="visible"
-                                      showMonthAndYearPickers
-                                      className="rounded-lg"
-                                      classNames={{
-                                        base: "gap-4",
-                                        headerWrapper: "pt-0",
-                                        prevButton:
-                                          "rounded-md hover:bg-accent",
-                                        nextButton:
-                                          "rounded-md hover:bg-accent",
-                                        gridHeader:
-                                          "bg-accent/50 rounded-md shadow-sm",
-                                        cellButton: [
-                                          "data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground",
-                                          "data-[range-start=true]:rounded-l-md",
-                                          "data-[range-end=true]:rounded-r-md",
-                                          "data-[selection-start=true]:rounded-l-md",
-                                          "data-[selection-end=true]:rounded-r-md",
-                                          "data-[selected=true]:data-[selection-start=true]:data-[range-selection=true]:rounded-l-md",
-                                          "data-[selected=true]:data-[selection-end=true]:data-[range-selection=true]:rounded-r-md",
-                                        ],
-                                      }}
-                                    />
-                                    <div className="flex items-center justify-between gap-2 pt-2 border-t">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          setCalendarValue(null);
-                                          setFilters((prev) => ({
-                                            ...prev,
-                                            customStartDate: "",
-                                            customEndDate: "",
-                                          }));
-                                          setCalendarPopoverOpen(false);
-                                        }}
-                                      >
-                                        Clear
-                                      </Button>
-                                      <div className="flex gap-2">
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() =>
-                                            setCalendarPopoverOpen(false)
-                                          }
-                                        >
-                                          Cancel
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          onClick={() => {
-                                            if (
-                                              calendarValue?.start &&
-                                              calendarValue?.end
-                                            ) {
-                                              setFilters((prev) => ({
-                                                ...prev,
-                                                customStartDate:
-                                                  calendarValue.start.toString(),
-                                                customEndDate:
-                                                  calendarValue.end.toString(),
-                                              }));
-                                              setCalendarPopoverOpen(false);
-                                            }
-                                          }}
-                                          disabled={
-                                            !calendarValue?.start ||
-                                            !calendarValue?.end
-                                          }
-                                        >
-                                          Apply
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </PopoverContent>
-                              </Popover>
+                                    max={filters.customEndDate || new Date().toISOString().split("T")[0]}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label htmlFor="custom-end-date" className="text-xs">
+                                    To
+                                  </Label>
+                                  <Input
+                                    id="custom-end-date"
+                                    type="date"
+                                    value={filters.customEndDate}
+                                    onChange={(e) =>
+                                      setFilters((prev) => ({
+                                        ...prev,
+                                        customEndDate: e.target.value,
+                                      }))
+                                    }
+                                    min={filters.customStartDate}
+                                    max={new Date().toISOString().split("T")[0]}
+                                  />
+                                </div>
+                              </div>
                             </div>
                           )}
                         </div>

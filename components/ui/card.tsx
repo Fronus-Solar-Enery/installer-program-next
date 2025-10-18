@@ -1,4 +1,5 @@
 import * as React from "react";
+import { motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 
@@ -75,6 +76,8 @@ const CardFooter = React.forwardRef<
   />
 ));
 CardFooter.displayName = "CardFooter";
+
+export const MotionCard = motion.create(Card);
 
 export {
   Card,

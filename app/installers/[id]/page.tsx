@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
+import { useClipboard } from "@/hooks/useCopyToClipboard";
 import {
   Copy,
   Check,
@@ -125,7 +125,9 @@ export default function InstallerDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const installerId = params.id as string;
-  const { copiedText, copyToClipboard } = useCopyToClipboard();
+
+  const { copyToClipboard, copied } = useClipboard();
+
   const { data: session } = useSession();
 
   const [loading, setLoading] = useState(true);
@@ -268,7 +270,7 @@ export default function InstallerDetailsPage() {
   const isAdmin = session?.user?.role === TeamRole.ADMIN;
 
   const CopyButton = ({ text, label }: { text: string; label: string }) => {
-    const isCopied = copiedText === text;
+    
 
     return (
       <Button
@@ -278,7 +280,7 @@ export default function InstallerDetailsPage() {
         onClick={() => copyToClipboard(text)}
         title={`Copy ${label}`}
       >
-        {isCopied ? (
+        {copied ? (
           <Check className="h-4 w-4 text-green-600 dark:text-green-500" />
         ) : (
           <Copy className="h-4 w-4" />

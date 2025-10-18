@@ -211,7 +211,6 @@ export const PROVINCES = [
   "Khyber Pakhtunkhwa",
   "Balochistan",
   "Gilgit Baltistan",
-  "Azad Kashmir",
   "Islamabad",
 ] as const;
 

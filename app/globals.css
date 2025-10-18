@@ -38,14 +38,13 @@
   --destructive-hover: oklch(58.6% 0.253 17.585);
   --destructive-text: oklch(60.4% 0.191 22.216);
   --destructive-text-hover: oklch(70.4% 0.191 22.216);
+  --destructive: oklch(51.4% 0.222 16.935);
+  --destructive-hover: oklch(58.6% 0.253 17.585);
+  --destructive-text: oklch(60.4% 0.191 22.216);
+  --destructive-text-hover: oklch(70.4% 0.191 22.216);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
   --radius: 0.625rem;
   --sidebar: oklch(255 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -76,14 +75,13 @@
   --destructive-hover: oklch(51.4% 0.222 16.935);
   --destructive-text: oklch(60.4% 0.191 22.216);
   --destructive-text-hover: oklch(70.4% 0.191 22.216);
+  --success: oklch(45.5% 0.188 13.697);
+  --success-hover: oklch(51.4% 0.222 16.935);
+  --success-text: oklch(76.5% 0.177 163.223);
+  --success-text-hover: oklch(69.6% 0.17 162.48);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0 0 0);
@@ -116,10 +114,17 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  /* DANGER */
   --color-destructive: var(--destructive);
   --color-destructive-hover: var(--destructive-hover);
   --color-destructive-text: var(--destructive-text);
   --color-destructive-text-hover: var(--destructive-text-hover);
+  /* SUCCESS */
+  --color-success: var(--success);
+  --color-success-hover: var(--success-hover);
+  --color-success-text: var(--success-text);
+  --color-success-text-hover: var(--success-text-hover);
+
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -185,14 +190,23 @@ body {
   /* background: var(--background); */
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-  @apply bg-zinc-900;
+  @apply bg-background;
 }
 
 ol:has(li.my-toast) {
   @apply !flex !justify-center;
 }
+
 [data-expanded="true"].my-toast,
+[data-type="error"].my-toast,
 [data-type="success"].my-toast {
   @apply !border-none !rounded-full !shadow-none !ease-fluid !py-3 !px-6 !flex !items-center !justify-center !w-max;
-  @apply !bg-emerald-50 !text-emerald-700 dark:!bg-emerald-950 dark:!text-emerald-300 shadow-accent-foreground;
+}
+
+[data-type="success"].my-toast {
+  @apply !bg-emerald-50 !text-emerald-700 dark:!bg-emerald-950 dark:!text-emerald-100 shadow-accent-foreground;
+}
+
+[data-type="error"].my-toast {
+  @apply !bg-red-50 !text-red-700 dark:!bg-red-950 dark:!text-red-100 shadow-accent-foreground;
 }
