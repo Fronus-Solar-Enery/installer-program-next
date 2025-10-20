@@ -1694,7 +1694,7 @@ export default function InstallersPage() {
                 </Table>
               </div>
               {/* Pagination Controls */}
-              <div className="flex items-center justify-between px-2 py-4 relative">
+              <div className="flex items-center justify-between px-2 pt-4 relative">
                 <div className="flex items-center gap-4">
                   <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
                     Showing {startIndex + 1} to{" "}

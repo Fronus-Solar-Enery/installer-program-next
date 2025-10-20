@@ -1106,7 +1106,7 @@ export default function RewardsPage() {
                   </div>
 
                   {/* Pagination Controls */}
-                  <div className="flex items-center justify-between px-2 py-4">
+                  <div className="flex items-center justify-between px-2 pt-4">
                     <div className="flex items-center gap-4">
                       <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
                         Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
