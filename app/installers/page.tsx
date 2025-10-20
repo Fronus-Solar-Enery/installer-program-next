@@ -4,8 +4,6 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import InstallerEditModal from "@/components/InstallerEditModal";
 import {
-  Edit,
-  Eye,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -21,7 +19,13 @@ import {
   ChevronsRight,
   Loader2,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, MotionCard } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  MotionCard,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -84,7 +88,6 @@ import {
 import IconTrashBin2 from "@/components/icons/TrashBin2";
 import { EmptyState } from "@/components/EmptyState";
 import Loading from "@/components/ui/loading";
-import { PillIndicator } from "@/components/ui/pill";
 import IconSetting4 from "@/components/icons/Setting4";
 import { motion, AnimatePresence } from "framer-motion";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -878,7 +881,7 @@ export default function InstallersPage() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 5 }}
                     transition={{ duration: 0.3, ease: "easeInOut" }}
-                    className="mb-4 !p-4"
+                    className="mb-4 !p-4 bg-muted/30"
                   >
                     <CardContent className="p-0">
                       <div className="flex items-center gap-2">
@@ -1068,7 +1071,10 @@ export default function InstallersPage() {
                               </label>
                               <div className="grid grid-cols-2 gap-2">
                                 <div className="space-y-1">
-                                  <Label htmlFor="custom-start-date" className="text-xs">
+                                  <Label
+                                    htmlFor="custom-start-date"
+                                    className="text-xs"
+                                  >
                                     From
                                   </Label>
                                   <Input
@@ -1081,11 +1087,17 @@ export default function InstallersPage() {
                                         customStartDate: e.target.value,
                                       }))
                                     }
-                                    max={filters.customEndDate || new Date().toISOString().split("T")[0]}
+                                    max={
+                                      filters.customEndDate ||
+                                      new Date().toISOString().split("T")[0]
+                                    }
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <Label htmlFor="custom-end-date" className="text-xs">
+                                  <Label
+                                    htmlFor="custom-end-date"
+                                    className="text-xs"
+                                  >
                                     To
                                   </Label>
                                   <Input

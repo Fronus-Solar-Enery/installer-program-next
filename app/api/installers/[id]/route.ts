@@ -22,9 +22,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     await dbConnect();
 
     const { id } = await params;
-    const installer = await Installer.findById(id)
-      .populate('registeredBy', 'name email role')
-      .populate('referrer', 'installerCode fullName');
+
+    // Check if id is a valid MongoDB ObjectId or installer code
+    let installer;
+    if (mongoose.Types.ObjectId.isValid(id) && id.length === 24) {
+      // Try finding by MongoDB ID first
+      installer = await Installer.findById(id)
+        .populate('registeredBy', 'name email role')
+        .populate('referrer', 'installerCode fullName');
+    }
+
+    // If not found by ID or not a valid ObjectId, try installer code
+    if (!installer) {
+      installer = await Installer.findOne({ installerCode: id })
+        .populate('registeredBy', 'name email role')
+        .populate('referrer', 'installerCode fullName');
+    }
 
     if (!installer) {
       return ApiResponse.notFound('Installer not found');
@@ -94,7 +107,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await dbConnect();
 
     const { id } = await params;
-    const installer = await Installer.findById(id);
+
+    // Check if id is a valid MongoDB ObjectId or installer code
+    let installer;
+    if (mongoose.Types.ObjectId.isValid(id) && id.length === 24) {
+      installer = await Installer.findById(id);
+    }
+
+    if (!installer) {
+      installer = await Installer.findOne({ installerCode: id });
+    }
 
     if (!installer) {
       return ApiResponse.notFound('Installer not found');
@@ -131,6 +153,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           companyName: installer.companyName,
           installerCode: installer.installerCode,
           cnic: installer.cnic,
+          trainingCenter: installer.trainingCenter,
         });
       } catch (error) {
         console.error('Failed to update Google contact:', error);
@@ -144,7 +167,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return ApiResponse.success(updatedInstaller, 'Installer updated successfully');
   } catch (error: unknown) {
     if (error instanceof ZodError) {
-      return ApiResponse.validationError(error.issues);
+      return ApiResponse.validationError(error.issues as Array<{ path?: PropertyKey[]; message: string }>);
     }
     return handleApiError(error);
   }
@@ -167,7 +190,16 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     await dbConnect();
 
     const { id } = await params;
-    const installer = await Installer.findById(id);
+
+    // Check if id is a valid MongoDB ObjectId or installer code
+    let installer;
+    if (mongoose.Types.ObjectId.isValid(id) && id.length === 24) {
+      installer = await Installer.findById(id);
+    }
+
+    if (!installer) {
+      installer = await Installer.findOne({ installerCode: id });
+    }
 
     if (!installer) {
       return ApiResponse.notFound('Installer not found');

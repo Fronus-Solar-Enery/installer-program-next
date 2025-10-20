@@ -12,6 +12,7 @@ import {
   SelectGroup,
   SelectLabel,
 } from "./select";
+import { SearchableSelect } from "./searchable-select";
 import { cn } from "@/lib/utils";
 
 export interface IconProps {
@@ -34,6 +35,8 @@ interface InputFieldProps extends BaseFieldProps {
   type: "text" | "number" | "email" | "tel" | "date";
   value: string;
   onChange: (value: string) => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   placeholder?: string;
   disabled?: boolean;
   maxLength?: number;
@@ -56,13 +59,16 @@ interface SelectFieldProps extends BaseFieldProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
-  options?: Array<{ value: string; label: string }>;
+  options?: Array<{ value: string; label: string | React.ReactNode }>;
   groups?: Array<{
     label: string;
-    options: Array<{ value: string; label: string }>;
+    options: Array<{ value: string; label: string | React.ReactNode }>;
   }>;
   icon?: React.FC<IconProps>;
   iconPosition?: "left" | "right";
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  emptyMessage?: string;
 }
 
 interface CheckboxFieldProps extends Omit<BaseFieldProps, "required"> {
@@ -139,54 +145,95 @@ export function FormField(props: FormFieldProps) {
 
       {nonCheckboxProps.type === "select" && (
         <div className="relative">
-          {nonCheckboxProps.icon && iconPosition === "left" && (
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none z-10">
-              <nonCheckboxProps.icon
-                className="size-4.5 text-muted-foreground"
-                duotone={false}
-              />
-            </div>
-          )}
-          <Select
-            value={nonCheckboxProps.value}
-            onValueChange={nonCheckboxProps.onChange}
-          >
-            <SelectTrigger
-              id={id}
-              disabled={nonCheckboxProps.disabled}
-              className={cn(
-                nonCheckboxProps.icon && iconPosition === "left" && "pl-10",
-                nonCheckboxProps.icon && iconPosition === "right" && "pr-10"
+          {nonCheckboxProps.searchable ? (
+            <>
+              {nonCheckboxProps.icon && iconPosition === "left" && (
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none z-10">
+                  <nonCheckboxProps.icon
+                    className="size-4.5 text-muted-foreground"
+                    duotone={false}
+                  />
+                </div>
               )}
-            >
-              <SelectValue placeholder={nonCheckboxProps.placeholder} />
-            </SelectTrigger>
-            <SelectContent>
-              {nonCheckboxProps.groups
-                ? nonCheckboxProps.groups.map((group) => (
-                    <SelectGroup key={group.label}>
-                      <SelectLabel>{group.label}</SelectLabel>
-                      {group.options.map((option) => (
+              <SearchableSelect
+                value={nonCheckboxProps.value}
+                onValueChange={nonCheckboxProps.onChange}
+                options={nonCheckboxProps.options}
+                groups={nonCheckboxProps.groups}
+                placeholder={nonCheckboxProps.placeholder}
+                searchPlaceholder={
+                  nonCheckboxProps.searchPlaceholder || "Search..."
+                }
+                emptyMessage={
+                  nonCheckboxProps.emptyMessage || "No results found."
+                }
+                disabled={nonCheckboxProps.disabled}
+                className={cn(
+                  nonCheckboxProps.icon && iconPosition === "left" && "pl-10",
+                  nonCheckboxProps.icon && iconPosition === "right" && "pr-10"
+                )}
+              />
+              {nonCheckboxProps.icon && iconPosition === "right" && (
+                <div className="absolute right-10 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <nonCheckboxProps.icon
+                    className="h-4 w-4 text-muted-foreground"
+                    duotone={false}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {nonCheckboxProps.icon && iconPosition === "left" && (
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none z-10">
+                  <nonCheckboxProps.icon
+                    className="size-4.5 text-muted-foreground"
+                    duotone={false}
+                  />
+                </div>
+              )}
+              <Select
+                value={nonCheckboxProps.value}
+                onValueChange={nonCheckboxProps.onChange}
+              >
+                <SelectTrigger
+                  id={id}
+                  disabled={nonCheckboxProps.disabled}
+                  className={cn(
+                    nonCheckboxProps.icon && iconPosition === "left" && "pl-10",
+                    nonCheckboxProps.icon && iconPosition === "right" && "pr-10"
+                  )}
+                >
+                  <SelectValue placeholder={nonCheckboxProps.placeholder} />
+                </SelectTrigger>
+                <SelectContent>
+                  {nonCheckboxProps.groups
+                    ? nonCheckboxProps.groups.map((group) => (
+                        <SelectGroup key={group.label}>
+                          <SelectLabel>{group.label}</SelectLabel>
+                          {group.options.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))
+                    : nonCheckboxProps.options?.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
                       ))}
-                    </SelectGroup>
-                  ))
-                : nonCheckboxProps.options?.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-            </SelectContent>
-          </Select>
-          {nonCheckboxProps.icon && iconPosition === "right" && (
-            <div className="absolute right-10 top-1/2 -translate-y-1/2 pointer-events-none">
-              <nonCheckboxProps.icon
-                className="h-4 w-4 text-muted-foreground"
-                duotone={false}
-              />
-            </div>
+                </SelectContent>
+              </Select>
+              {nonCheckboxProps.icon && iconPosition === "right" && (
+                <div className="absolute right-10 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <nonCheckboxProps.icon
+                    className="h-4 w-4 text-muted-foreground"
+                    duotone={false}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -207,6 +254,16 @@ export function FormField(props: FormFieldProps) {
               type={nonCheckboxProps.type}
               value={nonCheckboxProps.value}
               onChange={(e) => nonCheckboxProps.onChange(e.target.value)}
+              onFocus={
+                "onFocus" in nonCheckboxProps
+                  ? nonCheckboxProps.onFocus
+                  : undefined
+              }
+              onBlur={
+                "onBlur" in nonCheckboxProps
+                  ? nonCheckboxProps.onBlur
+                  : undefined
+              }
               placeholder={nonCheckboxProps.placeholder}
               disabled={nonCheckboxProps.disabled}
               maxLength={nonCheckboxProps.maxLength}

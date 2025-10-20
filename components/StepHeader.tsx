@@ -15,14 +15,14 @@ const containerVariants: Variants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
+      staggerChildren: 0.05,
       // delayChildren: 0.1,
     },
   },
 };
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 10 },
+  hidden: { opacity: 0, y: 5 },
   visible: {
     opacity: 1,
     y: 0,
@@ -48,7 +48,7 @@ export function StepHeader({
           </motion.h2>
           <motion.div
             variants={itemVariants}
-            className="text-sm text-muted-foreground"
+            className="text-sm text-muted-foreground font-normal"
           >
             {description}
           </motion.div>

@@ -2,6 +2,7 @@
 import { google } from "googleapis";
 import dbConnect from "./mongodb";
 import GoogleAuth from "@/models/GoogleAuth";
+import { TRAINING_CENTER } from "./constants";
 
 export interface ContactData {
   fullName: string;
@@ -15,6 +16,7 @@ export interface ContactData {
   installerCode?: string;
   referrerCode?: string;
   cnic?: string;
+  trainingCenter?: string;
 }
 
 /**
@@ -51,6 +53,54 @@ function formatPhoneNumber(phone: string): string {
 
   // Add +92 prefix
   return `+92${cleaned}`;
+}
+
+/**
+ * Get training center short code from city name
+ * Example: "Lahore" -> "LHE"
+ */
+function getTrainingCenterShort(trainingCenter?: string): string | null {
+  if (!trainingCenter) return null;
+  const center = TRAINING_CENTER.find(
+    (tc) => tc.city.toLowerCase() === trainingCenter.toLowerCase()
+  );
+  return center?.short || null;
+}
+
+/**
+ * Get or create contact group (label) and return its resourceName
+ */
+async function getOrCreateContactGroup(
+  people: any,
+  groupName: string
+): Promise<string | null> {
+  try {
+    // List all contact groups
+    const groups = await people.contactGroups.list();
+
+    // Find existing group
+    const existingGroup = groups.data.contactGroups?.find(
+      (group: any) => group.name === groupName
+    );
+
+    if (existingGroup?.resourceName) {
+      return existingGroup.resourceName;
+    }
+
+    // Create new group if doesn't exist
+    const newGroup = await people.contactGroups.create({
+      requestBody: {
+        contactGroup: {
+          name: groupName,
+        },
+      },
+    });
+
+    return newGroup.data.resourceName || null;
+  } catch (error) {
+    console.error(`Error getting/creating contact group "${groupName}":`, error);
+    return null;
+  }
 }
 
 async function getAuthClient(userId: string) {
@@ -186,6 +236,57 @@ export async function createGoogleContact(
       "✓ Google contact created successfully:",
       response.data.resourceName
     );
+
+    // Add contact to groups (labels)
+    const resourceName = response.data.resourceName;
+    if (resourceName) {
+      const groupsToAdd: string[] = [];
+
+      // Add "ALL" group
+      const allGroupName = await getOrCreateContactGroup(people, "ALL");
+      if (allGroupName) {
+        groupsToAdd.push(allGroupName);
+      }
+
+      // Add training center group (e.g., "LHE" for Lahore)
+      const trainingCenterShort = getTrainingCenterShort(data.trainingCenter);
+      if (trainingCenterShort) {
+        const centerGroupName = await getOrCreateContactGroup(
+          people,
+          trainingCenterShort
+        );
+        if (centerGroupName) {
+          groupsToAdd.push(centerGroupName);
+        }
+      }
+
+      // Add contact to groups
+      if (groupsToAdd.length > 0) {
+        try {
+          await people.contactGroups.batchGet({
+            resourceNames: groupsToAdd,
+          });
+
+          for (const groupResourceName of groupsToAdd) {
+            await people.contactGroups.members.modify({
+              resourceName: groupResourceName,
+              requestBody: {
+                resourceNamesToAdd: [resourceName],
+              },
+            });
+          }
+
+          console.log(
+            `✓ Added contact to groups: ${groupsToAdd
+              .map((g) => g.split("/").pop())
+              .join(", ")}`
+          );
+        } catch (groupError) {
+          console.error("Error adding contact to groups:", groupError);
+        }
+      }
+    }
+
     return response.data.resourceName || null;
   } catch (error: unknown) {
     console.error("Error creating Google contact:", error);
@@ -305,6 +406,61 @@ export async function updateGoogleContact(
         ],
       },
     });
+
+    // Update contact groups (labels)
+    try {
+      const groupsToAdd: string[] = [];
+
+      // Add "ALL" group
+      const allGroupName = await getOrCreateContactGroup(people, "ALL");
+      if (allGroupName) {
+        groupsToAdd.push(allGroupName);
+      }
+
+      // Add training center group (e.g., "LHE" for Lahore)
+      const trainingCenterShort = getTrainingCenterShort(data.trainingCenter);
+      if (trainingCenterShort) {
+        const centerGroupName = await getOrCreateContactGroup(
+          people,
+          trainingCenterShort
+        );
+        if (centerGroupName) {
+          groupsToAdd.push(centerGroupName);
+        }
+      }
+
+      // Get current groups for this contact
+      const currentGroups = await people.people.get({
+        resourceName,
+        personFields: "memberships",
+      });
+
+      const existingGroupIds =
+        currentGroups.data.memberships
+          ?.filter((m: any) => m.contactGroupMembership)
+          .map((m: any) => m.contactGroupMembership.contactGroupResourceName) ||
+        [];
+
+      // Add to new groups if not already member
+      for (const groupResourceName of groupsToAdd) {
+        if (!existingGroupIds.includes(groupResourceName)) {
+          await people.contactGroups.members.modify({
+            resourceName: groupResourceName,
+            requestBody: {
+              resourceNamesToAdd: [resourceName],
+            },
+          });
+        }
+      }
+
+      console.log(
+        `✓ Updated contact groups: ${groupsToAdd
+          .map((g) => g.split("/").pop())
+          .join(", ")}`
+      );
+    } catch (groupError) {
+      console.error("Error updating contact groups:", groupError);
+    }
 
     return true;
   } catch (error) {

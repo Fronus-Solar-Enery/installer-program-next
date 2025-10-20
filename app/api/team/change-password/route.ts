@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     return ApiResponse.success(null, 'Password changed successfully');
   } catch (error: unknown) {
     if (error instanceof ZodError) {
-      return ApiResponse.validationError(error.issues);
+      return ApiResponse.validationError(error.issues as Array<{ path?: PropertyKey[]; message: string }>);
     }
     return handleApiError(error);
   }

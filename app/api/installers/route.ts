@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
         installerCode: installer.installerCode,
         referrerCode: installer.referrerCode,
         cnic: installer.cnic,
+        trainingCenter: installer.trainingCenter,
       });
 
       if (googleContactId) {
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
     return ApiResponse.success(populatedInstaller, 'Installer registered successfully', 201);
   } catch (error: unknown) {
     if (error instanceof ZodError) {
-      return ApiResponse.validationError(error.issues);
+      return ApiResponse.validationError(error.issues as Array<{ path?: PropertyKey[]; message: string }>);
     }
     return handleApiError(error);
   }

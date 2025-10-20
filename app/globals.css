@@ -20,7 +20,7 @@
 
 :root {
   --radius: 0.65rem;
-  --background: oklch(1 0 0);
+  --background: oklch(0.95 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -34,14 +34,14 @@
   --muted-foreground: oklch(0.556 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(51.4% 0.222 16.935);
+  --destructive: oklch(45.4% 0.222 16.935);
   --destructive-hover: oklch(58.6% 0.253 17.585);
   --destructive-text: oklch(60.4% 0.191 22.216);
   --destructive-text-hover: oklch(70.4% 0.191 22.216);
-  --destructive: oklch(51.4% 0.222 16.935);
-  --destructive-hover: oklch(58.6% 0.253 17.585);
-  --destructive-text: oklch(60.4% 0.191 22.216);
-  --destructive-text-hover: oklch(70.4% 0.191 22.216);
+  --success: oklch(45% 0.145 163.225);
+  --success-hover: oklch(50.6% 0.145 163.225);
+  --success-text: oklch(59.6% 0.145 163.225);
+  --success-text-hover: oklch(69.6% 0.145 163.225);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -75,8 +75,8 @@
   --destructive-hover: oklch(51.4% 0.222 16.935);
   --destructive-text: oklch(60.4% 0.191 22.216);
   --destructive-text-hover: oklch(70.4% 0.191 22.216);
-  --success: oklch(45.5% 0.188 13.697);
-  --success-hover: oklch(51.4% 0.222 16.935);
+  --success: oklch(45% 0.145 163.225);
+  --success-hover: oklch(50.6% 0.145 163.225);
   --success-text: oklch(76.5% 0.177 163.223);
   --success-text-hover: oklch(69.6% 0.17 162.48);
   --border: oklch(1 0 0 / 10%);
@@ -200,7 +200,7 @@ ol:has(li.my-toast) {
 [data-expanded="true"].my-toast,
 [data-type="error"].my-toast,
 [data-type="success"].my-toast {
-  @apply !border-none !rounded-full !shadow-none !ease-fluid !py-3 !px-6 !flex !items-center !justify-center !w-max;
+  @apply !border-none !rounded-full !shadow-none !ease-fluid !py-3 !px-6 !flex !items-center !justify-center !w-max whitespace-nowrap;
 }
 
 [data-type="success"].my-toast {

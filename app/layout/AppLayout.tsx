@@ -111,7 +111,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <BreadcrumbProvider>
-      <div className="flex h-screen overflow-hidden bg-zinc-200 dark:bg-zinc-950">
+      <div className="flex h-screen overflow-hidden">
         {/* Sidebar */}
         <Sidebar
           collapsed={sidebarCollapsed}

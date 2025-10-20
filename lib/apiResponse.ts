@@ -30,7 +30,7 @@ export class ApiResponse {
 
   static validationError(
     errors:
-      | Array<{ path?: (string | number)[]; message: string }>
+      | Array<{ path?: PropertyKey[]; message: string }>
       | Record<string, string[]>,
     message?: string
   ) {
@@ -39,11 +39,15 @@ export class ApiResponse {
 
     if (Array.isArray(errors)) {
       errors.forEach((error) => {
-        const path = error.path?.join(".") || "general";
-        if (!formattedErrors[path]) {
-          formattedErrors[path] = [];
+        // Filter path to only include strings and numbers
+        const filteredPath = error.path
+          ?.filter((p): p is string | number => typeof p !== "symbol")
+          .join(".") || "general";
+
+        if (!formattedErrors[filteredPath]) {
+          formattedErrors[filteredPath] = [];
         }
-        formattedErrors[path].push(error.message);
+        formattedErrors[filteredPath].push(error.message);
       });
     } else {
       return this.error(
@@ -117,7 +121,7 @@ export function handleApiError(error: unknown) {
 
   // Handle Zod validation errors
   if (error instanceof ZodError) {
-    return ApiResponse.validationError(error.issues);
+    return ApiResponse.validationError(error.issues as Array<{ path?: PropertyKey[]; message: string }>);
   }
 
   const mongoError = error as MongoError;

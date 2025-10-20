@@ -73,7 +73,7 @@ export default function TopNavbar() {
             variant="secondary"
             size="sm"
             onClick={() => setSearchOpen(true)}
-            className="max-w-xs w- h-10 justify-start text-left font-normal rounded-full"
+            className="max-w-xs w- h-10 justify-start text-left font-normal rounded-full border border-border"
             aria-label="Open search"
           >
             <IconMagnifer
@@ -91,7 +91,8 @@ export default function TopNavbar() {
           {/* Fullscreen Toggle */}
           <Button
             variant="ghost"
-            className="rounded-xl "
+            className="rounded-xl hover:border border-border"
+            size={"icon"}
             onClick={toggleFullscreen}
             aria-label="Toggle fullscreen"
           >
@@ -112,7 +113,7 @@ export default function TopNavbar() {
             <DropdownTrigger asChild>
               <Button
                 variant="secondary"
-                className="gap-2 pl-1 pr-3 text-left font-normal rounded-full"
+                className="gap-2 pl-1 pr-3 text-left font-normal rounded-full border border-border"
               >
                 <UserAvatar
                   user={session?.user}

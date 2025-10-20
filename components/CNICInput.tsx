@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { HyperText } from "@/components/ui/hypertext";
+import Loading from "./ui/loading";
 
 interface CNICInputProps {
   value: string;
@@ -38,7 +39,7 @@ export function CNICInput({
         />
         {isValidating && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <Loading className="h-4 w-4" />
           </div>
         )}
         {!isValidating && isChecked && cnicLength === 13 && !error && (

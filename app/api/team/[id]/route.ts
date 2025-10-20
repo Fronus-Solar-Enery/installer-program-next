@@ -79,7 +79,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     return ApiResponse.success(teamMemberWithoutPassword, 'Team member updated successfully');
   } catch (error: unknown) {
     if (error instanceof ZodError) {
-      return ApiResponse.validationError(error.issues);
+      return ApiResponse.validationError(error.issues as Array<{ path?: PropertyKey[]; message: string }>);
     }
     return handleApiError(error);
   }

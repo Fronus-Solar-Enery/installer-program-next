@@ -58,7 +58,11 @@ export function ThemeToggle() {
   return (
     <Dropdown>
       <DropdownTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-xl">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-xl hover:border border-border"
+        >
           {currentIcon}
         </Button>
       </DropdownTrigger>

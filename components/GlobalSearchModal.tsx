@@ -261,7 +261,7 @@ export default function GlobalSearchModal({
           </DialogDescription>
         </VisuallyHidden>
         {/* Search Input */}
-        <div className="flex items-center border-b border-border px-4 py-3">
+        <div className="flex items-center border-b border-border px-4 py-3 bg-muted/20 rounded-t-3xl">
           <div className="flex items-center w-full">
             <IconMagnifer
               duotone={false}
@@ -524,7 +524,7 @@ export default function GlobalSearchModal({
         </ScrollArea>
 
         {/* Footer */}
-        <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground flex items-center justify-between">
+        <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground flex items-center justify-between bg-muted/20 rounded-b-3xl">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono leading-none">

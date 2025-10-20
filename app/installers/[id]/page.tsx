@@ -270,8 +270,6 @@ export default function InstallerDetailsPage() {
   const isAdmin = session?.user?.role === TeamRole.ADMIN;
 
   const CopyButton = ({ text, label }: { text: string; label: string }) => {
-    
-
     return (
       <Button
         variant="ghost"
@@ -297,7 +295,7 @@ export default function InstallerDetailsPage() {
     const isLoading = !installer?.installerCode || !installer?.fullName;
     const label = isLoading ? (
       <div className="flex items-center gap-2">
-        Loading <Loading className="size-3.5" />
+        Loading <Loading className="size-3.5 text-primary" />
       </div>
     ) : (
       `${installer.installerCode} ${installer.fullName}`

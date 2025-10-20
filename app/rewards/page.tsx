@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import RewardEditModal from "@/components/RewardEditModal";
-import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import {
   Copy,
   Check,
@@ -66,6 +65,8 @@ import IconLayer from "@/components/icons/Layer";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useClipboard } from "@/hooks/useCopyToClipboard";
+import { IconEdit2, IconEye, IconTrashBin2 } from "@/components/icons";
 
 interface RewardWithId
   extends Omit<IInstallerReward, "installer" | "registeredBy" | "referrer"> {
@@ -100,7 +101,8 @@ export default function RewardsPage() {
   const router = useRouter();
   const [rewards, setRewards] = useState<RewardWithId[]>([]);
   const [loading, setLoading] = useState(true);
-  const { copiedText, copyToClipboard } = useCopyToClipboard();
+
+  const { copyToClipboard, copied } = useClipboard();
 
   // Filter states
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("ALL");
@@ -489,8 +491,6 @@ export default function RewardsPage() {
   };
 
   const CopyButton = ({ text, label }: { text: string; label: string }) => {
-    const isCopied = copiedText === text;
-
     return (
       <Button
         variant="ghost"
@@ -499,7 +499,7 @@ export default function RewardsPage() {
         className="ml-2 h-8 w-8 p-0"
         title={`Copy ${label}`}
       >
-        {isCopied ? (
+        {copied ? (
           <Check className="h-4 w-4 text-green-600" />
         ) : (
           <Copy className="h-4 w-4" />
@@ -1038,32 +1038,41 @@ export default function RewardsPage() {
                               <div className="flex items-center gap-2">
                                 <Button
                                   variant="ghost"
-                                  size="sm"
+                                  size="icon"
                                   onClick={() =>
                                     router.push(`/rewards/${reward._id}`)
                                   }
                                   title="View Details"
                                 >
-                                  <Eye className="h-4 w-4" />
+                                  <IconEye
+                                    duotone={false}
+                                    className="h-4 w-4"
+                                  />
                                 </Button>
                                 <Button
                                   variant="ghost"
-                                  size="sm"
+                                  size="icon"
                                   onClick={() => {
                                     setSelectedRewardId(reward._id);
                                     setEditModalOpen(true);
                                   }}
                                   title="Edit"
                                 >
-                                  <Edit className="h-4 w-4" />
+                                  <IconEdit2
+                                    duotone={false}
+                                    className="h-4 w-4"
+                                  />
                                 </Button>
                                 <Button
                                   variant="ghost"
-                                  size="sm"
+                                  size="icon"
                                   onClick={() => handleDeleteClick(reward._id)}
                                   title="Delete"
                                 >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                  <IconTrashBin2
+                                    duotone={false}
+                                    className="h-4 w-4 text-destructive-text"
+                                  />
                                 </Button>
                               </div>
                             </TableCell>
