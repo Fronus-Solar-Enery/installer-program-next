@@ -1,10 +1,10 @@
 import { FC } from "react";
-import { IconProps } from "./Whatsapp";
 
 const IconUserId: FC<IconProps> = ({
   className,
   fill = false,
   duotone = true,
+  opacity = "0.4",
   width = "1.5",
 }) => {
   return (
@@ -31,7 +31,7 @@ const IconUserId: FC<IconProps> = ({
             strokeWidth={width}
           />
           <path
-            opacity={duotone ? "0.5" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M2 12.0005C2 8.22925 2 6.34363 3.17157 5.17206C4.34315 4.00049 6.22876 4.00049 10 4.00049H14C17.7712 4.00049 19.6569 4.00049 20.8284 5.17206C22 6.34363 22 8.22925 22 12.0005C22 15.7717 22 17.6573 20.8284 18.8289C19.6569 20.0005 17.7712 20.0005 14 20.0005H10C6.22876 20.0005 4.34315 20.0005 3.17157 18.8289C2 17.6573 2 15.7717 2 12.0005Z"
             stroke="currentColor"
             strokeWidth={width}
@@ -49,7 +49,7 @@ const IconUserId: FC<IconProps> = ({
             strokeLinecap="round"
           />
           <path
-            opacity={duotone ? "0.9" : "1"}
+            opacity={duotone ? parseFloat(opacity as string) / 0.45 : "1"}
             d="M19 15.0005H16"
             stroke="currentColor"
             strokeWidth={width}
@@ -66,7 +66,7 @@ const IconUserId: FC<IconProps> = ({
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            opacity={duotone ? "0.3" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M14 4.00049H10C6.22876 4.00049 4.34315 4.00049 3.17157 5.17206C2 6.34363 2 8.22925 2 12.0005C2 15.7717 2 17.6573 3.17157 18.8289C4.34315 20.0005 6.22876 20.0005 10 20.0005H14C17.7712 20.0005 19.6569 20.0005 20.8284 18.8289C22 17.6573 22 15.7717 22 12.0005C22 8.22925 22 6.34363 20.8284 5.17206C19.6569 4.00049 17.7712 4.00049 14 4.00049Z"
             fill="currentColor"
           />

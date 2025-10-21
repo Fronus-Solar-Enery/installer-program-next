@@ -1,145 +1,151 @@
-import { useCallback, useState } from "react";
-import { toast } from "sonner";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast as defaultToast } from "sonner";
 
 interface UseClipboardOptions {
-  timeout?: number;
-  onSuccess?: (text: string, label: string) => void;
-  onError?: (error: unknown) => void;
+  timeout?: number; // ms to clear copied state (0 = never)
+  successMessage?: string | ((text: string, label?: string) => string);
+  errorMessage?: string | ((err?: unknown) => string);
+  onCopy?: (text: string, label?: string) => void;
+  toast?: {
+    success: (msg: string) => void;
+    error: (msg: string) => void;
+  };
 }
 
 /**
- * A React hook that provides clipboard functionality with visual feedback
+ * useClipboard
+ * - stable API, fallback for older browsers, cleans up timers on unmount,
+ * - returns the last-copied label (or text) or null and a typed copy fn.
  */
 export function useClipboard(options: UseClipboardOptions = {}) {
-  const { timeout = 2000, onSuccess, onError } = options;
+  const {
+    timeout = 2000,
+    successMessage,
+    errorMessage = () => "Failed to copy to clipboard",
+    onCopy,
+    toast = defaultToast,
+  } = options;
+
   const [copied, setCopied] = useState<string | null>(null);
-  const [error, setError] = useState<Error | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, []);
+
+  const _formatSuccess = useCallback(
+    (text: string, label?: string) =>
+      typeof successMessage === "function"
+        ? successMessage(text, label)
+        : successMessage ??
+          `Copied ${
+            text.length > 40 ? `${text.slice(0, 37)}...` : text
+          } to clipboard`,
+    [successMessage]
+  );
+
+  const _formatError = useCallback(
+    (err?: unknown) =>
+      typeof errorMessage === "function" ? errorMessage(err) : errorMessage,
+    [errorMessage]
+  );
+
+  const _clearPreviousTimeout = useCallback(() => {
+    if (timeoutRef.current) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }, []);
+
+  const _fallbackCopy = (text: string) => {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    // Avoid scrolling to bottom
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    textarea.setAttribute("readonly", "true");
+    document.body.appendChild(textarea);
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+    let succeeded = false;
+    try {
+      succeeded = document.execCommand("copy");
+    } catch {
+      succeeded = false;
+    } finally {
+      document.body.removeChild(textarea);
+    }
+    return succeeded;
+  };
 
   const copyToClipboard = useCallback(
-    async (text: string, label: string = "Text") => {
-      setIsLoading(true);
-      setError(null);
+    async (text: string, label?: string): Promise<boolean> => {
+      _clearPreviousTimeout();
 
       try {
-        const success = await copyUtil(text, label, {
-          onSuccess: () => {
-            if (onSuccess) onSuccess(text, label);
-          },
-          onError: (err) => {
-            if (onError) onError(err);
-            setError(err instanceof Error ? err : new Error("Failed to copy"));
-          },
-        });
-
-        if (success) {
-          setCopied(label);
-          if (timeout) {
-            setTimeout(() => setCopied(null), timeout);
-          }
+        let ok = false;
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          ok = true;
+        } else {
+          ok = _fallbackCopy(text);
         }
+
+        if (!ok) throw new Error("Copy command failed");
+
+        const displayLabel = label ?? text;
+        setCopied(displayLabel);
+        try {
+          toast.success(_formatSuccess(text, label));
+        } catch {
+          // swallow toast errors to not break copy flow
+        }
+        onCopy?.(text, label);
+
+        if (timeout > 0) {
+          timeoutRef.current = window.setTimeout(() => {
+            setCopied(null);
+            timeoutRef.current = null;
+          }, timeout);
+        }
+
+        return true;
       } catch (err) {
-        setError(err instanceof Error ? err : new Error("Failed to copy"));
-        if (onError) onError(err);
-      } finally {
-        setIsLoading(false);
+        try {
+          toast.error(_formatError(err));
+        } catch {
+          // ignore toast errors
+        }
+        // keep copied state unchanged on failure
+        // log for debugging
+        // eslint-disable-next-line no-console
+        console.error("useClipboard: copy failed", err);
+        return false;
       }
     },
-    [timeout, onSuccess, onError]
+    [
+      _clearPreviousTimeout,
+      onCopy,
+      timeout,
+      _formatSuccess,
+      _formatError,
+      toast,
+    ]
   );
 
   const reset = useCallback(() => {
+    _clearPreviousTimeout();
     setCopied(null);
-    setError(null);
-  }, []);
+  }, [_clearPreviousTimeout]);
 
   return {
     copied,
-    error,
-    isLoading,
     copyToClipboard,
     reset,
-  };
-}
-
-/**
- * Enhanced copy to clipboard with visual feedback and error handling
- * This version doesn't use React hooks, making it safe to use anywhere
- */
-export function copyUtil(
-  text: string,
-  label: string = "Text",
-  options?: {
-    successMessage?: string;
-    errorMessage?: string;
-    onSuccess?: () => void;
-    onError?: (error: unknown) => void;
-  }
-): Promise<boolean> {
-  const defaultOptions = {
-    successMessage: `${label} copied to clipboard`,
-    errorMessage: "Failed to copy to clipboard",
-    onSuccess: () => {},
-    onError: (error: unknown) => console.error("Copy error:", error),
-  };
-
-  const opts = { ...defaultOptions, ...options };
-
-  // Determine which clipboard API to use based on environment and availability
-  // This provides better compatibility across different browsers and platforms
-  let copyPromise: Promise<void>;
-
-  // Use the most modern API available
-  if (
-    navigator.clipboard &&
-    typeof navigator.clipboard.writeText === "function"
-  ) {
-    copyPromise = navigator.clipboard.writeText(text);
-  } else {
-    // Fallback for older browsers
-    copyPromise = new Promise((resolve, reject) => {
-      try {
-        // Create temporary element
-        const textArea = document.createElement("textarea");
-        textArea.value = text;
-
-        // Make it invisible but part of the document
-        textArea.style.position = "fixed";
-        textArea.style.opacity = "0";
-        document.body.appendChild(textArea);
-
-        // Select and copy
-        textArea.select();
-        const success = document.execCommand("copy");
-        document.body.removeChild(textArea);
-
-        if (success) {
-          resolve();
-        } else {
-          reject(new Error("execCommand returned false"));
-        }
-      } catch (err) {
-        reject(err);
-      }
-    });
-  }
-
-  // Handle the copy operation and provide feedback
-  return copyPromise
-    .then(() => {
-      toast.success(opts.successMessage, {
-        description: text.length > 40 ? `${text.substring(0, 37)}...` : text,
-        duration: 2000,
-      });
-      opts.onSuccess();
-      return true;
-    })
-    .catch((error) => {
-      toast.error(opts.errorMessage, {
-        description: "Please try manually selecting and copying the text.",
-        duration: 3000,
-      });
-      opts.onError(error);
-      return false;
-    });
+  } as const;
 }

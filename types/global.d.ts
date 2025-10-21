@@ -6,6 +6,7 @@ declare global {
     fill?: boolean;
     duotone?: boolean;
     width?: string | number;
+    opacity?: string | number;
   }
   interface SidebarUser {
     id?: string;

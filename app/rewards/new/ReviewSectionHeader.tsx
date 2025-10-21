@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 
 interface IconProps {
   className?: string;
-  opacity?: string;
   fill?: boolean;
   duotone?: boolean;
 }
@@ -29,7 +28,7 @@ export const ReviewSectionHeader: FC<ReviewSectionHeaderProps> = ({
   >
     <div className="flex items-center gap-3">
       <div className="dark:bg-background bg-muted p-2.5 rounded-xl">
-        <Icon fill className="h-5 w-5 text-primary" opacity="0.3" />
+        <Icon fill className="h-5 w-5 text-primary" />
       </div>
       <h3 className="font-semibold text-base">{title}</h3>
     </div>

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import Loading from "@/components/ui/loading";
 import { CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { IconInstallerCode } from "@/components/icons";
 
 interface InstallerCodeDisplayProps {
   code: string;
@@ -78,7 +79,15 @@ export function InstallerCodeDisplay({
               </div>
             ) : (
               <div className="flex items-center justify-between w-full gap-2">
-                <HyperText className="pointer-events-none">{code}</HyperText>
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <IconInstallerCode
+                    className="size-4 text-muted-foreground"
+                    duotone={false}
+                  />
+                </div>
+                <HyperText className="pointer-events-none ml-6 [&>*]:leading-none">
+                  {code}
+                </HyperText>
                 <Badge
                   variant="success"
                   className="!text-[8px] !tracking-widest font-bold rounded-sm"

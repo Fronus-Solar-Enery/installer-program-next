@@ -199,14 +199,22 @@ ol:has(li.my-toast) {
 
 [data-expanded="true"].my-toast,
 [data-type="error"].my-toast,
+[data-type="loading"].my-toast,
 [data-type="success"].my-toast {
   @apply !border-none !rounded-full !shadow-none !ease-fluid !py-3 !px-6 !flex !items-center !justify-center !w-max whitespace-nowrap;
 }
 
 [data-type="success"].my-toast {
-  @apply !bg-emerald-50 !text-emerald-700 dark:!bg-emerald-950 dark:!text-emerald-100 shadow-accent-foreground;
+  @apply !bg-emerald-50 !text-emerald-700 dark:!bg-emerald-950 dark:!text-emerald-100 shadow-background;
+}
+
+[data-type="loading"].my-toast {
+  @apply !bg-muted !text-muted-foreground shadow-background;
 }
 
 [data-type="error"].my-toast {
-  @apply !bg-red-50 !text-red-700 dark:!bg-red-950 dark:!text-red-100 shadow-accent-foreground;
+  @apply !bg-red-50 !text-red-700 dark:!bg-red-950 dark:!text-red-100 shadow-background;
+}
+.my-toas > [data-content] {
+  @apply !flex !items-center;
 }

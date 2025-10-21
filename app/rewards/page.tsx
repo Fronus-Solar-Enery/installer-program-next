@@ -265,10 +265,6 @@ export default function RewardsPage() {
     teamMemberFilter,
   ]);
 
-  const handleCopy = async (text: string) => {
-    await copyToClipboard(text);
-  };
-
   const handleSort = (
     field: keyof RewardWithId | "installer" | "registeredBy"
   ) => {
@@ -495,11 +491,11 @@ export default function RewardsPage() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => handleCopy(text)}
+        onClick={() => copyToClipboard(text)}
         className="ml-2 h-8 w-8 p-0"
         title={`Copy ${label}`}
       >
-        {copied ? (
+        {copied === text ? (
           <Check className="h-4 w-4 text-green-600" />
         ) : (
           <Copy className="h-4 w-4" />

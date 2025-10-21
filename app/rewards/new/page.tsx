@@ -13,18 +13,33 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { toast } from "sonner";
 import Loading from "@/components/ui/loading";
-import { CheckCircle2 } from "lucide-react";
 import { StepHeader } from "@/components/StepHeader";
 import { FormField } from "@/components/ui/form-field";
 import { FormStep } from "@/components/ui/FormStep";
 import { cn } from "@/lib/utils";
 import {
-  IconArrowLeft,
-  IconArrowRight,
   IconCheckCircle,
+  IconCity,
+  IconCompany,
+  IconInstallerCode,
+  IconReferrer,
+  IconReward,
+  IconUser,
 } from "@/components/icons";
 import IconAltArrowRight from "@/components/icons/AltArrowRight";
 import IconAltArrowLeft from "@/components/icons/AltArrowLeft";
+import { ReviewStep } from "./ReviewStep";
+import { RegistrationModal } from "./RegistrationModal";
+import IconQRCode from "@/components/icons/QRCode";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { HyperText } from "@/components/ui/hypertext";
+import { ReviewItem } from "./ReviewItem";
+
+interface ValidationError {
+  path?: string[];
+  message: string;
+}
 
 // Style constants
 const CARD_SECTION_CLASS = "bg-card/30 border-border border p-6 rounded-3xl";
@@ -34,6 +49,18 @@ export default function NewRewardPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+
+  // Registration flow states
+  const [registrationStatus, setRegistrationStatus] = useState<
+    "idle" | "registering" | "success" | "error"
+  >("idle");
+  const [registeredReward, setRegisteredReward] = useState<{
+    serialNumber: string;
+    installerCode: string;
+    rewardAmount: number;
+    id?: string;
+  } | null>(null);
+  const [registrationError, setRegistrationError] = useState<string>("");
 
   // Step 1: Validation
   const [installerCode, setInstallerCode] = useState("");
@@ -206,6 +233,7 @@ export default function NewRewardPage() {
     }
 
     setLoading(true);
+    setRegistrationStatus("registering");
 
     try {
       // Get current date and time as installation date
@@ -229,16 +257,58 @@ export default function NewRewardPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to register reward");
+        let errorMessage = "Failed to register reward";
+        if (data.errors && Array.isArray(data.errors)) {
+          errorMessage = data.errors
+            .map((err: ValidationError) => {
+              const field = err.path?.join(".") || "Unknown field";
+              return `${field}: ${err.message}`;
+            })
+            .join("\n");
+        } else if (data.error) {
+          errorMessage = data.error;
+        }
+        setRegistrationError(errorMessage);
+        setRegistrationStatus("error");
+        return;
       }
 
-      toast.success("Reward registered successfully!");
-      router.push("/rewards");
+      // Success
+      setRegisteredReward({
+        serialNumber,
+        installerCode: installerData.installerCode,
+        rewardAmount,
+        id: data.data?._id,
+      });
+      setRegistrationStatus("success");
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "An error occurred";
-      toast.error(errorMsg);
+      setRegistrationError(errorMsg);
+      setRegistrationStatus("error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRedirectAfterRegistration = () => {
+    // Reset form
+    setCurrentStep(1);
+    setInstallerCode("");
+    setInstallerData(null);
+    setSerialNumber("");
+    setSerialValid(false);
+    setProductModel("");
+    setCityOfInstallation("");
+    setSerialNumberStatus("");
+    setInverterSerialNumber("");
+    setRegistrationStatus("idle");
+    setRegisteredReward(null);
+    setRegistrationError("");
+  };
+
+  const handleViewReward = () => {
+    if (registeredReward?.id) {
+      router.push(`/rewards/${registeredReward.id}`);
     }
   };
 
@@ -272,7 +342,7 @@ export default function NewRewardPage() {
               {currentStep === 1 && (
                 <div className="space-y-4">
                   <StepHeader
-                    icon={IconCheckCircle}
+                    icon={IconQRCode}
                     title="Installer & Product Validation"
                     description="Verify installer code and product serial number"
                   />
@@ -283,109 +353,183 @@ export default function NewRewardPage() {
                       CARD_SECTION_CLASS
                     )}
                   >
-                    {/* Installer Code */}
-                    <FormField
-                      type="text"
-                      label="Installer Code"
-                      id="installer-code"
-                      value={installerCode}
-                      onChange={(value) =>
-                        setInstallerCode(value.toUpperCase())
-                      }
-                      placeholder="e.g., INS001"
-                      required
-                    />
+                    <div className="space-y-2">
+                      <Label htmlFor="cnic" className="block">
+                        Installer Code{" "}
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="installer-code"
+                          type="text"
+                          value={installerCode}
+                          onChange={(e) =>
+                            setInstallerCode(e.target.value.toUpperCase())
+                          }
+                          placeholder="e.g., PEWNADOEC3"
+                          required
+                          className={`pr-10 `}
+                        />
 
-                    {installerValidating && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Loading className="h-4 w-4" />
-                        <span>Validating installer...</span>
-                      </div>
-                    )}
-
-                    {installerData && (
-                      <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <CheckCircle2 className="h-5 w-5 text-green-600" />
-                          <h3 className="font-medium text-green-900">
-                            Installer Found
-                          </h3>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 text-sm text-green-900">
-                          <div>
-                            <span className="text-muted-foreground">Name:</span>
-                            <span className="ml-2 font-medium">
-                              {installerData.fullName}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Code:</span>
-                            <span className="ml-2 font-medium">
-                              {installerData.installerCode}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">City:</span>
-                            <span className="ml-2 font-medium">
-                              {installerData.city}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">
-                              Company:
-                            </span>
-                            <span className="ml-2 font-medium">
-                              {installerData.companyName}
-                            </span>
-                          </div>
-                          {installerData.referrer && (
-                            <div className="col-span-2">
-                              <span className="text-muted-foreground">
-                                Referrer:
-                              </span>
-                              <span className="ml-2 font-medium text-blue-600">
-                                {installerData.referrer.installerCode} -{" "}
-                                {installerData.referrer.fullName}
-                              </span>
-                              <span className="ml-2 text-xs text-muted-foreground">
-                                (Will receive Rs. 500)
-                              </span>
-                            </div>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {!installerValidating && installerData && (
+                            <HyperText className="tracking-widest leading-none text-xs uppercase text-success-text pointer-events-none select-none">
+                              Valid
+                            </HyperText>
+                          )}
+                          {!installerValidating && !installerData && (
+                            <HyperText className="tracking-widest text-xs uppercase text-destructive-text pointer-events-none select-none">
+                              Invalid
+                            </HyperText>
+                          )}
+                          {installerValidating && !installerData && (
+                            <Loading className="h-4 w-4" />
                           )}
                         </div>
                       </div>
-                    )}
 
-                    {/* Serial Number - Only show after installer validation */}
-                    {installerData && (
-                      <>
-                        <FormField
-                          type="text"
-                          label="Product Serial Number"
-                          id="serial-number"
-                          value={serialNumber}
-                          onChange={(value) =>
-                            setSerialNumber(value.toUpperCase())
-                          }
-                          placeholder="e.g., SN123456"
-                          required
-                        />
+                      {!installerValidating && installerData === null && (
+                        <div className="text-sm text-destructive-text">
+                          Installer not found
+                        </div>
+                      )}
 
-                        {serialValidating && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Loading className="h-4 w-4" />
-                            <span>Validating serial number...</span>
+                      {installerData && (
+                        <div className="rounded-2xl border border-border p-4">
+                          <div className="col-span-2 text-primary flex items-center gap-2 py-2 rounded-2xl">
+                            <div className="dark:bg-background bg-muted p-2.5 rounded-xl">
+                              <IconUser
+                                className="size-4"
+                                fill
+                                duotone={false}
+                              />{" "}
+                            </div>
+                            Installer
                           </div>
-                        )}
 
-                        {serialValid && !serialValidating && (
-                          <div className="flex items-center gap-1 text-sm text-green-600">
-                            <CheckCircle2 className="h-4 w-4" />
-                            <span>Serial number is available</span>
+                          <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                            <ReviewItem
+                              label="Installer Name"
+                              value={installerData.fullName}
+                              valueClass="font-mono tracking-wide"
+                              isHighlighted={true}
+                              icon={
+                                <IconUser
+                                  duotone={false}
+                                  className="h-3.5 w-3.5 text-muted-foreground/90"
+                                />
+                              }
+                            />
+                            <ReviewItem
+                              label="Installer Code"
+                              value={installerData.installerCode}
+                              valueClass="font-mono tracking-wide"
+                              isHighlighted={true}
+                              icon={
+                                <IconInstallerCode
+                                  duotone={false}
+                                  className="h-3.5 w-3.5 text-muted-foreground/90"
+                                />
+                              }
+                            />
+                            <ReviewItem
+                              label="Installer Code"
+                              value={installerData.city as string}
+                              isHighlighted={true}
+                              valueClass="font-mono tracking-wide"
+                              icon={
+                                <IconCity
+                                  duotone={false}
+                                  className="h-3.5 w-3.5 text-muted-foreground/90"
+                                />
+                              }
+                            />
+                            {installerData.companyName && (
+                              <ReviewItem
+                                label="Company Name"
+                                value={installerData.companyName as string}
+                                valueClass="font-mono tracking-wide"
+                                isHighlighted={true}
+                                icon={
+                                  <IconCompany
+                                    duotone={false}
+                                    className="h-3.5 w-3.5 text-muted-foreground/90"
+                                  />
+                                }
+                              />
+                            )}
+
+                            {installerData.referrer && (
+                              <>
+                                <div className="col-span-2 text-primary flex items-center gap-2 rounded-2xl">
+                                  <div className="dark:bg-background bg-muted p-2.5 rounded-xl">
+                                    <IconReferrer
+                                      className="size-4"
+                                      fill
+                                      duotone={false}
+                                    />{" "}
+                                  </div>
+                                  Referrer Installer
+                                </div>
+                                <ReviewItem
+                                  label="Referrer"
+                                  value={`${installerData.referrer.installerCode} - ${installerData.referrer.fullName}`}
+                                  valueClass="font-mono tracking-wide"
+                                  isHighlighted={true}
+                                  icon={
+                                    <IconReferrer
+                                      duotone={false}
+                                      className="h-3.5 w-3.5 text-muted-foreground/90"
+                                    />
+                                  }
+                                />
+                                <ReviewItem
+                                  label="Referrer Reward"
+                                  value={`500`}
+                                  valueClass="font-mono tracking-wide"
+                                  isHighlighted={true}
+                                  icon={
+                                    <IconReward
+                                      duotone={false}
+                                      className="h-3.5 w-3.5 text-muted-foreground/90"
+                                    />
+                                  }
+                                />
+                              </>
+                            )}
                           </div>
-                        )}
-                      </>
-                    )}
+                        </div>
+                      )}
+
+                      {/* Serial Number - Only show after installer validation */}
+                      {installerData && (
+                        <div className="relative">
+                          <Input
+                            id="serial-number"
+                            type="text"
+                            value={serialNumber}
+                            onChange={(e) =>
+                              setSerialNumber(e.target.value.toUpperCase())
+                            }
+                            placeholder="e.g., SN123456"
+                            required
+                            aria-label="Product Serial Number"
+                            className={`pr-10 `}
+                          />
+
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            {serialValidating && (
+                              <Loading className="h-4 w-4" />
+                            )}
+                            {serialValid && !serialValidating && (
+                              <HyperText className="tracking-widest leading-none text-xs uppercase text-success-text pointer-events-none select-none">
+                                Valid
+                              </HyperText>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -503,188 +647,16 @@ export default function NewRewardPage() {
 
               {/* Step 3: Review */}
               {currentStep === 3 && (
-                <div className="space-y-4">
-                  <StepHeader
-                    icon={IconCheckCircle}
-                    title="Review Details"
-                    description="Verify all information before submitting"
-                  />
-
-                  <div className="space-y-4">
-                    {/* Installer Information */}
-                    <div className="rounded-2xl border p-4 bg-muted/50">
-                      <h3 className="font-medium mb-3">
-                        Installer Information
-                      </h3>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Code:</span>
-                          <span className="ml-2 font-medium">
-                            {installerData?.installerCode}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Name:</span>
-                          <span className="ml-2 font-medium">
-                            {installerData?.fullName}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">
-                            Company:
-                          </span>
-                          <span className="ml-2 font-medium">
-                            {installerData?.companyName}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">City:</span>
-                          <span className="ml-2 font-medium">
-                            {installerData?.city}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Bank:</span>
-                          <span className="ml-2 font-medium">
-                            {installerData?.bankName}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">
-                            Account:
-                          </span>
-                          <span className="ml-2 font-medium">
-                            {installerData?.accountNumber}
-                          </span>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-muted-foreground">
-                            Account Title:
-                          </span>
-                          <span className="ml-2 font-medium">
-                            {installerData?.accountTitle}
-                          </span>
-                        </div>
-                        {installerData?.referrer && (
-                          <div className="col-span-2 pt-2 border-t border-border">
-                            <span className="text-muted-foreground">
-                              Referrer:
-                            </span>
-                            <span className="ml-2 font-medium text-blue-600">
-                              {installerData.referrer.installerCode} -{" "}
-                              {installerData.referrer.fullName}
-                            </span>
-                            <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                              Will receive Rs. 500
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Product Information */}
-                    <div className="rounded-2xl border p-4 bg-muted/50">
-                      <h3 className="font-medium mb-3">Product Information</h3>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">
-                            Serial Number:
-                          </span>
-                          <span className="ml-2 font-medium">
-                            {serialNumber}
-                          </span>
-                        </div>
-                        {isBatteryProduct && (
-                          <div>
-                            <span className="text-muted-foreground">
-                              Inverter Serial:
-                            </span>
-                            <span className="ml-2 font-medium">
-                              {inverterSerialNumber}
-                            </span>
-                          </div>
-                        )}
-                        <div>
-                          <span className="text-muted-foreground">
-                            Product Model:
-                          </span>
-                          <span className="ml-2 font-medium">
-                            {productModel}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">
-                            Installer Reward:
-                          </span>
-                          <span className="ml-2 font-medium text-green-600">
-                            Rs. {rewardAmount.toLocaleString()}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">
-                            Installation City:
-                          </span>
-                          <span className="ml-2 font-medium">
-                            {cityOfInstallation}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Status:</span>
-                          <span className="ml-2 font-medium">
-                            {serialNumberStatus}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">
-                            Installation Date:
-                          </span>
-                          <span className="ml-2 font-medium">
-                            {new Date().toLocaleDateString()} (Auto-generated)
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Referral Reward Information */}
-                    {installerData?.referrer && (
-                      <div className="rounded-2xl bg-blue-50 border border-blue-200 p-4">
-                        <h3 className="font-medium text-blue-900 mb-3">
-                          Referral Reward
-                        </h3>
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div>
-                            <span className="text-blue-700">
-                              Referrer Code:
-                            </span>
-                            <span className="ml-2 font-medium text-blue-900">
-                              {installerData.referrer.installerCode}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-blue-700">
-                              Referrer Name:
-                            </span>
-                            <span className="ml-2 font-medium text-blue-900">
-                              {installerData.referrer.fullName}
-                            </span>
-                          </div>
-                          <div className="col-span-2">
-                            <span className="text-blue-700">
-                              Referral Reward Amount:
-                            </span>
-                            <span className="ml-2 font-bold text-green-600">
-                              Rs. 500
-                            </span>
-                            <span className="ml-2 text-xs text-blue-600">
-                              (Automatically credited for each product
-                              registration)
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <ReviewStep
+                  serialNumber={serialNumber}
+                  inverterSerialNumber={inverterSerialNumber}
+                  isBatteryProduct={isBatteryProduct}
+                  productModel={productModel}
+                  rewardAmount={rewardAmount}
+                  cityOfInstallation={cityOfInstallation}
+                  serialNumberStatus={serialNumberStatus}
+                  installerData={installerData}
+                />
               )}
             </div>
 
@@ -731,7 +703,7 @@ export default function NewRewardPage() {
                 <Button
                   onClick={handleSubmit}
                   disabled={loading}
-                  className="gap-2 bg-green-600 hover:bg-green-700"
+                  className="gap-2"
                 >
                   {loading ? (
                     <>
@@ -739,13 +711,32 @@ export default function NewRewardPage() {
                       <Loading className="h-4 w-4 fill-background" />
                     </>
                   ) : (
-                    "Submit Reward Registration"
+                    "Register Reward"
                   )}
                 </Button>
               )}
             </CardFooter>
           </CardContent>
         </Card>
+
+        {/* Registration Modal */}
+        {registrationStatus !== "idle" && (
+          <RegistrationModal
+            open={true}
+            onOpenChange={(open) => {
+              if (!open) {
+                setRegistrationStatus("idle");
+              }
+            }}
+            status={registrationStatus}
+            serialNumber={registeredReward?.serialNumber}
+            installerCode={registeredReward?.installerCode}
+            rewardAmount={registeredReward?.rewardAmount}
+            errorMessage={registrationError}
+            onRedirect={handleRedirectAfterRegistration}
+            onViewReward={handleViewReward}
+          />
+        )}
       </div>
     </div>
   );

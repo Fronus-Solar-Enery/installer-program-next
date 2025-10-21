@@ -317,7 +317,7 @@ export function ReviewStep(props: ReviewStepProps) {
               icon={IconVerify}
               className="p-6"
               badge={
-                <div>
+                <>
                   {certified ? (
                     <IconShieldStar className="w-7 h-7 text-cyan-400" />
                   ) : (
@@ -326,7 +326,7 @@ export function ReviewStep(props: ReviewStepProps) {
                       className="w-7 h-7 text-muted-foreground"
                     />
                   )}
-                </div>
+                </>
               }
             />
 

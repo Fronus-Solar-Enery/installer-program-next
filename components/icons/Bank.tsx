@@ -5,6 +5,7 @@ const IconBank: FC<IconProps> = ({
   fill = false,
   duotone = true,
   width = "1.5",
+  opacity = "0.4",
 }) => {
   return (
     <>
@@ -34,7 +35,7 @@ const IconBank: FC<IconProps> = ({
             strokeLinejoin="round"
           />
           <path
-            opacity={duotone ? "0.4" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M4.66992 18V11"
             stroke="currentColor"
             strokeWidth={width}
@@ -43,7 +44,7 @@ const IconBank: FC<IconProps> = ({
             strokeLinejoin="round"
           />
           <path
-            opacity={duotone ? "0.4" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M8.66992 18V11"
             stroke="currentColor"
             strokeWidth={width}
@@ -52,7 +53,7 @@ const IconBank: FC<IconProps> = ({
             strokeLinejoin="round"
           />
           <path
-            opacity={duotone ? "0.4" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M12.6699 18V11"
             stroke="currentColor"
             strokeWidth={width}
@@ -61,7 +62,7 @@ const IconBank: FC<IconProps> = ({
             strokeLinejoin="round"
           />
           <path
-            opacity={duotone ? "0.4" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M16.6699 18V11"
             stroke="currentColor"
             strokeWidth={width}
@@ -70,7 +71,7 @@ const IconBank: FC<IconProps> = ({
             strokeLinejoin="round"
           />
           <path
-            opacity={duotone ? "0.4" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M20.6699 18V11"
             stroke="currentColor"
             strokeWidth={width}
@@ -87,7 +88,7 @@ const IconBank: FC<IconProps> = ({
             strokeLinejoin="round"
           />
           <path
-            opacity={duotone ? "0.4" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M12.6699 8.5C13.4983 8.5 14.1699 7.82843 14.1699 7C14.1699 6.17157 13.4983 5.5 12.6699 5.5C11.8415 5.5 11.1699 6.17157 11.1699 7C11.1699 7.82843 11.8415 8.5 12.6699 8.5Z"
             stroke="currentColor"
             strokeWidth={width}
@@ -114,22 +115,22 @@ const IconBank: FC<IconProps> = ({
             strokeLinejoin="round"
           />
           <path
-            opacity={duotone ? "0.6" : "1"}
+            opacity={duotone ? parseFloat(opacity as string) / 0.65 : "1"}
             d="M8.66992 11H4.66992V18H8.66992V11Z"
             fill="currentColor"
           />
           <path
-            opacity={duotone ? "0.4" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M12.6699 11H8.66992V18H12.6699V11Z"
             fill="currentColor"
           />
           <path
-            opacity={duotone ? "0.6" : "1"}
+            opacity={duotone ? parseFloat(opacity as string) / 0.65 : "1"}
             d="M16.6699 11H12.6699V18H16.6699V11Z"
             fill="currentColor"
           />
           <path
-            opacity={duotone ? "0.4" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M20.6699 11H16.6699V18H20.6699V11Z"
             fill="currentColor"
           />
@@ -177,18 +178,4 @@ const IconBank: FC<IconProps> = ({
   );
 };
 
-// Keywords for search and categorization
-(IconBank as IconComponent).keywords = [
-  "bank",
-  "savings bank",
-  "money box",
-  "swear",
-  "rely",
-  "trust",
-  "cant",
-  "camber",
-  "deposit",
-  "bank building",
-];
-
-export default IconBank as IconComponent;
+export default IconBank;

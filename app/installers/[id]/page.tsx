@@ -278,7 +278,7 @@ export default function InstallerDetailsPage() {
         onClick={() => copyToClipboard(text)}
         title={`Copy ${label}`}
       >
-        {copied ? (
+        {copied === text ? (
           <Check className="h-4 w-4 text-green-600 dark:text-green-500" />
         ) : (
           <Copy className="h-4 w-4" />

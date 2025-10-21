@@ -2,7 +2,6 @@
 
 import { motion, type Variants } from "framer-motion";
 import { CardHeader, CardTitle } from "@/components/ui/card";
-import type { IconProps } from "@/components/ui/form-field";
 
 interface StepHeaderProps {
   icon: React.FC<IconProps>;
@@ -37,7 +36,7 @@ export function StepHeader({
   return (
     <CardHeader className="p-6 rounded-3xl border text-card-foreground bg-card border-border">
       <CardTitle className="text-base flex items-center gap-2">
-        <Icon className="h-12 w-12 mr-2 text-primary" fill />
+        <Icon className="h-12 w-12 mr-2 text-primary" fill opacity="0.2" />
         <motion.div
           variants={containerVariants}
           initial="hidden"

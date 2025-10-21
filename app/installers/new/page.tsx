@@ -44,11 +44,13 @@ import { getInitials } from "@/lib/getInitials";
 import { useRelativeTime } from "@/lib/getRelativeTime";
 import { useClipboard } from "@/hooks/useCopyToClipboard";
 import { StepHeader } from "@/components/StepHeader";
-import { CNICInput } from "@/components/CNICInput";
+import { CNICInput } from "@/app/installers/new/CNICInput";
 import { InstallerCodeDisplay } from "@/app/installers/new/InstallerCodeDisplay";
 import { FormStep } from "@/components/ui/FormStep";
 import { ReviewStep } from "./ReviewStep";
 import { RegistrationModal } from "@/app/installers/new/RegistrationModal";
+import IconAltArrowRight from "@/components/icons/AltArrowRight";
+import IconAltArrowLeft from "@/components/icons/AltArrowLeft";
 
 interface Settings {
   allowInstallerCodeEdit?: boolean;
@@ -272,9 +274,7 @@ export default function NewInstallerPage() {
         companyName,
         bankName,
         accountNumber: isDigitalPayment
-          ? phoneNumberToDBFormat(
-              accountNumberInput.value || accountNumber
-            )
+          ? phoneNumberToDBFormat(accountNumberInput.value || accountNumber)
           : accountNumber,
         accountTitle,
         certified,
@@ -824,7 +824,10 @@ export default function NewInstallerPage() {
                               placeholder="Enter referrer installer code"
                             />
                             <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                              <IconUserHeartRounded className="size-4.5" />
+                              <IconUserHeartRounded
+                                duotone={false}
+                                className="size-4.5"
+                              />
                             </div>
                             {referrerValidating && (
                               <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -947,9 +950,13 @@ export default function NewInstallerPage() {
                   onClick={handlePrev}
                   disabled={currentStep === 1}
                   variant="outline"
-                  className="gap-1"
+                  className="gap-1 pl-2"
                 >
-                  <IconArrowLeft width={2} className="size-4" duotone={false} />
+                  <IconAltArrowLeft
+                    width={2}
+                    className="size-4"
+                    duotone={false}
+                  />
                   Previous
                 </Button>
 
@@ -964,10 +971,10 @@ export default function NewInstallerPage() {
                       codeGenerating ||
                       codeValidating
                     }
-                    className="gap-1"
+                    className="gap-1 pr-3"
                   >
                     Next
-                    <IconArrowRight
+                    <IconAltArrowRight
                       width={2}
                       className="size-4"
                       duotone={false}
