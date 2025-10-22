@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { IconCheck, IconClose, IconUserOctagon } from "@/components/icons";
 import Loading from "@/components/ui/loading";
+import { HyperText } from "@/components/ui/hypertext";
 
 interface RegistrationStep {
   id: string;
@@ -183,7 +183,7 @@ export function RegistrationModal({
                             {isCompleted ? (
                               <IconCheck className="w-5 h-5" duotone={false} />
                             ) : isCurrent ? (
-                              <Loading className="w-4 h-4 text-background" />
+                              <Loading className="w-4 h-4 fill-background" />
                             ) : (
                               <span className="text-sm font-medium">
                                 {index + 1}
@@ -235,9 +235,9 @@ export function RegistrationModal({
                 </motion.div>
 
                 {/* Success Message */}
-                <div className="space-y-2">
+                <div className="space-y-2 mb-6">
                   <DialogTitle className="text-2xl font-bold text-success-text">
-                    Registration Successful!
+                    Successful!
                   </DialogTitle>
                   <DialogDescription>
                     Installer has been registered successfully
@@ -245,20 +245,20 @@ export function RegistrationModal({
                 </div>
 
                 {/* Installer Details */}
-                <div className="bg-muted/50 rounded-3xl p-4 space-y-3">
-                  <div className="flex items-center justify-center gap-2">
-                    <IconUserOctagon className="w-5 h-5 text-primary" />
+                <div className="border border-border bg-muted/15 rounded-3xl p-4 space-y-3">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <IconUserOctagon className="size-18 text-primary" fill />
                     <span className="font-semibold text-lg">
                       {installerName}
                     </span>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                    <p className="text-xs text-muted-foreground tracking-wider">
                       Installer Code
                     </p>
-                    <p className="text-2xl font-mono font-bold tracking-wider text-primary">
-                      {installerCode}
-                    </p>
+                    <HyperText className="pointer-events-none leading-5 text-2xl tracking-widest">
+                      {installerCode as string}
+                    </HyperText>
                   </div>
                 </div>
 

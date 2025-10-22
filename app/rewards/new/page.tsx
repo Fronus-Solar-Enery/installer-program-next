@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -8,6 +7,7 @@ import {
   CITIES,
   CITY_TO_PROVINCE,
   PROVINCES,
+  ProductModels,
 } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -18,19 +18,20 @@ import { FormField } from "@/components/ui/form-field";
 import { FormStep } from "@/components/ui/FormStep";
 import { cn } from "@/lib/utils";
 import {
-  IconCheckCircle,
   IconCity,
   IconCompany,
   IconInstallerCode,
+  IconProduct,
   IconReferrer,
   IconReward,
+  IconSerialNumber,
   IconUser,
+  IconAltArrowLeft,
+  IconAltArrowRight,
+  IconQRCode,
 } from "@/components/icons";
-import IconAltArrowRight from "@/components/icons/AltArrowRight";
-import IconAltArrowLeft from "@/components/icons/AltArrowLeft";
 import { ReviewStep } from "./ReviewStep";
 import { RegistrationModal } from "./RegistrationModal";
-import IconQRCode from "@/components/icons/QRCode";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { HyperText } from "@/components/ui/hypertext";
@@ -96,7 +97,8 @@ export default function NewRewardPage() {
   // Get selected product details
   const selectedProduct = PRODUCT_MODELS.find((p) => p.value === productModel);
   const rewardAmount = selectedProduct?.reward || 0;
-  const isBatteryProduct = selectedProduct?.isBattery || false;
+  const isBatteryProduct =
+    (selectedProduct?.isBattery && selectedProduct?.requiresInverter) || false;
 
   // Debounced auto-validation for installer code
   const validateInstallerCode = useCallback(async (code: string) => {
@@ -354,9 +356,9 @@ export default function NewRewardPage() {
                     )}
                   >
                     <div className="space-y-2">
-                      <Label htmlFor="cnic" className="block">
+                      <Label htmlFor="installer-code" className="block">
                         Installer Code{" "}
-                        <span className="text-destructive">*</span>
+                        <span className="text-destructive-text">*</span>
                       </Label>
                       <div className="relative">
                         <Input
@@ -368,8 +370,14 @@ export default function NewRewardPage() {
                           }
                           placeholder="e.g., PEWNADOEC3"
                           required
-                          className={`pr-10 `}
+                          className={`pl-10`}
                         />
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                          <IconInstallerCode
+                            duotone={false}
+                            className="size-4"
+                          />
+                        </div>
 
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
                           {!installerValidating && installerData && (
@@ -387,122 +395,124 @@ export default function NewRewardPage() {
                           )}
                         </div>
                       </div>
+                    </div>
 
-                      {!installerValidating && installerData === null && (
-                        <div className="text-sm text-destructive-text">
-                          Installer not found
-                        </div>
-                      )}
+                    {!installerValidating && installerData === null && (
+                      <div className="text-sm text-destructive-text">
+                        Installer not found
+                      </div>
+                    )}
 
-                      {installerData && (
-                        <div className="rounded-2xl border border-border p-4">
-                          <div className="col-span-2 text-primary flex items-center gap-2 py-2 rounded-2xl">
-                            <div className="dark:bg-background bg-muted p-2.5 rounded-xl">
-                              <IconUser
-                                className="size-4"
-                                fill
-                                duotone={false}
-                              />{" "}
-                            </div>
-                            Installer
+                    {installerData && (
+                      <div className="rounded-2xl border border-border p-4">
+                        <div className="col-span-2 text-primary flex items-center gap-2 py-2 rounded-2xl">
+                          <div className="dark:bg-background bg-muted p-2.5 rounded-xl">
+                            <IconUser className="size-4" fill duotone={false} />{" "}
                           </div>
+                          Installer
+                        </div>
 
-                          <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                        <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                          <ReviewItem
+                            label="Installer Name"
+                            value={installerData.fullName}
+                            valueClass="font-mono tracking-wide"
+                            isHighlighted={true}
+                            icon={
+                              <IconUser
+                                duotone={false}
+                                className="h-3.5 w-3.5 text-muted-foreground/90"
+                              />
+                            }
+                          />
+                          <ReviewItem
+                            label="Installer Code"
+                            value={installerData.installerCode}
+                            valueClass="font-mono tracking-wide"
+                            isHighlighted={true}
+                            icon={
+                              <IconInstallerCode
+                                duotone={false}
+                                className="h-3.5 w-3.5 text-muted-foreground/90"
+                              />
+                            }
+                          />
+                          <ReviewItem
+                            label="Installer Code"
+                            value={installerData.city as string}
+                            isHighlighted={true}
+                            valueClass="font-mono tracking-wide"
+                            icon={
+                              <IconCity
+                                duotone={false}
+                                className="h-3.5 w-3.5 text-muted-foreground/90"
+                              />
+                            }
+                          />
+                          {installerData.companyName && (
                             <ReviewItem
-                              label="Installer Name"
-                              value={installerData.fullName}
+                              label="Company Name"
+                              value={installerData.companyName as string}
                               valueClass="font-mono tracking-wide"
                               isHighlighted={true}
                               icon={
-                                <IconUser
+                                <IconCompany
                                   duotone={false}
                                   className="h-3.5 w-3.5 text-muted-foreground/90"
                                 />
                               }
                             />
-                            <ReviewItem
-                              label="Installer Code"
-                              value={installerData.installerCode}
-                              valueClass="font-mono tracking-wide"
-                              isHighlighted={true}
-                              icon={
-                                <IconInstallerCode
-                                  duotone={false}
-                                  className="h-3.5 w-3.5 text-muted-foreground/90"
-                                />
-                              }
-                            />
-                            <ReviewItem
-                              label="Installer Code"
-                              value={installerData.city as string}
-                              isHighlighted={true}
-                              valueClass="font-mono tracking-wide"
-                              icon={
-                                <IconCity
-                                  duotone={false}
-                                  className="h-3.5 w-3.5 text-muted-foreground/90"
-                                />
-                              }
-                            />
-                            {installerData.companyName && (
+                          )}
+
+                          {installerData.referrer && (
+                            <>
+                              <div className="col-span-2 text-primary flex items-center gap-2 rounded-2xl">
+                                <div className="dark:bg-background bg-muted p-2.5 rounded-xl">
+                                  <IconReferrer
+                                    className="size-4"
+                                    fill
+                                    duotone={false}
+                                  />{" "}
+                                </div>
+                                Referrer Installer
+                              </div>
                               <ReviewItem
-                                label="Company Name"
-                                value={installerData.companyName as string}
+                                label="Referrer"
+                                value={`${installerData.referrer.installerCode} - ${installerData.referrer.fullName}`}
                                 valueClass="font-mono tracking-wide"
                                 isHighlighted={true}
                                 icon={
-                                  <IconCompany
+                                  <IconReferrer
                                     duotone={false}
                                     className="h-3.5 w-3.5 text-muted-foreground/90"
                                   />
                                 }
                               />
-                            )}
-
-                            {installerData.referrer && (
-                              <>
-                                <div className="col-span-2 text-primary flex items-center gap-2 rounded-2xl">
-                                  <div className="dark:bg-background bg-muted p-2.5 rounded-xl">
-                                    <IconReferrer
-                                      className="size-4"
-                                      fill
-                                      duotone={false}
-                                    />{" "}
-                                  </div>
-                                  Referrer Installer
-                                </div>
-                                <ReviewItem
-                                  label="Referrer"
-                                  value={`${installerData.referrer.installerCode} - ${installerData.referrer.fullName}`}
-                                  valueClass="font-mono tracking-wide"
-                                  isHighlighted={true}
-                                  icon={
-                                    <IconReferrer
-                                      duotone={false}
-                                      className="h-3.5 w-3.5 text-muted-foreground/90"
-                                    />
-                                  }
-                                />
-                                <ReviewItem
-                                  label="Referrer Reward"
-                                  value={`500`}
-                                  valueClass="font-mono tracking-wide"
-                                  isHighlighted={true}
-                                  icon={
-                                    <IconReward
-                                      duotone={false}
-                                      className="h-3.5 w-3.5 text-muted-foreground/90"
-                                    />
-                                  }
-                                />
-                              </>
-                            )}
-                          </div>
+                              <ReviewItem
+                                label="Referrer Reward"
+                                value={`500`}
+                                valueClass="font-mono tracking-wide"
+                                isHighlighted={true}
+                                icon={
+                                  <IconReward
+                                    duotone={false}
+                                    className="h-3.5 w-3.5 text-muted-foreground/90"
+                                  />
+                                }
+                              />
+                            </>
+                          )}
                         </div>
-                      )}
+                      </div>
+                    )}
 
-                      {/* Serial Number - Only show after installer validation */}
-                      {installerData && (
+                    {/* Serial Number - Only show after installer validation */}
+                    {installerData && (
+                      <div className="space-y-2">
+                        <Label htmlFor="serial-number" className="block">
+                          Product Serial Number{" "}
+                          <span className="text-destructive-text">*</span>
+                        </Label>
                         <div className="relative">
                           <Input
                             id="serial-number"
@@ -514,8 +524,14 @@ export default function NewRewardPage() {
                             placeholder="e.g., SN123456"
                             required
                             aria-label="Product Serial Number"
-                            className={`pr-10 `}
+                            className={`pl-10`}
                           />
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                            <IconSerialNumber
+                              duotone={false}
+                              className="size-4"
+                            />
+                          </div>
 
                           <div className="absolute right-3 top-1/2 -translate-y-1/2">
                             {serialValidating && (
@@ -528,8 +544,8 @@ export default function NewRewardPage() {
                             )}
                           </div>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -538,7 +554,7 @@ export default function NewRewardPage() {
               {currentStep === 2 && (
                 <div className="space-y-4">
                   <StepHeader
-                    icon={IconCheckCircle}
+                    icon={IconProduct}
                     title="Product & Installation Details"
                     description="Enter product model and installation information"
                   />
@@ -558,12 +574,38 @@ export default function NewRewardPage() {
                         value={productModel}
                         onChange={setProductModel}
                         placeholder="Select Product Model"
-                        options={PRODUCT_MODELS.map((model) => ({
-                          value: model.value,
-                          label: `${
-                            model.label
-                          } - Rs. ${model.reward.toLocaleString()}`,
-                        }))}
+                        groups={(() => {
+                          const map = new Map<string, ProductModels[]>();
+
+                          for (const m of PRODUCT_MODELS as ProductModels[]) {
+                            const key = m.isBattery ? "Batteries" : "Inverters";
+                            const arr = map.get(key);
+                            if (arr) arr.push(m);
+                            else map.set(key, [m]);
+                          }
+
+                          return Array.from(map, ([label, items]) => ({
+                            label,
+                            options: items
+                              .slice()
+                              .sort((a, b) => a.label.localeCompare(b.label))
+                              .map((item) => ({
+                                value: item.value,
+                                label: (
+                                  <div className="flex items-end gap-2">
+                                    <span className="truncate">
+                                      {item.label}
+                                    </span>
+                                    {item.reward != null && (
+                                      <p className="text-muted-foreground text-[10px]">
+                                        Rs {item.reward}
+                                      </p>
+                                    )}
+                                  </div>
+                                ),
+                              })),
+                          }));
+                        })()}
                         searchable
                         searchPlaceholder="Search products..."
                         required

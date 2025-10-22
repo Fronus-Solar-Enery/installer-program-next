@@ -6,9 +6,6 @@ import RewardEditModal from "@/components/RewardEditModal";
 import {
   Copy,
   Check,
-  Trash2,
-  Edit,
-  Eye,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
@@ -61,12 +58,16 @@ import Dropdown, {
   DropdownContent,
   DropdownTrigger,
 } from "@/components/ui/dropdown";
-import IconLayer from "@/components/icons/Layer";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useClipboard } from "@/hooks/useCopyToClipboard";
-import { IconEdit2, IconEye, IconTrashBin2 } from "@/components/icons";
+import {
+  IconEdit2,
+  IconEye,
+  IconTrashBin2,
+  IconLayer,
+} from "@/components/icons";
 
 interface RewardWithId
   extends Omit<IInstallerReward, "installer" | "registeredBy" | "referrer"> {

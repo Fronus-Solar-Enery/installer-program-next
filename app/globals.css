@@ -218,3 +218,7 @@ ol:has(li.my-toast) {
 .my-toas > [data-content] {
   @apply !flex !items-center;
 }
+
+.squircle {
+  corner-shape: squircle;
+}

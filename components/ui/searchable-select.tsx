@@ -29,6 +29,7 @@ export interface SearchableSelectGroup {
 
 interface SearchableSelectProps {
   value?: string;
+  id?: string;
   onValueChange: (value: string) => void;
   options?: SearchableSelectOption[];
   groups?: SearchableSelectGroup[];
@@ -41,6 +42,7 @@ interface SearchableSelectProps {
 
 export function SearchableSelect({
   value,
+  id,
   onValueChange,
   options = [],
   groups = [],
@@ -68,6 +70,7 @@ export function SearchableSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          id={id}
           disabled={disabled}
           className={cn(
             "w-full justify-between h-11 rounded-xl border-border bg-background hover:bg-background px-3",
@@ -85,12 +88,12 @@ export function SearchableSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="p-0"
+        className="p-0 rounded-2xl"
         align="start"
         sideOffset={4}
         style={{ width: "var(--radix-popover-trigger-width)" }}
       >
-        <Command className="w-full">
+        <Command className="w-full rounded-2xl dark:bg-background bg-card">
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
@@ -119,7 +122,7 @@ export function SearchableSelect({
                       {option.label}
                       <Check
                         className={cn(
-                          "mr-2 h-4 w-4",
+                          "h-4 w-4",
                           value === option.value ? "opacity-100" : "opacity-0"
                         )}
                       />

@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import { FileRejection, useDropzone } from "react-dropzone";
 import { toast } from "sonner";
-import { Card } from "./card";
 import { cn } from "@/lib/utils";
 import { IconCloudUpload } from "../icons";
 
@@ -136,7 +135,7 @@ export const FileDropzone = React.memo(
     const dropzoneClasses = useMemo(
       () =>
         cn(
-          "h-full w-full border border-dashed p-6 pb-10 rounded-3xl transition-colors duration-300 group/dropzone border-border",
+          "relative h-full w-full border border-dashed p-6 pb-10 rounded-[4rem] transition-colors duration-300 group/dropzone border-black/20 dark:border-border [corner-shape:squircle]",
           "hover:bg-muted/20",
           isDragActive && "border-primary/30 border-[1.5px] bg-muted/40",
           disabled && "cursor-not-allowed opacity-50",
@@ -149,9 +148,11 @@ export const FileDropzone = React.memo(
     const labelClasses = useMemo(
       () =>
         cn(
-          "px-2 py-1 rounded-full text-[10px] font-bold border tracking-wider transition-colors duration-300 border-border leading-none",
+          "absolute ",
+          "px-2 py-1 rounded-full text-[10px] font-bold tracking-wider transition-colors duration-300 leading-none",
           "text-muted-foreground/80 group-hover/dropzone:text-muted-foreground",
           "group-hover/dropzone:border-primary/15 group-hover/dropzone:bg-muted/70",
+          "border border-border",
           isDragActive && "text-foreground bg-muted border-primary/25"
         ),
       [isDragActive]

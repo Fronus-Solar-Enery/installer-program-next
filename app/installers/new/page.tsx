@@ -22,7 +22,6 @@ import { useInstallerCodeGeneration } from "@/hooks/useInstallerCodeGeneration";
 import { usePhoneInput } from "@/hooks/usePhoneInput";
 import { phoneNumberToDBFormat } from "@/lib/validation-helpers";
 import {
-  IconArrowRight,
   IconBank,
   IconBuildings,
   IconCity,
@@ -34,8 +33,9 @@ import {
   IconTeacher,
   IconUserHeartRounded,
   IconUserOctagon,
+  IconAltArrowRight,
+  IconAltArrowLeft,
 } from "@/components/icons";
-import IconArrowLeft from "@/components/icons/ArrowLeft";
 import Loading from "@/components/ui/loading";
 import { Switch } from "@/components/ui/switch";
 import Link from "next/link";
@@ -49,8 +49,6 @@ import { InstallerCodeDisplay } from "@/app/installers/new/InstallerCodeDisplay"
 import { FormStep } from "@/components/ui/FormStep";
 import { ReviewStep } from "./ReviewStep";
 import { RegistrationModal } from "@/app/installers/new/RegistrationModal";
-import IconAltArrowRight from "@/components/icons/AltArrowRight";
-import IconAltArrowLeft from "@/components/icons/AltArrowLeft";
 
 interface Settings {
   allowInstallerCodeEdit?: boolean;
@@ -579,6 +577,7 @@ export default function NewInstallerPage() {
                               onChange={setAddress}
                               placeholder="Enter complete address"
                               icon={IconMapPoint}
+                              autocomplete={"on"}
                               required
                             />
                           </div>

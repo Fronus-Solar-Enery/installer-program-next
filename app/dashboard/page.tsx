@@ -615,7 +615,7 @@ export default function DashboardPage() {
   } satisfies ChartConfig;
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto space-y-4 container mx-auto">
       <PageHeader
         title="Dashboard"
         description="Overview of installer activity, rewards, and performance metrics"
@@ -725,7 +725,7 @@ export default function DashboardPage() {
           </div>
         }
       />
-      <div className="container mx-auto p-6 space-y-6">
+      <div className="space-y-6">
         {/* Financial Highlight Section */}
         <Card className="relative overflow-hidden border-border">
           <CardContent className="p-6">

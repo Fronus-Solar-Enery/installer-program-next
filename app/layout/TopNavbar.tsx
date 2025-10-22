@@ -82,7 +82,7 @@ export default function TopNavbar() {
             />
             <span className="hidden sm:inline-flex items-center justify-between w-full ml-2 text-sm text-zinc-500 dark:text-zinc-400/60 leading-none">
               Search...
-              <kbd className="inline-flex items-center px-2 py-1 text-xs font-bold bg-background rounded-full ml-3 leading-none text-zinc-700 dark:text-zinc-500">
+              <kbd className="flex items-center px-2 py-1 text-xs font-bold bg-card dark:bg-background rounded-full ml-3 leading-none text-foreground">
                 <span className="text-[10px] mr-1">⌘</span> K
               </kbd>
             </span>
@@ -118,7 +118,7 @@ export default function TopNavbar() {
                 <UserAvatar
                   user={session?.user}
                   size="small"
-                  className="w-8 h-8 bg-background"
+                  className="w-8 h-8 bg-card dark:bg-background"
                 />
                 <span className="hidden sm:inline-block text-sm font-medium">
                   {session?.user?.name || "User"}

@@ -29,6 +29,8 @@ interface BaseFieldProps {
   hint?: string;
   className?: string;
   labelClassName?: string;
+  // Accept HTML input autocomplete attribute (string union) or boolean for convenience
+  autocomplete?: React.HTMLInputAutoCompleteAttribute | string;
 }
 
 interface InputFieldProps extends BaseFieldProps {
@@ -66,6 +68,7 @@ interface SelectFieldProps extends BaseFieldProps {
   }>;
   icon?: React.FC<IconProps>;
   iconPosition?: "left" | "right";
+  // searchable select specific
   searchable?: boolean;
   searchPlaceholder?: string;
   emptyMessage?: string;
@@ -157,6 +160,7 @@ export function FormField(props: FormFieldProps) {
               )}
               <SearchableSelect
                 value={nonCheckboxProps.value}
+                id={id}
                 onValueChange={nonCheckboxProps.onChange}
                 options={nonCheckboxProps.options}
                 groups={nonCheckboxProps.groups}
@@ -272,6 +276,7 @@ export function FormField(props: FormFieldProps) {
                 nonCheckboxProps.icon && iconPosition === "left" && "pl-10",
                 nonCheckboxProps.icon && iconPosition === "right" && "pr-10"
               )}
+              autoComplete={nonCheckboxProps.autocomplete}
             />
             {nonCheckboxProps.icon && iconPosition === "right" && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">

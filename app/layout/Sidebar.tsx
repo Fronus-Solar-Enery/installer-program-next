@@ -52,10 +52,6 @@ interface SidebarProps {
   showUserInfo?: boolean;
   collapsible?: boolean;
   sectionLabel?: string;
-  width?: {
-    expanded?: string;
-    collapsed?: string;
-  };
   user?: SidebarUser;
 }
 
@@ -121,7 +117,6 @@ function Sidebar({
   showUserInfo = true,
   collapsible = true,
   sectionLabel = "Main",
-  width = { expanded: "16rem", collapsed: "4.5rem" },
   user,
 }: SidebarProps) {
   const { data: session } = useSession();
@@ -153,11 +148,6 @@ function Sidebar({
     });
   }, [navItems, currentUser?.role]);
 
-  // Memoize toggle handler
-  const handleToggle = useCallback(() => {
-    onCollapsedChange?.(!collapsed);
-  }, [collapsed, onCollapsedChange]);
-
   // Memoize branding config
   const brandingConfig = useMemo(
     () => ({ ...DEFAULT_BRANDING, ...branding }),
@@ -167,6 +157,10 @@ function Sidebar({
   const sideBarRef = useRef<HTMLDivElement>(null);
   const navItemRef = useRef<HTMLAnchorElement>(null);
   const logoRef = useRef<SVGSVGElement>(null);
+  // Memoize toggle handler
+  const handleToggle = useCallback(() => {
+    onCollapsedChange?.(!collapsed);
+  }, [collapsed, onCollapsedChange]);
 
   useGSAP(() => {
     const sidebar = sideBarRef.current;
@@ -494,10 +488,10 @@ function Sidebar({
       {/* User Profile */}
       {showUserInfo && currentUser && (
         <div className="mt-auto p-3 justify-center flex">
-          <div className="profile-container p-3 bg-card border shadow-sm rounded-2xl border-zinc-200/50 dark:border-zinc-700/50 w-full flex items-center gap-2">
+          <div className="profile-container p-3 bg-card border shadow-lg rounded-4xl border-border w-full flex items-center gap-2 [corner-shape:squircle]">
             <UserAvatar
               user={currentUser}
-              className="profile-avatar rounded-2xl flex items-center justify-center size-9"
+              className="profile-avatar rounded-2xl flex items-center justify-center size-9 shadow-sm"
             />
             <div className="profile-name flex-1 min-w-0 relative">
               <p className="text-sm font-medium capitalize truncate text-zinc-900 dark:text-zinc-50">
@@ -545,8 +539,7 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
         ref={ref}
         href={to}
         className={cn(
-          "navitem-link flex items-center gap-2 px-3 py-3 rounded-2xl transition-all duration-200 w-full",
-          // isExpanded ? "h-12" : "w-12 h-12",
+          "navitem-link flex items-center gap-2 px-3 py-3 rounded-4xl transition-all duration-200 w-full [corner-shape:squircle]",
           isActive
             ? "bg-sidebar-primary text-primary font-medium"
             : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground"
@@ -558,7 +551,6 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
             fill={isActive}
           />
         </div>
-        {/* {isExpanded && ( */}
         <div className="flex items-center justify-between flex-1 overflow-hidden navlink-title">
           <span
             className={cn(
@@ -570,7 +562,6 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
           </span>
           <div className="flex items-center gap-2">{badge}</div>
         </div>
-        {/* )} */}
       </Link>
     );
 

@@ -1,19 +1,85 @@
 // Product Models with their configurations
-export const PRODUCT_MODELS = [
+export interface ProductModels {
+  value: string;
+  label: string;
+  reward?: number;
+  requiresInverter?: boolean;
+  isBattery?: boolean;
+}
+export const PRODUCT_MODELS: ProductModels[] = [
+  // BATTERIES WITH INVERTERS
   {
-    value: "TP LD-51 Battery with Solax- Fronus Inverter",
-    label: "TP LD-51 Battery with Solax- Fronus Inverter",
+    value: "TP LD-51 Battery with Fronus Inverter",
+    label: "TP LD-51 Battery with Fronus Inverter",
     reward: 2000,
     requiresInverter: true,
     isBattery: true,
   },
   {
-    value: "Fronus 5.12kW Battery with Solax- Fronus Inverter",
-    label: "Fronus 5.12kW Battery with Solax- Fronus Inverter",
+    value: "Fronus 5.12kW Battery with Fronus Inverter",
+    label: "Fronus 5.12kW Battery with Fronus Inverter",
     reward: 2000,
     requiresInverter: true,
     isBattery: true,
   },
+  {
+    value: "TP LD-55 Ultra Battery with Fronus Inverter",
+    label: "TP LD-55 Ultra Battery with Fronus Inverter",
+    reward: 2000,
+    requiresInverter: true,
+    isBattery: true,
+  },
+  {
+    value: "Titan 2.5kw Battery with Fronus Inverter",
+    label: "Titan 2.5kw Battery with Fronus Inverter",
+    reward: 2000,
+    requiresInverter: true,
+    isBattery: true,
+  },
+  {
+    value: "Titan 15kW Battery with Fronus Inverter",
+    label: "Titan 15kW Battery with Fronus Inverter",
+    reward: 2000,
+    requiresInverter: true,
+    isBattery: true,
+  },
+  // PARALLEL BATTERIES
+  {
+    value: "TP LD-51 Battery Parallel",
+    label: "TP LD-51 Battery Parallel",
+    reward: 2000,
+    requiresInverter: false,
+    isBattery: true,
+  },
+  {
+    value: "Fronus 5.12kW Battery Parallel",
+    label: "Fronus 5.12kW Battery Parallel",
+    reward: 2000,
+    requiresInverter: false,
+    isBattery: true,
+  },
+  {
+    value: "TP LD-55 Ultra Battery Parallel",
+    label: "TP LD-55 Ultra Battery Parallel",
+    reward: 2000,
+    requiresInverter: false,
+    isBattery: true,
+  },
+  {
+    value: "Titan 2.5kw Battery Parallel",
+    label: "Titan 2.5kw Battery Parallel",
+    reward: 2000,
+    requiresInverter: false,
+    isBattery: true,
+  },
+  {
+    value: "Titan 15kW Battery Parallel",
+    label: "Titan 15kW Battery Parallel",
+    reward: 2000,
+    requiresInverter: false,
+    isBattery: true,
+  },
+  // BATTERIES
   {
     value: "TP LD-51 Battery",
     label: "TP LD-51 Battery",
@@ -28,6 +94,28 @@ export const PRODUCT_MODELS = [
     requiresInverter: false,
     isBattery: true,
   },
+  {
+    value: "TP LD-55 Ultra Battery",
+    label: "TP LD-55 Ultra Battery",
+    reward: 1500,
+    requiresInverter: false,
+    isBattery: true,
+  },
+  {
+    value: "Titan 2.5kw Battery",
+    label: "Titan 2.5kw Battery",
+    reward: 1500,
+    requiresInverter: false,
+    isBattery: true,
+  },
+  {
+    value: "Titan 15kW Battery",
+    label: "Titan 15kW Battery",
+    reward: 1500,
+    requiresInverter: false,
+    isBattery: true,
+  },
+  // INVERTERS
   {
     value: "4.2kW - PV 5200",
     label: "4.2kW - PV 5200",
@@ -193,10 +281,10 @@ export const PRODUCT_MODELS = [
 
 // Serial number statuses
 export const SERIAL_STATUSES = [
-  { value: "ACTIVE", label: "Active" },
-  { value: "VERIFIED", label: "Verified" },
-  { value: "PENDING", label: "Pending Verification" },
-  { value: "REGISTERED", label: "Registered" },
+  { value: "2025", label: "2025" },
+  { value: "2025 - Not Found", label: "2025 - Not Found" },
+  { value: "2024", label: "2024" },
+  { value: "Not Found", label: "Not Found" },
 ];
 
 export const PAYMENT_METHOD = [

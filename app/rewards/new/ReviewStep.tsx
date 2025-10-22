@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { PRODUCT_MODELS, SERIAL_STATUSES } from "@/lib/constants";
+import { Bank, BANKS, PRODUCT_MODELS, SERIAL_STATUSES } from "@/lib/constants";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { HyperText } from "@/components/ui/hypertext";
@@ -111,13 +111,20 @@ export function ReviewStep(props: ReviewStepProps) {
             <ReviewSectionHeader
               className="p-6"
               title="Product Serial Number"
-              icon={IconVerify}
+              icon={IconSerialNumber}
               badge={
                 <Badge
-                  variant="success"
-                  className="rounded-full px-2.5 uppercase text-[10px] font-bold tracking-wider"
+                  variant={
+                    selectedStatusLabel === "2025" ||
+                    selectedStatusLabel === "2025 - Not Found"
+                      ? "success"
+                      : "destructive"
+                  }
+                  className={cn(
+                    "rounded-full px-2.5 uppercase text-[10px] font-bold tracking-wider"
+                  )}
                 >
-                  Verified
+                  {selectedStatusLabel}
                 </Badge>
               }
             />
@@ -154,7 +161,7 @@ export function ReviewStep(props: ReviewStepProps) {
               className="p-6"
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-6">
+            <div className="grid grid-cols-1 gap-2 p-6">
               <ReviewItem
                 label="Installer Code"
                 value={installerData?.installerCode || "N/A"}
@@ -313,7 +320,7 @@ export function ReviewStep(props: ReviewStepProps) {
               />
               <ReviewItem
                 label="Bank"
-                value={installerData?.bankName || "N/A"}
+                value={installerData?.bankName ?? ""}
                 isHighlighted={true}
                 icon={
                   <IconBank
@@ -327,27 +334,27 @@ export function ReviewStep(props: ReviewStepProps) {
 
           {/* Referral Information (if applicable) */}
           {installerData?.referrer && (
-            <motion.div
-              variants={itemVariants}
-              className={cn(CARD_CLASS, "xl:col-span-2")}
-            >
+            <motion.div variants={itemVariants} className={CARD_CLASS}>
               <ReviewSectionHeader
-                title="Referral Information"
+                title="Referral Details"
                 icon={IconUserHeartRounded}
                 className="p-6"
-                badge={
-                  <Badge
-                    variant="secondary"
-                    className="rounded-full px-2.5 uppercase text-[10px] font-bold tracking-wider"
-                  >
-                    Rs. 500 Referral Bonus
-                  </Badge>
-                }
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-6">
                 <ReviewItem
+                  label="Referrer Name"
+                  value={installerData?.referrer?.fullName}
+                  fullWidth={true}
+                  icon={
+                    <IconUser
+                      duotone={false}
+                      className="h-3.5 w-3.5 text-muted-foreground/90"
+                    />
+                  }
+                />
+                <ReviewItem
                   label="Referrer Code"
-                  value={installerData.referrer.installerCode}
+                  value={installerData?.referrer?.installerCode}
                   valueClass="font-mono tracking-wide"
                   isHighlighted={true}
                   icon={
@@ -358,20 +365,9 @@ export function ReviewStep(props: ReviewStepProps) {
                   }
                 />
                 <ReviewItem
-                  label="Referrer Name"
-                  value={installerData.referrer.fullName}
-                  icon={
-                    <IconUser
-                      duotone={false}
-                      className="h-3.5 w-3.5 text-muted-foreground/90"
-                    />
-                  }
-                />
-                <ReviewItem
                   label="Referral Reward"
                   value="Rs. 500"
                   valueClass="text-green-600 font-semibold"
-                  fullWidth={true}
                   icon={
                     <IconCard
                       duotone={false}

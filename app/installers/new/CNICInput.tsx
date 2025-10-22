@@ -25,12 +25,12 @@ export function CNICInput({
 }: CNICInputProps) {
   return (
     <div className="space-y-2">
-      <Label htmlFor="cnic" className="block">
+      <Label htmlFor="installer-cnic" className="block">
         CNIC <span className="text-destructive">*</span>
       </Label>
       <div className="relative">
         <Input
-          id="cnic"
+          id="installer-cnic"
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
