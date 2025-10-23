@@ -857,7 +857,7 @@ export default function InstallersPage() {
                 </Dropdown>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent>
               <div className="mb-4 flex items-center justify-between gap-2">
                 <Input
                   type="text"
@@ -1493,11 +1493,11 @@ export default function InstallersPage() {
                             action={{
                               label: (
                                 <div className="flex items-center gap-2">
-                                  <IconAdd className="size-5" /> Register New
-                                  Installer
+                                  Register Installer
+                                  <IconAdd className="size-4" duotone={false} />
                                 </div>
                               ),
-                              onClick: () => console.log("Create form clicked"),
+                              onClick: () => router.push("/installers/new"),
                             }}
                           />
                         </TableCell>

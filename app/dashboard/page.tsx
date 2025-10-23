@@ -59,6 +59,7 @@ import {
   IconGift,
   IconPackage,
   IconProduct,
+  IconReferrer,
   IconUser,
   IconUserCog,
 } from "@/components/icons";
@@ -750,7 +751,7 @@ export default function DashboardPage() {
         <>
           {/* Financial Highlight Section */}
           <Card className="relative overflow-hidden border-border ">
-            <CardContent className="p-6">
+            <CardContent>
               <div className="grid gap-6 md:grid-cols-3">
                 {/* Grand Total */}
                 <div className="space-y-2">
@@ -963,20 +964,20 @@ export default function DashboardPage() {
           </div>
 
           {/* Charts Row 1 - Product Installations & Top Performers */}
-          <div className="grid gap-4 lg:grid-cols-7">
+          <div className="grid gap-4 lg:grid-cols-6">
             {/* Product Installations - Takes 4 columns */}
-            <Card className="lg:col-span-4 transition-all hover:shadow-lg">
+            <Card className="lg:col-span-3 transition-all hover:shadow-lg">
               <DashboardCardHeader
                 title="Product Installations"
                 description={`Installation count by product type in ${timeLabels[timePeriod]}`}
                 Icon={IconChart}
               />
-              <CardContent className="py-4">
+              <CardContent>
                 {productData.length > 0 ? (
                   <>
                     <ChartContainer
                       config={chartConfig}
-                      className="min-h-[250px] w-full"
+                      className="min-h-[250px] max-h-[400px] w-full"
                     >
                       <BarChart
                         accessibilityLayer
@@ -1067,85 +1068,68 @@ export default function DashboardPage() {
               </CardFooter>
             </Card>
 
-            {/* Top Performers - Takes 3 columns */}
-            <Card className="lg:col-span-3 transition-all hover:shadow-lg flex flex-col">
+            {/* City Wise Installations */}
+            <Card className="lg:col-span-3 transition-all hover:shadow-lg">
               <DashboardCardHeader
-                title="Top Performers"
-                description={`Top 5 installers by installations in ${timeLabels[timePeriod]}`}
-                Icon={IconCourseUp}
+                title="City Wise Installations"
+                description={`Top 5 cities by product installations in ${timeLabels[timePeriod]}`}
+                Icon={IconCity}
               />
-              <div className="w-full flex items-center">
-                <TopInstallerCarousel activeInstallers={activeInstallers} />
-              </div>
-              <CardContent className="space-y-3 p-4 grow">
-                {activeInstallers.length > 0 ? (
-                  activeInstallers.map((installer, index) => (
-                    <div
-                      key={installer.installerCode}
-                      className={cn(
-                        "flex items-center gap-3 p-3 squircle rounded-2xl transition-colors",
-                        index === 0 &&
-                          "bg-gradient-to-r from-yellow-500/10 to-transparent",
-                        index === 1 &&
-                          "bg-gradient-to-r from-gray-400/10 to-transparent",
-                        index === 2 &&
-                          "bg-gradient-to-r from-orange-600/10 to-transparent",
-                        index > 2 && "bg-muted/50 hover:bg-muted"
-                      )}
+              <CardContent>
+                {cityData.length > 0 ? (
+                  <>
+                    <ChartContainer
+                      config={chartConfig}
+                      className="min-h-[250px] max-h-[400px] w-full"
                     >
-                      <div
-                        className={cn(
-                          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-sm",
-                          index === 0 &&
-                            "bg-yellow-500/20 text-yellow-600 dark:text-yellow-500",
-                          index === 1 &&
-                            "bg-gray-400/20 text-gray-600 dark:text-gray-400",
-                          index === 2 &&
-                            "bg-orange-600/20 text-orange-600 dark:text-orange-500",
-                          index > 2 && "bg-primary/10 text-primary"
-                        )}
+                      <BarChart
+                        accessibilityLayer
+                        data={cityData}
+                        layout="vertical"
+                        margin={{
+                          right: 16,
+                        }}
                       >
-                        #{index + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">
-                          {installer.installerName}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {installer.installerCode}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-6 text-right">
-                        <div>
-                          <div className="text-xs text-muted-foreground">
-                            Products
-                          </div>
-                          <div className="font-bold text-sm text-primary">
-                            {installer.totalProducts}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground">
-                            Reward
-                          </div>
-                          <div className="font-bold text-sm text-green-600 dark:text-green-500">
-                            Rs. {installer.rewardAmount.toLocaleString()}
-                          </div>
-                        </div>
-                        {installer.referralRewardAmount > 0 && (
-                          <div className="col-span-2">
-                            <div className="text-xs text-muted-foreground">
-                              Referral
-                            </div>
-                            <div className="font-semibold text-xs text-purple-600 dark:text-purple-500">
-                              Rs.{" "}
-                              {installer.referralRewardAmount.toLocaleString()}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))
+                        <CartesianGrid horizontal={false} />
+                        <YAxis
+                          dataKey="city"
+                          type="category"
+                          tickLine={false}
+                          tickMargin={10}
+                          axisLine={false}
+                          tickFormatter={(value) => value.slice(0, 3)}
+                          hide
+                        />
+                        <XAxis dataKey="installations" type="number" hide />
+                        <ChartTooltip
+                          cursor={false}
+                          content={
+                            <ChartTooltipContent indicator="line" hideLabel />
+                          }
+                        />
+                        <Bar
+                          dataKey="installations"
+                          radius={16}
+                          className="fill-primary"
+                        >
+                          <LabelList
+                            dataKey="city"
+                            position="insideLeft"
+                            offset={14}
+                            className="fill-primary-foreground font-semibold"
+                            fontSize={12}
+                          />
+                          <LabelList
+                            dataKey="installations"
+                            position="right"
+                            offset={8}
+                            className="fill-foreground"
+                            fontSize={12}
+                          />
+                        </Bar>
+                      </BarChart>
+                    </ChartContainer>
+                  </>
                 ) : (
                   <div className="h-[280px] flex items-center justify-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
@@ -1154,9 +1138,9 @@ export default function DashboardPage() {
                         className="size-20 text-muted-foreground"
                       />
                       <h3 className="text-xl text-primary">
-                        No Data Available
+                        No City Data Available
                       </h3>
-                      <p className="text-xs text-muted-foreground mb-4 text-center text-balance">
+                      <p className="text-xs text-muted-foreground mb-4 text-center text-balance lg:w-3/4">
                         There are no performance records from the previous year
                         yet. Check back once installers start registering
                         installations.
@@ -1170,7 +1154,9 @@ export default function DashboardPage() {
                   Total Installations
                 </span>
                 <div className="text-right">
-                  <div className="text-2xl font-bold">{stats.totalRewards}</div>
+                  <div className="text-2xl font-bold">
+                    {stats.totalInstallers}
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     Avg: {avgPerProduct} per product
                   </div>
@@ -1186,7 +1172,7 @@ export default function DashboardPage() {
               description={`Installers with at least 1 installation in ${timeLabels[timePeriod]}`}
               Icon={IconUserCheckRounded}
             />
-            <CardContent className="space-y-3 p-4">
+            <CardContent>
               {trainingCenterActive.length > 0 ? (
                 trainingCenterActive.map((center, index) => (
                   <div
@@ -1257,69 +1243,20 @@ export default function DashboardPage() {
           </Card>
 
           {/* Charts Row 2 - City Distribution & Active Installers */}
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* City Distribution */}
-            <Card className="transition-all hover:shadow-lg">
+          <div className="grid gap-4 lg:grid-cols-7">
+            {/* Active Installers Timeline */}
+            {/* Top Performers - Takes 3 columns */}
+            <Card className="lg:col-span-3 transition-all hover:shadow-lg flex flex-col">
               <DashboardCardHeader
-                title="City Wise Installations"
-                description={`Top 5 cities by product installations in ${timeLabels[timePeriod]}`}
-                Icon={IconCity}
+                title="Top Performers"
+                description={`Top 5 installers by installations in ${timeLabels[timePeriod]}`}
+                Icon={IconCourseUp}
               />
-              <CardContent className="space-y-3 p-4">
-                {cityData.length > 0 ? (
-                  <>
-                    <ChartContainer
-                      config={chartConfig}
-                      className="min-h-[250px] w-full"
-                    >
-                      <BarChart
-                        accessibilityLayer
-                        data={cityData}
-                        layout="vertical"
-                        margin={{
-                          right: 16,
-                        }}
-                      >
-                        <CartesianGrid horizontal={false} />
-                        <YAxis
-                          dataKey="city"
-                          type="category"
-                          tickLine={false}
-                          tickMargin={10}
-                          axisLine={false}
-                          tickFormatter={(value) => value.slice(0, 3)}
-                          hide
-                        />
-                        <XAxis dataKey="installations" type="number" hide />
-                        <ChartTooltip
-                          cursor={false}
-                          content={
-                            <ChartTooltipContent indicator="line" hideLabel />
-                          }
-                        />
-                        <Bar
-                          dataKey="installations"
-                          radius={16}
-                          className="fill-primary"
-                        >
-                          <LabelList
-                            dataKey="city"
-                            position="insideLeft"
-                            offset={14}
-                            className="fill-primary-foreground font-semibold"
-                            fontSize={12}
-                          />
-                          <LabelList
-                            dataKey="installations"
-                            position="right"
-                            offset={8}
-                            className="fill-foreground"
-                            fontSize={12}
-                          />
-                        </Bar>
-                      </BarChart>
-                    </ChartContainer>
-                  </>
+              <CardContent>
+                {activeInstallers.length > 0 ? (
+                  <div className="w-full flex items-center">
+                    <TopInstallerCarousel activeInstallers={activeInstallers} />
+                  </div>
                 ) : (
                   <div className="h-[280px] flex items-center justify-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
@@ -1328,9 +1265,9 @@ export default function DashboardPage() {
                         className="size-20 text-muted-foreground"
                       />
                       <h3 className="text-xl text-primary">
-                        No City Data Available
+                        No Data Available
                       </h3>
-                      <p className="text-xs text-muted-foreground mb-4 text-center text-balance lg:w-3/4">
+                      <p className="text-xs text-muted-foreground mb-4 text-center text-balance">
                         There are no performance records from the previous year
                         yet. Check back once installers start registering
                         installations.
@@ -1339,16 +1276,25 @@ export default function DashboardPage() {
                   </div>
                 )}
               </CardContent>
+              <CardFooter className="pt-4 border-t border-border flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Total Installations
+                </span>
+                <div className="text-right">
+                  <div className="text-2xl font-bold">{stats.totalRewards}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Avg: {avgPerProduct} per product
+                  </div>
+                </div>
+              </CardFooter>
             </Card>
-
-            {/* Active Installers Timeline */}
-            <Card className="transition-all hover:shadow-lg">
+            <Card className="transition-all hover:shadow-lg lg:col-span-4 ">
               <DashboardCardHeader
                 title="Active Installers Timeline"
                 description={`Historical view of installer activity in ${timeLabels[timePeriod]}`}
                 Icon={IconUserCheckRounded}
               />
-              <CardContent className="p-4">
+              <CardContent>
                 {activeInstallersData.length > 0 ? (
                   <div className="space-y-4">
                     {activeInstallersData.map((period, index) => (
@@ -1419,7 +1365,7 @@ export default function DashboardPage() {
                 Icon={IconProduct}
                 badge={String(recentInstallations.length)}
               />
-              <CardContent className="p-6">
+              <CardContent>
                 <div className="space-y-3">
                   {recentInstallations.length > 0 ? (
                     recentInstallations.map((installation) => {
@@ -1472,7 +1418,7 @@ export default function DashboardPage() {
                 Icon={IconUserCog}
                 badge={String(recentInstallers.length)}
               />
-              <CardContent className="p-6">
+              <CardContent>
                 <div className="space-y-3">
                   {recentInstallers.length > 0 ? (
                     recentInstallers.map((installer) => (
@@ -1628,22 +1574,24 @@ const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
   badge,
 }) => {
   return (
-    <CardHeader className="flex flex-row items-center gap-2 border-b border-border">
+    <CardHeader className="flex flex-row items-center gap-2 border-b border-border text- md:text-left ">
       <div className="flex-1 flex items-center gap-4 mb-0">
-        <div>
+        <div className="hidden md:block">
           <Icon className="w-12 h-12 mb-0 text-primary" fill />
         </div>
         <div>
-          <CardTitle className="flex items-center font-normal text-xl">
+          <CardTitle className="flex items-center font-normal text-xl justify- md:justify-start">
             {title}
           </CardTitle>
           <CardDescription>{description}</CardDescription>
         </div>
       </div>
       {badge ? (
-        <Badge variant={"outline"}>{badge}</Badge>
+        <Badge className="hidden md:block" variant={"outline"}>
+          {badge}
+        </Badge>
       ) : (
-        <div className="squircle rounded-xl bg-emerald-100 dark:bg-emerald-950 p-2">
+        <div className="squircle rounded-xl bg-emerald-100 dark:bg-emerald-950 p-2 hidden md:block">
           <Icon
             duotone={false}
             fill
@@ -1655,161 +1603,242 @@ const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
   );
 };
 
-// ✅ Define prop type as array of ActiveInstaller
 interface TopInstallerCarouselProps {
   activeInstallers: ActiveInstaller[];
 }
+const bgVariants = [
+  "dark:from-yellow-500/10 from-yellow-200 to-yellow-50/70 dark:to-yellow-500/1",
+  "dark:from-slate-500/30 from-slate-200 to-slate-50/70 dark:to-slate-300/1",
+  "dark:from-orange-500/10 from-orange-200 to-orange-50/70 dark:to-orange-500/1",
+];
 
-const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
+const avatarVariants = [
+  "dark:bg-yellow-600/50 dark:border-yellow-600 border-yellow-500/60 bg-yellow-400",
+  "dark:bg-slate-600 dark:border-slate-400 border-slate-400/40 bg-slate-300",
+  "dark:bg-orange-950 dark:border-orange-800 border-orange-400/60 bg-orange-300",
+];
+
+const titleColorVariants = [
+  "text-yellow-600 dark:text-yellow-400",
+  "text-slate-600 dark:text-slate-300",
+  "text-orange-600 dark:text-orange-500",
+];
+
+const toneVariants = [
+  "text-yellow-800/50 dark:text-yellow-300/60",
+  "text-slate-800/50 dark:text-slate-300/60",
+  "text-orange-800/50 dark:text-orange-500/60",
+];
+
+const iconColorVariants = [
+  "text-yellow-500 dark:text-yellow-400",
+  "text-slate-600 dark:text-slate-400",
+  "text-orange-600 dark:text-orange-500",
+];
+
+const iconProductTextVariants = [
+  "text-yellow-700 dark:text-yellow-200",
+  "text-slate-700 dark:text-slate-200",
+  "text-orange-700 dark:text-orange-200",
+];
+
+const giftIconVariants = [
+  "text-yellow-600",
+  "text-slate-500",
+  "text-orange-600",
+];
+
+export const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
   activeInstallers,
 }) => {
   const { copyToClipboard, copied } = useClipboard();
+
+  // Memoize installers list to avoid re-renders when parent changes unrelated state
+  const installers = activeInstallers;
+
+  // Stable click handler factory to avoid inline recreation in map
+  const handleCopy = useCallback(
+    (code: string) => () => void copyToClipboard(code),
+    [copyToClipboard]
+  );
+
   return (
     <Carousel
       opts={{ align: "start" }}
       className="w-full p-4 [&>*]:select-none"
     >
       <CarouselContent>
-        {activeInstallers.map((installer, index) => (
-          <CarouselItem
-            key={installer.installerCode}
-            className="basis-1/3 lg:basis-1/2 xl:basis-1/3"
-          >
-            <Card
-              className={cn(
-                "transition-colors flex flex-col items-center py-4 px-2 border-none bg-gradient-to-b",
-                index === 0 &&
-                  "dark:from-yellow-500/10 from-yellow-200 to-yellow-100 dark:to-yellow-500/1",
-                index === 1 &&
-                  "dark:from-slate-300/10 from-slate-200 to-slate-100 dark:to-slate-300/1",
-                index === 2 &&
-                  "dark:from-orange-500/10 from-orange-200 to-orange-100 dark:to-orange-500/1",
-                index > 2 && "from-muted/70 to-muted/10"
-              )}
+        {installers.map((installer, index) => {
+          const idx = index;
+          const isVariant = idx < 3;
+
+          return (
+            <CarouselItem
+              key={installer.installerCode}
+              className="md:basis-1/3 lg:basis-1/2 xl:basis-1/3"
             >
-              <InstallerAvatar
-                user={installer.installerName}
+              <Card
                 className={cn(
-                  "mb-4 size-18 shadow-md",
-                  index === 0 && "bg-yellow-600/50 border-yellow-600",
-                  index === 1 && "bg-slate-600 border-slate-400",
-                  index === 2 && "bg-orange-950 border-orange-800",
-                  index > 2 && "bg-muted/50"
-                )}
-              />
-              <h2
-                className={cn(
-                  "text-md font-semibold text-center text-balance mb-6 leading-none",
-                  index === 0 && "text-yellow-400",
-                  index === 1 && "text-slate-300",
-                  index === 2 && "text-orange-500",
-                  index > 2 && "text-muted-foreground"
+                  "transition-colors flex flex-col items-center py-4 px-2 border-none bg-gradient-to-b",
+                  isVariant
+                    ? bgVariants[idx]
+                    : "from-muted dark:from-muted/70 to-muted/20 dark:to-muted/10"
                 )}
               >
-                <p>{installer.installerName}</p>
-                <div
+                <InstallerAvatar
+                  user={installer.installerName}
                   className={cn(
-                    "text-xs text-muted-foreground font-light font-mono",
-                    index === 0 && "text-yellow-300/60",
-                    index === 1 && "text-slate-300/60",
-                    index === 2 && "text-orange-500/60",
-                    index > 2 && "text-muted-foreground"
+                    "mb-4 size-18 shadow-md font-black font-sans text-xl",
+                    isVariant ? avatarVariants[idx] : "bg-muted/50"
+                  )}
+                />
+
+                <h2
+                  className={cn(
+                    "text-md font-semibold text-center text-balance mb-6 leading-none",
+                    isVariant
+                      ? titleColorVariants[idx]
+                      : "text-muted-foreground"
                   )}
                 >
-                  <div className="inline-flex items-center">
-                    {installer.installerCode}{" "}
-                    <Button
-                      size={"icon"}
-                      onClick={() => copyToClipboard(installer.installerCode)}
-                      className="!p-1 !size-max rounded-sm"
-                      variant={"ghost"}
-                    >
-                      {copied === installer.installerCode ? (
-                        <IconCheck className="size-3" duotone={false} />
-                      ) : (
-                        <IconCopy className="size-3" duotone={false} />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </h2>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <IconProduct
+                  <p>{installer.installerName}</p>
+
+                  <div
                     className={cn(
-                      "size-10",
-                      index === 0 && "text-yellow-400",
-                      index === 1 && "text-slate-400",
-                      index === 2 && "text-orange-500",
-                      index > 2 && "text-muted-foreground"
+                      "text-xs text-muted-foreground font-light font-mono",
+                      isVariant ? toneVariants[idx] : "text-muted-foreground"
                     )}
-                    fill
-                  />
-                  <div className="space-y-1">
-                    <h3
-                      className={cn(
-                        "text-xs flex items-center gap-2 text-muted-foreground",
-                        // index === 0 && "text-yellow-300/60",
-                        // index === 1 && "text-violet-300/60",
-                        // index === 2 && "text-slate-300/60",
-                        index > 2 && "text-muted-foreground"
-                      )}
-                    >
-                      Products
-                    </h3>
-                    <p
-                      className={cn(
-                        "text-primary text-xl leading-none font-number",
-                        index === 0 && "text-yellow-200",
-                        index === 1 && "text-slate-200",
-                        index === 2 && "text-orange-200",
-                        index > 2 && "text-muted-foreground"
-                      )}
-                    >
-                      {installer.totalProducts}
-                    </p>
+                  >
+                    <div className="inline-flex items-center">
+                      {installer.installerCode}
+
+                      <Button
+                        size={"icon"}
+                        onClick={handleCopy(installer.installerCode)}
+                        className="!p-1 !size-max rounded-sm"
+                        variant={"ghost"}
+                      >
+                        {copied === installer.installerCode ? (
+                          <IconCheck className="size-3" duotone={false} />
+                        ) : (
+                          <IconCopy className="size-3" duotone={false} />
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <IconGift
-                    className={cn(
-                      "size-10",
-                      index === 0 && "text-yellow-700",
-                      index === 1 && "text-slate-500",
-                      index === 2 && "text-orange-600",
-                      index > 2 && "text-muted-foreground"
-                    )}
-                    fill
-                  />
-                  <div className="space-y-1">
-                    <h3
+                </h2>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <IconProduct
                       className={cn(
-                        "text-xs flex items-center gap-2 text-muted-foreground",
-                        // index === 0 && "text-yellow-300/60",
-                        // index === 1 && "text-violet-300/60",
-                        // index === 2 && "text-slate-300/60",
-                        index > 2 && "text-muted-foreground"
+                        "size-10",
+                        isVariant
+                          ? iconColorVariants[idx]
+                          : "text-muted-foreground"
                       )}
-                    >
-                      Rewards
-                    </h3>
-                    <p
-                      className={cn(
-                        "text-primary text-xl leading-none font-number",
-                        index === 0 && "text-yellow-200",
-                        index === 1 && "text-slate-200",
-                        index === 2 && "text-orange-200",
-                        index > 2 && "text-muted-foreground"
-                      )}
-                    >
-                      {formatNumber(installer.rewardAmount)}
-                    </p>
+                      fill
+                    />
+
+                    <div className="space-y-1">
+                      <h3
+                        className={cn(
+                          "text-xs flex items-center gap-2 text-muted-foreground",
+                          idx > 2 && "text-muted-foreground"
+                        )}
+                      >
+                        Products
+                      </h3>
+
+                      <p
+                        className={cn(
+                          "text-primary text-xl leading-none font-number",
+                          isVariant
+                            ? iconProductTextVariants[idx]
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        {installer.totalProducts}
+                      </p>
+                    </div>
                   </div>
+
+                  <div className="flex items-center gap-2">
+                    <IconGift
+                      className={cn(
+                        "size-10",
+                        isVariant
+                          ? giftIconVariants[idx]
+                          : "text-muted-foreground"
+                      )}
+                      fill
+                    />
+
+                    <div className="space-y-1">
+                      <h3
+                        className={cn(
+                          "text-xs flex items-center gap-2 text-muted-foreground",
+                          idx > 2 && "text-muted-foreground"
+                        )}
+                      >
+                        Rewards
+                      </h3>
+
+                      <p
+                        className={cn(
+                          "text-primary text-xl leading-none font-number",
+                          isVariant
+                            ? iconProductTextVariants[idx]
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        {formatNumber(installer.rewardAmount)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* {installer.referralRewardAmount > 0 && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <IconReferrer
+                          className={cn(
+                            "size-10",
+                            isVariant
+                              ? giftIconVariants[idx]
+                              : "text-muted-foreground"
+                          )}
+                          fill
+                        />
+
+                        <div className="space-y-1">
+                          <h3
+                            className={cn(
+                              "text-xs flex items-center gap-2 text-muted-foreground",
+                              idx > 2 && "text-muted-foreground"
+                            )}
+                          >
+                            Rewards
+                          </h3>
+
+                          <p
+                            className={cn(
+                              "text-primary text-xl leading-none font-number",
+                              isVariant
+                                ? iconProductTextVariants[idx]
+                                : "text-muted-foreground"
+                            )}
+                          >
+                            {formatNumber(installer.referralRewardAmount)}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )} */}
                 </div>
-              </div>
-            </Card>
-          </CarouselItem>
-        ))}
+              </Card>
+            </CarouselItem>
+          );
+        })}
       </CarouselContent>
     </Carousel>
   );

@@ -206,7 +206,7 @@ export default function GlobalSearchModal({
       }
       onOpenChange(false);
       if (type === "installer") {
-        router.push(`/installers?id=${id}`);
+        router.push(`/installers/${id}`);
       } else {
         router.push(`/rewards?id=${id}`);
       }
@@ -411,7 +411,7 @@ export default function GlobalSearchModal({
                             onClick={() =>
                               handleResultClick(
                                 "installer",
-                                installer._id,
+                                installer.installerCode,
                                 installer
                               )
                             }

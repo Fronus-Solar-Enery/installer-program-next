@@ -5,15 +5,15 @@ import { Skeleton } from "./ui/skeleton";
 import { TableCell, TableRow } from "./ui/table";
 import { Eye, Edit, Trash2 } from "lucide-react";
 import type { FC } from "react";
-import type { IconProps } from "./icons/Widget";
 import { cn } from "@/lib/utils";
 
 interface TableSkeletonProps {
   rows?: number;
-  tableSelector?: string; // selector for your actual table
-  headerSelector?: string; // selector for header cells, defaults to `${tableSelector} thead th`
-  actionIcons?: FC<IconProps>[]; // icons for actions column
-  excludeLastColumn?: boolean; // if true, treat the last header column as reserved for actions
+  tableSelector?: string;
+  headerSelector?: string;
+  actionIcons?: FC<IconProps>[];
+  excludeLastColumn?: boolean;
+  isCheck?: boolean;
 }
 
 export const TableSkeleton: React.FC<TableSkeletonProps> = ({
@@ -26,6 +26,7 @@ export const TableSkeleton: React.FC<TableSkeletonProps> = ({
     Trash2 as FC<IconProps>,
   ],
   excludeLastColumn = false,
+  isCheck = true,
 }) => {
   const [colWidths, setColWidths] = React.useState<string[]>([]);
 
@@ -72,7 +73,6 @@ export const TableSkeleton: React.FC<TableSkeletonProps> = ({
 
   const widths = colWidths.length ? colWidths : fallbackWidths;
 
-  // determine index to reserve for actions
   const reservedIndex = excludeLastColumn
     ? Math.max(0, widths.length - 1)
     : undefined;
@@ -87,14 +87,14 @@ export const TableSkeleton: React.FC<TableSkeletonProps> = ({
         <TableRow key={rowIdx} className="animate-pulse">
           {/* render one cell per header, skipping the reserved actions header if requested */}
           {widths.map((w, i) => {
-            if (i === reservedIndex) return null; // skip reserved actions header
+            if (i === reservedIndex) return null;
             return (
               <TableCell
                 className={cn(i === 0 && "w-12 text-center")}
                 key={i}
                 style={{ width: i === 0 ? 0 : w }}
               >
-                {i === 0 ? (
+                {i === 0 && isCheck ? (
                   <Checkbox disabled />
                 ) : (
                   <Skeleton className="h-5 w-full rounded" />
@@ -118,6 +118,3 @@ export const TableSkeleton: React.FC<TableSkeletonProps> = ({
     </>
   );
 };
-
-// Usage example:
-// <TableSkeleton rows={10} actionIcons={[Eye, Edit, Trash2]} excludeLastColumn tableSelector="#installers-table" />

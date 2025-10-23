@@ -67,7 +67,11 @@ import {
   IconEye,
   IconTrashBin2,
   IconLayer,
+  IconActivity,
+  IconAdd,
 } from "@/components/icons";
+import { TableSkeleton } from "@/components/TableSkeleton";
+import { EmptyState } from "@/components/EmptyState";
 
 interface RewardWithId
   extends Omit<IInstallerReward, "installer" | "registeredBy" | "referrer"> {
@@ -515,6 +519,9 @@ export default function RewardsPage() {
     setSearchQuery("");
   };
 
+  const activeColumnsLength =
+    Object.values(visibleColumns).filter(Boolean).length;
+
   return (
     <div className="flex-1 overflow-auto">
       <PageHeader
@@ -819,118 +826,131 @@ export default function RewardsPage() {
                 </Dropdown>
               </div>
             </CardHeader>
-            <CardContent className="p-6">
-              {loading ? (
-                <div className="text-center py-12">
-                  <div className="text-muted-foreground">
-                    Loading rewards...
-                  </div>
-                </div>
-              ) : sortedRewards.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-muted-foreground mb-4">
-                    No rewards found
-                  </div>
-                  <Button onClick={() => router.push("/rewards/new")}>
-                    Register First Reward
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <div className="border border-border rounded-2xl overflow-hidden">
-                    <Table>
-                      <TableHeader className="bg-muted/50">
-                        <TableRow className="hover:bg-muted/50">
-                          {visibleColumns.serialNumber && (
-                            <TableHead
-                              className="cursor-pointer font-semibold"
-                              onClick={() => handleSort("serialNumber")}
-                            >
-                              Serial Number {getSortIcon("serialNumber")}
-                            </TableHead>
-                          )}
-                          {visibleColumns.installerCode && (
-                            <TableHead
-                              className="cursor-pointer font-semibold"
-                              onClick={() => handleSort("installerCode")}
-                            >
-                              Installer Code {getSortIcon("installerCode")}
-                            </TableHead>
-                          )}
-                          {visibleColumns.installer && (
-                            <TableHead
-                              className="cursor-pointer font-semibold"
-                              onClick={() => handleSort("installer")}
-                            >
-                              Installer Name {getSortIcon("installer")}
-                            </TableHead>
-                          )}
-                          {visibleColumns.productModel && (
-                            <TableHead
-                              className="cursor-pointer font-semibold"
-                              onClick={() => handleSort("productModel")}
-                            >
-                              Product Model {getSortIcon("productModel")}
-                            </TableHead>
-                          )}
-                          {visibleColumns.cityOfInstallation && (
-                            <TableHead
-                              className="cursor-pointer font-semibold"
-                              onClick={() => handleSort("cityOfInstallation")}
-                            >
-                              City {getSortIcon("cityOfInstallation")}
-                            </TableHead>
-                          )}
-                          {visibleColumns.rewardAmount && (
-                            <TableHead
-                              className="cursor-pointer font-semibold"
-                              onClick={() => handleSort("rewardAmount")}
-                            >
-                              Amount {getSortIcon("rewardAmount")}
-                            </TableHead>
-                          )}
-                          {visibleColumns.paymentStatus && (
-                            <TableHead
-                              className="cursor-pointer font-semibold"
-                              onClick={() => handleSort("paymentStatus")}
-                            >
-                              Status {getSortIcon("paymentStatus")}
-                            </TableHead>
-                          )}
-                          {visibleColumns.paymentMethod && (
-                            <TableHead className="font-semibold">
-                              Payment Method
-                            </TableHead>
-                          )}
-                          {visibleColumns.transactionId && (
-                            <TableHead className="font-semibold">
-                              Transaction ID
-                            </TableHead>
-                          )}
-                          {visibleColumns.sendingDate && (
-                            <TableHead
-                              className="cursor-pointer font-semibold"
-                              onClick={() => handleSort("sendingDate")}
-                            >
-                              Sending Date {getSortIcon("sendingDate")}
-                            </TableHead>
-                          )}
-                          {visibleColumns.inverterSerialNumber && (
-                            <TableHead className="font-semibold">
-                              Inverter Serial
-                            </TableHead>
-                          )}
-                          {visibleColumns.registeredBy && (
-                            <TableHead className="font-semibold">
-                              Registered By
-                            </TableHead>
-                          )}
-                          <TableHead className="font-semibold">
-                            Actions
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
+            <CardContent>
+              <div className="border border-border rounded-2xl overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-muted/50">
+                    <TableRow className="hover:bg-muted/50">
+                      {visibleColumns.serialNumber && (
+                        <TableHead
+                          className="cursor-pointer font-semibold"
+                          onClick={() => handleSort("serialNumber")}
+                        >
+                          Serial Number {getSortIcon("serialNumber")}
+                        </TableHead>
+                      )}
+                      {visibleColumns.installerCode && (
+                        <TableHead
+                          className="cursor-pointer font-semibold"
+                          onClick={() => handleSort("installerCode")}
+                        >
+                          Installer Code {getSortIcon("installerCode")}
+                        </TableHead>
+                      )}
+                      {visibleColumns.installer && (
+                        <TableHead
+                          className="cursor-pointer font-semibold"
+                          onClick={() => handleSort("installer")}
+                        >
+                          Installer Name {getSortIcon("installer")}
+                        </TableHead>
+                      )}
+                      {visibleColumns.productModel && (
+                        <TableHead
+                          className="cursor-pointer font-semibold"
+                          onClick={() => handleSort("productModel")}
+                        >
+                          Product Model {getSortIcon("productModel")}
+                        </TableHead>
+                      )}
+                      {visibleColumns.cityOfInstallation && (
+                        <TableHead
+                          className="cursor-pointer font-semibold"
+                          onClick={() => handleSort("cityOfInstallation")}
+                        >
+                          City {getSortIcon("cityOfInstallation")}
+                        </TableHead>
+                      )}
+                      {visibleColumns.rewardAmount && (
+                        <TableHead
+                          className="cursor-pointer font-semibold"
+                          onClick={() => handleSort("rewardAmount")}
+                        >
+                          Amount {getSortIcon("rewardAmount")}
+                        </TableHead>
+                      )}
+                      {visibleColumns.paymentStatus && (
+                        <TableHead
+                          className="cursor-pointer font-semibold"
+                          onClick={() => handleSort("paymentStatus")}
+                        >
+                          Status {getSortIcon("paymentStatus")}
+                        </TableHead>
+                      )}
+                      {visibleColumns.paymentMethod && (
+                        <TableHead className="font-semibold">
+                          Payment Method
+                        </TableHead>
+                      )}
+                      {visibleColumns.transactionId && (
+                        <TableHead className="font-semibold">
+                          Transaction ID
+                        </TableHead>
+                      )}
+                      {visibleColumns.sendingDate && (
+                        <TableHead
+                          className="cursor-pointer font-semibold"
+                          onClick={() => handleSort("sendingDate")}
+                        >
+                          Sending Date {getSortIcon("sendingDate")}
+                        </TableHead>
+                      )}
+                      {visibleColumns.inverterSerialNumber && (
+                        <TableHead className="font-semibold">
+                          Inverter Serial
+                        </TableHead>
+                      )}
+                      {visibleColumns.registeredBy && (
+                        <TableHead className="font-semibold">
+                          Registered By
+                        </TableHead>
+                      )}
+                      <TableHead className="font-semibold">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableSkeleton
+                        rows={itemsPerPage}
+                        actionIcons={[IconEye, IconEdit2, IconTrashBin2]}
+                        excludeLastColumn={true}
+                        isCheck={false}
+                      />
+                    ) : sortedRewards.length === 0 ? (
+                      <TableRow className="p-4">
+                        <TableCell
+                          colSpan={activeColumnsLength + 2}
+                          className="w-full place-items-center p-0"
+                        >
+                          <EmptyState
+                            title="No Products Registered"
+                            description="You can register a new product to add in rewards."
+                            icons={[IconActivity]}
+                            className="w-full border-none rounded-none bg-card"
+                            action={{
+                              label: (
+                                <div className="flex items-center gap-2">
+                                  Register Product
+                                  <IconAdd className="size-4" duotone={false} />
+                                </div>
+                              ),
+                              onClick: () => router.push("/rewards/new"),
+                            }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      <>
                         {paginatedRewards.map((reward: RewardWithId) => (
                           <TableRow
                             key={reward._id}
@@ -1075,101 +1095,169 @@ export default function RewardsPage() {
                             </TableCell>
                           </TableRow>
                         ))}
-                      </TableBody>
+                      </>
+                    )}
+                  </TableBody>
 
-                      {/* Table Footer */}
-                      <TableFooter>
-                        <TableRow>
-                          <TableCell
-                            colSpan={
-                              Object.values(visibleColumns).filter(Boolean)
-                                .length + 1
-                            }
-                            className="py-4"
-                          >
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                              <div>
-                                Total: {sortedRewards.length} rewards | Rs.{" "}
-                                {statistics.totalAmount.toLocaleString()}
-                              </div>
-                              <div>
-                                Last updated: {new Date().toLocaleString()}
-                              </div>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      </TableFooter>
-                    </Table>
+                  {/* Table Footer */}
+                  <TableFooter>
+                    <TableRow>
+                      <TableCell
+                        colSpan={
+                          Object.values(visibleColumns).filter(Boolean).length +
+                          1
+                        }
+                        className="py-4"
+                      >
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <div>
+                            Total: {sortedRewards.length} rewards | Rs.{" "}
+                            {statistics.totalAmount.toLocaleString()}
+                          </div>
+                          <div>Last updated: {new Date().toLocaleString()}</div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              </div>
+
+              {/* Pagination Controls */}
+              <div className="flex items-center justify-between px-2 pt-4 relative">
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
+                    Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+                    <Select
+                      value={String(itemsPerPage)}
+                      onValueChange={(value) => {
+                        setItemsPerPage(Number(value));
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-max gap-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="25">25</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    of {sortedRewards.length} results
                   </div>
+                </div>
 
-                  {/* Pagination Controls */}
-                  <div className="flex items-center justify-between px-2 pt-4">
-                    <div className="flex items-center gap-4">
-                      <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
-                        Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-                        <Select
-                          value={String(itemsPerPage)}
-                          onValueChange={(value) => {
-                            setItemsPerPage(Number(value));
-                            setCurrentPage(1);
-                          }}
-                        >
-                          <SelectTrigger className="h-8 w-max gap-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="10">10</SelectItem>
-                            <SelectItem value="25">25</SelectItem>
-                            <SelectItem value="50">50</SelectItem>
-                            <SelectItem value="100">100</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        of {sortedRewards.length} results
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setCurrentPage(1)}
-                          disabled={currentPage === 1}
-                        >
-                          <ChevronsLeft className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setCurrentPage(currentPage - 1)}
-                          disabled={currentPage === 1}
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <span className="text-sm px-3">
-                          Page {currentPage} of {totalPages}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setCurrentPage(currentPage + 1)}
-                          disabled={currentPage === totalPages}
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setCurrentPage(totalPages)}
-                          disabled={currentPage === totalPages}
-                        >
-                          <ChevronsRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCurrentPage(1)}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm px-3">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
                   </div>
-                </>
-              )}
+                </div>
+
+                {/* <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-max h-full flex items-center justify-center">
+                  {selectedInstallers.size > 0 && (
+                    <AnimatePresence>
+                      <motion.div
+                        initial={{
+                          opacity: 0,
+                          y: 5,
+                        }}
+                        animate={{
+                          opacity: 1,
+                          y: 0,
+                        }}
+                        exit={{ opacity: 0, y: 5 }}
+                        className={cn(
+                          "border border-border rounded-2xl p-2 flex items-center gap-2 relative"
+                        )}
+                      >
+                        <div className="px-4 py-3 bg-background rounded-xl flex items-center justify-center leading-none select-none">
+                          Selected: {selectedInstallers.size}
+                        </div>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size={"icon"}
+                              disabled={bulkDeleting}
+                              className="gap-1"
+                            >
+                              {bulkDeleting ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <IconTrashBin2
+                                  width={2}
+                                  duotone={false}
+                                  className="h-4 w-4"
+                                />
+                              )}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Delete {selectedInstallers.size} Installer(s)?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will
+                                permanently delete the selected installers and
+                                their Google Contacts.
+                                <br />
+                                <br />
+                                <strong>Note:</strong> Installers with existing
+                                rewards cannot be deleted.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={handleBulkDelete}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete {selectedInstallers.size} Installer(s)
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </motion.div>
+                    </AnimatePresence>
+                  )}
+                </div> */}
+              </div>
             </CardContent>
           </Card>
         </div>
