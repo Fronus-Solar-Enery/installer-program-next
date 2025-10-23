@@ -1685,6 +1685,7 @@ export const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                     : "from-muted dark:from-muted/70 to-muted/20 dark:to-muted/10"
                 )}
               >
+                {/* INSTALLER AVATAR */}
                 <InstallerAvatar
                   user={installer.installerName}
                   className={cn(
@@ -1693,9 +1694,10 @@ export const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                   )}
                 />
 
+                {/* INSTALLER NAME & CODE */}
                 <h2
                   className={cn(
-                    "text-md font-semibold text-center text-balance mb-6 leading-none",
+                    "text-md font-semibold text-center text-balance mb-4 leading-none",
                     isVariant
                       ? titleColorVariants[idx]
                       : "text-muted-foreground"
@@ -1705,8 +1707,8 @@ export const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
 
                   <div
                     className={cn(
-                      "text-xs text-muted-foreground font-light font-mono",
-                      isVariant ? toneVariants[idx] : "text-muted-foreground"
+                      "text-xs text-muted-foreground/70 font-light font-mono"
+                      // isVariant ? toneVariants[idx] : "text-muted-foreground"
                     )}
                   >
                     <div className="inline-flex items-center">
@@ -1728,6 +1730,7 @@ export const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                   </div>
                 </h2>
 
+                {/* ICONS */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <IconProduct
