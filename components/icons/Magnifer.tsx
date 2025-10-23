@@ -1,12 +1,5 @@
 import { FC } from 'react';
 
-interface IconProps {
-  className?: string;
-  fill?: boolean;
-  duotone?: boolean;
-  width?: string | number;
-}
-
 const IconMagnifer: FC<IconProps> = ({ className, fill = false, duotone = true, width = '1.5' }) => {
   return (
     <>

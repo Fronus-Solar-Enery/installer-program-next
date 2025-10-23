@@ -1,11 +1,6 @@
 import { FC } from "react";
 
-interface IconProps {
-  className?: string;
-  fill?: boolean;
-  duotone?: boolean;
-  width?: string | number;
-}
+
 
 const IconHomeAngle2: FC<IconProps> = ({
   className,

@@ -1,20 +1,16 @@
 import { FC } from "react";
 
-interface IconProps {
-  className?: string;
-  bgClassName?: string;
+interface IconProps extends React.SVGProps<SVGSVGElement> {
   tickClassName?: string;
+  bgClassName?: string;
   circleClass?: string;
-  fill?: boolean;
-  duotone?: boolean;
-  width?: string | number;
 }
 
 const IconVerifiedCheck: FC<IconProps> = ({
   className,
   tickClassName,
   bgClassName,
-  circleClass
+  circleClass,
 }) => {
   return (
     <>

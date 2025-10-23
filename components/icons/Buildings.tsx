@@ -104,18 +104,4 @@ const IconBuildings: FC<IconProps> = ({
   );
 };
 
-// Keywords for search and categorization
-(IconBuildings as IconComponent).keywords = [
-  "buildings",
-  "edifice",
-  "construction",
-  "rising",
-  "increasing",
-  "augmentative",
-  "heightening",
-  "augmenting",
-  "accommodation",
-  "accommodations",
-];
-
-export default IconBuildings as IconComponent;
+export default IconBuildings;

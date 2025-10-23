@@ -1,6 +1,4 @@
-import { FC } from "react";
-import { IconProps } from "./Whatsapp";
-
+import { FC } from "react"; 
 const IconArrowUpDown: FC<IconProps> = ({
   className,
   fill = false,

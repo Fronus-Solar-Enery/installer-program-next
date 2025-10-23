@@ -50,6 +50,31 @@ import {
 } from "@/components/ui/chart";
 import IconChart from "@/components/icons/Chart";
 import IconCourseUp from "@/components/icons/CourseUp";
+import IconUserCheckRounded from "@/components/icons/UserCheckRounded";
+import {
+  IconArrowRightUp,
+  IconCheck,
+  IconCity,
+  IconCopy,
+  IconGift,
+  IconPackage,
+  IconProduct,
+  IconUser,
+  IconUserCog,
+} from "@/components/icons";
+import { useRelativeTime } from "@/lib/getRelativeTime";
+import IconFileSmile from "@/components/icons/FileSmile";
+import IconRoundArrowRightUp from "@/components/icons/RoundArrowRightUp";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import { InstallerAvatar, UserAvatar } from "@/components/UserAvatar";
+import { formatNumber } from "@/lib/formatNumber";
+import { useClipboard } from "@/hooks/useCopyToClipboard";
 
 interface Stats {
   totalInstallers: number;
@@ -595,14 +620,6 @@ export default function DashboardPage() {
     }
   }, [session, fetchStats]);
 
-  if (status === "loading" || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Skeleton className="h-8 w-32" />
-      </div>
-    );
-  }
-
   if (!session) {
     return null;
   }
@@ -615,7 +632,7 @@ export default function DashboardPage() {
   } satisfies ChartConfig;
 
   return (
-    <div className="flex-1 overflow-auto space-y-4 container mx-auto">
+    <div className="flex-1 overflow-auto space-y-4 mx-auto">
       <PageHeader
         title="Dashboard"
         description="Overview of installer activity, rewards, and performance metrics"
@@ -626,7 +643,7 @@ export default function DashboardPage() {
               defaultValue={timePeriod}
               // value={timePeriod}
               onValueChange={(value) => {
-                if (!value) return; // safeguard for deselection
+                if (!value) return;
                 if (value === "custom") {
                   setIsCustomDateOpen(true);
                 }
@@ -725,723 +742,782 @@ export default function DashboardPage() {
           </div>
         }
       />
-      <div className="space-y-6">
-        {/* Financial Highlight Section */}
-        <Card className="relative overflow-hidden border-border">
-          <CardContent className="p-6">
-            <div className="grid gap-6 md:grid-cols-3">
-              {/* Grand Total */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Target className="h-4 w-4" />
-                  <span>Total Rewards (Installer + Referrer)</span>
-                </div>
-                <div className="text-4xl font-bold text-primary">
-                  Rs. {stats.grandTotal.toLocaleString()}
-                </div>
-                <div className="flex items-center gap-4 text-xs">
-                  <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 rounded-full bg-blue-500" />
-                    <span className="text-muted-foreground">
-                      Installer: Rs. {stats.totalAmount.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 rounded-full bg-purple-500" />
-                    <span className="text-muted-foreground">
-                      Referrer: Rs.{" "}
-                      {stats.referrerRewardsTotal.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Paid Amount */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <DollarSign className="h-4 w-4" />
-                  <span>Total Paid</span>
-                </div>
-                <div className="text-4xl font-bold text-emerald-600 dark:text-emerald-500">
-                  Rs. {stats.grandTotalPaid.toLocaleString()}
-                </div>
-                <div className="flex items-center gap-4 text-xs">
-                  <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span className="text-muted-foreground">
-                      Installer: Rs. {stats.paidAmount.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                    <span className="text-muted-foreground">
-                      Referrer: Rs. {stats.referrerRewardsPaid.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Pending Amount */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Package className="h-4 w-4" />
-                  <span>Total Pending</span>
-                </div>
-                <div className="text-4xl font-bold text-orange-600 dark:text-orange-500">
-                  Rs. {stats.grandTotalPending.toLocaleString()}
-                </div>
-                <div className="flex items-center gap-4 text-xs">
-                  <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 rounded-full bg-orange-500" />
-                    <span className="text-muted-foreground">
-                      Installer: Rs. {stats.pendingAmount.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 rounded-full bg-orange-500" />
-                    <span className="text-muted-foreground">
-                      Referrer: Rs.{" "}
-                      {stats.referrerRewardsPending.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="mt-6 space-y-2">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Payment Progress</span>
-                <span>{grandTotalPaidPercentage}% Completed</span>
-              </div>
-              <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-                <div className="flex h-full">
-                  <div
-                    className="bg-emerald-500 transition-all duration-500"
-                    style={{ width: `${grandTotalPaidPercentage}%` }}
-                  />
-                  <div
-                    className="bg-orange-500 transition-all duration-500"
-                    style={{ width: `${grandTotalPendingPercentage}%` }}
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-4 text-xs">
-                <div className="flex items-center gap-1">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                  <span className="text-muted-foreground">
-                    Paid {grandTotalPaidPercentage}%
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="h-2 w-2 rounded-full bg-orange-500" />
-                  <span className="text-muted-foreground">
-                    Pending {grandTotalPendingPercentage}%
-                  </span>
-                </div>
-                {stats.failedAmount > 0 && (
-                  <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 rounded-full bg-red-500" />
-                    <span className="text-muted-foreground">
-                      Failed Rs. {stats.failedAmount.toLocaleString()}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Stats Grid - Flexible 4 columns */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Total Installers */}
-          <Card className="relative overflow-hidden transition-all hover:shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Installers
-              </CardTitle>
-              <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                <Users className="h-5 w-5 text-blue-500" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.totalInstallers}</div>
-              <div className="flex items-center gap-1 mt-2 text-xs">
-                <ArrowUpRight className="h-3 w-3 text-green-500" />
-                <span className="text-green-500 font-medium">+0%</span>
-                <span className="text-muted-foreground">from last month</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Total Installations */}
-          <Card className="relative overflow-hidden transition-all hover:shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Installations
-              </CardTitle>
-              <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                <Package className="h-5 w-5 text-green-500" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{stats.totalRewards}</div>
-              <div className="flex items-center gap-1 mt-2 text-xs">
-                <ArrowUpRight className="h-3 w-3 text-green-500" />
-                <span className="text-green-500 font-medium">+0%</span>
-                <span className="text-muted-foreground">from last month</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Paid Rewards */}
-          <Card className="relative overflow-hidden transition-all hover:shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Paid Rewards
-              </CardTitle>
-              <div className="h-10 w-10 rounded-full bg-orange-500/10 flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-orange-500" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{paidCount}</div>
-              <div className="flex items-center gap-1 mt-2 text-xs">
-                <ArrowUpRight className="h-3 w-3 text-green-500" />
-                <span className="text-green-500 font-medium">+0%</span>
-                <span className="text-muted-foreground">from last month</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Total Amount */}
-          <Card className="relative overflow-hidden transition-all hover:shadow-lg">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Amount
-              </CardTitle>
-              <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-                <Target className="h-5 w-5 text-purple-500" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                Rs. {(stats.totalAmount / 1000).toFixed(0)}K
-              </div>
-              <div className="flex items-center gap-1 mt-2 text-xs">
-                <span className="text-muted-foreground">
-                  Total rewards distributed
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+      {loading ? (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <Skeleton className="h-8 w-32" />
         </div>
+      ) : (
+        <>
+          {/* Financial Highlight Section */}
+          <Card className="relative overflow-hidden border-border ">
+            <CardContent className="p-6">
+              <div className="grid gap-6 md:grid-cols-3">
+                {/* Grand Total */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Target className="h-4 w-4" />
+                    <span>Total Rewards (Installer + Referrer)</span>
+                  </div>
+                  <div className="text-4xl font-bold text-primary">
+                    Rs. {stats.grandTotal.toLocaleString()}
+                  </div>
+                  <div className="flex items-center gap-4 text-xs">
+                    <div className="flex items-center gap-1">
+                      <div className="h-2 w-2 rounded-full bg-blue-500" />
+                      <span className="text-muted-foreground">
+                        Installer: Rs. {stats.totalAmount.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="h-2 w-2 rounded-full bg-purple-500" />
+                      <span className="text-muted-foreground">
+                        Referrer: Rs.{" "}
+                        {stats.referrerRewardsTotal.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-        {/* Charts Row 1 - Product Installations & Top Performers */}
-        <div className="grid gap-4 lg:grid-cols-7">
-          {/* Product Installations - Takes 4 columns */}
-          <Card className="lg:col-span-4 transition-all hover:shadow-lg">
-            <DashboardCardHeader
-              title="Product Installations"
-              description={`Installation count by product type in ${timeLabels[timePeriod]}`}
-              Icon={IconChart}
-            />
-            <CardContent className="py-4">
-              {productData.length > 0 ? (
-                <>
-                  <ChartContainer
-                    config={chartConfig}
-                    className="min-h-[250px] w-full"
-                  >
-                    <BarChart
-                      accessibilityLayer
-                      data={productData}
-                      layout="vertical"
-                      margin={{
-                        right: 16,
-                      }}
+                {/* Paid Amount */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <DollarSign className="h-4 w-4" />
+                    <span>Total Paid</span>
+                  </div>
+                  <div className="text-4xl font-bold text-emerald-600 dark:text-emerald-500">
+                    Rs. {stats.grandTotalPaid.toLocaleString()}
+                  </div>
+                  <div className="flex items-center gap-4 text-xs">
+                    <div className="flex items-center gap-1">
+                      <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                      <span className="text-muted-foreground">
+                        Installer: Rs. {stats.paidAmount.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                      <span className="text-muted-foreground">
+                        Referrer: Rs.{" "}
+                        {stats.referrerRewardsPaid.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pending Amount */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <Package className="h-4 w-4" />
+                    <span>Total Pending</span>
+                  </div>
+                  <div className="text-4xl font-bold text-orange-600 dark:text-orange-500">
+                    Rs. {stats.grandTotalPending.toLocaleString()}
+                  </div>
+                  <div className="flex items-center gap-4 text-xs">
+                    <div className="flex items-center gap-1">
+                      <div className="h-2 w-2 rounded-full bg-orange-500" />
+                      <span className="text-muted-foreground">
+                        Installer: Rs. {stats.pendingAmount.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="h-2 w-2 rounded-full bg-orange-500" />
+                      <span className="text-muted-foreground">
+                        Referrer: Rs.{" "}
+                        {stats.referrerRewardsPending.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mt-6 space-y-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Payment Progress</span>
+                  <span>{grandTotalPaidPercentage}% Completed</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
+                  <div className="flex h-full">
+                    <div
+                      className="bg-emerald-500 transition-all duration-500"
+                      style={{ width: `${grandTotalPaidPercentage}%` }}
+                    />
+                    <div
+                      className="bg-orange-500 transition-all duration-500"
+                      style={{ width: `${grandTotalPendingPercentage}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 text-xs">
+                  <div className="flex items-center gap-1">
+                    <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                    <span className="text-muted-foreground">
+                      Paid {grandTotalPaidPercentage}%
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="h-2 w-2 rounded-full bg-orange-500" />
+                    <span className="text-muted-foreground">
+                      Pending {grandTotalPendingPercentage}%
+                    </span>
+                  </div>
+                  {stats.failedAmount > 0 && (
+                    <div className="flex items-center gap-1">
+                      <div className="h-2 w-2 rounded-full bg-red-500" />
+                      <span className="text-muted-foreground">
+                        Failed Rs. {stats.failedAmount.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Stats Grid - Flexible 4 columns */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Total Installers */}
+            <Card className="relative overflow-hidden transition-all hover:shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Installers
+                </CardTitle>
+                <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-blue-500" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {stats.totalInstallers}
+                </div>
+                <div className="flex items-center gap-1 mt-2 text-xs">
+                  <ArrowUpRight className="h-3 w-3 text-green-500" />
+                  <span className="text-green-500 font-medium">+0%</span>
+                  <span className="text-muted-foreground">from last month</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Total Installations */}
+            <Card className="relative overflow-hidden transition-all hover:shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Installations
+                </CardTitle>
+                <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <Package className="h-5 w-5 text-green-500" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{stats.totalRewards}</div>
+                <div className="flex items-center gap-1 mt-2 text-xs">
+                  <ArrowUpRight className="h-3 w-3 text-green-500" />
+                  <span className="text-green-500 font-medium">+0%</span>
+                  <span className="text-muted-foreground">from last month</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Paid Rewards */}
+            <Card className="relative overflow-hidden transition-all hover:shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Paid Rewards
+                </CardTitle>
+                <div className="h-10 w-10 rounded-full bg-orange-500/10 flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-orange-500" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{paidCount}</div>
+                <div className="flex items-center gap-1 mt-2 text-xs">
+                  <ArrowUpRight className="h-3 w-3 text-green-500" />
+                  <span className="text-green-500 font-medium">+0%</span>
+                  <span className="text-muted-foreground">from last month</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Total Amount */}
+            <Card className="relative overflow-hidden transition-all hover:shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Amount
+                </CardTitle>
+                <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                  <Target className="h-5 w-5 text-purple-500" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  Rs. {(stats.totalAmount / 1000).toFixed(0)}K
+                </div>
+                <div className="flex items-center gap-1 mt-2 text-xs">
+                  <span className="text-muted-foreground">
+                    Total rewards distributed
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Charts Row 1 - Product Installations & Top Performers */}
+          <div className="grid gap-4 lg:grid-cols-7">
+            {/* Product Installations - Takes 4 columns */}
+            <Card className="lg:col-span-4 transition-all hover:shadow-lg">
+              <DashboardCardHeader
+                title="Product Installations"
+                description={`Installation count by product type in ${timeLabels[timePeriod]}`}
+                Icon={IconChart}
+              />
+              <CardContent className="py-4">
+                {productData.length > 0 ? (
+                  <>
+                    <ChartContainer
+                      config={chartConfig}
+                      className="min-h-[250px] w-full"
                     >
-                      <CartesianGrid horizontal={false} />
-                      <YAxis
-                        dataKey="model"
-                        type="category"
-                        tickLine={false}
-                        tickMargin={10}
-                        axisLine={false}
-                        tickFormatter={(value) => value.slice(0, 3)}
-                        hide
-                      />
-                      <XAxis dataKey="installations" type="number" hide />
-                      <ChartTooltip
-                        cursor={false}
-                        content={
-                          <ChartTooltipContent indicator="line" hideLabel />
-                        }
-                      />
-                      <Bar
-                        dataKey="installations"
-                        radius={16}
-                        className="fill-primary"
+                      <BarChart
+                        accessibilityLayer
+                        data={productData}
+                        layout="vertical"
+                        margin={{
+                          right: 16,
+                        }}
                       >
-                        <LabelList
+                        <CartesianGrid horizontal={false} />
+                        <YAxis
                           dataKey="model"
-                          position="insideLeft"
-                          offset={14}
-                          className="fill-primary-foreground font-semibold"
-                          fontSize={12}
+                          type="category"
+                          tickLine={false}
+                          tickMargin={10}
+                          axisLine={false}
+                          tickFormatter={(value) => value.slice(0, 3)}
+                          hide
                         />
-                        <LabelList
+                        <XAxis dataKey="installations" type="number" hide />
+                        <ChartTooltip
+                          cursor={false}
+                          content={
+                            <ChartTooltipContent indicator="line" hideLabel />
+                          }
+                        />
+                        <Bar
                           dataKey="installations"
-                          position="right"
-                          offset={8}
-                          className="fill-foreground"
-                          fontSize={12}
-                        />
-                      </Bar>
-                    </BarChart>
-                  </ChartContainer>
-                </>
-              ) : (
-                <div className="h-[280px] flex items-center justify-center text-muted-foreground">
-                  No installation data available
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="pt-4 border-t border-border flex items-center justify-between">
-              <span className="text-sm font-medium text-muted-foreground">
-                Total Installations
-              </span>
-              <div className="text-right">
-                <div className="text-2xl font-bold">{stats.totalRewards}</div>
-                <div className="text-xs text-muted-foreground">
-                  Avg: {avgPerProduct} per product
-                </div>
-              </div>
-            </CardFooter>
-          </Card>
-
-          {/* Top Performers - Takes 3 columns */}
-          <Card className="lg:col-span-3 transition-all hover:shadow-lg">
-            <DashboardCardHeader
-              title="Top Performers"
-              description={`Top 5 installers by installations in ${timeLabels[timePeriod]}`}
-              Icon={IconCourseUp}
-            />
-            <CardContent className="space-y-3 p-4">
-              {activeInstallers.length > 0 ? (
-                activeInstallers.map((installer, index) => (
-                  <div
-                    key={installer.installerCode}
-                    className={cn(
-                      "flex items-center gap-3 p-3 rounded-2xl transition-colors",
-                      index === 0 &&
-                        "bg-gradient-to-r from-yellow-500/10 to-transparent",
-                      index === 1 &&
-                        "bg-gradient-to-r from-gray-400/10 to-transparent",
-                      index === 2 &&
-                        "bg-gradient-to-r from-orange-600/10 to-transparent",
-                      index > 2 && "bg-muted/50 hover:bg-muted"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-sm",
-                        index === 0 &&
-                          "bg-yellow-500/20 text-yellow-600 dark:text-yellow-500",
-                        index === 1 &&
-                          "bg-gray-400/20 text-gray-600 dark:text-gray-400",
-                        index === 2 &&
-                          "bg-orange-600/20 text-orange-600 dark:text-orange-500",
-                        index > 2 && "bg-primary/10 text-primary"
-                      )}
-                    >
-                      #{index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">
-                        {installer.installerName}
-                      </div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {installer.installerCode}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 text-right">
-                      <div>
-                        <div className="text-xs text-muted-foreground">
-                          Products
-                        </div>
-                        <div className="font-bold text-sm text-primary">
-                          {installer.totalProducts}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-muted-foreground">
-                          Reward
-                        </div>
-                        <div className="font-bold text-sm text-green-600 dark:text-green-500">
-                          Rs. {installer.rewardAmount.toLocaleString()}
-                        </div>
-                      </div>
-                      {installer.referralRewardAmount > 0 && (
-                        <div className="col-span-2">
-                          <div className="text-xs text-muted-foreground">
-                            Referral
-                          </div>
-                          <div className="font-semibold text-xs text-purple-600 dark:text-purple-500">
-                            Rs.{" "}
-                            {installer.referralRewardAmount.toLocaleString()}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  No data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Active Installers by Training Center */}
-        <Card className="transition-all hover:shadow-lg">
-          <DashboardCardHeader
-            title="Active Installers by Training Center"
-            description={`Installers with at least 1 installation in ${timeLabels[timePeriod]}`}
-            Icon={IconCourseUp}
-          />
-          <CardContent className="space-y-3 p-4">
-            {trainingCenterActive.length > 0 ? (
-              trainingCenterActive.map((center, index) => (
-                <div
-                  key={center.trainingCenter}
-                  onClick={async () => {
-                    setSelectedCenter(center.trainingCenter);
-                    setModalOpen(true);
-
-                    // Fetch installers for this training center
-                    const { startDate, endDate } = getDateRange(timePeriod);
-                    const dateParams =
-                      startDate && endDate
-                        ? `&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
-                        : "";
-
-                    const res = await fetch(
-                      `/api/dashboard/installers-by-center?trainingCenter=${encodeURIComponent(
-                        center.trainingCenter
-                      )}${dateParams}`
-                    );
-                    const data = await res.json();
-                    setCenterInstallers(data.data || []);
-                  }}
-                  className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
-                >
-                  <div
-                    className={cn(
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-bold",
-                      "bg-primary/10 text-primary"
-                    )}
-                  >
-                    {index + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-base truncate">
-                      {center.trainingCenter}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Click to view installers
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-right">
-                    <div>
-                      <div className="text-xs text-muted-foreground">
-                        Active
-                      </div>
-                      <div className="font-bold text-lg text-primary">
-                        {center.activeInstallersCount}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">
-                        Installations
-                      </div>
-                      <div className="font-bold text-sm text-green-600 dark:text-green-500">
-                        {center.totalInstallations}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                No active installers in selected period
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Charts Row 2 - City Distribution & Active Installers */}
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* City Distribution */}
-          <Card className="transition-all hover:shadow-lg">
-            <DashboardCardHeader
-              title="City Distribution"
-              description={`Top 5 cities by product installations in ${timeLabels[timePeriod]}`}
-              Icon={IconCourseUp}
-            />
-            <CardContent className="space-y-3 p-4">
-              {cityData.length > 0 ? (
-                <>
-                  <ChartContainer
-                    config={chartConfig}
-                    className="min-h-[250px] w-full"
-                  >
-                    <BarChart
-                      accessibilityLayer
-                      data={cityData}
-                      layout="vertical"
-                      margin={{
-                        right: 16,
-                      }}
-                    >
-                      <CartesianGrid horizontal={false} />
-                      <YAxis
-                        dataKey="city"
-                        type="category"
-                        tickLine={false}
-                        tickMargin={10}
-                        axisLine={false}
-                        tickFormatter={(value) => value.slice(0, 3)}
-                        hide
-                      />
-                      <XAxis dataKey="installations" type="number" hide />
-                      <ChartTooltip
-                        cursor={false}
-                        content={
-                          <ChartTooltipContent indicator="line" hideLabel />
-                        }
-                      />
-                      <Bar
-                        dataKey="installations"
-                        radius={16}
-                        className="fill-primary"
-                      >
-                        <LabelList
-                          dataKey="city"
-                          position="insideLeft"
-                          offset={14}
-                          className="fill-primary-foreground font-semibold"
-                          fontSize={12}
-                        />
-                        <LabelList
-                          dataKey="installations"
-                          position="right"
-                          offset={8}
-                          className="fill-foreground"
-                          fontSize={12}
-                        />
-                      </Bar>
-                    </BarChart>
-                  </ChartContainer>
-                </>
-              ) : (
-                <div className="h-[280px] flex items-center justify-center text-muted-foreground">
-                  No city data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Active Installers Timeline */}
-          <Card className="transition-all hover:shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <UserCheck className="h-5 w-5 text-primary" />
-                Active Installers Timeline
-              </CardTitle>
-              <CardDescription>
-                Historical view of installer activity in{" "}
-                {timeLabels[timePeriod]}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {activeInstallersData.length > 0 ? (
-                <div className="space-y-4">
-                  {activeInstallersData.map((period, index) => (
-                    <div key={period.period} className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium flex-1">
-                          {period.label}
-                        </span>
-                        <div className="flex items-center gap-3">
-                          <Badge
-                            variant="secondary"
-                            className="text-xs font-bold"
-                          >
-                            {period.count} installers
-                          </Badge>
-                          <span className="text-xs text-muted-foreground min-w-[50px] text-right">
-                            {stats.totalInstallers > 0
-                              ? Math.round(
-                                  (period.count / stats.totalInstallers) * 100
-                                )
-                              : 0}
-                            %
-                          </span>
-                        </div>
-                      </div>
-                      <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                        <div
-                          className="h-2 rounded-full transition-all duration-500"
-                          style={{
-                            width: `${
-                              stats.totalInstallers > 0
-                                ? (period.count / stats.totalInstallers) * 100
-                                : 0
-                            }%`,
-                            backgroundColor: "var(--color-primary)",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  <div className="mt-6 pt-4 border-t border-border">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-muted-foreground">
-                        Total Registered
-                      </span>
-                      <span className="text-2xl font-bold">
-                        {stats.totalInstallers}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="h-[280px] flex items-center justify-center text-muted-foreground">
-                  No active installer data available
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Activity Row - Recent Activities */}
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Recent Installations */}
-          <Card className="transition-all hover:shadow-lg">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-primary" />
-                    Recent Installations
-                  </CardTitle>
-                  <CardDescription>
-                    Latest product installations
-                  </CardDescription>
-                </div>
-                <Badge variant="outline">{recentInstallations.length}</Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recentInstallations.length > 0 ? (
-                  recentInstallations.map((installation) => (
-                    <div
-                      key={installation._id}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
-                    >
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Package className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm truncate">
-                          {installation.productModel}
-                        </div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {installation.installer?.installerCode || "N/A"}
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="font-bold text-sm whitespace-nowrap">
-                          Rs. {installation.rewardAmount}
-                        </div>
-                        <div className="text-xs text-muted-foreground whitespace-nowrap">
-                          {new Date(installation.createdAt).toLocaleDateString(
-                            "en-GB",
-                            { day: "numeric", month: "short" }
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                          radius={16}
+                          className="fill-primary"
+                        >
+                          <LabelList
+                            dataKey="model"
+                            position="insideLeft"
+                            offset={14}
+                            className="fill-primary-foreground font-semibold"
+                            fontSize={12}
+                          />
+                          <LabelList
+                            dataKey="installations"
+                            position="right"
+                            offset={8}
+                            className="fill-foreground"
+                            fontSize={12}
+                          />
+                        </Bar>
+                      </BarChart>
+                    </ChartContainer>
+                  </>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    No recent installations
+                  <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                    <div className="flex flex-col items-center gap-2">
+                      <IconFileSmile
+                        fill
+                        className="size-20 text-muted-foreground"
+                      />
+                      <h3 className="text-xl text-primary">
+                        No Installation Found
+                      </h3>
+                      <p className="text-xs text-muted-foreground mb-4 text-center text-balance">
+                        You haven&rsquo;t registered any installations. Add
+                        first installation to get started.
+                      </p>
+                      <Button href="/rewards/new" className="gap-2">
+                        Add Installation
+                        <IconArrowRightUp
+                          className="size-4"
+                          width={2}
+                          duotone={false}
+                        />
+                      </Button>
+                    </div>
                   </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent Installers */}
-          <Card className="transition-all hover:shadow-lg">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <UserCheck className="h-5 w-5 text-primary" />
-                    Recent Installers
-                  </CardTitle>
-                  <CardDescription>Newly registered installers</CardDescription>
+              </CardContent>
+              <CardFooter className="pt-4 border-t border-border flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Total Installations
+                </span>
+                <div className="text-right">
+                  <div className="text-2xl font-bold">
+                    {stats.totalInstallers}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Avg: {avgPerProduct} per product
+                  </div>
                 </div>
-                <Badge variant="outline">{recentInstallers.length}</Badge>
+              </CardFooter>
+            </Card>
+
+            {/* Top Performers - Takes 3 columns */}
+            <Card className="lg:col-span-3 transition-all hover:shadow-lg flex flex-col">
+              <DashboardCardHeader
+                title="Top Performers"
+                description={`Top 5 installers by installations in ${timeLabels[timePeriod]}`}
+                Icon={IconCourseUp}
+              />
+              <div className="w-full flex items-center">
+                <TopInstallerCarousel activeInstallers={activeInstallers} />
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {recentInstallers.length > 0 ? (
-                  recentInstallers.map((installer) => (
+              <CardContent className="space-y-3 p-4 grow">
+                {activeInstallers.length > 0 ? (
+                  activeInstallers.map((installer, index) => (
                     <div
-                      key={installer._id}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                      key={installer.installerCode}
+                      className={cn(
+                        "flex items-center gap-3 p-3 squircle rounded-2xl transition-colors",
+                        index === 0 &&
+                          "bg-gradient-to-r from-yellow-500/10 to-transparent",
+                        index === 1 &&
+                          "bg-gradient-to-r from-gray-400/10 to-transparent",
+                        index === 2 &&
+                          "bg-gradient-to-r from-orange-600/10 to-transparent",
+                        index > 2 && "bg-muted/50 hover:bg-muted"
+                      )}
                     >
-                      <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center shrink-0">
-                        <Users className="h-5 w-5 text-blue-500" />
+                      <div
+                        className={cn(
+                          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-sm",
+                          index === 0 &&
+                            "bg-yellow-500/20 text-yellow-600 dark:text-yellow-500",
+                          index === 1 &&
+                            "bg-gray-400/20 text-gray-600 dark:text-gray-400",
+                          index === 2 &&
+                            "bg-orange-600/20 text-orange-600 dark:text-orange-500",
+                          index > 2 && "bg-primary/10 text-primary"
+                        )}
+                      >
+                        #{index + 1}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm truncate">
-                          {installer.fullName}
+                          {installer.installerName}
                         </div>
                         <div className="text-xs text-muted-foreground truncate">
                           {installer.installerCode}
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <div className="font-medium text-sm whitespace-nowrap">
-                          {installer.city}
+                      <div className="flex items-center gap-6 text-right">
+                        <div>
+                          <div className="text-xs text-muted-foreground">
+                            Products
+                          </div>
+                          <div className="font-bold text-sm text-primary">
+                            {installer.totalProducts}
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground whitespace-nowrap">
-                          {new Date(installer.createdAt).toLocaleDateString(
-                            "en-GB",
-                            { day: "numeric", month: "short" }
-                          )}
+                        <div>
+                          <div className="text-xs text-muted-foreground">
+                            Reward
+                          </div>
+                          <div className="font-bold text-sm text-green-600 dark:text-green-500">
+                            Rs. {installer.rewardAmount.toLocaleString()}
+                          </div>
                         </div>
+                        {installer.referralRewardAmount > 0 && (
+                          <div className="col-span-2">
+                            <div className="text-xs text-muted-foreground">
+                              Referral
+                            </div>
+                            <div className="font-semibold text-xs text-purple-600 dark:text-purple-500">
+                              Rs.{" "}
+                              {installer.referralRewardAmount.toLocaleString()}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    No recent installers
+                  <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                    <div className="flex flex-col items-center gap-2">
+                      <IconFileSmile
+                        fill
+                        className="size-20 text-muted-foreground"
+                      />
+                      <h3 className="text-xl text-primary">
+                        No Data Available
+                      </h3>
+                      <p className="text-xs text-muted-foreground mb-4 text-center text-balance">
+                        There are no performance records from the previous year
+                        yet. Check back once installers start registering
+                        installations.
+                      </p>
+                    </div>
                   </div>
                 )}
-              </div>
+              </CardContent>
+              <CardFooter className="pt-4 border-t border-border flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Total Installations
+                </span>
+                <div className="text-right">
+                  <div className="text-2xl font-bold">{stats.totalRewards}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Avg: {avgPerProduct} per product
+                  </div>
+                </div>
+              </CardFooter>
+            </Card>
+          </div>
+
+          {/* Active Installers by Training Center */}
+          <Card className="transition-all hover:shadow-lg">
+            <DashboardCardHeader
+              title="Active Installers by Training Center"
+              description={`Installers with at least 1 installation in ${timeLabels[timePeriod]}`}
+              Icon={IconUserCheckRounded}
+            />
+            <CardContent className="space-y-3 p-4">
+              {trainingCenterActive.length > 0 ? (
+                trainingCenterActive.map((center, index) => (
+                  <div
+                    key={center.trainingCenter}
+                    onClick={async () => {
+                      setSelectedCenter(center.trainingCenter);
+                      setModalOpen(true);
+
+                      // Fetch installers for this training center
+                      const { startDate, endDate } = getDateRange(timePeriod);
+                      const dateParams =
+                        startDate && endDate
+                          ? `&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+                          : "";
+
+                      const res = await fetch(
+                        `/api/dashboard/installers-by-center?trainingCenter=${encodeURIComponent(
+                          center.trainingCenter
+                        )}${dateParams}`
+                      );
+                      const data = await res.json();
+                      setCenterInstallers(data.data || []);
+                    }}
+                    className="flex items-center gap-3 p-4 squircle rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                  >
+                    <div
+                      className={cn(
+                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-bold border border-border shadow-xs",
+                        "bg-primary/10 text-primary"
+                      )}
+                    >
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-base truncate">
+                        {center.trainingCenter}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Click to view installers
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-right">
+                      <div>
+                        <div className="text-xs text-muted-foreground">
+                          Active
+                        </div>
+                        <div className="font-bold text-lg text-primary">
+                          {center.activeInstallersCount}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">
+                          Installations
+                        </div>
+                        <div className="font-bold text-lg text-green-600 dark:text-green-500">
+                          {center.totalInstallations}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  No active installers in selected period
+                </div>
+              )}
             </CardContent>
           </Card>
-        </div>
-      </div>
+
+          {/* Charts Row 2 - City Distribution & Active Installers */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* City Distribution */}
+            <Card className="transition-all hover:shadow-lg">
+              <DashboardCardHeader
+                title="City Wise Installations"
+                description={`Top 5 cities by product installations in ${timeLabels[timePeriod]}`}
+                Icon={IconCity}
+              />
+              <CardContent className="space-y-3 p-4">
+                {cityData.length > 0 ? (
+                  <>
+                    <ChartContainer
+                      config={chartConfig}
+                      className="min-h-[250px] w-full"
+                    >
+                      <BarChart
+                        accessibilityLayer
+                        data={cityData}
+                        layout="vertical"
+                        margin={{
+                          right: 16,
+                        }}
+                      >
+                        <CartesianGrid horizontal={false} />
+                        <YAxis
+                          dataKey="city"
+                          type="category"
+                          tickLine={false}
+                          tickMargin={10}
+                          axisLine={false}
+                          tickFormatter={(value) => value.slice(0, 3)}
+                          hide
+                        />
+                        <XAxis dataKey="installations" type="number" hide />
+                        <ChartTooltip
+                          cursor={false}
+                          content={
+                            <ChartTooltipContent indicator="line" hideLabel />
+                          }
+                        />
+                        <Bar
+                          dataKey="installations"
+                          radius={16}
+                          className="fill-primary"
+                        >
+                          <LabelList
+                            dataKey="city"
+                            position="insideLeft"
+                            offset={14}
+                            className="fill-primary-foreground font-semibold"
+                            fontSize={12}
+                          />
+                          <LabelList
+                            dataKey="installations"
+                            position="right"
+                            offset={8}
+                            className="fill-foreground"
+                            fontSize={12}
+                          />
+                        </Bar>
+                      </BarChart>
+                    </ChartContainer>
+                  </>
+                ) : (
+                  <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                    <div className="flex flex-col items-center gap-2">
+                      <IconFileSmile
+                        fill
+                        className="size-20 text-muted-foreground"
+                      />
+                      <h3 className="text-xl text-primary">
+                        No City Data Available
+                      </h3>
+                      <p className="text-xs text-muted-foreground mb-4 text-center text-balance lg:w-3/4">
+                        There are no performance records from the previous year
+                        yet. Check back once installers start registering
+                        installations.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Active Installers Timeline */}
+            <Card className="transition-all hover:shadow-lg">
+              <DashboardCardHeader
+                title="Active Installers Timeline"
+                description={`Historical view of installer activity in ${timeLabels[timePeriod]}`}
+                Icon={IconUserCheckRounded}
+              />
+              <CardContent className="p-4">
+                {activeInstallersData.length > 0 ? (
+                  <div className="space-y-4">
+                    {activeInstallersData.map((period, index) => (
+                      <div key={period.period} className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="font-medium flex-1">
+                            {period.label}
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <Badge
+                              variant="secondary"
+                              className="text-xs font-bold"
+                            >
+                              {period.count} installers
+                            </Badge>
+                            <span className="text-xs text-muted-foreground min-w-[50px] text-right">
+                              {stats.totalInstallers > 0
+                                ? Math.round(
+                                    (period.count / stats.totalInstallers) * 100
+                                  )
+                                : 0}
+                              %
+                            </span>
+                          </div>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                          <div
+                            className="h-2 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${
+                                stats.totalInstallers > 0
+                                  ? (period.count / stats.totalInstallers) * 100
+                                  : 0
+                              }%`,
+                              backgroundColor: "var(--color-primary)",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    <div className="mt-6 pt-4 border-t border-border">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-muted-foreground">
+                          Total Registered
+                        </span>
+                        <span className="text-2xl font-bold">
+                          {stats.totalInstallers}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                    No active installer data available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Activity Row - Recent Activities */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Recent Installations */}
+            <Card className="transition-all hover:shadow-lg">
+              <DashboardCardHeader
+                title="Recent Installations"
+                description={`Recent product installations`}
+                Icon={IconProduct}
+                badge={String(recentInstallations.length)}
+              />
+              <CardContent className="p-6">
+                <div className="space-y-3">
+                  {recentInstallations.length > 0 ? (
+                    recentInstallations.map((installation) => {
+                      return (
+                        <div
+                          key={installation._id}
+                          className="flex items-center gap-3 p-4 squircle rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                        >
+                          <div className="h-10 w-10 rounded-full border border-border bg-primary/10 flex items-center justify-center shrink-0">
+                            <IconPackage className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">
+                              {installation.productModel}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              {installation.installer?.installerCode || "N/A"}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="font-bold text-sm whitespace-nowrap">
+                              Rs. {installation.rewardAmount}
+                            </div>
+                            <div className="text-xs text-muted-foreground whitespace-nowrap">
+                              {new Date(
+                                installation.createdAt
+                              ).toLocaleDateString("en-US", {
+                                day: "numeric",
+                                month: "short",
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      No recent installations
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Installers */}
+            <Card className="transition-all hover:shadow-lg">
+              <DashboardCardHeader
+                title="Recent Installers"
+                description={`Newly registered installers in ${timeLabels[timePeriod]}`}
+                Icon={IconUserCog}
+                badge={String(recentInstallers.length)}
+              />
+              <CardContent className="p-6">
+                <div className="space-y-3">
+                  {recentInstallers.length > 0 ? (
+                    recentInstallers.map((installer) => (
+                      <div
+                        key={installer._id}
+                        className="flex items-center gap-3 p-4 squircle rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                      >
+                        <div className="h-10 w-10 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center shrink-0">
+                          <IconUser
+                            duotone={false}
+                            className="size-5 text-blue-500"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">
+                            {installer.fullName}
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {installer.installerCode}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="font-medium text-sm whitespace-nowrap">
+                            {installer.city}
+                          </div>
+                          <div className="text-xs text-muted-foreground whitespace-nowrap">
+                            {new Date(installer.createdAt).toLocaleDateString(
+                              "en-GB",
+                              { day: "numeric", month: "short" }
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      No recent installers
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
 
       {/* Training Center Installers Modal */}
       {modalOpen && (
@@ -1541,13 +1617,15 @@ export default function DashboardPage() {
 interface DashboardCardHeaderProps {
   title: string;
   description: string;
-  Icon: FC<IconProps>;
+  Icon: FC<IconProps> | string;
+  badge?: string;
 }
 
 const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
   title,
   description,
   Icon,
+  badge,
 }) => {
   return (
     <CardHeader className="flex flex-row items-center gap-2 border-b border-border">
@@ -1556,17 +1634,183 @@ const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
           <Icon className="w-12 h-12 mb-0 text-primary" fill />
         </div>
         <div>
-          <CardTitle className="flex items-center text-xl">{title}</CardTitle>
+          <CardTitle className="flex items-center font-normal text-xl">
+            {title}
+          </CardTitle>
           <CardDescription>{description}</CardDescription>
         </div>
       </div>
-      <div className="rounded-lg bg-emerald-100 dark:bg-emerald-950 p-2">
-        <Icon
-          duotone={false}
-          fill
-          className="h-5 w-5 text-emerald-600 dark:text-emerald-400"
-        />
-      </div>
+      {badge ? (
+        <Badge variant={"outline"}>{badge}</Badge>
+      ) : (
+        <div className="squircle rounded-xl bg-emerald-100 dark:bg-emerald-950 p-2">
+          <Icon
+            duotone={false}
+            fill
+            className="h-5 w-5 text-emerald-600 dark:text-emerald-400"
+          />
+        </div>
+      )}
     </CardHeader>
+  );
+};
+
+// ✅ Define prop type as array of ActiveInstaller
+interface TopInstallerCarouselProps {
+  activeInstallers: ActiveInstaller[];
+}
+
+const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
+  activeInstallers,
+}) => {
+  const { copyToClipboard, copied } = useClipboard();
+  return (
+    <Carousel
+      opts={{ align: "start" }}
+      className="w-full p-4 [&>*]:select-none"
+    >
+      <CarouselContent>
+        {activeInstallers.map((installer, index) => (
+          <CarouselItem
+            key={installer.installerCode}
+            className="basis-1/3 lg:basis-1/2 xl:basis-1/3"
+          >
+            <Card
+              className={cn(
+                "transition-colors flex flex-col items-center py-4 px-2 border-none bg-gradient-to-b",
+                index === 0 &&
+                  "dark:from-yellow-500/10 from-yellow-200 to-yellow-100 dark:to-yellow-500/1",
+                index === 1 &&
+                  "dark:from-slate-300/10 from-slate-200 to-slate-100 dark:to-slate-300/1",
+                index === 2 &&
+                  "dark:from-orange-500/10 from-orange-200 to-orange-100 dark:to-orange-500/1",
+                index > 2 && "from-muted/70 to-muted/10"
+              )}
+            >
+              <InstallerAvatar
+                user={installer.installerName}
+                className={cn(
+                  "mb-4 size-18 shadow-md",
+                  index === 0 && "bg-yellow-600/50 border-yellow-600",
+                  index === 1 && "bg-slate-600 border-slate-400",
+                  index === 2 && "bg-orange-950 border-orange-800",
+                  index > 2 && "bg-muted/50"
+                )}
+              />
+              <h2
+                className={cn(
+                  "text-md font-semibold text-center text-balance mb-6 leading-none",
+                  index === 0 && "text-yellow-400",
+                  index === 1 && "text-slate-300",
+                  index === 2 && "text-orange-500",
+                  index > 2 && "text-muted-foreground"
+                )}
+              >
+                <p>{installer.installerName}</p>
+                <div
+                  className={cn(
+                    "text-xs text-muted-foreground font-light font-mono",
+                    index === 0 && "text-yellow-300/60",
+                    index === 1 && "text-slate-300/60",
+                    index === 2 && "text-orange-500/60",
+                    index > 2 && "text-muted-foreground"
+                  )}
+                >
+                  <div className="inline-flex items-center">
+                    {installer.installerCode}{" "}
+                    <Button
+                      size={"icon"}
+                      onClick={() => copyToClipboard(installer.installerCode)}
+                      className="!p-1 !size-max rounded-sm"
+                      variant={"ghost"}
+                    >
+                      {copied === installer.installerCode ? (
+                        <IconCheck className="size-3" duotone={false} />
+                      ) : (
+                        <IconCopy className="size-3" duotone={false} />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </h2>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <IconProduct
+                    className={cn(
+                      "size-10",
+                      index === 0 && "text-yellow-400",
+                      index === 1 && "text-slate-400",
+                      index === 2 && "text-orange-500",
+                      index > 2 && "text-muted-foreground"
+                    )}
+                    fill
+                  />
+                  <div className="space-y-1">
+                    <h3
+                      className={cn(
+                        "text-xs flex items-center gap-2 text-muted-foreground",
+                        // index === 0 && "text-yellow-300/60",
+                        // index === 1 && "text-violet-300/60",
+                        // index === 2 && "text-slate-300/60",
+                        index > 2 && "text-muted-foreground"
+                      )}
+                    >
+                      Products
+                    </h3>
+                    <p
+                      className={cn(
+                        "text-primary text-xl leading-none font-number",
+                        index === 0 && "text-yellow-200",
+                        index === 1 && "text-slate-200",
+                        index === 2 && "text-orange-200",
+                        index > 2 && "text-muted-foreground"
+                      )}
+                    >
+                      {installer.totalProducts}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <IconGift
+                    className={cn(
+                      "size-10",
+                      index === 0 && "text-yellow-700",
+                      index === 1 && "text-slate-500",
+                      index === 2 && "text-orange-600",
+                      index > 2 && "text-muted-foreground"
+                    )}
+                    fill
+                  />
+                  <div className="space-y-1">
+                    <h3
+                      className={cn(
+                        "text-xs flex items-center gap-2 text-muted-foreground",
+                        // index === 0 && "text-yellow-300/60",
+                        // index === 1 && "text-violet-300/60",
+                        // index === 2 && "text-slate-300/60",
+                        index > 2 && "text-muted-foreground"
+                      )}
+                    >
+                      Rewards
+                    </h3>
+                    <p
+                      className={cn(
+                        "text-primary text-xl leading-none font-number",
+                        index === 0 && "text-yellow-200",
+                        index === 1 && "text-slate-200",
+                        index === 2 && "text-orange-200",
+                        index > 2 && "text-muted-foreground"
+                      )}
+                    >
+                      {formatNumber(installer.rewardAmount)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </CarouselItem>
+        ))}
+      </CarouselContent>
+    </Carousel>
   );
 };

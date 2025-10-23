@@ -72,47 +72,4 @@ const IconSquareArrowRightUp: FC<IconProps> = ({
 };
 
 // Keywords for search and categorization
-(IconSquareArrowRightUp as IconComponent).keywords = [
-  "square",
-  "arrow",
-  "right",
-  "up",
-  "quadrate",
-  "right-angled",
-  "squarely",
-  "foursquare",
-  "squarish",
-  "conventional",
-  "paid",
-  "honorable",
-  "honest",
-  "pointer",
-  "archer",
-  "archery",
-  "dart",
-  "arrowhead",
-  "bolt",
-  "spike",
-  "rope",
-  "roof",
-  "straight",
-  "precise",
-  "right on",
-  "accurate",
-  "decently",
-  "satisfactory",
-  "exact",
-  "powerful",
-  "opportune",
-  "upbound",
-  "upwardly",
-  "ascending",
-  "upward",
-  "upwards",
-  "rising",
-  "astir",
-  "ahead",
-  "awake",
-];
-
-export default IconSquareArrowRightUp as IconComponent;
+export default IconSquareArrowRightUp;

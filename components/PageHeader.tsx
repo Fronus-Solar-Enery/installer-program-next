@@ -12,7 +12,7 @@ export default function PageHeader({
   action,
 }: PageHeaderProps) {
   return (
-    <div className="flex w-full flex-wrap items-center justify-between gap-4 p-6 border lg:flex-nowrap bg-card rounded-3xl border-border">
+    <div className="flex w-full flex-wrap items-center justify-between gap-4 p-6 border lg:flex-nowrap bg-card squircle rounded-3xl border-border">
       <div className="flex items-center gap-4">
         {Icon && (
           <Icon className="hidden md:block w-12 h-12 text-primary shrink-0" />

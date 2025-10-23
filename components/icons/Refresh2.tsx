@@ -1,11 +1,6 @@
 import { FC } from "react";
 
-interface IconProps {
-  className?: string;
-  fill?: boolean;
-  duotone?: boolean;
-  width?: string | number;
-}
+
 
 const IconRefresh2: FC<IconProps> = ({
   className,

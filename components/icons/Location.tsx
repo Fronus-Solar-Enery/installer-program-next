@@ -79,18 +79,4 @@ const IconLocation: FC<IconProps> = ({
   );
 };
 
-// Keywords for search and categorization
-(IconLocation as IconComponent).keywords = [
-  "location",
-  "position",
-  "placement",
-  "positioning",
-  "localization",
-  "localisation",
-  "emplacement",
-  "fix",
-  "locating",
-  "situating",
-];
-
-export default IconLocation as IconComponent;
+export default IconLocation;

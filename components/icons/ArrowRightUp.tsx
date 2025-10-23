@@ -1,5 +1,4 @@
-import { FC } from "react";
-import { IconProps } from "./Whatsapp";
+import { FC } from "react"; 
 
 const IconArrowRightUp: FC<IconProps> = ({
   className,

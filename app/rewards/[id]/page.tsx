@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useCopyToClipboard } from "@/hooks/useCopyToClipboard";
 import { Copy, Check, Edit, Trash2, ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,18 +17,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useClipboard } from "@/hooks/useCopyToClipboard";
 
 export default function RewardDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const rewardId = params.id as string;
-  const { copiedText, copyToClipboard } = useCopyToClipboard();
+  const { copied, copyToClipboard } = useClipboard();
 
   const [loading, setLoading] = useState(true);
   const [reward, setReward] = useState<{
     serialNumber: string;
     productModel: string;
-    installer?: { installerCode: string; fullName: string; cnic?: string; phoneNumber?: string };
+    installer?: {
+      installerCode: string;
+      fullName: string;
+      cnic?: string;
+      phoneNumber?: string;
+    };
     installerCode?: string;
     registeredBy?: { name: string; email: string };
     referrer?: { installerCode: string; fullName: string };
@@ -102,7 +107,7 @@ export default function RewardDetailsPage() {
   };
 
   const CopyButton = ({ text, label }: { text: string; label: string }) => {
-    const isCopied = copiedText === text;
+    const isCopied = copied === text;
 
     return (
       <Button
@@ -237,7 +242,7 @@ export default function RewardDetailsPage() {
                   Inverter Serial Number
                 </div>
                 <div className="mt-1 text-sm flex items-center">
-                  {reward.inverterSerialNumber || 'N/A'}
+                  {reward.inverterSerialNumber || "N/A"}
                   {reward.inverterSerialNumber && (
                     <CopyButton
                       text={reward.inverterSerialNumber}
@@ -276,10 +281,17 @@ export default function RewardDetailsPage() {
                   Installer Code
                 </div>
                 <div className="mt-1 text-sm flex items-center">
-                  {reward.installerCode || reward.installer?.installerCode || 'N/A'}
-                  {(reward.installerCode || reward.installer?.installerCode) && (
+                  {reward.installerCode ||
+                    reward.installer?.installerCode ||
+                    "N/A"}
+                  {(reward.installerCode ||
+                    reward.installer?.installerCode) && (
                     <CopyButton
-                      text={reward.installerCode || reward.installer?.installerCode || ''}
+                      text={
+                        reward.installerCode ||
+                        reward.installer?.installerCode ||
+                        ""
+                      }
                       label="Installer Code"
                     />
                   )}
@@ -337,7 +349,7 @@ export default function RewardDetailsPage() {
                   Account Number
                 </div>
                 <div className="mt-1 text-sm flex items-center">
-                  {reward.accountNumber || 'N/A'}
+                  {reward.accountNumber || "N/A"}
                   {reward.accountNumber && (
                     <CopyButton
                       text={reward.accountNumber}
@@ -399,10 +411,17 @@ export default function RewardDetailsPage() {
                     Referrer Code
                   </div>
                   <div className="mt-1 text-sm flex items-center">
-                    {reward.referrerCode || reward.referrer?.installerCode || 'N/A'}
-                    {(reward.referrerCode || reward.referrer?.installerCode) && (
+                    {reward.referrerCode ||
+                      reward.referrer?.installerCode ||
+                      "N/A"}
+                    {(reward.referrerCode ||
+                      reward.referrer?.installerCode) && (
                       <CopyButton
-                        text={reward.referrerCode || reward.referrer?.installerCode || ''}
+                        text={
+                          reward.referrerCode ||
+                          reward.referrer?.installerCode ||
+                          ""
+                        }
                         label="Referrer Code"
                       />
                     )}
@@ -460,7 +479,9 @@ export default function RewardDetailsPage() {
                   Created At
                 </div>
                 <div className="mt-1 text-sm">
-                  {reward.createdAt ? new Date(reward.createdAt).toLocaleString() : 'N/A'}
+                  {reward.createdAt
+                    ? new Date(reward.createdAt).toLocaleString()
+                    : "N/A"}
                 </div>
               </div>
               {reward.updatedAt && (
@@ -490,14 +511,17 @@ export default function RewardDetailsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm} disabled={deleting}>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+            >
               {deleting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Deleting...
                 </>
               ) : (
-                'Delete'
+                "Delete"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

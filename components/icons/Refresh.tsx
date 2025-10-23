@@ -1,11 +1,8 @@
 import { FC } from "react";
 
-interface IconProps {
-  className?: string;
-  fill?: boolean;
-  duotone?: boolean;
+interface IconProps extends React.SVGProps<SVGSVGElement> {
   isLoading?: boolean;
-  width?: string | number;
+  duotone?: boolean;
 }
 
 const IconRefresh: FC<IconProps> = ({

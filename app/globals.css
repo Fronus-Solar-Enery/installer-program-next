@@ -219,6 +219,22 @@ ol:has(li.my-toast) {
   @apply !flex !items-center;
 }
 
-.squircle {
-  corner-shape: squircle;
+@supports (corner-shape: squircle) {
+  .squircle {
+    corner-shape: squircle;
+  }
+
+  .squircle.rounded-xl {
+    border-radius: 1rem;
+  }
+
+  .squircle.rounded-2xl {
+    border-radius: 2rem;
+  }
+  .squircle.rounded-3xl {
+    border-radius: 3rem;
+  }
+  .squircle.rounded-4xl {
+    border-radius: 4rem;
+  }
 }
