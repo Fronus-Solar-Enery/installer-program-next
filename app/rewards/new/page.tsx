@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   PRODUCT_MODELS,
@@ -10,7 +10,13 @@ import {
   ProductModels,
 } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { toast } from "sonner";
 import Loading from "@/components/ui/loading";
 import { StepHeader } from "@/components/StepHeader";
@@ -36,6 +42,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { HyperText } from "@/components/ui/hypertext";
 import { ReviewItem } from "./ReviewItem";
+import PageHeader from "@/components/PageHeader";
 
 interface ValidationError {
   path?: string[];
@@ -66,6 +73,7 @@ export default function NewRewardPage() {
   // Step 1: Validation
   const [installerCode, setInstallerCode] = useState("");
   const [installerValidating, setInstallerValidating] = useState(false);
+  const [installerTouched, setInstallerTouched] = useState(false);
   const [installerData, setInstallerData] = useState<{
     _id: string;
     installerCode: string;
@@ -84,6 +92,7 @@ export default function NewRewardPage() {
   } | null>(null);
   const [serialNumber, setSerialNumber] = useState("");
   const [serialValidating, setSerialValidating] = useState(false);
+  const [serialTouched, setSerialTouched] = useState(false);
   const [serialValid, setSerialValid] = useState(false);
 
   // Step 1.5: Inverter Serial (moved to Step 2 for batteries)
@@ -94,20 +103,121 @@ export default function NewRewardPage() {
   const [cityOfInstallation, setCityOfInstallation] = useState("");
   const [serialNumberStatus, setSerialNumberStatus] = useState("");
 
-  // Get selected product details
-  const selectedProduct = PRODUCT_MODELS.find((p) => p.value === productModel);
+  // Memoize selected product details to avoid recalculation
+  const selectedProduct = useMemo(
+    () => PRODUCT_MODELS.find((p) => p.value === productModel),
+    [productModel]
+  );
   const rewardAmount = selectedProduct?.reward || 0;
   const isBatteryProduct =
     (selectedProduct?.isBattery && selectedProduct?.requiresInverter) || false;
 
-  // Debounced auto-validation for installer code
+  // Memoize product groups for select dropdown (expensive calculation)
+  const productGroups = useMemo(() => {
+    const map = new Map<string, ProductModels[]>();
+
+    for (const m of PRODUCT_MODELS as ProductModels[]) {
+      const key = m.isBattery ? "Batteries" : "Inverters";
+      const arr = map.get(key);
+      if (arr) arr.push(m);
+      else map.set(key, [m]);
+    }
+
+    return Array.from(map, ([label, items]) => ({
+      label,
+      options: items
+        .slice()
+        .sort((a, b) => a.label.localeCompare(b.label))
+        .map((item) => ({
+          value: item.value,
+          label: (
+            <div className="flex items-end gap-2">
+              <span className="truncate">{item.label}</span>
+              {item.reward != null && (
+                <p className="text-muted-foreground text-[10px]">
+                  Rs {item.reward}
+                </p>
+              )}
+            </div>
+          ),
+        })),
+    }));
+  }, []);
+
+  // Memoize city groups for select dropdown
+  const cityGroups = useMemo(
+    () =>
+      PROVINCES.map((province) => ({
+        label: province,
+        options: CITIES.filter((c) => CITY_TO_PROVINCE[c] === province)
+          .sort()
+          .map((c) => ({
+            value: c,
+            label: (
+              <div className="flex items-end gap-2">
+                {c}
+                <p className="text-muted-foreground text-[10px]">{province}</p>
+              </div>
+            ),
+          })),
+      })),
+    []
+  );
+
+  // Memoize serial status options
+  const serialStatusOptions = useMemo(
+    () =>
+      SERIAL_STATUSES.map((status) => ({
+        value: status.value,
+        label: status.label,
+      })),
+    []
+  );
+
+  // Check if form has data (for unsaved changes warning)
+  const hasFormData = useMemo(() => {
+    return (
+      installerCode.trim() !== "" ||
+      serialNumber.trim() !== "" ||
+      productModel !== "" ||
+      cityOfInstallation !== "" ||
+      serialNumberStatus !== "" ||
+      inverterSerialNumber.trim() !== ""
+    );
+  }, [
+    installerCode,
+    serialNumber,
+    productModel,
+    cityOfInstallation,
+    serialNumberStatus,
+    inverterSerialNumber,
+  ]);
+
+  // Protect against accidental page reload/navigation
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasFormData && registrationStatus === "idle") {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasFormData, registrationStatus]);
+
+  // Optimized validation for installer code
   const validateInstallerCode = useCallback(async (code: string) => {
+    // Early return for empty or too short codes
     if (!code || code.length < 3) {
       setInstallerData(null);
+      setInstallerValidating(false);
       return;
     }
 
     setInstallerValidating(true);
+    setInstallerTouched(true);
 
     try {
       const response = await fetch(`/api/installers?search=${code}`);
@@ -137,14 +247,17 @@ export default function NewRewardPage() {
     }
   }, []);
 
-  // Debounced auto-validation for serial number
+  // Optimized validation for serial number
   const validateSerialNumber = useCallback(async (serial: string) => {
+    // Early return for empty or too short serials
     if (!serial || serial.length < 3) {
       setSerialValid(false);
+      setSerialValidating(false);
       return;
     }
 
     setSerialValidating(true);
+    setSerialTouched(true);
 
     try {
       const response = await fetch(`/api/rewards?search=${serial}`);
@@ -194,41 +307,67 @@ export default function NewRewardPage() {
     return () => clearTimeout(timer);
   }, [serialNumber, installerData, validateSerialNumber]);
 
-  const handleStep1Next = () => {
+  // Memoize step completion checks
+  const isStep1Complete = useMemo(
+    () => installerData !== null && serialValid,
+    [installerData, serialValid]
+  );
+
+  const isStep2Complete = useMemo(
+    () =>
+      productModel !== "" &&
+      cityOfInstallation !== "" &&
+      serialNumberStatus !== "" &&
+      (!isBatteryProduct || inverterSerialNumber !== ""),
+    [
+      productModel,
+      cityOfInstallation,
+      serialNumberStatus,
+      isBatteryProduct,
+      inverterSerialNumber,
+    ]
+  );
+
+  // Optimize navigation handlers with useCallback
+  const handleStep1Next = useCallback(() => {
     if (!installerData) {
-      toast.error("Please validate installer code first");
+      toast.error(
+        "Installer code not verified. Please enter a valid installer code and wait for the green 'Valid' indicator."
+      );
       return;
     }
     if (!serialValid) {
-      toast.error("Please validate serial number first");
+      toast.error(
+        "Product serial number not verified. Please enter a unique serial number that hasn't been registered before."
+      );
       return;
     }
     setCurrentStep(2);
-  };
+  }, [installerData, serialValid]);
 
-  const handleStep2Next = () => {
+  const handleStep2Next = useCallback(() => {
     if (!productModel || !cityOfInstallation || !serialNumberStatus) {
-      toast.error("Please fill all required fields");
+      toast.error(
+        "Please complete all fields: Product Model, City of Installation, and Serial Number Status are required."
+      );
       return;
     }
     if (isBatteryProduct && !inverterSerialNumber) {
-      toast.error("Please enter inverter serial number for battery product");
+      toast.error(
+        "Battery products require Inverter Serial Number. Please enter the serial number of the inverter used."
+      );
       return;
     }
     setCurrentStep(3);
-  };
+  }, [
+    productModel,
+    cityOfInstallation,
+    serialNumberStatus,
+    isBatteryProduct,
+    inverterSerialNumber,
+  ]);
 
-  // Check if Step 1 is complete
-  const isStep1Complete = installerData && serialValid;
-
-  // Check if Step 2 is complete
-  const isStep2Complete =
-    productModel &&
-    cityOfInstallation &&
-    serialNumberStatus &&
-    (!isBatteryProduct || inverterSerialNumber);
-
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!installerData) {
       toast.error("Please validate installer code first");
       return;
@@ -258,18 +397,35 @@ export default function NewRewardPage() {
 
       const data = await response.json();
 
+      // Small delay to ensure smooth transition to 100%
+      // This allows the progress bar to complete visually before switching screens
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
       if (!response.ok) {
         let errorMessage = "Failed to register reward";
+
+        // Handle validation errors array
         if (data.errors && Array.isArray(data.errors)) {
-          errorMessage = data.errors
-            .map((err: ValidationError) => {
-              const field = err.path?.join(".") || "Unknown field";
-              return `${field}: ${err.message}`;
-            })
-            .join("\n");
-        } else if (data.error) {
+          const formattedErrors = data.errors.map((err: ValidationError) => {
+            const field = err.path?.join(".") || "Unknown field";
+            // Make field names more readable
+            const readableField = field
+              .replace(/([A-Z])/g, " $1")
+              .replace(/^./, (str) => str.toUpperCase())
+              .trim();
+            return `• ${readableField}: ${err.message}`;
+          });
+          errorMessage = formattedErrors.join("\n");
+        }
+        // Handle single error message
+        else if (data.error) {
           errorMessage = data.error;
         }
+        // Handle message field
+        else if (data.message) {
+          errorMessage = data.message;
+        }
+
         setRegistrationError(errorMessage);
         setRegistrationStatus("error");
         return;
@@ -284,21 +440,46 @@ export default function NewRewardPage() {
       });
       setRegistrationStatus("success");
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : "An error occurred";
+      // Handle network errors and other exceptions
+      let errorMsg = "Network error: Unable to connect to the server";
+
+      if (err instanceof Error) {
+        errorMsg = err.message;
+      } else if (typeof err === "string") {
+        errorMsg = err;
+      }
+
+      // Make the error message more user-friendly
+      if (errorMsg.includes("fetch")) {
+        errorMsg =
+          "Network error: Please check your internet connection and try again";
+      }
+
       setRegistrationError(errorMsg);
       setRegistrationStatus("error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    installerData,
+    serialNumber,
+    isBatteryProduct,
+    inverterSerialNumber,
+    productModel,
+    cityOfInstallation,
+    serialNumberStatus,
+    rewardAmount,
+  ]);
 
-  const handleRedirectAfterRegistration = () => {
+  const handleRedirectAfterRegistration = useCallback(() => {
     // Reset form
     setCurrentStep(1);
     setInstallerCode("");
     setInstallerData(null);
+    setInstallerTouched(false);
     setSerialNumber("");
     setSerialValid(false);
+    setSerialTouched(false);
     setProductModel("");
     setCityOfInstallation("");
     setSerialNumberStatus("");
@@ -306,19 +487,23 @@ export default function NewRewardPage() {
     setRegistrationStatus("idle");
     setRegisteredReward(null);
     setRegistrationError("");
-  };
+  }, []);
 
-  const handleViewReward = () => {
+  const handleViewReward = useCallback(() => {
     if (registeredReward?.id) {
       router.push(`/rewards/${registeredReward.id}`);
     }
-  };
+  }, [registeredReward, router]);
 
-  const steps = [
-    { number: 1, title: "Validation" },
-    { number: 2, title: "Product Details" },
-    { number: 3, title: "Review" },
-  ];
+  // Memoize steps array to prevent recreating on every render
+  const steps = useMemo(
+    () => [
+      { number: 1, title: "Validation" },
+      { number: 2, title: "Product Details" },
+      { number: 3, title: "Review" },
+    ],
+    []
+  );
 
   return (
     <div className="p-6">
@@ -346,7 +531,7 @@ export default function NewRewardPage() {
                   <StepHeader
                     icon={IconQRCode}
                     title="Installer & Product Validation"
-                    description="Verify installer code and product serial number"
+                    description="Enter the installer code and product serial number. The system will automatically verify if they are valid and not already registered."
                   />
 
                   <div
@@ -360,6 +545,10 @@ export default function NewRewardPage() {
                         Installer Code{" "}
                         <span className="text-destructive-text">*</span>
                       </Label>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Enter the unique installer code (10 characters). Wait
+                        for green &ldquo;Valid&rdquo; indicator.
+                      </p>
                       <div className="relative">
                         <Input
                           id="installer-code"
@@ -371,6 +560,9 @@ export default function NewRewardPage() {
                           placeholder="e.g., PEWNADOEC3"
                           required
                           className={`pl-10`}
+                          aria-label="Installer unique code for identification"
+                          aria-required="true"
+                          aria-describedby="installer-code-hint"
                         />
                         <div className="absolute left-3 top-1/2 -translate-y-1/2">
                           <IconInstallerCode
@@ -380,28 +572,40 @@ export default function NewRewardPage() {
                         </div>
 
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {installerValidating && (
+                            <Loading className="h-4 w-4" />
+                          )}
                           {!installerValidating && installerData && (
                             <HyperText className="tracking-widest leading-none text-xs uppercase text-success-text pointer-events-none select-none">
                               Valid
                             </HyperText>
                           )}
-                          {!installerValidating && !installerData && (
-                            <HyperText className="tracking-widest text-xs uppercase text-destructive-text pointer-events-none select-none">
-                              Invalid
-                            </HyperText>
-                          )}
-                          {installerValidating && !installerData && (
-                            <Loading className="h-4 w-4" />
-                          )}
+                          {!installerValidating &&
+                            installerTouched &&
+                            !installerData &&
+                            installerCode.length >= 3 && (
+                              <HyperText className="tracking-widest text-xs uppercase text-destructive-text pointer-events-none select-none">
+                                Invalid
+                              </HyperText>
+                            )}
                         </div>
                       </div>
+                      {!installerValidating &&
+                        installerTouched &&
+                        installerData === null &&
+                        installerCode.length >= 3 && (
+                          <div className="text-sm text-destructive-text bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+                            <strong>Installer not found.</strong> Please check:
+                            <ul className="list-disc list-inside mt-1 ml-2 space-y-0.5">
+                              <li>Code is exactly 10 characters</li>
+                              <li>
+                                Code is spelled correctly (case-sensitive)
+                              </li>
+                              <li>Installer is registered in the system</li>
+                            </ul>
+                          </div>
+                        )}
                     </div>
-
-                    {!installerValidating && installerData === null && (
-                      <div className="text-sm text-destructive-text">
-                        Installer not found
-                      </div>
-                    )}
 
                     {installerData && (
                       <div className="rounded-2xl border border-border p-4">
@@ -513,6 +717,10 @@ export default function NewRewardPage() {
                           Product Serial Number{" "}
                           <span className="text-destructive-text">*</span>
                         </Label>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Enter the unique serial number from the product label.
+                          This number must not be registered before.
+                        </p>
                         <div className="relative">
                           <Input
                             id="serial-number"
@@ -521,9 +729,11 @@ export default function NewRewardPage() {
                             onChange={(e) =>
                               setSerialNumber(e.target.value.toUpperCase())
                             }
-                            placeholder="e.g., SN123456"
+                            placeholder="e.g., SN123456789ABC"
                             required
-                            aria-label="Product Serial Number"
+                            aria-label="Unique product serial number from label"
+                            aria-required="true"
+                            aria-describedby="serial-number-hint"
                             className={`pl-10`}
                           />
                           <div className="absolute left-3 top-1/2 -translate-y-1/2">
@@ -537,13 +747,37 @@ export default function NewRewardPage() {
                             {serialValidating && (
                               <Loading className="h-4 w-4" />
                             )}
-                            {serialValid && !serialValidating && (
+                            {!serialValidating && serialValid && (
                               <HyperText className="tracking-widest leading-none text-xs uppercase text-success-text pointer-events-none select-none">
                                 Valid
                               </HyperText>
                             )}
+                            {!serialValidating &&
+                              serialTouched &&
+                              !serialValid &&
+                              serialNumber.length >= 3 && (
+                                <HyperText className="tracking-widest text-xs uppercase text-destructive-text pointer-events-none select-none">
+                                  Invalid
+                                </HyperText>
+                              )}
                           </div>
                         </div>
+                        {!serialValidating &&
+                          serialTouched &&
+                          !serialValid &&
+                          serialNumber.length >= 3 && (
+                            <div className="text-sm text-destructive-text bg-destructive/10 p-3 rounded-lg border border-destructive/20">
+                              <strong>
+                                Serial number already registered or invalid.
+                              </strong>
+                              <p className="mt-1">
+                                This serial number is already in the system.
+                                Each product can only be registered once. Please
+                                check the serial number or contact support if
+                                you believe this is an error.
+                              </p>
+                            </div>
+                          )}
                       </div>
                     )}
                   </div>
@@ -556,7 +790,7 @@ export default function NewRewardPage() {
                   <StepHeader
                     icon={IconProduct}
                     title="Product & Installation Details"
-                    description="Enter product model and installation information"
+                    description="Select the product model, installation city, and product condition. For battery products, inverter serial number is also required."
                   />
 
                   <div
@@ -573,42 +807,14 @@ export default function NewRewardPage() {
                         id="product-model"
                         value={productModel}
                         onChange={setProductModel}
-                        placeholder="Select Product Model"
-                        groups={(() => {
-                          const map = new Map<string, ProductModels[]>();
-
-                          for (const m of PRODUCT_MODELS as ProductModels[]) {
-                            const key = m.isBattery ? "Batteries" : "Inverters";
-                            const arr = map.get(key);
-                            if (arr) arr.push(m);
-                            else map.set(key, [m]);
-                          }
-
-                          return Array.from(map, ([label, items]) => ({
-                            label,
-                            options: items
-                              .slice()
-                              .sort((a, b) => a.label.localeCompare(b.label))
-                              .map((item) => ({
-                                value: item.value,
-                                label: (
-                                  <div className="flex items-end gap-2">
-                                    <span className="truncate">
-                                      {item.label}
-                                    </span>
-                                    {item.reward != null && (
-                                      <p className="text-muted-foreground text-[10px]">
-                                        Rs {item.reward}
-                                      </p>
-                                    )}
-                                  </div>
-                                ),
-                              })),
-                          }));
-                        })()}
+                        placeholder="Choose the installed product"
+                        hint="Select the exact model of inverter or battery that was installed"
+                        groups={productGroups}
                         searchable
-                        searchPlaceholder="Search products..."
+                        searchPlaceholder="Type to search products..."
                         required
+                        aria-label="Product model selection"
+                        aria-required="true"
                       />
 
                       {/* Reward Amount (Auto-calculated) */}
@@ -617,8 +823,11 @@ export default function NewRewardPage() {
                         label="Reward Amount"
                         id="reward-amount"
                         value={`Rs. ${rewardAmount.toLocaleString()}`}
+                        hint="Automatically calculated based on selected product"
                         onChange={() => {}}
                         disabled
+                        aria-label="Reward amount in Pakistani Rupees"
+                        aria-readonly="true"
                       />
 
                       {/* City of Installation */}
@@ -628,29 +837,15 @@ export default function NewRewardPage() {
                         id="city"
                         value={cityOfInstallation}
                         onChange={setCityOfInstallation}
-                        placeholder="Select City"
-                        groups={PROVINCES.map((province) => ({
-                          label: province,
-                          options: CITIES.filter(
-                            (c) => CITY_TO_PROVINCE[c] === province
-                          )
-                            .sort()
-                            .map((c) => ({
-                              value: c,
-                              label: (
-                                <div className="flex items-end gap-2">
-                                  {c}
-                                  <p className="text-muted-foreground text-[10px]">
-                                    {province}
-                                  </p>
-                                </div>
-                              ),
-                            })),
-                        }))}
+                        placeholder="Select installation city"
+                        hint="City where the product was installed at customer location"
+                        groups={cityGroups}
                         searchable
-                        searchPlaceholder="Search cities..."
-                        emptyMessage="No city found."
+                        searchPlaceholder="Type city name..."
+                        emptyMessage="City not found. Please try another spelling."
                         required
+                        aria-label="City where product was installed"
+                        aria-required="true"
                       />
 
                       {/* Serial Number Status */}
@@ -660,28 +855,42 @@ export default function NewRewardPage() {
                         id="serial-status"
                         value={serialNumberStatus}
                         onChange={setSerialNumberStatus}
-                        placeholder="Select Status"
-                        options={SERIAL_STATUSES.map((status) => ({
-                          value: status.value,
-                          label: status.label,
-                        }))}
+                        placeholder="Select product condition"
+                        hint="Choose the condition of the product serial number label"
+                        options={serialStatusOptions}
                         required
+                        aria-label="Product serial number label condition"
+                        aria-required="true"
                       />
                     </div>
 
                     {/* Inverter Serial Number - Only for battery products */}
                     {isBatteryProduct && (
-                      <FormField
-                        type="text"
-                        label="Inverter Serial Number"
-                        id="inverter-serial"
-                        value={inverterSerialNumber}
-                        onChange={(value) =>
-                          setInverterSerialNumber(value.toUpperCase())
-                        }
-                        placeholder="e.g., INV123456"
-                        required
-                      />
+                      <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <p className="text-sm text-blue-800 dark:text-blue-200 mb-3 flex items-start gap-2">
+                          <span className="text-lg">ℹ️</span>
+                          <span>
+                            <strong>Battery Installation:</strong> For battery
+                            products, you must also provide the serial number of
+                            the inverter that the battery is connected to.
+                          </span>
+                        </p>
+                        <FormField
+                          type="text"
+                          label="Inverter Serial Number"
+                          id="inverter-serial"
+                          value={inverterSerialNumber}
+                          onChange={(value) =>
+                            setInverterSerialNumber(value.toUpperCase())
+                          }
+                          placeholder="e.g., INV987654321XYZ"
+                          hint="Enter the serial number of the inverter connected to this battery"
+                          required
+                          aria-label="Serial number of connected inverter"
+                          aria-required="true"
+                          aria-describedby="inverter-serial-help"
+                        />
+                      </div>
                     )}
                   </div>
                 </div>

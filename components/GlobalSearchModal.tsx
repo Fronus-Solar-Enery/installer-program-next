@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -11,11 +11,24 @@ import {
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Users, Package, Loader2, Clock, X } from "lucide-react";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { Users, Package, Loader2, Clock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import IconMagnifer from "./icons/Magnifer";
+import { Card } from "./ui/card";
+import { InstallerAvatar } from "./UserAvatar";
+import { useClipboard } from "@/hooks/useCopyToClipboard";
+import {
+  IconCheck,
+  IconCopy,
+  IconGift,
+  IconMapPoint,
+  IconProduct,
+  IconSmartphone2,
+  IconUser,
+  IconUserId,
+} from "./icons";
 
 interface InstallerResult {
   _id: string;
@@ -67,6 +80,31 @@ interface RecentSearch {
 const RECENT_SEARCHES_KEY = "global_search_recent";
 const MAX_RECENT_SEARCHES = 5;
 
+// Helper function to truncate text to max 2 words and 15 characters
+const truncateText = (text: string): string => {
+  const words = text.trim().split(/\s+/);
+  const firstTwoWords = words.slice(0, 2).join(" ");
+
+  if (firstTwoWords.length > 15) {
+    return firstTwoWords.slice(0, 15) + "...";
+  }
+
+  return firstTwoWords;
+};
+
+// Helper function to format date with time
+const formatDateTime = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
 interface GlobalSearchModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -83,17 +121,21 @@ export default function GlobalSearchModal({
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  // Load recent searches
+  const { copyToClipboard, copied } = useClipboard();
+
+  // Load recent searches - optimized
   useEffect(() => {
-    if (open) {
-      const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
-      if (stored) {
-        try {
-          setRecentSearches(JSON.parse(stored));
-        } catch (error) {
-          console.error("Failed to parse recent searches:", error);
-        }
-      }
+    if (!open) return;
+
+    const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
+    if (!stored) return;
+
+    try {
+      const parsed = JSON.parse(stored);
+      setRecentSearches(parsed);
+    } catch (error) {
+      console.error("Failed to parse recent searches:", error);
+      localStorage.removeItem(RECENT_SEARCHES_KEY);
     }
   }, [open]);
 
@@ -145,35 +187,38 @@ export default function GlobalSearchModal({
     return () => clearTimeout(timeoutId);
   }, [searchQuery, performSearch]);
 
-  // Save recent search
-  const saveRecentSearch = (
-    type: "installer" | "reward",
-    result: InstallerResult | RewardResult,
-    query: string
-  ) => {
-    const newSearch: RecentSearch = {
-      query,
-      timestamp: Date.now(),
-      type,
-      result,
-    };
+  // Save recent search - optimized with useCallback
+  const saveRecentSearch = useCallback(
+    (
+      type: "installer" | "reward",
+      result: InstallerResult | RewardResult,
+      query: string
+    ) => {
+      const newSearch: RecentSearch = {
+        query,
+        timestamp: Date.now(),
+        type,
+        result,
+      };
 
-    setRecentSearches((prev) => {
-      const filtered = prev.filter((s) => s.result._id !== result._id);
-      const updated = [newSearch, ...filtered].slice(0, MAX_RECENT_SEARCHES);
-      localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
-      return updated;
-    });
-  };
+      setRecentSearches((prev) => {
+        const filtered = prev.filter((s) => s.result._id !== result._id);
+        const updated = [newSearch, ...filtered].slice(0, MAX_RECENT_SEARCHES);
+        localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+        return updated;
+      });
+    },
+    []
+  );
 
-  // Clear recent searches
-  const clearRecentSearches = () => {
+  // Clear recent searches - optimized with useCallback
+  const clearRecentSearches = useCallback(() => {
     setRecentSearches([]);
     localStorage.removeItem(RECENT_SEARCHES_KEY);
-  };
+  }, []);
 
-  // Get all results as flat list
-  const getAllResults = useCallback((): Array<{
+  // Get all results as flat list - optimized with useMemo
+  const allResults = useMemo((): Array<{
     type: "installer" | "reward";
     data: InstallerResult | RewardResult;
   }> => {
@@ -211,7 +256,7 @@ export default function GlobalSearchModal({
         router.push(`/rewards?id=${id}`);
       }
     },
-    [searchQuery, onOpenChange, router]
+    [searchQuery, onOpenChange, router, saveRecentSearch]
   );
 
   // Handle recent search click
@@ -227,28 +272,362 @@ export default function GlobalSearchModal({
     if (!open) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      const allResults = getAllResults();
+      // Determine if we're navigating search results or recent searches
+      const isSearchActive = searchQuery.length >= 2 && allResults.length > 0;
+      const isRecentSearchesActive =
+        searchQuery.length < 2 && recentSearches.length > 0;
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex((prev) => Math.min(prev + 1, allResults.length - 1));
+        if (isSearchActive) {
+          setSelectedIndex((prev) => Math.min(prev + 1, allResults.length - 1));
+        } else if (isRecentSearchesActive) {
+          setSelectedIndex((prev) =>
+            Math.min(prev + 1, recentSearches.length - 1)
+          );
+        }
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        setSelectedIndex((prev) => Math.max(prev - 1, 0));
-      } else if (e.key === "Enter" && allResults.length > 0) {
+        if (isSearchActive) {
+          setSelectedIndex((prev) => Math.max(prev - 1, 0));
+        } else if (isRecentSearchesActive) {
+          setSelectedIndex((prev) => Math.max(prev - 1, 0));
+        }
+      } else if (e.key === "Enter") {
         e.preventDefault();
-        const selected = allResults[selectedIndex];
-        if (selected) {
-          handleResultClick(selected.type, selected.data._id, selected.data);
+        if (isSearchActive) {
+          const selected = allResults[selectedIndex];
+          if (selected) {
+            handleResultClick(selected.type, selected.data._id, selected.data);
+          }
+        } else if (isRecentSearchesActive) {
+          const selected = recentSearches[selectedIndex];
+          if (selected) {
+            handleRecentSearchClick(selected);
+          }
         }
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [open, selectedIndex, getAllResults, handleResultClick]);
+  }, [
+    open,
+    selectedIndex,
+    allResults,
+    recentSearches,
+    searchQuery,
+    handleResultClick,
+    handleRecentSearchClick,
+  ]);
 
-  const allResults = getAllResults();
+  // Stable click handler factory to avoid inline recreation in map
+  const handleCopy = useCallback(
+    (code: string) => (e: React.MouseEvent) => {
+      e.stopPropagation();
+      copyToClipboard(code);
+    },
+    [copyToClipboard]
+  );
+
+  // Optimized search query change handler
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchQuery(e.target.value);
+    },
+    []
+  );
+
+  // Optimized clear search handler
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery("");
+  }, []);
+
+  // Memoize rendered recent searches to avoid re-renders
+  const renderedRecentSearches = useMemo(() => {
+    return recentSearches.map((recent, index) => {
+      const displayText =
+        "fullName" in recent.result
+          ? truncateText(recent.result.fullName)
+          : truncateText(recent.result.productModel);
+
+      const installerCode =
+        "installerCode" in recent.result
+          ? recent.result.installerCode
+          : recent.result.installer?.installerCode;
+
+      return (
+        <Card
+          key={`${recent.result._id}-${index}`}
+          onClick={() => handleRecentSearchClick(recent)}
+          className={cn(
+            "transition-colors flex items-center justify-between p-4 cursor-pointer bg-transparent dark:bg-card",
+            selectedIndex === index && searchQuery.length < 2
+              ? "bg-card dark:bg-accent/70"
+              : "hover:bg-card dark:hover:bg-accent/70"
+          )}
+        >
+          <div className="flex items-center gap-4">
+            <InstallerAvatar
+              user={
+                "fullName" in recent.result ? (
+                  <IconUser fill />
+                ) : (
+                  <IconProduct fill />
+                )
+              }
+              className={cn(
+                "size-8 shadow-md font-black font-sans p-6",
+                "border-border bg-muted"
+              )}
+            />
+
+            <div
+              className={cn(
+                "text-md font-semibold leading-none",
+                "text-foreground"
+              )}
+            >
+              <h2 className="truncate">{displayText}</h2>
+              {installerCode && (
+                <div
+                  className={cn(
+                    "text-xs text-muted-foreground/70 font-light font-mono leading-none flex items-center"
+                  )}
+                >
+                  {installerCode}
+                  <Button
+                    size={"icon"}
+                    onClick={handleCopy(installerCode)}
+                    className="!p-1 !size-max rounded-sm"
+                    variant={"ghost"}
+                  >
+                    {copied === installerCode ? (
+                      <IconCheck className="size-3" duotone={false} />
+                    ) : (
+                      <IconCopy className="size-3" duotone={false} />
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+              <Clock className="h-3 w-3" />
+              <span className="text-[10px]">
+                {formatDateTime(recent.timestamp)}
+              </span>
+            </div>
+          </div>
+        </Card>
+      );
+    });
+  }, [
+    recentSearches,
+    handleRecentSearchClick,
+    handleCopy,
+    copied,
+    selectedIndex,
+    searchQuery.length,
+  ]);
+
+  // Memoize installer results rendering
+  const renderedInstallerResults = useMemo(() => {
+    if (!searchResults?.installers.length) return null;
+
+    return searchResults.installers.map(
+      (installer: InstallerResult, idx: number) => {
+        const globalIdx = idx;
+        return (
+          <Card
+            key={installer._id}
+            onClick={() =>
+              handleResultClick("installer", installer.installerCode, installer)
+            }
+            className={cn(
+              "transition-colors flex items-center justify-between p-4 cursor-pointer bg-transparent dark:bg-card",
+              selectedIndex === globalIdx
+                ? "bg-card dark:bg-accent/70"
+                : "hover:bg-card dark:hover:bg-accent/70"
+            )}
+          >
+            <div className="flex items-center gap-4">
+              <InstallerAvatar
+                user={installer.fullName}
+                className={cn(
+                  "size-8 shadow-md font-black font-sans p-6",
+                  "border-border bg-muted"
+                )}
+              />
+
+              <div className="space-y-2">
+                <h2 className="truncate flex items-start gap-2 text-md font-semibold leading-none text-foreground">
+                  {installer.fullName}
+                  {installer.installerCode && (
+                    <div
+                      className={cn(
+                        "text-xs text-muted-foreground/70 font-light font-mono leading-none flex items-center"
+                      )}
+                    >
+                      {installer.installerCode}
+                      <Button
+                        size={"icon"}
+                        onClick={handleCopy(installer.installerCode)}
+                        className="!p-1 !size-max rounded-sm"
+                        variant={"ghost"}
+                      >
+                        {copied === installer.installerCode ? (
+                          <IconCheck className="size-3" duotone={false} />
+                        ) : (
+                          <IconCopy className="size-3" duotone={false} />
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </h2>
+                <div className="text-xs text-muted-foreground flex items-center gap-4">
+                  {installer.cnic && (
+                    <span className="flex items-center gap-1 leading-none">
+                      <IconUserId className="size-3.5" duotone={false} />
+                      {installer.cnic}
+                    </span>
+                  )}
+
+                  {installer.phoneNumber && (
+                    <span className="flex items-center gap-1 leading-none">
+                      <IconSmartphone2 className="size-3.5" duotone={false} />
+                      {installer.phoneNumber}
+                    </span>
+                  )}
+                  {installer.city && (
+                    <span className="flex items-center gap-1 leading-none">
+                      <IconMapPoint className="size-3.5" duotone={false} />
+                      {installer.city}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </Card>
+        );
+      }
+    );
+  }, [
+    searchResults?.installers,
+    selectedIndex,
+    handleResultClick,
+    copied,
+    handleCopy,
+  ]);
+
+  // Memoize reward results rendering
+  const renderedRewardResults = useMemo(() => {
+    if (!searchResults?.rewards.length) return null;
+
+    const installersLength = searchResults.installers?.length || 0;
+
+    return searchResults.rewards.map((reward: RewardResult, idx: number) => {
+      const globalIdx = installersLength + idx;
+      return (
+        <Card
+          key={reward._id}
+          onClick={() => handleResultClick("reward", reward._id, reward)}
+          className={cn(
+            "transition-colors flex items-center justify-between p-4 cursor-pointer bg-primary-foreground dark:bg-card",
+            selectedIndex === globalIdx
+              ? "bg-card dark:bg-accent/70"
+              : "hover:bg-card dark:hover:bg-accent/70"
+          )}
+        >
+          <div className="flex items-center gap-4">
+            <InstallerAvatar
+              user={
+                <>
+                  <IconProduct fill />{" "}
+                </>
+              }
+              className={cn(
+                "size-8 shadow-md font-black font-sans p-6",
+                "border-border bg-muted"
+              )}
+            />
+
+            <div className="space-y-2">
+              <div className="flex items-start gap-2">
+                <h2 className="truncate  text-md font-semibold leading-none text-foreground">
+                  {reward.productModel}
+                </h2>
+                {reward.serialNumber && (
+                  <div
+                    className={cn(
+                      "text-xs text-muted-foreground/70 font-light font-mono leading-none flex items-center"
+                    )}
+                  >
+                    {reward.serialNumber}
+                    <Button
+                      size={"icon"}
+                      onClick={handleCopy(reward.serialNumber)}
+                      className="!p-1 !size-max rounded-sm"
+                      variant={"ghost"}
+                    >
+                      {copied === reward.serialNumber ? (
+                        <IconCheck className="size-3" duotone={false} />
+                      ) : (
+                        <IconCopy className="size-3" duotone={false} />
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div className="text-xs text-muted-foreground flex items-center gap-4">
+                {reward.installer?.fullName && (
+                  <span className="flex items-center gap-1 leading-none">
+                    <IconUser className="size-3.5" duotone={false} />
+                    {reward.installer?.fullName}
+                  </span>
+                )}
+
+                {reward.cityOfInstallation && (
+                  <span className="flex items-center gap-1 leading-none">
+                    <IconMapPoint className="size-3.5" duotone={false} />
+                    {reward.cityOfInstallation}
+                  </span>
+                )}
+
+                {reward.rewardAmount && (
+                  <span className="flex items-center gap-1 leading-none">
+                    <IconGift className="size-3.5" duotone={false} />
+                    {reward.rewardAmount}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <Badge
+            variant={
+              reward.paymentStatus === "PAID"
+                ? "default"
+                : reward.paymentStatus === "PENDING"
+                ? "warning"
+                : "destructive"
+            }
+            className="text-[10px] tracking-widest font-semibold"
+          >
+            {reward.paymentStatus}
+          </Badge>
+        </Card>
+      );
+    });
+  }, [
+    searchResults?.rewards,
+    searchResults?.installers?.length,
+    selectedIndex,
+    handleResultClick,
+    copied,
+    handleCopy,
+  ]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -261,7 +640,7 @@ export default function GlobalSearchModal({
           </DialogDescription>
         </VisuallyHidden>
         {/* Search Input */}
-        <div className="flex items-center border-b border-border px-4 py-3 bg-muted/20 rounded-t-3xl">
+        <div className="flex items-center border-b border-border px-4 py-3 bg-card dark:bg-muted/40 backdrop-blur-2xl rounded-t-3xl">
           <div className="flex items-center w-full">
             <IconMagnifer
               duotone={false}
@@ -270,8 +649,8 @@ export default function GlobalSearchModal({
             <Input
               placeholder="Search by installer code, CNIC, phone, serial number, transaction ID..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="p-0 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-base !bg-transparent h-10 !rounded-none"
+              onChange={handleSearchChange}
+              className="p-0 border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-base !bg-transparent h-10 !rounded-none placeholder:!text-sm"
               autoFocus
             />
           </div>
@@ -279,7 +658,7 @@ export default function GlobalSearchModal({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setSearchQuery("")}
+              onClick={handleClearSearch}
               className="h-8 w-8 p-0"
             >
               <X className="h-4 w-4" />
@@ -288,243 +667,104 @@ export default function GlobalSearchModal({
         </div>
 
         {/* Results */}
-        <ScrollArea className="max-h-[500px]">
-          <div className="p-2">
-            {/* Loading */}
-            {isSearching && (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="overflow-hidden">
+          {/* Loading */}
+          {isSearching && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          )}
+
+          {/* Recent Searches */}
+          {!isSearching &&
+            searchQuery.length < 2 &&
+            recentSearches.length > 0 && (
+              <div className="w-full">
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground flex items-center justify-between">
+                  <span>Recent Searches</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearRecentSearches}
+                    className="h-6 text-xs"
+                  >
+                    Clear
+                  </Button>
+                </div>
+
+                <ScrollArea className="h-96 whitespace-nowrap">
+                  <div className="space-y-2 pl-2 pr-3 pb-2 ">
+                    {renderedRecentSearches}
+                  </div>
+                  <ScrollBar orientation="vertical" />
+                </ScrollArea>
               </div>
             )}
 
-            {/* Recent Searches */}
-            {!isSearching &&
-              searchQuery.length < 2 &&
-              recentSearches.length > 0 && (
-                <div className="space-y-1">
-                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground flex items-center justify-between">
-                    <span>Recent Searches</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearRecentSearches}
-                      className="h-6 text-xs"
-                    >
-                      Clear
-                    </Button>
+          {/* Search Help */}
+          {!isSearching &&
+            searchQuery.length < 2 &&
+            recentSearches.length === 0 && (
+              <div className="py-12 px-4 text-center text-sm text-muted-foreground space-y-3">
+                <div className="font-medium">Start typing to search</div>
+                <div className="text-xs space-y-1">
+                  <div className="font-semibold text-foreground">
+                    Searchable Fields:
                   </div>
-                  {recentSearches.map((recent, index) => (
-                    <div
-                      key={`${recent.result._id}-${index}`}
-                      onClick={() => handleRecentSearchClick(recent)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-accent cursor-pointer transition-colors"
-                    >
-                      {recent.type === "installer" ? (
-                        <Users className="h-4 w-4 text-blue-500" />
-                      ) : (
-                        <Package className="h-4 w-4 text-green-500" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm truncate">
-                            {"fullName" in recent.result
-                              ? recent.result.fullName
-                              : recent.result.serialNumber}
-                          </span>
-                          {(("installerCode" in recent.result &&
-                            recent.result.installerCode) ||
-                            ("installer" in recent.result &&
-                              recent.result.installer?.installerCode)) && (
-                            <Badge variant="outline" className="text-xs">
-                              {"installerCode" in recent.result
-                                ? recent.result.installerCode
-                                : recent.result.installer?.installerCode}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                          <Clock className="h-3 w-3" />
-                          <span>
-                            {new Date(recent.timestamp).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-            {/* Search Help */}
-            {!isSearching &&
-              searchQuery.length < 2 &&
-              recentSearches.length === 0 && (
-                <div className="py-12 px-4 text-center text-sm text-muted-foreground space-y-3">
-                  <div className="font-medium">Start typing to search</div>
-                  <div className="text-xs space-y-1">
-                    <div className="font-semibold text-foreground">
-                      Searchable Fields:
-                    </div>
-                    <div className="space-y-1">
-                      <div>
-                        • CNIC • Installer Code • Phone • WhatsApp • Name
-                      </div>
-                      <div>• Account Number • Account Title • Company Name</div>
-                      <div>
-                        • Serial Number • Transaction ID • Referrer Transaction
-                        ID
-                      </div>
+                  <div className="space-y-1">
+                    <div>• CNIC • Installer Code • Phone • WhatsApp • Name</div>
+                    <div>• Account Number • Account Title • Company Name</div>
+                    <div>
+                      • Serial Number • Transaction ID • Referrer Transaction ID
                     </div>
                   </div>
                 </div>
-              )}
-
-            {/* No Results */}
-            {!isSearching &&
-              searchQuery.length >= 2 &&
-              searchResults &&
-              allResults.length === 0 && (
-                <div className="py-12 px-4 text-center">
-                  <div className="text-muted-foreground mb-2">
-                    No results found for &quot;{searchQuery}&quot;
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Try searching with different keywords
-                  </div>
-                </div>
-              )}
-
-            {/* Results List */}
-            {!isSearching && searchQuery.length >= 2 && searchResults && (
-              <div className="space-y-1">
-                {/* Installers */}
-                {searchResults.installers.length > 0 && (
-                  <>
-                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                      Installers ({searchResults.installers.length})
-                    </div>
-                    {searchResults.installers.map(
-                      (installer: InstallerResult, idx: number) => {
-                        const globalIdx = idx;
-                        return (
-                          <div
-                            key={installer._id}
-                            onClick={() =>
-                              handleResultClick(
-                                "installer",
-                                installer.installerCode,
-                                installer
-                              )
-                            }
-                            className={cn(
-                              "flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-colors",
-                              selectedIndex === globalIdx
-                                ? "bg-accent"
-                                : "hover:bg-accent"
-                            )}
-                          >
-                            <Users className="h-5 w-5 text-blue-500 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-medium truncate">
-                                  {installer.fullName}
-                                </span>
-                                <Badge variant="outline" className="text-xs">
-                                  {installer.installerCode}
-                                </Badge>
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap gap-2">
-                                {installer.city && (
-                                  <span>📍 {installer.city}</span>
-                                )}
-                                {installer.phoneNumber && (
-                                  <span>📞 {installer.phoneNumber}</span>
-                                )}
-                                {installer.cnic && (
-                                  <span>🆔 {installer.cnic}</span>
-                                )}
-                              </div>
-                              {installer.companyName && (
-                                <div className="text-xs text-muted-foreground mt-0.5">
-                                  🏢 {installer.companyName}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      }
-                    )}
-                  </>
-                )}
-
-                {/* Rewards */}
-                {searchResults.rewards.length > 0 && (
-                  <>
-                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">
-                      Rewards ({searchResults.rewards.length})
-                    </div>
-                    {searchResults.rewards.map(
-                      (reward: RewardResult, idx: number) => {
-                        const globalIdx = searchResults.installers.length + idx;
-                        return (
-                          <div
-                            key={reward._id}
-                            onClick={() =>
-                              handleResultClick("reward", reward._id, reward)
-                            }
-                            className={cn(
-                              "flex items-center gap-3 px-3 py-2.5 rounded-md cursor-pointer transition-colors",
-                              selectedIndex === globalIdx
-                                ? "bg-accent"
-                                : "hover:bg-accent"
-                            )}
-                          >
-                            <Package className="h-5 w-5 text-green-500 shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-medium font-mono text-sm truncate">
-                                  {reward.serialNumber}
-                                </span>
-                                <Badge
-                                  variant={
-                                    reward.paymentStatus === "PAID"
-                                      ? "default"
-                                      : reward.paymentStatus === "PENDING"
-                                      ? "secondary"
-                                      : "destructive"
-                                  }
-                                  className="text-xs"
-                                >
-                                  {reward.paymentStatus}
-                                </Badge>
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                                {reward.productModel}
-                              </div>
-                              <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap gap-2">
-                                <span>💰 Rs. {reward.rewardAmount}</span>
-                                {reward.installer?.installerCode && (
-                                  <span>
-                                    👤 {reward.installer.installerCode}
-                                  </span>
-                                )}
-                                {reward.cityOfInstallation && (
-                                  <span>📍 {reward.cityOfInstallation}</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      }
-                    )}
-                  </>
-                )}
               </div>
             )}
-          </div>
-        </ScrollArea>
+
+          {/* No Results */}
+          {!isSearching &&
+            searchQuery.length >= 2 &&
+            searchResults &&
+            allResults.length === 0 && (
+              <div className="py-12 px-4 text-center">
+                <div className="text-muted-foreground mb-2">
+                  No results found for &quot;{searchQuery}&quot;
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Try searching with different keywords
+                </div>
+              </div>
+            )}
+
+          {/* Results List */}
+          {!isSearching && searchQuery.length >= 2 && searchResults && (
+            <div className="space-y-1 p-1">
+              {/* Installers */}
+              {renderedInstallerResults && (
+                <>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                    Installers ({searchResults.installers.length})
+                  </div>
+                  {renderedInstallerResults}
+                </>
+              )}
+
+              {/* Rewards */}
+              {renderedRewardResults && (
+                <>
+                  <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">
+                    Rewards ({searchResults.rewards.length})
+                  </div>
+                  {renderedRewardResults}
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Footer */}
-        <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground flex items-center justify-between bg-muted/20 rounded-b-3xl">
+        <div className="border-t border-border px-4 py-3 text-xs text-muted-foreground flex items-center justify-between bg-card dark:bg-muted/20 rounded-b-3xl">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono leading-none">

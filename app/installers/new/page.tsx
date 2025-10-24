@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   CITIES,
   CITY_TO_PROVINCE,
@@ -144,6 +144,36 @@ export default function NewInstallerPage() {
   const [certified, setCertified] = useState(false);
   const [companyName, setCompanyName] = useState("");
 
+  // Check if form has data (for unsaved changes warning)
+  const hasFormData = useMemo(() => {
+    return (
+      cnic.length > 0 ||
+      fullName.trim() !== "" ||
+      phoneNumber.trim() !== "" ||
+      city !== "" ||
+      address.trim() !== "" ||
+      trainingCenter !== "" ||
+      bankName !== "" ||
+      accountNumber.trim() !== "" ||
+      companyName.trim() !== "" ||
+      referrerCode.trim() !== ""
+    );
+  }, [cnic, fullName, phoneNumber, city, address, trainingCenter, bankName, accountNumber, companyName, referrerCode]);
+
+  // Protect against accidental page reload/navigation
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasFormData && registrationStatus === "idle") {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasFormData, registrationStatus]);
+
   // Load settings
   useEffect(() => {
     const fetchSettings = async () => {
@@ -179,23 +209,23 @@ export default function NewInstallerPage() {
     }
   }, [city]);
 
-  // Validation
-  const isStep1Valid = () => {
+  // Memoize validation functions
+  const isStep1Valid = useCallback(() => {
     const phoneDigits = phoneNumber.replace(/\D/g, "");
     const whatsappDigits = whatsappNumber.replace(/\D/g, "");
     return (
       cnicChecked &&
       cnic.length === 13 &&
       !cnicError &&
-      fullName.trim() &&
+      fullName.trim() !== "" &&
       phoneDigits.length === 11 &&
       phoneDigits.startsWith("03") &&
       whatsappDigits.length === 11 &&
       whatsappDigits.startsWith("03")
     );
-  };
+  }, [cnicChecked, cnic, cnicError, fullName, phoneNumber, whatsappNumber]);
 
-  const isStep2Valid = () => {
+  const isStep2Valid = useCallback(() => {
     if (!city || !address.trim() || !trainingCenter || !installerCode.trim()) {
       return false;
     }
@@ -205,9 +235,9 @@ export default function NewInstallerPage() {
     }
     // For auto-generated mode, just check if code exists
     return true;
-  };
+  }, [city, address, trainingCenter, installerCode, installerCodeAutoGen, codeValid, codeError]);
 
-  const isStep3Valid = () => {
+  const isStep3Valid = useCallback(() => {
     if (!bankName || !accountTitle.trim()) return false;
     const selectedBank = BANKS.find((b) => b.value === bankName);
     const isDigital = selectedBank?.mobile || false;
@@ -216,44 +246,42 @@ export default function NewInstallerPage() {
       return accountDigits.length === 11 && accountDigits.startsWith("03");
     }
     return accountNumber.trim().length > 0;
-  };
+  }, [bankName, accountTitle, accountNumber]);
 
-  const isStep4Valid = () => {
+  const isStep4Valid = useCallback(() => {
     if (referrerCode.trim() && !referrerData && !referrerError) return false;
     if (referrerError) return false;
     return true;
-  };
+  }, [referrerCode, referrerData, referrerError]);
 
-  // Navigation
-  const handleNext = () => {
+  // Optimize navigation handlers with better error messages
+  const handleNext = useCallback(() => {
     if (currentStep === 1 && !isStep1Valid()) {
-      toast.error("Please fill all required fields correctly");
+      toast.error("Please check: CNIC must be 13 digits, Phone numbers must start with 03 and be 11 digits long");
       return;
     }
     if (currentStep === 2 && !isStep2Valid()) {
-      toast.error("Please fill all required fields");
+      toast.error("Please complete: City, Address, Training Center, and Installer Code must all be filled");
       return;
     }
     if (currentStep === 3 && !isStep3Valid()) {
-      toast.error("Please fill all banking details correctly");
+      toast.error("Please verify: Bank Name, Account Title, and correct Account Number format");
       return;
     }
     if (currentStep === 4 && !isStep4Valid()) {
-      toast.error("Please verify the referrer code or leave it empty");
+      toast.error("Referrer code is not valid. You can leave it empty if you don't have a referrer.");
       return;
     }
     setCurrentStep(currentStep + 1);
-  };
+  }, [currentStep, isStep1Valid, isStep2Valid, isStep3Valid, isStep4Valid]);
 
-  const handlePrev = () => setCurrentStep(currentStep - 1);
+  const handlePrev = useCallback(() => {
+    setCurrentStep(currentStep - 1);
+  }, [currentStep]);
 
   const handleSubmit = async () => {
     setLoading(true);
     setRegistrationStatus("registering");
-
-    // Calculate minimum progress time (sum of all step durations)
-    const minProgressTime = 800 + 700 + 1000 + 600; // 3100ms total
-    const startTime = Date.now();
 
     try {
       // Use the hook values (which are already masked) for conversion
@@ -287,14 +315,9 @@ export default function NewInstallerPage() {
 
       const data = await response.json();
 
-      // Calculate elapsed time and wait for remaining progress time
-      const elapsed = Date.now() - startTime;
-      const remainingTime = Math.max(0, minProgressTime - elapsed);
-
-      // Wait for remaining time to ensure smooth progress animation completion
-      if (remainingTime > 0) {
-        await new Promise((resolve) => setTimeout(resolve, remainingTime));
-      }
+      // Small delay to ensure smooth transition to 100%
+      // This allows the progress bar to complete visually before switching screens
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       if (data.success) {
         setRegisteredInstaller({
@@ -303,17 +326,29 @@ export default function NewInstallerPage() {
         });
         setRegistrationStatus("success");
       } else {
-        // Format error message
+        // Format error message with better readability
         let errorMessage = "Failed to register installer";
+
+        // Handle validation errors array
         if (data.errors && Array.isArray(data.errors)) {
-          errorMessage = data.errors
-            .map((err: ValidationError) => {
-              const field = err.path?.join(".") || "Unknown field";
-              return `${field}: ${err.message}`;
-            })
-            .join("\n");
-        } else if (data.error) {
+          const formattedErrors = data.errors.map((err: ValidationError) => {
+            const field = err.path?.join(".") || "Unknown field";
+            // Make field names more readable
+            const readableField = field
+              .replace(/([A-Z])/g, " $1")
+              .replace(/^./, (str) => str.toUpperCase())
+              .trim();
+            return `• ${readableField}: ${err.message}`;
+          });
+          errorMessage = formattedErrors.join("\n");
+        }
+        // Handle single error message
+        else if (data.error) {
           errorMessage = data.error;
+        }
+        // Handle message field
+        else if (data.message) {
+          errorMessage = data.message;
         }
 
         setRegistrationError(errorMessage);
@@ -325,13 +360,26 @@ export default function NewInstallerPage() {
             toast.error(`${err.path?.join(".")}: ${err.message}`);
           });
         } else {
-          toast.error(data.error || "Failed to register installer");
+          toast.error(data.error || data.message || "Failed to register installer");
         }
       }
     } catch (error) {
       console.error("Error registering installer:", error);
-      const errorMsg =
-        error instanceof Error ? error.message : "Network error occurred";
+
+      // Handle network errors and other exceptions
+      let errorMsg = "Network error: Unable to connect to the server";
+
+      if (error instanceof Error) {
+        errorMsg = error.message;
+      } else if (typeof error === "string") {
+        errorMsg = error;
+      }
+
+      // Make the error message more user-friendly
+      if (errorMsg.includes("fetch")) {
+        errorMsg = "Network error: Please check your internet connection and try again";
+      }
+
       setRegistrationError(errorMsg);
       setRegistrationStatus("error");
       toast.error("Failed to register installer");
@@ -340,23 +388,82 @@ export default function NewInstallerPage() {
     }
   };
 
-  const handleRedirect = () => {
+  const handleRedirect = useCallback(() => {
     // Completely reset the page by reloading
     // This ensures all hooks (CNIC validation, referrer validation, installer code generation)
     // are completely reset to their initial state
     window.location.href = "/installers/new";
-  };
+  }, []);
 
-  const selectedBank = BANKS.find((b) => b.value === bankName);
+  // Memoize selected bank and digital payment check
+  const selectedBank = useMemo(
+    () => BANKS.find((b) => b.value === bankName),
+    [bankName]
+  );
   const isDigitalPayment = selectedBank?.mobile || false;
 
-  const steps = [
-    { number: 1, title: "Personal Info" },
-    { number: 2, title: "Location & Training" },
-    { number: 3, title: "Banking Details" },
-    { number: 4, title: "Additional Info" },
-    { number: 5, title: "Review" },
-  ];
+  // Memoize steps array
+  const steps = useMemo(
+    () => [
+      { number: 1, title: "Personal Info" },
+      { number: 2, title: "Location & Training" },
+      { number: 3, title: "Banking Details" },
+      { number: 4, title: "Additional Info" },
+      { number: 5, title: "Review" },
+    ],
+    []
+  );
+
+  // Memoize city groups for dropdown
+  const cityGroups = useMemo(
+    () =>
+      PROVINCES.map((province) => ({
+        label: province,
+        options: CITIES.filter((c) => CITY_TO_PROVINCE[c] === province)
+          .sort()
+          .map((c) => ({
+            value: c,
+            label: (
+              <div className="flex items-end gap-2">
+                {c}
+                <p className="text-muted-foreground text-[10px]">{province}</p>
+              </div>
+            ),
+          })),
+      })),
+    []
+  );
+
+  // Memoize training center options
+  const trainingCenterOptions = useMemo(
+    () =>
+      TRAINING_CENTER.map((tc) => ({
+        value: tc.city,
+        label: tc.city,
+      })),
+    []
+  );
+
+  // Memoize bank groups
+  const bankGroups = useMemo(
+    () => [
+      {
+        label: "Digital Payment Methods",
+        options: BANKS.filter((b) => b.mobile).map((b) => ({
+          value: b.value,
+          label: b.label,
+        })),
+      },
+      {
+        label: "Commercial Banks",
+        options: BANKS.filter((b) => !b.mobile).map((b) => ({
+          value: b.value,
+          label: b.label,
+        })),
+      },
+    ],
+    []
+  );
 
   const referrerJoined = useRelativeTime(referrerData?.createdAt || "");
 
@@ -427,7 +534,7 @@ export default function NewInstallerPage() {
                     <StepHeader
                       icon={IconUserOctagon}
                       title="Basic Information"
-                      description="Enter the installer's personal details and contact information"
+                      description="Please provide the installer's CNIC, full name, and contact numbers. All fields are required."
                     />
 
                     <div
@@ -454,9 +561,12 @@ export default function NewInstallerPage() {
                             id="fullName"
                             value={fullName}
                             onChange={setFullName}
-                            placeholder="Enter full name"
+                            placeholder="e.g., Muhammad Ahmed Khan"
+                            hint="Enter the full name as it appears on the CNIC"
                             labelClassName="block"
                             required
+                            aria-label="Installer's full name as on CNIC"
+                            aria-required="true"
                           />
 
                           <FormField
@@ -467,9 +577,13 @@ export default function NewInstallerPage() {
                             onChange={phoneInput.onChange}
                             onFocus={phoneInput.onFocus}
                             onBlur={phoneInput.onBlur}
-                            placeholder="03##-#######"
+                            placeholder="0300-1234567"
+                            hint="Enter 11-digit mobile number starting with 03"
                             maxLength={12}
                             required
+                            aria-label="Mobile phone number for contact"
+                            aria-required="true"
+                            aria-describedby="phone-hint"
                           />
 
                           <div className="space-y-2">
@@ -524,7 +638,7 @@ export default function NewInstallerPage() {
                     />
 
                     <Card className={CARD_SECTION_CLASS}>
-                      <CardContent className="space-y-4 p-0">
+                      <CardContent className="space-y-4 !p-0">
                         <div className={GRID_2_COL_CLASS}>
                           <FormField
                             type="select"
@@ -534,24 +648,7 @@ export default function NewInstallerPage() {
                             onChange={setCity}
                             placeholder="Select City"
                             icon={IconCity}
-                            groups={PROVINCES.map((province) => ({
-                              label: province,
-                              options: CITIES.filter(
-                                (c) => CITY_TO_PROVINCE[c] === province
-                              )
-                                .sort()
-                                .map((c) => ({
-                                  value: c,
-                                  label: (
-                                    <div className="flex items-end gap-2">
-                                      {c}
-                                      <p className="text-muted-foreground text-[10px]">
-                                        {province}
-                                      </p>
-                                    </div>
-                                  ),
-                                })),
-                            }))}
+                            groups={cityGroups}
                             searchable
                             searchPlaceholder="Search cities..."
                             emptyMessage="No city found."
@@ -591,10 +688,7 @@ export default function NewInstallerPage() {
                               onChange={setTrainingCenter}
                               placeholder="Select Training Center"
                               icon={IconTeacher}
-                              options={TRAINING_CENTER.map((tc) => ({
-                                value: tc.city,
-                                label: tc.city,
-                              }))}
+                              options={trainingCenterOptions}
                               searchable
                               searchPlaceholder="Search training centers..."
                               emptyMessage="No training center found."
@@ -640,26 +734,7 @@ export default function NewInstallerPage() {
                             setAccountNumber("");
                           }}
                           placeholder="Select Bank / Payment Method"
-                          groups={[
-                            {
-                              label: "Digital Payment Methods",
-                              options: BANKS.filter((b) => b.mobile).map(
-                                (b) => ({
-                                  value: b.value,
-                                  label: b.label,
-                                })
-                              ),
-                            },
-                            {
-                              label: "Commercial Banks",
-                              options: BANKS.filter((b) => !b.mobile).map(
-                                (b) => ({
-                                  value: b.value,
-                                  label: b.label,
-                                })
-                              ),
-                            },
-                          ]}
+                          groups={bankGroups}
                           searchable
                           searchPlaceholder="Search banks..."
                           emptyMessage="No bank found."

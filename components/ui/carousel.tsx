@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { IconAltArrowLeft, IconAltArrowRight } from "../icons";
 
 type CarouselApi = UseEmblaCarouselType[1];
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;
@@ -144,7 +145,7 @@ function CarouselContent({ className, ...props }: React.ComponentProps<"div">) {
       <div
         className={cn(
           "flex cursor-grab",
-          orientation === "horizontal" ? "-ml-4" : "-mt-4 flex-col",
+          orientation === "horizontal" ? "-ml-4 px-6" : "-mt-4 flex-col",
           className
         )}
         {...props}
@@ -180,24 +181,25 @@ function CarouselPrevious({
   const { orientation, scrollPrev, canScrollPrev } = useCarousel();
 
   return (
-    <Button
-      data-slot="carousel-previous"
-      variant={variant}
-      size={size}
+    <div
       className={cn(
-        "absolute size-8 rounded-full",
-        orientation === "horizontal"
-          ? "top-1/2 -left-12 -translate-y-1/2"
-          : "-top-12 left-1/2 -translate-x-1/2 rotate-90",
+        "absolute top-1/2 left-0 -translate-y-1/2 flex items-center justify-center bg-gradient-to-r to-transparent h-full px-2",
         className
       )}
-      disabled={!canScrollPrev}
-      onClick={scrollPrev}
-      {...props}
     >
-      <ArrowLeft />
-      <span className="sr-only">Previous slide</span>
-    </Button>
+      <Button
+        data-slot="carousel-previous"
+        variant={variant}
+        size={size}
+        className={cn("p-2 !size-max rounded-full aspect-square", className)}
+        disabled={!canScrollPrev}
+        onClick={scrollPrev}
+        {...props}
+      >
+        <IconAltArrowLeft className="size-4.5" />
+        <span className="sr-only">Previous slide</span>
+      </Button>
+    </div>
   );
 }
 
@@ -210,24 +212,25 @@ function CarouselNext({
   const { orientation, scrollNext, canScrollNext } = useCarousel();
 
   return (
-    <Button
-      data-slot="carousel-next"
-      variant={variant}
-      size={size}
+    <div
       className={cn(
-        "absolute size-8 rounded-full",
-        orientation === "horizontal"
-          ? "top-1/2 -right-12 -translate-y-1/2"
-          : "-bottom-12 left-1/2 -translate-x-1/2 rotate-90",
+        "absolute top-1/2 right-0 flex items-center justify-center -translate-y-1/2 bg-gradient-to-l to-transparent h-full px-2",
         className
       )}
-      disabled={!canScrollNext}
-      onClick={scrollNext}
-      {...props}
     >
-      <ArrowRight />
-      <span className="sr-only">Next slide</span>
-    </Button>
+      <Button
+        data-slot="carousel-next"
+        variant={variant}
+        size={size}
+        disabled={!canScrollNext}
+        onClick={scrollNext}
+        {...props}
+        className={cn("p-2 !size-max rounded-full aspect-square")}
+      >
+        <IconAltArrowRight className="size-4.5" />
+        <span className="sr-only">Next slide</span>
+      </Button>
+    </div>
   );
 }
 

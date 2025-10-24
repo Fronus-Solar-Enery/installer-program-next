@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog,
@@ -16,7 +16,7 @@ import Loading from "@/components/ui/loading";
 interface RegistrationStep {
   id: string;
   label: string;
-  duration: number;
+  weight: number; // Weight determines how much of total progress this step takes
 }
 
 interface RegistrationModalProps {
@@ -32,10 +32,10 @@ interface RegistrationModalProps {
 }
 
 const REGISTRATION_STEPS: RegistrationStep[] = [
-  { id: "serial", label: "Validating Serial Number", duration: 800 },
-  { id: "installer", label: "Checking Installer", duration: 700 },
-  { id: "database", label: "Saving To Database", duration: 1000 },
-  { id: "finalize", label: "Finalizing Registration", duration: 600 },
+  { id: "serial", label: "Validating Serial Number", weight: 0.25 },
+  { id: "installer", label: "Checking Installer", weight: 0.22 },
+  { id: "database", label: "Saving To Database", weight: 0.35 },
+  { id: "finalize", label: "Finalizing Registration", weight: 0.18 },
 ];
 
 export function RegistrationModal({
@@ -49,50 +49,65 @@ export function RegistrationModal({
   onRedirect,
   onViewReward,
 }: RegistrationModalProps) {
-  const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const [countdown, setCountdown] = useState(5);
-  const [isCompleted, setIsCompleted] = useState(false);
+  const startTimeRef = useRef<number | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   // Reset state when modal opens
   useEffect(() => {
     if (open && status === "registering") {
-      setCurrentStep(0);
       setProgress(0);
-      setIsCompleted(false);
       setCountdown(5);
+      startTimeRef.current = Date.now();
     }
   }, [open, status]);
 
-  // Handle progress animation
+  // Smooth progress animation that syncs with API time
   useEffect(() => {
-    if (status !== "registering" || !open) return;
-
-    if (currentStep >= REGISTRATION_STEPS.length) {
-      setIsCompleted(true);
+    if (status !== "registering" || !open) {
+      // When status changes to success/error, ensure progress reaches 100%
+      if (status === "success" || status === "error") {
+        setProgress(100);
+      }
       return;
     }
 
-    const step = REGISTRATION_STEPS[currentStep];
-    const startTime = Date.now();
+    startTimeRef.current = Date.now();
 
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const stepProgress = Math.min((elapsed / step.duration) * 100, 100);
+    // Expected API time is typically 1-2 seconds
+    // We'll animate smoothly to reach 95% at around 2 seconds
+    // This gives a buffer for slower API calls
+    const EXPECTED_DURATION = 2000; // 2 seconds
+    const TARGET_PROGRESS = 95; // Leave 5% for completion
 
-      const completedSteps = currentStep;
-      const totalProgress =
-        (completedSteps * 100 + stepProgress) / REGISTRATION_STEPS.length;
+    const animate = () => {
+      if (!startTimeRef.current) return;
 
-      setProgress(totalProgress);
+      const elapsed = Date.now() - startTimeRef.current;
 
-      if (elapsed >= step.duration) {
-        setCurrentStep((prev) => prev + 1);
+      // Use smooth ease-out curve that reaches target naturally
+      // Formula: progress = target * (1 - e^(-3*t/duration))
+      // This reaches ~95% of target at duration time
+      const normalizedTime = elapsed / EXPECTED_DURATION;
+      const easedProgress = TARGET_PROGRESS * (1 - Math.exp(-3 * normalizedTime));
+
+      setProgress(Math.min(easedProgress, TARGET_PROGRESS));
+
+      // Continue animation only while registering
+      if (status === "registering") {
+        animationFrameRef.current = requestAnimationFrame(animate);
       }
-    }, 50);
+    };
 
-    return () => clearInterval(interval);
-  }, [currentStep, status, open]);
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [status, open]);
 
   // Handle countdown for success state
   useEffect(() => {
@@ -139,15 +154,25 @@ export function RegistrationModal({
 
                 <div className="space-y-2">
                   {REGISTRATION_STEPS.map((step, index) => {
-                    const isCompleted = index < currentStep;
-                    const isCurrent = index === currentStep;
-                    const isPending = index > currentStep;
+                    // Calculate cumulative weight up to this step
+                    const cumulativeWeight = REGISTRATION_STEPS.slice(0, index).reduce(
+                      (sum, s) => sum + s.weight,
+                      0
+                    );
+                    const stepThreshold = cumulativeWeight * 100;
+                    const stepEndThreshold = (cumulativeWeight + step.weight) * 100;
 
-                    // Calculate progress for current step
+                    const isCompleted = progress > stepEndThreshold;
+                    const isCurrent =
+                      progress >= stepThreshold && progress <= stepEndThreshold;
+                    const isPending = progress < stepThreshold;
+
+                    // Calculate progress for current step (0-100)
                     const stepProgress = isCurrent
-                      ? ((progress * REGISTRATION_STEPS.length - index * 100) /
-                          100) *
-                        100
+                      ? Math.min(
+                          ((progress - stepThreshold) / (step.weight * 100)) * 100,
+                          100
+                        )
                       : 0;
 
                     return (
@@ -157,17 +182,16 @@ export function RegistrationModal({
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 }}
                         className={cn(
-                          "relative flex items-center gap-3 p-3 rounded-2xl overflow-hidden",
-                          isCompleted && "bg-primary/5"
+                          "relative flex items-center gap-3 p-3 rounded-2xl overflow-hidden transition-colors duration-300",
+                          isCompleted && "bg-success/5"
                         )}
                       >
                         {/* Animated progress bar background for current step */}
                         {isCurrent && (
                           <motion.div
                             className="absolute inset-0 bg-primary/5"
-                            initial={{ width: "0%" }}
-                            animate={{ width: `${stepProgress}%` }}
-                            transition={{ duration: 0.05, ease: "linear" }}
+                            style={{ width: `${stepProgress}%` }}
+                            transition={{ duration: 0.1, ease: "linear" }}
                           />
                         )}
 
@@ -175,16 +199,22 @@ export function RegistrationModal({
                         <div className="relative flex items-center gap-3 w-full">
                           <div
                             className={cn(
-                              "flex items-center justify-center w-8 h-8 rounded-full transition-colors",
+                              "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300",
                               isCompleted && "bg-success/20 text-success-text",
                               isCurrent && "bg-primary text-primary-foreground",
                               isPending && "bg-muted text-muted-foreground"
                             )}
                           >
                             {isCompleted ? (
-                              <IconCheck className="w-5 h-5" duotone={false} />
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: "spring", stiffness: 500 }}
+                              >
+                                <IconCheck className="w-5 h-5" duotone={false} />
+                              </motion.div>
                             ) : isCurrent ? (
-                              <Loading className="w-4 h-4 text-background" />
+                              <Loading className="w-4 h-4 fill-background" />
                             ) : (
                               <span className="text-sm font-medium">
                                 {index + 1}
@@ -193,7 +223,7 @@ export function RegistrationModal({
                           </div>
                           <span
                             className={cn(
-                              "text-sm font-medium transition-colors",
+                              "text-sm font-medium transition-colors duration-300",
                               isCompleted && "text-success-text",
                               isCurrent && "text-foreground",
                               isPending && "text-muted-foreground"
@@ -341,10 +371,10 @@ export function RegistrationModal({
                 {/* Error Message */}
                 <div className="space-y-2">
                   <DialogTitle className="text-2xl font-bold text-destructive">
-                    Registration Failed
+                    ❌ Registration Failed
                   </DialogTitle>
                   <DialogDescription className="text-muted-foreground">
-                    Please review the errors below and try again
+                    The reward could not be registered. Please check the error details below:
                   </DialogDescription>
                 </div>
 
@@ -354,13 +384,13 @@ export function RegistrationModal({
                     {errorMessage?.split("\n").map((line, index) => (
                       <div
                         key={index}
-                        className="text-sm text-destructive-text font-mono"
+                        className="text-sm text-destructive-text leading-relaxed"
                       >
                         {line}
                       </div>
                     )) || (
                       <div className="text-sm text-destructive-text">
-                        An error occurred while registering the reward
+                        ⚠️ An unexpected error occurred while registering the reward. Please try again or contact support.
                       </div>
                     )}
                   </div>

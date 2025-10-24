@@ -1,11 +1,9 @@
 "use client";
-
 import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -73,6 +71,8 @@ export default function BulkUploadInstallersPage() {
 
   const [uploading, setUploading] = useState(false);
   const [uploadPercent, setUploadPercent] = useState(0);
+  const [fileReading, setFileReading] = useState(false);
+  const [fileReadProgress, setFileReadProgress] = useState(0);
 
   type TemplateRow = {
     "Installer Code": string;
@@ -337,88 +337,162 @@ export default function BulkUploadInstallersPage() {
 
   const parseExcelFile = useCallback(
     (file: File) => {
+      setFileReading(true);
+      setFileReadProgress(0);
+
       const reader = new FileReader();
-      reader.onload = (e) => {
+      let progressInterval: NodeJS.Timeout;
+
+      // Smooth progress animation
+      const startProgress = () => {
+        let progress = 0;
+        progressInterval = setInterval(() => {
+          progress += 3;
+          if (progress <= 25) {
+            setFileReadProgress(progress);
+          }
+        }, 80);
+      };
+
+      startProgress();
+
+      // Track real file reading progress
+      reader.onprogress = (event) => {
+        if (event.lengthComputable) {
+          clearInterval(progressInterval);
+          const percentLoaded = Math.round((event.loaded / event.total) * 40) + 25;
+          setFileReadProgress(percentLoaded);
+        }
+      };
+
+      reader.onload = async (e) => {
         try {
+          clearInterval(progressInterval);
+          setFileReadProgress(70);
+
+          // Allow UI to update
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
+
+          setFileReadProgress(75);
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+
           const workbook = XLSX.read(data, { type: "array" });
+
+          setFileReadProgress(80);
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
+
+          setFileReadProgress(85);
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+
           const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<
             string,
             unknown
           >[];
 
-          const parsedInstallers: InstallerUpload[] = jsonData.map((row) => {
-            const rawBankName = row["Bank Name"]?.toString().trim() || "";
-            const rawFullName = row["Full Name"]?.toString().trim() || "";
-            const rawAddress = row["Address"]?.toString().trim() || "";
-            const rawCity = row["City"]?.toString().trim() || "";
-            const rawProvince = row["Province"]?.toString().trim() || "";
-            const rawTrainingCenter =
-              row["Training Center"]?.toString().trim() || "";
-            const rawCompanyName = row["Company Name"]?.toString().trim() || "";
-            const rawAccountTitle =
-              row["Account Title"]?.toString().trim() || "";
-            const rawCNIC = row["CNIC"]?.toString().trim() || "";
-            const rawPhoneNumber = row["Phone Number"]?.toString().trim() || "";
-            const rawWhatsappNumber =
-              row["WhatsApp Number"]?.toString().trim() || "";
+          setFileReadProgress(90);
+          await new Promise((resolve) => requestAnimationFrame(resolve));
 
-            const installer = {
-              // UPPERCASE fields
-              installerCode:
-                row["Installer Code"]?.toString().trim().toUpperCase() || "",
-              referrerCode:
-                row["Referrer Code"]?.toString().trim().toUpperCase() ||
-                undefined,
-              accountNumber:
-                row["Account Number"]?.toString().trim().toUpperCase() || "",
+          // Process data in chunks to avoid blocking
+          const parsedInstallers: InstallerUpload[] = [];
+          const chunkSize = 50;
 
-              // Capitalize Each Word fields
-              fullName: rawFullName ? capitalizeEachWord(rawFullName) : "",
-              address: rawAddress ? capitalizeEachWord(rawAddress) : "",
-              city: rawCity ? capitalizeEachWord(rawCity) : "",
-              province: rawProvince ? capitalizeEachWord(rawProvince) : "",
-              trainingCenter: rawTrainingCenter
-                ? capitalizeEachWord(rawTrainingCenter)
-                : "",
-              companyName: rawCompanyName
-                ? capitalizeEachWord(rawCompanyName)
-                : undefined,
-              accountTitle: rawAccountTitle
-                ? capitalizeEachWord(rawAccountTitle)
-                : "",
+          for (let i = 0; i < jsonData.length; i += chunkSize) {
+            const chunk = jsonData.slice(i, i + chunkSize);
+            const chunkProgress = 90 + Math.round((i / jsonData.length) * 8);
+            setFileReadProgress(chunkProgress);
 
-              // Formatted fields
-              cnic: formatCNIC(rawCNIC),
-              phoneNumber: formatPhoneNumber(rawPhoneNumber),
-              whatsappNumber: formatPhoneNumber(rawWhatsappNumber),
+            // Process chunk
+            const processedChunk = chunk.map((row) => {
+              const rawBankName = row["Bank Name"]?.toString().trim() || "";
+              const rawFullName = row["Full Name"]?.toString().trim() || "";
+              const rawAddress = row["Address"]?.toString().trim() || "";
+              const rawCity = row["City"]?.toString().trim() || "";
+              const rawProvince = row["Province"]?.toString().trim() || "";
+              const rawTrainingCenter =
+                row["Training Center"]?.toString().trim() || "";
+              const rawCompanyName = row["Company Name"]?.toString().trim() || "";
+              const rawAccountTitle =
+                row["Account Title"]?.toString().trim() || "";
+              const rawCNIC = row["CNIC"]?.toString().trim() || "";
+              const rawPhoneNumber = row["Phone Number"]?.toString().trim() || "";
+              const rawWhatsappNumber =
+                row["WhatsApp Number"]?.toString().trim() || "";
 
-              // Other fields
-              bankName: normalizeBankName(rawBankName),
-              certified:
-                row["Certified"]?.toString().toLowerCase() === "true"
-                  ? true
-                  : false,
-            };
+              const installer = {
+                // UPPERCASE fields
+                installerCode:
+                  row["Installer Code"]?.toString().trim().toUpperCase() || "",
+                referrerCode:
+                  row["Referrer Code"]?.toString().trim().toUpperCase() ||
+                  undefined,
+                accountNumber:
+                  row["Account Number"]?.toString().trim().toUpperCase() || "",
 
-            const issues = validateInstaller(installer);
+                // Capitalize Each Word fields
+                fullName: rawFullName ? capitalizeEachWord(rawFullName) : "",
+                address: rawAddress ? capitalizeEachWord(rawAddress) : "",
+                city: rawCity ? capitalizeEachWord(rawCity) : "",
+                province: rawProvince ? capitalizeEachWord(rawProvince) : "",
+                trainingCenter: rawTrainingCenter
+                  ? capitalizeEachWord(rawTrainingCenter)
+                  : "",
+                companyName: rawCompanyName
+                  ? capitalizeEachWord(rawCompanyName)
+                  : undefined,
+                accountTitle: rawAccountTitle
+                  ? capitalizeEachWord(rawAccountTitle)
+                  : "",
 
-            return {
-              ...installer,
-              issues,
-              isValid: issues.length === 0,
-            };
-          });
+                // Formatted fields
+                cnic: formatCNIC(rawCNIC),
+                phoneNumber: formatPhoneNumber(rawPhoneNumber),
+                whatsappNumber: formatPhoneNumber(rawWhatsappNumber),
 
+                // Other fields
+                bankName: normalizeBankName(rawBankName),
+                certified:
+                  row["Certified"]?.toString().toLowerCase() === "true"
+                    ? true
+                    : false,
+              };
+
+              const issues = validateInstaller(installer);
+
+              return {
+                ...installer,
+                issues,
+                isValid: issues.length === 0,
+              };
+            });
+
+            parsedInstallers.push(...processedChunk);
+
+            // Allow UI to update between chunks
+            await new Promise((resolve) => requestAnimationFrame(resolve));
+          }
+
+          setFileReadProgress(98);
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+
+          setFileReadProgress(100);
           setPreview(parsedInstallers);
           setError("");
           toast.success(`Loaded ${parsedInstallers.length} records from file`);
 
           // Automatically validate against database after parsing
-          validateAgainstDatabase(parsedInstallers);
+          setTimeout(() => {
+            setFileReading(false);
+            validateAgainstDatabase(parsedInstallers);
+          }, 300);
         } catch (err: unknown) {
+          clearInterval(progressInterval);
+          setFileReading(false);
+          setFileReadProgress(0);
           const errorMsg =
             "Failed to parse Excel file: " +
             (err instanceof Error ? err.message : "Unknown error");
@@ -427,6 +501,16 @@ export default function BulkUploadInstallersPage() {
           setPreview([]);
         }
       };
+
+      reader.onerror = () => {
+        clearInterval(progressInterval);
+        setFileReading(false);
+        setFileReadProgress(0);
+        const errorMsg = "Failed to read file";
+        setError(errorMsg);
+        toast.error(errorMsg);
+      };
+
       reader.readAsArrayBuffer(file);
     },
     [validateInstaller, validateAgainstDatabase]
@@ -449,6 +533,8 @@ export default function BulkUploadInstallersPage() {
     setError("");
     setSuccess("");
     setValidating(false);
+    setFileReading(false);
+    setFileReadProgress(0);
 
     // Reset file input
     const fileInput = document.querySelector(
@@ -763,7 +849,7 @@ export default function BulkUploadInstallersPage() {
   );
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto space-y-4">
       <PageHeader
         title="Bulk Upload Installers"
         description="Upload multiple installers at once using an Excel file"
@@ -774,301 +860,353 @@ export default function BulkUploadInstallersPage() {
           </Button>
         }
       />
-      <div className="p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
-          {/* Instructions Card */}
-          <Card className="grid grid-cols-1 lg:grid-cols-2 ">
+      {/* Instructions Card */}
+      <Card className="grid grid-cols-1 lg:grid-cols-2 ">
+        <div>
+          <CardHeader>
+            <CardTitle>Instructions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
-              <CardHeader>
-                <CardTitle>Instructions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    1. Download the template file and fill in the installer data
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    2. Upload the completed Excel file
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    3. Review the data and fix any validation issues
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    4. Click &quot;Upload All Valid Records&quot; to finalize
-                  </p>
-                  <Button
-                    onClick={() => downloadTemplate(setDownloadingTemplate)}
-                    variant="outline"
-                    disabled={downloadingTemplate}
-                  >
-                    {downloadingTemplate ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4 mr-2" />
-                    )}
-                    {downloadingTemplate
-                      ? "Downloading..."
-                      : "Download Template"}
-                  </Button>
-                </div>
-
-                <div className="pt-4 border-t border-border">
-                  <p className="text-sm font-medium mb-2">Formatting Rules:</p>
-                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                    <li>
-                      CNIC: Auto-formatted as #####-#######-# (enter 13 digits)
-                    </li>
-                    <li>
-                      Phone/WhatsApp: Auto-formatted as +92XXXXXXXXXX (enter 11
-                      digits)
-                    </li>
-                    <li>
-                      Names/Addresses: Auto-capitalized (Each Word Capitalized)
-                    </li>
-                    <li>Codes/Account Numbers: Auto-converted to UPPERCASE</li>
-                  </ul>
-                  <p className="text-sm font-medium mb-2 mt-3">
-                    Validation Rules:
-                  </p>
-                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                    <li>Installer code must be unique</li>
-                    <li>All required fields must be filled</li>
-                    <li>Bank name MUST match exactly (case-sensitive)</li>
-                  </ul>
-                </div>
-              </CardContent>
+              <p className="text-sm text-muted-foreground mb-2">
+                1. Download the template file and fill in the installer data
+              </p>
+              <p className="text-sm text-muted-foreground mb-2">
+                2. Upload the completed Excel file
+              </p>
+              <p className="text-sm text-muted-foreground mb-2">
+                3. Review the data and fix any validation issues
+              </p>
+              <p className="text-sm text-muted-foreground mb-4">
+                4. Click &quot;Upload All Valid Records&quot; to finalize
+              </p>
+              <Button
+                onClick={() => downloadTemplate(setDownloadingTemplate)}
+                variant="outline"
+                disabled={downloadingTemplate}
+              >
+                {downloadingTemplate ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                {downloadingTemplate ? "Downloading..." : "Download Template"}
+              </Button>
             </div>
 
-            {/* Upload Form */}
-            <form onSubmit={handleSubmit} className="space-y-4 h-full">
-              <div className="h-full p-6">
-                <Card className="h-full p-6 squircle rounded-[4rem] space-y-4">
-                  <h3 className="mb-3">File Upload</h3>
-                  <FileDropzone
-                    label="UPLOAD EXCEL FILE"
-                    accept={{
-                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-                        [".xlsx"],
-                      "application/vnd.ms-excel": [".xls"],
-                    }}
-                    acceptedFileTypes={[".xlsx", ".xls"]}
-                    fileTypeLabel="Excel files"
-                    maxFiles={1}
-                    onDrop={(files) => handleFileChange(files[0])}
-                    disabled={loading}
-                    className="h-56 bg-muted/10"
-                  />
-                  {file && (
-                    <div className="relative text-sm text-foreground mt-2 py-5 px-4 border border-border bg-muted rounded-[4rem] squircle flex items-center gap-3">
-                      <IconExcel />
-                      <div className="leading-none">{file.name}</div>
-                      <button
-                        onClick={handleReset}
-                        disabled={loading || validating}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer"
-                      >
-                        <IconTrashBin2
-                          className="size-5 text-destructive-text hover:text-destructive-text-hover transition-colors "
-                          duotone={false}
-                        />
-                      </button>
-                    </div>
-                  )}
-                </Card>
-              </div>
-            </form>
-          </Card>
-
-          {/* Visual upload progress */}
-          {uploading && (
-            <div className="w-full bg-slate-200 rounded h-3 overflow-hidden mt-2">
-              <div
-                className="h-3 transition-all"
-                style={{ width: `${uploadPercent}%` }}
-                aria-valuenow={uploadPercent}
-              />
+            <div className="pt-4 border-t border-border">
+              <p className="text-sm font-medium mb-2">Formatting Rules:</p>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <li>
+                  CNIC: Auto-formatted as #####-#######-# (enter 13 digits)
+                </li>
+                <li>
+                  Phone/WhatsApp: Auto-formatted as +92XXXXXXXXXX (enter 11
+                  digits)
+                </li>
+                <li>
+                  Names/Addresses: Auto-capitalized (Each Word Capitalized)
+                </li>
+                <li>Codes/Account Numbers: Auto-converted to UPPERCASE</li>
+              </ul>
+              <p className="text-sm font-medium mb-2 mt-3">Validation Rules:</p>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Installer code must be unique</li>
+                <li>All required fields must be filled</li>
+                <li>Bank name MUST match exactly (case-sensitive)</li>
+              </ul>
             </div>
-          )}
+          </CardContent>
+        </div>
 
-          <div>
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {success && (
-              <Alert>
-                <CheckCircle2 className="h-4 w-4" />
-                <AlertDescription>{success}</AlertDescription>
-              </Alert>
-            )}
-
-            {validating && (
-              <Alert>
-                <AlertDescription>
-                  Validating against database...
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {preview.length > 0 && (
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <Badge variant="default">{validCount} Valid</Badge>
-                  {invalidCount > 0 && (
-                    <Badge variant="destructive">{invalidCount} Invalid</Badge>
-                  )}
-                </div>
-                {invalidCount > 0 && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={downloadInvalidRecords}
-                    size="sm"
-                    disabled={downloadingInvalid}
-                  >
-                    {downloadingInvalid ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Download className="h-4 w-4 mr-2" />
-                    )}
-                    {downloadingInvalid
-                      ? "Downloading..."
-                      : "Download Invalid Records"}
-                  </Button>
+        {/* Upload Form */}
+        <form onSubmit={handleSubmit} className="space-y-4 h-full">
+          <div className="h-full p-6">
+            <Card className="h-full p-6 squircle rounded-[4rem] space-y-4">
+              <h3 className="mb-3">File Upload</h3>
+              <div className="space-y-2">
+                <FileDropzone
+                  label={
+                    file
+                      ? "FILE ALREADY SELECTED"
+                      : fileReading
+                      ? "READING FILE..."
+                      : preview.length > 0
+                      ? "RECORDS IN PROGRESS"
+                      : "UPLOAD EXCEL FILE"
+                  }
+                  accept={{
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+                      [".xlsx"],
+                    "application/vnd.ms-excel": [".xls"],
+                  }}
+                  acceptedFileTypes={[".xlsx", ".xls"]}
+                  fileTypeLabel="Excel files"
+                  maxFiles={1}
+                  onDrop={(files) => handleFileChange(files[0])}
+                  disabled={loading || fileReading || !!file || preview.length > 0}
+                  className="h-56 bg-muted/10"
+                />
+                {(file || preview.length > 0) && !fileReading && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    <span className="inline-flex items-center gap-1">
+                      <span>💡</span>
+                      <span>Click the delete/reset button below to upload a different file</span>
+                    </span>
+                  </p>
                 )}
               </div>
-            )}
+              {file && (
+                <div className="space-y-3">
+                  <div className="relative text-sm text-foreground mt-2 py-5 px-4 border border-border bg-muted rounded-[4rem] squircle flex items-center gap-3">
+                    <IconExcel />
+                    <div className="leading-none">{file.name}</div>
+                    <button
+                      onClick={handleReset}
+                      disabled={loading || validating || fileReading}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer"
+                    >
+                      <IconTrashBin2
+                        className="size-5 text-destructive-text hover:text-destructive-text-hover transition-colors "
+                        duotone={false}
+                      />
+                    </button>
+                  </div>
 
-            {preview.length > 0 && (
-              <div className="flex gap-2">
-                <Button
-                  type="submit"
-                  disabled={loading || invalidCount > 0 || validating}
-                >
-                  {loading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4 mr-2" />
+                  {/* File Reading Progress */}
+                  {fileReading && (
+                    <div className="space-y-2 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground font-medium">
+                          {fileReadProgress < 25
+                            ? "Starting file upload..."
+                            : fileReadProgress < 65
+                            ? "Reading file data..."
+                            : fileReadProgress < 80
+                            ? "Parsing Excel workbook..."
+                            : fileReadProgress < 90
+                            ? "Extracting records..."
+                            : fileReadProgress < 98
+                            ? "Processing and validating..."
+                            : "Finalizing..."}
+                        </span>
+                        <span className="font-semibold text-primary tabular-nums">
+                          {fileReadProgress}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden shadow-inner">
+                        <div
+                          className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-200 ease-out rounded-full relative overflow-hidden"
+                          style={{ width: `${fileReadProgress}%` }}
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
+                        </div>
+                      </div>
+                    </div>
                   )}
-                  {loading
-                    ? "Uploading..."
-                    : validating
-                    ? "Validating..."
-                    : `Upload ${validCount} Valid Record(s)`}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleReset}
-                  disabled={loading || validating}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Reset
-                </Button>
-              </div>
+                </div>
+              )}
+            </Card>
+          </div>
+        </form>
+      </Card>
+
+      {/* Visual upload progress */}
+      {uploading && (
+        <div className="w-full bg-slate-200 rounded h-3 overflow-hidden mt-2">
+          <div
+            className="h-3 transition-all"
+            style={{ width: `${uploadPercent}%` }}
+            aria-valuenow={uploadPercent}
+          />
+        </div>
+      )}
+
+      <div>
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {success && (
+          <Alert>
+            <CheckCircle2 className="h-4 w-4" />
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
+
+        {fileReading && (
+          <Alert>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <AlertDescription>
+              Reading and parsing Excel file...
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {validating && (
+          <Alert>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <AlertDescription>Validating against database...</AlertDescription>
+          </Alert>
+        )}
+
+        {preview.length > 0 && (
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Badge variant="default">{validCount} Valid</Badge>
+              {invalidCount > 0 && (
+                <Badge variant="destructive">{invalidCount} Invalid</Badge>
+              )}
+            </div>
+            {invalidCount > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={downloadInvalidRecords}
+                size="sm"
+                disabled={downloadingInvalid}
+              >
+                {downloadingInvalid ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                {downloadingInvalid
+                  ? "Downloading..."
+                  : "Download Invalid Records"}
+              </Button>
             )}
           </div>
-          {/* Preview Table */}
-          {preview.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Preview Data ({preview.length} records)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12">#</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Installer Code</TableHead>
-                        <TableHead>Full Name</TableHead>
-                        <TableHead>CNIC</TableHead>
-                        <TableHead>Phone</TableHead>
-                        <TableHead>City</TableHead>
-                        <TableHead>Province</TableHead>
-                        <TableHead>Bank</TableHead>
-                        <TableHead>Issues</TableHead>
-                        <TableHead className="w-12">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {preview.map((installer, index) => (
-                        <TableRow
-                          key={index}
-                          className={
-                            !installer.isValid ? "bg-destructive/10" : ""
-                          }
-                        >
-                          <TableCell>{index + 1}</TableCell>
-                          <TableCell>
-                            {installer.isValid ? (
-                              <Badge variant="default" className="bg-green-600">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                Valid
-                              </Badge>
-                            ) : (
-                              <Badge variant="destructive">
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                Invalid
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {installer.installerCode}
-                          </TableCell>
-                          <TableCell>{installer.fullName}</TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {installer.cnic}
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {installer.phoneNumber}
-                          </TableCell>
-                          <TableCell>{installer.city}</TableCell>
-                          <TableCell>{installer.province}</TableCell>
-                          <TableCell>{installer.bankName}</TableCell>
-                          <TableCell>
-                            {installer.issues.length > 0 ? (
-                              <div className="space-y-1">
-                                {installer.issues.map((issue, i) => (
-                                  <div
-                                    key={i}
-                                    className="text-xs text-destructive flex items-start gap-1"
-                                  >
-                                    <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                                    <span>{issue}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">
-                                No issues
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteRow(index)}
-                              title="Delete row"
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        )}
+
+        {preview.length > 0 && (
+          <div className="flex gap-2">
+            <Button
+              type="submit"
+              disabled={loading || invalidCount > 0 || validating || fileReading}
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4 mr-2" />
+              )}
+              {loading
+                ? "Uploading..."
+                : validating
+                ? "Validating..."
+                : fileReading
+                ? "Reading file..."
+                : `Upload ${validCount} Valid Record(s)`}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleReset}
+              disabled={loading || validating || fileReading}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Reset
+            </Button>
+          </div>
+        )}
       </div>
+      {/* Preview Table */}
+      {preview.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Preview Data ({preview.length} records)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Installer Code</TableHead>
+                    <TableHead>Full Name</TableHead>
+                    <TableHead>CNIC</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>City</TableHead>
+                    <TableHead>Province</TableHead>
+                    <TableHead>Bank</TableHead>
+                    <TableHead>Issues</TableHead>
+                    <TableHead className="w-12">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {preview.map((installer, index) => (
+                    <TableRow
+                      key={index}
+                      className={!installer.isValid ? "bg-destructive/10" : ""}
+                    >
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>
+                        {installer.isValid ? (
+                          <Badge variant="default" className="bg-green-600">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Valid
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Invalid
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {installer.installerCode}
+                      </TableCell>
+                      <TableCell>{installer.fullName}</TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {installer.cnic}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {installer.phoneNumber}
+                      </TableCell>
+                      <TableCell>{installer.city}</TableCell>
+                      <TableCell>{installer.province}</TableCell>
+                      <TableCell>{installer.bankName}</TableCell>
+                      <TableCell>
+                        {installer.issues.length > 0 ? (
+                          <div className="space-y-1">
+                            {installer.issues.map((issue, i) => (
+                              <div
+                                key={i}
+                                className="text-xs text-destructive flex items-start gap-1"
+                              >
+                                <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                <span>{issue}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            No issues
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteRow(index)}
+                          title="Delete row"
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Progress Modal */}
       <BulkUploadProgressModal

@@ -1,5 +1,6 @@
 import { getInitials } from "@/lib/getInitials";
 import { cn } from "@/lib/utils";
+import { ReactNode } from "react";
 
 export const UserAvatar = ({
   user,
@@ -34,7 +35,7 @@ export const InstallerAvatar = ({
   size = "default",
   className,
 }: {
-  user: string;
+  user: string | ReactNode;
   size?: "default" | "small";
   className?: string;
 }) => {
@@ -49,9 +50,7 @@ export const InstallerAvatar = ({
       )}
     >
       <span className="font-medium">
-        {size === "small"
-          ? user?.charAt(0).toUpperCase() || "U"
-          : getInitials(user)}
+        {typeof user === "string" ? getInitials(user) : user || "U"}
       </span>
     </div>
   );

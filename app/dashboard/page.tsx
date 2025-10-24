@@ -14,15 +14,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Users,
-  Package,
-  DollarSign,
-  Activity,
-  UserCheck,
-  Target,
-  ArrowUpRight,
-} from "lucide-react";
+import { Users, Package, DollarSign, Target, ArrowUpRight } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -63,19 +55,16 @@ import {
   IconUser,
   IconUserCog,
 } from "@/components/icons";
-import { useRelativeTime } from "@/lib/getRelativeTime";
 import IconFileSmile from "@/components/icons/FileSmile";
-import IconRoundArrowRightUp from "@/components/icons/RoundArrowRightUp";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from "@/components/ui/carousel";
-import { InstallerAvatar, UserAvatar } from "@/components/UserAvatar";
+import { InstallerAvatar } from "@/components/UserAvatar";
 import { formatNumber } from "@/lib/formatNumber";
 import { useClipboard } from "@/hooks/useCopyToClipboard";
+import Link from "next/link";
 
 interface Stats {
   totalInstallers: number;
@@ -337,6 +326,7 @@ export default function DashboardPage() {
           ? `?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
           : "";
 
+      // Fetch all data in parallel for better performance
       const [
         installersRes,
         rewardsRes,
@@ -353,12 +343,22 @@ export default function DashboardPage() {
         fetch(`/api/dashboard/active-by-training-center${dateParams}`),
       ]);
 
-      const installersData = await installersRes.json();
-      const rewardsData = await rewardsRes.json();
-      const allRewards = await allRewardsRes.json();
-      const allInstallers = await allInstallersRes.json();
-      const activeInstallersData = await activeInstallersRes.json();
-      const trainingCenterData = await trainingCenterRes.json();
+      // Parse all responses in parallel
+      const [
+        installersData,
+        rewardsData,
+        allRewards,
+        allInstallers,
+        activeInstallersData,
+        trainingCenterData,
+      ] = await Promise.all([
+        installersRes.json(),
+        rewardsRes.json(),
+        allRewardsRes.json(),
+        allInstallersRes.json(),
+        activeInstallersRes.json(),
+        trainingCenterRes.json(),
+      ]);
 
       // Filter data by date range
       const filteredRewards = filterByDateRange(
@@ -368,106 +368,95 @@ export default function DashboardPage() {
         allInstallers.data?.installers || []
       ) as DashboardInstaller[];
 
-      // Calculate filtered statistics for installer rewards
-      const totalAmount = filteredRewards.reduce(
-        (sum: number, reward: DashboardReward) =>
-          sum + (reward.rewardAmount || 0),
-        0
-      );
-      const pendingAmount = filteredRewards
-        .filter((r: DashboardReward) => r.paymentStatus === "PENDING")
-        .reduce(
-          (sum: number, r: DashboardReward) => sum + (r.rewardAmount || 0),
-          0
-        );
-      const paidAmount = filteredRewards
-        .filter((r: DashboardReward) => r.paymentStatus === "PAID")
-        .reduce(
-          (sum: number, r: DashboardReward) => sum + (r.rewardAmount || 0),
-          0
-        );
-      const failedAmount = filteredRewards
-        .filter((r: DashboardReward) => r.paymentStatus === "FAILED")
-        .reduce(
-          (sum: number, r: DashboardReward) => sum + (r.rewardAmount || 0),
-          0
-        );
+      // Optimize calculations using a single reduce pass
+      const rewardStats = filteredRewards.reduce(
+        (acc, reward) => {
+          const rewardAmount = reward.rewardAmount || 0;
+          const referrerAmount = reward.referrerRewardAmount || 0;
 
-      // Calculate referrer rewards
-      const referrerRewardsTotal = filteredRewards.reduce(
-        (sum: number, reward: DashboardReward) =>
-          sum + (reward.referrerRewardAmount || 0),
-        0
+          acc.totalAmount += rewardAmount;
+          acc.referrerRewardsTotal += referrerAmount;
+
+          if (reward.paymentStatus === "PENDING") {
+            acc.pendingAmount += rewardAmount;
+            acc.referrerRewardsPending += referrerAmount;
+          } else if (reward.paymentStatus === "PAID") {
+            acc.paidAmount += rewardAmount;
+            acc.referrerRewardsPaid += referrerAmount;
+          } else if (reward.paymentStatus === "FAILED") {
+            acc.failedAmount += rewardAmount;
+          }
+
+          return acc;
+        },
+        {
+          totalAmount: 0,
+          pendingAmount: 0,
+          paidAmount: 0,
+          failedAmount: 0,
+          referrerRewardsTotal: 0,
+          referrerRewardsPending: 0,
+          referrerRewardsPaid: 0,
+        }
       );
-      const referrerRewardsPending = filteredRewards
-        .filter((r: DashboardReward) => r.paymentStatus === "PENDING")
-        .reduce(
-          (sum: number, r: DashboardReward) =>
-            sum + (r.referrerRewardAmount || 0),
-          0
-        );
-      const referrerRewardsPaid = filteredRewards
-        .filter((r: DashboardReward) => r.paymentStatus === "PAID")
-        .reduce(
-          (sum: number, r: DashboardReward) =>
-            sum + (r.referrerRewardAmount || 0),
-          0
-        );
 
       // Calculate grand totals (installer rewards + referrer rewards)
-      const grandTotal = totalAmount + referrerRewardsTotal;
-      const grandTotalPending = pendingAmount + referrerRewardsPending;
-      const grandTotalPaid = paidAmount + referrerRewardsPaid;
+      const grandTotal =
+        rewardStats.totalAmount + rewardStats.referrerRewardsTotal;
+      const grandTotalPending =
+        rewardStats.pendingAmount + rewardStats.referrerRewardsPending;
+      const grandTotalPaid =
+        rewardStats.paidAmount + rewardStats.referrerRewardsPaid;
 
       setStats({
         totalInstallers: filteredInstallers.length,
         totalRewards: filteredRewards.length,
-        totalAmount,
-        pendingAmount,
-        paidAmount,
-        failedAmount,
-        referrerRewardsTotal,
-        referrerRewardsPending,
-        referrerRewardsPaid,
+        totalAmount: rewardStats.totalAmount,
+        pendingAmount: rewardStats.pendingAmount,
+        paidAmount: rewardStats.paidAmount,
+        failedAmount: rewardStats.failedAmount,
+        referrerRewardsTotal: rewardStats.referrerRewardsTotal,
+        referrerRewardsPending: rewardStats.referrerRewardsPending,
+        referrerRewardsPaid: rewardStats.referrerRewardsPaid,
         grandTotal,
         grandTotalPending,
         grandTotalPaid,
       });
 
-      // Process product installation data from filtered rewards
-      const productCounts: { [key: string]: number } = {};
+      // Process product and city data in a single pass for better performance
+      const productCounts = new Map<string, number>();
+      const cityCounts = new Map<string, number>();
+
       filteredRewards.forEach((reward: DashboardReward) => {
+        // Count products
         const product = reward.productModel;
-        productCounts[product] = (productCounts[product] || 0) + 1;
+        productCounts.set(product, (productCounts.get(product) || 0) + 1);
+
+        // Count cities (filter out invalid values)
+        const city = reward.cityOfInstallation;
+        if (city && city !== "undefined" && city !== "null") {
+          cityCounts.set(city, (cityCounts.get(city) || 0) + 1);
+        }
       });
 
-      const productArray = Object.entries(productCounts)
+      // Convert to sorted arrays
+      const productArray = Array.from(productCounts.entries())
         .map(([model, installations]) => ({
           model: model.length > 25 ? model.substring(0, 25) + "..." : model,
-          installations: installations as number,
+          installations,
         }))
         .sort((a, b) => b.installations - a.installations)
         .slice(0, 6);
 
-      setProductData(productArray);
-
-      // Process city data from filtered rewards (product installations by city)
-      const cityCounts: { [key: string]: number } = {};
-      filteredRewards.forEach((reward: DashboardReward) => {
-        const city = reward.cityOfInstallation;
-        if (city && city !== "undefined" && city !== "null") {
-          cityCounts[city] = (cityCounts[city] || 0) + 1;
-        }
-      });
-
-      const cityArray = Object.entries(cityCounts)
+      const cityArray = Array.from(cityCounts.entries())
         .map(([city, installations]) => ({
           city,
-          installations: installations as number,
+          installations,
         }))
         .sort((a, b) => b.installations - a.installations)
         .slice(0, 5);
 
+      setProductData(productArray);
       setCityData(cityArray);
 
       // Calculate Active Installers for different time periods
@@ -521,15 +510,7 @@ export default function DashboardPage() {
       last6MonthsStart.setMonth(last6MonthsStart.getMonth() - 6);
       const last6MonthsCount = calculateActiveInstallers(last6MonthsStart, now);
 
-      // Last year (previous calendar year)
-      const lastYearStart = new Date(currentYear - 1, 0, 1);
-      const lastYearEnd = new Date(currentYear - 1, 11, 31, 23, 59, 59);
-      const lastYearCount = calculateActiveInstallers(
-        lastYearStart,
-        lastYearEnd
-      );
-
-      // Previous year (2024 or current - 1)
+      // Previous year (previous calendar year)
       const previousYearStart = new Date(currentYear - 1, 0, 1);
       const previousYearEnd = new Date(currentYear - 1, 11, 31, 23, 59, 59);
       const previousYearCount = calculateActiveInstallers(
@@ -551,11 +532,6 @@ export default function DashboardPage() {
           period: "last6months",
           count: last6MonthsCount,
           label: "Last 6 Months",
-        },
-        {
-          period: "lastYear",
-          count: lastYearCount,
-          label: `${currentYear - 1}`,
         },
         {
           period: "previousYear",
@@ -1563,7 +1539,7 @@ export default function DashboardPage() {
 interface DashboardCardHeaderProps {
   title: string;
   description: string;
-  Icon: FC<IconProps> | string;
+  Icon: FC<IconProps>;
   badge?: string;
 }
 
@@ -1574,20 +1550,20 @@ const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
   badge,
 }) => {
   return (
-    <CardHeader className="flex flex-row items-center gap-2 border-b border-border text- md:text-left ">
+    <CardHeader className="flex flex-row items-center gap-2 border-b border-border md:text-left">
       <div className="flex-1 flex items-center gap-4 mb-0">
         <div className="hidden md:block">
           <Icon className="w-12 h-12 mb-0 text-primary" fill />
         </div>
         <div>
-          <CardTitle className="flex items-center font-normal text-xl justify- md:justify-start">
+          <CardTitle className="flex items-center font-normal text-xl md:justify-start">
             {title}
           </CardTitle>
           <CardDescription>{description}</CardDescription>
         </div>
       </div>
       {badge ? (
-        <Badge className="hidden md:block" variant={"outline"}>
+        <Badge className="hidden md:block" variant="outline">
           {badge}
         </Badge>
       ) : (
@@ -1653,8 +1629,13 @@ export const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
 }) => {
   const { copyToClipboard, copied } = useClipboard();
 
-  // Memoize installers list to avoid re-renders when parent changes unrelated state
-  const installers = activeInstallers;
+  // Memoize installers list with stable ranking to prevent UI jumping
+  const installers = useMemo(() => {
+    return activeInstallers.map((installer, index) => ({
+      ...installer,
+      rank: index + 1,
+    }));
+  }, [activeInstallers]);
 
   // Stable click handler factory to avoid inline recreation in map
   const handleCopy = useCallback(
@@ -1663,182 +1644,144 @@ export const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
   );
 
   return (
-    <Carousel
-      opts={{ align: "start" }}
-      className="w-full p-4 [&>*]:select-none"
-    >
+    <Carousel opts={{ align: "start" }} className="w-full [&>*]:select-none">
       <CarouselContent>
-        {installers.map((installer, index) => {
-          const idx = index;
+        {installers.map((installer) => {
+          const idx = installer.rank - 1;
           const isVariant = idx < 3;
 
           return (
             <CarouselItem
-              key={installer.installerCode}
+              key={`${installer.installerCode}-${installer.rank}`}
               className="md:basis-1/3 lg:basis-1/2 xl:basis-1/3"
             >
-              <Card
-                className={cn(
-                  "transition-colors flex flex-col items-center py-4 px-2 border-none bg-gradient-to-b",
-                  isVariant
-                    ? bgVariants[idx]
-                    : "from-muted dark:from-muted/70 to-muted/20 dark:to-muted/10"
-                )}
-              >
-                {/* INSTALLER AVATAR */}
-                <InstallerAvatar
-                  user={installer.installerName}
+              <Link href={`installers/${installer.installerCode}`}>
+                <Card
                   className={cn(
-                    "mb-4 size-18 shadow-md font-black font-sans text-xl",
-                    isVariant ? avatarVariants[idx] : "bg-muted/50"
-                  )}
-                />
-
-                {/* INSTALLER NAME & CODE */}
-                <h2
-                  className={cn(
-                    "text-md font-semibold text-center text-balance mb-4 leading-none",
+                    "transition-colors flex flex-col items-center py-6 px-2 border-none bg-gradient-to-b",
                     isVariant
-                      ? titleColorVariants[idx]
-                      : "text-muted-foreground"
+                      ? bgVariants[idx]
+                      : "from-muted dark:from-muted/70 to-muted/20 dark:to-muted/10"
                   )}
                 >
-                  <p>{installer.installerName}</p>
-
-                  <div
+                  {/* INSTALLER AVATAR */}
+                  <InstallerAvatar
+                    user={
+                      <>
+                        <span className="text-sm">#</span>
+                        {installer.rank}
+                      </>
+                    }
                     className={cn(
-                      "text-xs text-muted-foreground/70 font-light font-mono"
-                      // isVariant ? toneVariants[idx] : "text-muted-foreground"
+                      "mb-4 size-18 shadow-md font-black font-sans text-2xl",
+                      isVariant
+                        ? avatarVariants[idx]
+                        : "dark:bg-border dark:border-ring border-zinc-300 bg-card"
+                    )}
+                  />
+
+                  {/* INSTALLER NAME & CODE */}
+                  <h2
+                    className={cn(
+                      "text-md font-semibold text-center text-balance mb-4 leading-none",
+                      isVariant ? titleColorVariants[idx] : "text-foreground"
                     )}
                   >
-                    <div className="inline-flex items-center">
-                      {installer.installerCode}
+                    <p>{installer.installerName}</p>
 
-                      <Button
-                        size={"icon"}
-                        onClick={handleCopy(installer.installerCode)}
-                        className="!p-1 !size-max rounded-sm"
-                        variant={"ghost"}
-                      >
-                        {copied === installer.installerCode ? (
-                          <IconCheck className="size-3" duotone={false} />
-                        ) : (
-                          <IconCopy className="size-3" duotone={false} />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </h2>
-
-                {/* ICONS */}
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <IconProduct
+                    <div
                       className={cn(
-                        "size-10",
-                        isVariant
-                          ? iconColorVariants[idx]
-                          : "text-muted-foreground"
+                        "text-xs text-muted-foreground/70 font-light font-mono"
+                        // isVariant ? toneVariants[idx] : "text-muted-foreground"
                       )}
-                      fill
-                    />
+                    >
+                      <div className="inline-flex items-center">
+                        {installer.installerCode}
 
-                    <div className="space-y-1">
-                      <h3
-                        className={cn(
-                          "text-xs flex items-center gap-2 text-muted-foreground",
-                          idx > 2 && "text-muted-foreground"
-                        )}
-                      >
-                        Products
-                      </h3>
-
-                      <p
-                        className={cn(
-                          "text-primary text-xl leading-none font-number",
-                          isVariant
-                            ? iconProductTextVariants[idx]
-                            : "text-muted-foreground"
-                        )}
-                      >
-                        {installer.totalProducts}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <IconGift
-                      className={cn(
-                        "size-10",
-                        isVariant
-                          ? giftIconVariants[idx]
-                          : "text-muted-foreground"
-                      )}
-                      fill
-                    />
-
-                    <div className="space-y-1">
-                      <h3
-                        className={cn(
-                          "text-xs flex items-center gap-2 text-muted-foreground",
-                          idx > 2 && "text-muted-foreground"
-                        )}
-                      >
-                        Rewards
-                      </h3>
-
-                      <p
-                        className={cn(
-                          "text-primary text-xl leading-none font-number",
-                          isVariant
-                            ? iconProductTextVariants[idx]
-                            : "text-muted-foreground"
-                        )}
-                      >
-                        {formatNumber(installer.rewardAmount)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* {installer.referralRewardAmount > 0 && (
-                    <>
-                      <div className="flex items-center gap-2">
-                        <IconReferrer
-                          className={cn(
-                            "size-10",
-                            isVariant
-                              ? giftIconVariants[idx]
-                              : "text-muted-foreground"
+                        <Button
+                          size={"icon"}
+                          onClick={handleCopy(installer.installerCode)}
+                          className="!p-1 !size-max rounded-sm"
+                          variant={"ghost"}
+                        >
+                          {copied === installer.installerCode ? (
+                            <IconCheck className="size-3" duotone={false} />
+                          ) : (
+                            <IconCopy className="size-3" duotone={false} />
                           )}
-                          fill
-                        />
-
-                        <div className="space-y-1">
-                          <h3
-                            className={cn(
-                              "text-xs flex items-center gap-2 text-muted-foreground",
-                              idx > 2 && "text-muted-foreground"
-                            )}
-                          >
-                            Rewards
-                          </h3>
-
-                          <p
-                            className={cn(
-                              "text-primary text-xl leading-none font-number",
-                              isVariant
-                                ? iconProductTextVariants[idx]
-                                : "text-muted-foreground"
-                            )}
-                          >
-                            {formatNumber(installer.referralRewardAmount)}
-                          </p>
-                        </div>
+                        </Button>
                       </div>
-                    </>
-                  )} */}
-                </div>
-              </Card>
+                    </div>
+                  </h2>
+
+                  {/* ICONS */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <IconProduct
+                        className={cn(
+                          "size-10",
+                          isVariant ? iconColorVariants[idx] : "text-foreground"
+                        )}
+                        fill
+                      />
+
+                      <div className="space-y-1">
+                        <h3
+                          className={cn(
+                            "text-xs flex items-center gap-2 text-muted-foreground",
+                            idx > 2 && "text-muted-foreground"
+                          )}
+                        >
+                          Products
+                        </h3>
+
+                        <p
+                          className={cn(
+                            "text-primary text-xl leading-none font-number",
+                            isVariant
+                              ? iconProductTextVariants[idx]
+                              : "text-foreground "
+                          )}
+                        >
+                          {installer.totalProducts}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <IconGift
+                        className={cn(
+                          "size-10",
+                          isVariant ? giftIconVariants[idx] : "text-foreground "
+                        )}
+                        fill
+                      />
+
+                      <div className="space-y-1">
+                        <h3
+                          className={cn(
+                            "text-xs flex items-center gap-2 text-muted-foreground",
+                            idx > 2 && "text-muted-foreground"
+                          )}
+                        >
+                          Rewards
+                        </h3>
+
+                        <p
+                          className={cn(
+                            "text-primary text-xl leading-none font-number",
+                            isVariant
+                              ? iconProductTextVariants[idx]
+                              : "text-foreground "
+                          )}
+                        >
+                          {formatNumber(installer.rewardAmount)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </Link>
             </CarouselItem>
           );
         })}
