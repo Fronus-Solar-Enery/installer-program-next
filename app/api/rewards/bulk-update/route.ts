@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
           type: 'REWARD_UPDATED',
           description: `Updated reward payment status to ${rewardUpdate.paymentStatus} for serial ${rewardUpdate.serialNumber} via bulk upload`,
           performedBy: session.user.id,
-          targetType: 'Reward',
+          targetType: 'InstallerReward',
           targetId: reward._id,
           metadata: {
             serialNumber: rewardUpdate.serialNumber,

@@ -223,11 +223,10 @@ ol:has(li.my-toast) {
   .squircle {
     corner-shape: squircle;
   }
-
+  .squircle.rounded-lg,
   .squircle.rounded-xl {
     border-radius: 1rem;
   }
-
   .squircle.rounded-2xl {
     border-radius: 2rem;
   }

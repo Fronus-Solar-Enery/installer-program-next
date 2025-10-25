@@ -564,11 +564,7 @@ export default function RewardsPage() {
               className="gap-2"
             >
               Bulk Update
-              <IconLayer
-                duotone={false}
-                width={2}
-                className="h-3.5 w-3.5"
-              />
+              <IconLayer duotone={false} width={2} className="h-3.5 w-3.5" />
             </Button>
             <Button
               onClick={() => router.push("/rewards/new")}
@@ -576,11 +572,7 @@ export default function RewardsPage() {
               title="Register New Installation"
               className="gap-2"
             >
-              <IconAdd
-                duotone={false}
-                width={2}
-                className="h-3.5 w-3.5"
-              />
+              <IconAdd duotone={false} width={2} className="h-3.5 w-3.5" />
               Add Installation
             </Button>
           </div>
@@ -660,7 +652,9 @@ export default function RewardsPage() {
             <Button
               variant="outline"
               onClick={handleDownloadReport}
-              disabled={filteredRewards.length === 0 || downloadingReport || loading}
+              disabled={
+                filteredRewards.length === 0 || downloadingReport || loading
+              }
               className="gap-2"
             >
               {downloadingReport ? (

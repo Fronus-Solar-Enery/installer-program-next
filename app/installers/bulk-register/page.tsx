@@ -360,7 +360,8 @@ export default function BulkUploadInstallersPage() {
       reader.onprogress = (event) => {
         if (event.lengthComputable) {
           clearInterval(progressInterval);
-          const percentLoaded = Math.round((event.loaded / event.total) * 40) + 25;
+          const percentLoaded =
+            Math.round((event.loaded / event.total) * 40) + 25;
           setFileReadProgress(percentLoaded);
         }
       };
@@ -415,11 +416,13 @@ export default function BulkUploadInstallersPage() {
               const rawProvince = row["Province"]?.toString().trim() || "";
               const rawTrainingCenter =
                 row["Training Center"]?.toString().trim() || "";
-              const rawCompanyName = row["Company Name"]?.toString().trim() || "";
+              const rawCompanyName =
+                row["Company Name"]?.toString().trim() || "";
               const rawAccountTitle =
                 row["Account Title"]?.toString().trim() || "";
               const rawCNIC = row["CNIC"]?.toString().trim() || "";
-              const rawPhoneNumber = row["Phone Number"]?.toString().trim() || "";
+              const rawPhoneNumber =
+                row["Phone Number"]?.toString().trim() || "";
               const rawWhatsappNumber =
                 row["WhatsApp Number"]?.toString().trim() || "";
 
@@ -895,20 +898,6 @@ export default function BulkUploadInstallersPage() {
             </div>
 
             <div className="pt-4 border-t border-border">
-              <p className="text-sm font-medium mb-2">Formatting Rules:</p>
-              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                <li>
-                  CNIC: Auto-formatted as #####-#######-# (enter 13 digits)
-                </li>
-                <li>
-                  Phone/WhatsApp: Auto-formatted as +92XXXXXXXXXX (enter 11
-                  digits)
-                </li>
-                <li>
-                  Names/Addresses: Auto-capitalized (Each Word Capitalized)
-                </li>
-                <li>Codes/Account Numbers: Auto-converted to UPPERCASE</li>
-              </ul>
               <p className="text-sm font-medium mb-2 mt-3">Validation Rules:</p>
               <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                 <li>Installer code must be unique</li>
@@ -944,14 +933,19 @@ export default function BulkUploadInstallersPage() {
                   fileTypeLabel="Excel files"
                   maxFiles={1}
                   onDrop={(files) => handleFileChange(files[0])}
-                  disabled={loading || fileReading || !!file || preview.length > 0}
-                  className="h-56 bg-muted/10"
+                  disabled={
+                    loading || fileReading || !!file || preview.length > 0
+                  }
+                  className="bg-muted/10"
                 />
                 {(file || preview.length > 0) && !fileReading && (
                   <p className="text-xs text-muted-foreground text-center">
                     <span className="inline-flex items-center gap-1">
                       <span>💡</span>
-                      <span>Click the delete/reset button below to upload a different file</span>
+                      <span>
+                        Click the delete/reset button below to upload a
+                        different file
+                      </span>
                     </span>
                   </p>
                 )}
@@ -1086,7 +1080,9 @@ export default function BulkUploadInstallersPage() {
           <div className="flex gap-2">
             <Button
               type="submit"
-              disabled={loading || invalidCount > 0 || validating || fileReading}
+              disabled={
+                loading || invalidCount > 0 || validating || fileReading
+              }
             >
               {loading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

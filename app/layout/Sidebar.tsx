@@ -26,6 +26,7 @@ import {
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
+import { IconAltArrowLeft } from "@/components/icons";
 
 // Types
 export interface NavItem {
@@ -443,17 +444,17 @@ function Sidebar({
         </Link>
         {/* Collapse Toggle */}
         {collapsible && (
-          <div className="w-6.5 h-6.5 absolute -bottom-3 -right-4 z-50">
+          <div className="w-6.5 h-6.5 absolute -bottom-3 -right-4 z-50 shadow-sm">
             <Button
               variant="outline"
               size="icon"
-              className="h-6 w-6 rounded-lg border border-border bg-background active:!translate-y-0"
+              className="h-6 w-6 rounded-full border border-border bg-background active:!translate-y-0"
               onClick={handleToggle}
             >
-              <ChevronRight
+              <IconAltArrowLeft
                 className={cn(
                   "h-3 w-3 transition-transform duration-700 ease-fluid",
-                  !collapsed && "rotate-180"
+                  collapsed && "rotate-180"
                 )}
               />
             </Button>
