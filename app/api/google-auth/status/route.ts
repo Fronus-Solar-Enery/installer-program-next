@@ -13,14 +13,15 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
+    // Check for ANY active Google auth (global, not per-user)
     const googleAuth = await GoogleAuth.findOne({
-      userId: session.user.id,
       isActive: true,
     });
 
     return NextResponse.json({
       isAuthenticated: !!googleAuth,
       hasRefreshToken: !!googleAuth?.refreshToken,
+      accountEmail: googleAuth?.accountEmail || null,
     });
   } catch (error) {
     console.error('Error checking Google auth status:', error);
@@ -39,10 +40,16 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Only allow admin users to revoke global auth
+    if (session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Only admins can revoke authentication' }, { status: 403 });
+    }
+
     await dbConnect();
 
+    // Revoke the global authentication
     await GoogleAuth.findOneAndUpdate(
-      { userId: session.user.id },
+      { isActive: true },
       { isActive: false }
     );
 

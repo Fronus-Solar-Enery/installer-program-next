@@ -10,6 +10,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Only allow admin users to authenticate Google Contacts (global)
+    if (session.user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Only administrators can authenticate Google Contacts' },
+        { status: 403 }
+      );
+    }
+
     const CLIENT_ID = process.env.GOOGLE_CONTACTS_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
     const CLIENT_SECRET = process.env.GOOGLE_CONTACTS_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
 
@@ -28,9 +36,13 @@ export async function GET(request: NextRequest) {
 
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
-      scope: ['https://www.googleapis.com/auth/contacts'],
+      scope: [
+        'https://www.googleapis.com/auth/contacts',
+        'https://www.googleapis.com/auth/userinfo.email', // To get authenticated account email
+      ],
       prompt: 'consent', // Force consent to get refresh token
-      state: session.user.id, // Pass user ID in state
+      state: session.user.id, // Pass user ID for audit trail
+      login_hint: 'installerprogram2025@gmail.com', // Suggest the correct account
     });
 
     return NextResponse.json({ authUrl });

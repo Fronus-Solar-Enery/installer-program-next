@@ -162,7 +162,7 @@ export default function ProfilePage() {
           description="Manage your account information"
         />
         <div className="mt-6 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-border"></div>
         </div>
       </div>
     );
@@ -224,7 +224,7 @@ export default function ProfilePage() {
 
           {/* Edit Form or Display Info */}
           {isEditing ? (
-            <div className="space-y-4 border-t pt-6">
+            <div className="space-y-4 border-t border-border pt-6">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
                 <Input

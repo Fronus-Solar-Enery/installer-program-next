@@ -2,22 +2,23 @@ import mongoose, { Schema, Model } from 'mongoose';
 
 export interface IGoogleAuth {
   _id?: string;
-  userId: string;
+  accountEmail: string; // Email of the authenticated Google account
   refreshToken: string;
   accessToken?: string;
   expiryDate?: Date;
   scope: string;
   isActive: boolean;
+  authenticatedBy?: string; // User ID who authenticated (for audit trail)
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 const GoogleAuthSchema = new Schema<IGoogleAuth>(
   {
-    userId: {
+    accountEmail: {
       type: String,
       required: true,
-      unique: true, // One auth per user
+      unique: true, // Only one Google account can be authenticated
     },
     refreshToken: {
       type: String,
@@ -38,6 +39,10 @@ const GoogleAuthSchema = new Schema<IGoogleAuth>(
       type: Boolean,
       default: true,
     },
+    authenticatedBy: {
+      type: String,
+      required: false, // Optional field for audit trail
+    },
   },
   {
     timestamps: true,
@@ -45,7 +50,7 @@ const GoogleAuthSchema = new Schema<IGoogleAuth>(
 );
 
 // Index for quick lookups
-GoogleAuthSchema.index({ userId: 1, isActive: 1 });
+GoogleAuthSchema.index({ isActive: 1 });
 
 const GoogleAuth: Model<IGoogleAuth> =
   mongoose.models.GoogleAuth || mongoose.model<IGoogleAuth>('GoogleAuth', GoogleAuthSchema);

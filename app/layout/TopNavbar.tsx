@@ -167,7 +167,7 @@ export default function TopNavbar() {
                   variant="ghost"
                   size="sm"
                   className="w-full justify-start px-2 py-2 text-sm bg-transparent rounded-lg"
-                  href="/team/profile"
+                  href="/profile"
                 >
                   <IconSettings className="w-4 h-4 mr-2" />
                   Settings

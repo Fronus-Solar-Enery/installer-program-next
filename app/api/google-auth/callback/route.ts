@@ -40,23 +40,44 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Save to database
+    // Set the credentials to get user info
+    oauth2Client.setCredentials(tokens);
+
+    // Get authenticated account email
+    const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+    const userInfo = await oauth2.userinfo.get();
+    const accountEmail = userInfo.data.email;
+
+    if (!accountEmail) {
+      return NextResponse.redirect(
+        `${process.env.NEXTAUTH_URL}/installers?auth_error=no_email`
+      );
+    }
+
+    // Save to database (global authentication)
     await dbConnect();
 
+    // Deactivate any existing auth first
+    await GoogleAuth.updateMany({ isActive: true }, { isActive: false });
+
+    // Create new global authentication
     await GoogleAuth.findOneAndUpdate(
-      { userId: state },
+      { accountEmail }, // Use email as unique identifier
       {
-        userId: state,
+        accountEmail,
         refreshToken: tokens.refresh_token,
         accessToken: tokens.access_token,
         expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date) : undefined,
         scope: 'https://www.googleapis.com/auth/contacts',
         isActive: true,
+        authenticatedBy: state, // Track which user authenticated (audit trail)
       },
       { upsert: true, new: true }
     );
 
-    console.log('✓ Google Contacts authenticated successfully for user:', state);
+    console.log('✓ Google Contacts authenticated successfully');
+    console.log('  Account:', accountEmail);
+    console.log('  Authenticated by user ID:', state);
 
     return NextResponse.redirect(
       `${process.env.NEXTAUTH_URL}/installers?auth_success=true`

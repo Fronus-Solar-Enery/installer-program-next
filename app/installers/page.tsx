@@ -106,6 +106,7 @@ export default function InstallersPage() {
   const [googleAuthStatus, setGoogleAuthStatus] = useState<{
     isAuthenticated: boolean;
     hasRefreshToken: boolean;
+    accountEmail: string | null;
   } | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -629,7 +630,8 @@ export default function InstallersPage() {
         }
         action={
           <>
-            {googleAuthStatus && !googleAuthStatus.isAuthenticated ? (
+            {/* Show auth button only to admins when not authenticated */}
+            {isAdmin && googleAuthStatus && !googleAuthStatus.isAuthenticated && (
               <Button
                 onClick={handleAuthenticateGoogle}
                 disabled={authLoading}
@@ -653,56 +655,72 @@ export default function InstallersPage() {
                   ? "Authenticating..."
                   : "Authenticate Google Contacts"}
               </Button>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={fetchInstallers}
-                  disabled={loading}
-                  title="Refresh data"
-                  className="gap-2"
-                  // size={"icon"}
-                >
-                  Refresh
-                  <IconRefresh2
-                    duotone={false}
-                    width={2}
-                    className={cn("h-3.5 w-3.5", loading && "animate-spin")}
-                  />
-                </Button>
-
-                <Button
-                  onClick={() => router.push("/installers/bulk-register")}
-                  variant="outline"
-                  disabled={loading}
-                  title="Bulk Register"
-                  className="gap-2"
-                >
-                  Bulk Register
-                  <IconLayer
-                    duotone={false}
-                    width={2}
-                    className={cn("h-3.5 w-3.5")}
-                  />
-                </Button>
-                <Button
-                  onClick={() => router.push("/installers/new")}
-                  disabled={loading}
-                  title="Register New Installer"
-                  className="gap-2"
-                >
-                  <IconAdd
-                    duotone={false}
-                    width={2}
-                    className={cn("h-3.5 w-3.5")}
-                  />
-                  Register New Installer
-                </Button>
-              </>
             )}
+
+            {/* Always show regular action buttons */}
+            <Button
+              variant="outline"
+              onClick={fetchInstallers}
+              disabled={loading}
+              title="Refresh data"
+              className="gap-2"
+            >
+              Refresh
+              <IconRefresh2
+                duotone={false}
+                width={2}
+                className={cn("h-3.5 w-3.5", loading && "animate-spin")}
+              />
+            </Button>
+
+            <Button
+              onClick={() => router.push("/installers/bulk-register")}
+              variant="outline"
+              disabled={loading}
+              title="Bulk Register"
+              className="gap-2"
+            >
+              Bulk Register
+              <IconLayer
+                duotone={false}
+                width={2}
+                className={cn("h-3.5 w-3.5")}
+              />
+            </Button>
+            <Button
+              onClick={() => router.push("/installers/new")}
+              disabled={loading}
+              title="Register New Installer"
+              className="gap-2"
+            >
+              <IconAdd
+                duotone={false}
+                width={2}
+                className={cn("h-3.5 w-3.5")}
+              />
+              Register New Installer
+            </Button>
           </>
         }
       />
+
+      {/* Google Account Status Indicator */}
+      {googleAuthStatus?.isAuthenticated && googleAuthStatus.accountEmail && (
+        <Card className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span className="text-muted-foreground">
+                Google Contacts authenticated as:
+              </span>
+              <Badge variant="secondary" className="font-mono">
+                {googleAuthStatus.accountEmail}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
