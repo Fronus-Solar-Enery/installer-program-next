@@ -5,9 +5,30 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+interface SessionData {
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+  };
+  expires?: string;
+}
+
+interface DebugData {
+  timestamp: string;
+  environment: string;
+  envVars: {
+    NEXTAUTH_URL: string;
+    NEXTAUTH_SECRET: string;
+    MONGODB_URI: string;
+  };
+  authModuleError: string | null;
+}
+
 export default function TestAuthPage() {
-  const [sessionTest, setSessionTest] = useState<any>(null);
-  const [debugTest, setDebugTest] = useState<any>(null);
+  const [sessionTest, setSessionTest] = useState<SessionData | null>(null);
+  const [debugTest, setDebugTest] = useState<DebugData | null>(null);
   const [sessionError, setSessionError] = useState<string | null>(null);
   const [debugError, setDebugError] = useState<string | null>(null);
 
