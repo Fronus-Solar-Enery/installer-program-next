@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -16,6 +16,16 @@ const geistMono = Geist_Mono({
 });
 
 const siteUrl = process.env.NEXTAUTH_URL || "https://ipms.fronus.com";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -58,15 +68,6 @@ export const metadata: Metadata = {
       { url: "/web-app-manifest-192x192.png", sizes: "192x192", type: "image/png" },
       { url: "/web-app-manifest-512x512.png", sizes: "512x512", type: "image/png" },
     ],
-  },
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
-  ],
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-    maximumScale: 5,
   },
   appleWebApp: {
     capable: true,
