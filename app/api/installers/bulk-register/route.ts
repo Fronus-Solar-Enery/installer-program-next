@@ -176,6 +176,7 @@ export async function POST(req: NextRequest) {
             installerCode: newInstaller.installerCode,
             referrerCode: newInstaller.referrerCode,
             cnic: newInstaller.cnic,
+            trainingCenter: newInstaller.trainingCenter,
           });
 
           // Save googleContactId to installer if created successfully
