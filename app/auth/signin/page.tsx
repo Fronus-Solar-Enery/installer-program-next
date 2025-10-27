@@ -14,7 +14,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
 import { AlertCircle } from "lucide-react";
 
 export default function SignInPage() {
@@ -111,11 +110,6 @@ export default function SignInPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleGoogleSignIn = () => {
-    setError("");
-    signIn("google", { callbackUrl: "/dashboard" });
   };
 
   return (

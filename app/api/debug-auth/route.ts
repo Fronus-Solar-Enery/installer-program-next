@@ -12,8 +12,6 @@ export async function GET() {
         NEXTAUTH_URL: process.env.NEXTAUTH_URL || "NOT SET",
         NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? "SET (hidden)" : "NOT SET",
         MONGODB_URI: process.env.MONGODB_URI ? "SET (hidden)" : "NOT SET",
-        GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? "SET (hidden)" : "NOT SET",
-        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? "SET (hidden)" : "NOT SET",
       },
       // Try to check if auth module loads
       authModuleError: null as string | null,

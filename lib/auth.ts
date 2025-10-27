@@ -1,6 +1,5 @@
 import NextAuth, { NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/mongodb";
 import TeamMember, { TeamRole } from "@/models/TeamMember";
@@ -16,10 +15,6 @@ if (!process.env.NEXTAUTH_URL) {
   console.error("Current environment:", process.env.NODE_ENV);
 }
 
-if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-  console.warn("WARNING: Google OAuth credentials are not set");
-}
-
 if (!process.env.MONGODB_URI) {
   console.error("CRITICAL: MONGODB_URI environment variable is not set");
 }
@@ -27,10 +22,6 @@ if (!process.env.MONGODB_URI) {
 export const authConfig: NextAuthConfig = {
   trustHost: true, // Required for NextAuth v5 in production
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -86,39 +77,6 @@ export const authConfig: NextAuthConfig = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account }) {
-      if (account?.provider === "google") {
-        try {
-          await dbConnect();
-
-          const existingUser = await TeamMember.findOne({ email: user.email });
-
-          if (!existingUser) {
-            // Create new user with Google account
-            const newUser = await TeamMember.create({
-              name: user.name,
-              email: user.email,
-              googleId: account.providerAccountId,
-              image: user.image,
-              role: TeamRole.USER, // Default role
-            });
-            user.id = newUser._id.toString();
-          } else {
-            // Update existing user with Google ID if not set
-            if (!existingUser.googleId) {
-              existingUser.googleId = account.providerAccountId;
-              existingUser.image = user.image || undefined;
-              await existingUser.save();
-            }
-            user.id = existingUser._id.toString();
-          }
-        } catch (error) {
-          console.error("Error in signIn callback:", error);
-          return false; // Prevent sign in if database operation fails
-        }
-      }
-      return true;
-    },
     async jwt({ token, user, trigger, session }) {
       // Initial sign in - save user data to token
       if (user) {
