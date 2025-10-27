@@ -7,14 +7,25 @@ import TeamMember, { TeamRole } from "@/models/TeamMember";
 
 // Validate required environment variables
 if (!process.env.NEXTAUTH_SECRET) {
-  throw new Error("NEXTAUTH_SECRET environment variable is not set");
+  console.error("CRITICAL: NEXTAUTH_SECRET environment variable is not set");
+  throw new Error("Missing NEXTAUTH_SECRET - check environment variables in deployment settings");
+}
+
+if (!process.env.NEXTAUTH_URL) {
+  console.error("CRITICAL: NEXTAUTH_URL environment variable is not set");
+  console.error("Current environment:", process.env.NODE_ENV);
 }
 
 if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-  console.warn("Google OAuth credentials are not set");
+  console.warn("WARNING: Google OAuth credentials are not set");
+}
+
+if (!process.env.MONGODB_URI) {
+  console.error("CRITICAL: MONGODB_URI environment variable is not set");
 }
 
 export const authConfig: NextAuthConfig = {
+  trustHost: true, // Required for NextAuth v5 in production
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
