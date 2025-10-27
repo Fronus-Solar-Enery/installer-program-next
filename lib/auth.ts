@@ -109,30 +109,32 @@ export const authConfig: NextAuthConfig = {
       return true;
     },
     async jwt({ token, user, trigger, session }) {
+      // Initial sign in - save user data to token
       if (user) {
         token.id = user.id;
         token.role = user.role || TeamRole.USER;
+        token.name = user.name;
+        token.email = user.email;
       }
 
       // Update token on session update
       if (trigger === "update" && session) {
         token.name = session.name;
         token.email = session.email;
-      }
 
-      // Fetch latest user data from database (with error handling)
-      if (token.email) {
-        try {
-          await dbConnect();
-          const dbUser = await TeamMember.findOne({ email: token.email });
-          if (dbUser) {
-            token.id = dbUser._id.toString();
-            token.role = dbUser.role;
-            token.name = dbUser.name;
+        // Refresh user data from database when explicitly updating session
+        if (token.email) {
+          try {
+            await dbConnect();
+            const dbUser = await TeamMember.findOne({ email: token.email });
+            if (dbUser) {
+              token.id = dbUser._id.toString();
+              token.role = dbUser.role;
+              token.name = dbUser.name;
+            }
+          } catch (error) {
+            console.error("Error fetching user in JWT callback:", error);
           }
-        } catch (error) {
-          console.error("Error fetching user in JWT callback:", error);
-          // Continue with existing token data if DB fetch fails
         }
       }
 
