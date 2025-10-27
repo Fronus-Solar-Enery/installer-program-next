@@ -1,49 +1,55 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
-import { AlertCircle } from 'lucide-react';
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { AlertCircle } from "lucide-react";
 
 export default function SignInPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const validateEmail = (value: string) => {
     if (!value.trim()) {
-      setEmailError('Email is required');
+      setEmailError("Email is required");
       return false;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError("Please enter a valid email address");
       return false;
     }
-    setEmailError('');
+    setEmailError("");
     return true;
   };
 
   const validatePassword = (value: string) => {
     if (!value) {
-      setPasswordError('Password is required');
+      setPasswordError("Password is required");
       return false;
     }
     if (value.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
+      setPasswordError("Password must be at least 6 characters");
       return false;
     }
-    setPasswordError('');
+    setPasswordError("");
     return true;
   };
 
@@ -65,7 +71,7 @@ export default function SignInPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     // Validate both fields
     const isEmailValid = validateEmail(email);
@@ -78,7 +84,7 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      const result = await signIn('credentials', {
+      const result = await signIn("credentials", {
         email: email.trim(),
         password,
         redirect: false,
@@ -89,32 +95,36 @@ export default function SignInPage() {
         setError(result.error);
 
         // Set field-specific errors based on message
-        if (result.error.toLowerCase().includes('email')) {
+        if (result.error.toLowerCase().includes("email")) {
           setEmailError(result.error);
-        } else if (result.error.toLowerCase().includes('password')) {
+        } else if (result.error.toLowerCase().includes("password")) {
           setPasswordError(result.error);
         }
       } else if (result?.ok) {
-        router.push('/dashboard');
+        router.push("/dashboard");
         router.refresh();
       }
     } catch (err) {
-      setError('Unable to connect to the server. Please check your internet connection.');
+      setError(
+        "Unable to connect to the server. Please check your internet connection."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = () => {
-    setError('');
-    signIn('google', { callbackUrl: '/dashboard' });
+    setError("");
+    signIn("google", { callbackUrl: "/dashboard" });
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-3xl font-bold">Installer Program</CardTitle>
+          <CardTitle className="text-3xl font-bold">
+            Installer Program
+          </CardTitle>
           <CardDescription>Sign in to your account</CardDescription>
         </CardHeader>
         <CardContent>
@@ -137,7 +147,11 @@ export default function SignInPage() {
                 onChange={handleEmailChange}
                 onBlur={() => email && validateEmail(email)}
                 placeholder="Enter your email"
-                className={emailError ? 'border-destructive focus-visible:ring-destructive' : ''}
+                className={
+                  emailError
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }
               />
               {emailError && (
                 <p className="text-sm text-destructive flex items-center gap-1">
@@ -158,7 +172,11 @@ export default function SignInPage() {
                 onChange={handlePasswordChange}
                 onBlur={() => password && validatePassword(password)}
                 placeholder="Enter your password"
-                className={passwordError ? 'border-destructive focus-visible:ring-destructive' : ''}
+                className={
+                  passwordError
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }
               />
               {passwordError && (
                 <p className="text-sm text-destructive flex items-center gap-1">
@@ -169,10 +187,10 @@ export default function SignInPage() {
             </div>
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
-
+          {/* 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <Separator />
@@ -202,7 +220,7 @@ export default function SignInPage() {
               />
             </svg>
             Sign in with Google
-          </Button>
+          </Button> */}
         </CardContent>
       </Card>
     </div>
