@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import {
   CITIES,
   CITY_TO_PROVINCE,
@@ -64,9 +66,21 @@ const CARD_SECTION_CLASS = "bg-card/30 border-border border p-6 rounded-3xl";
 const GRID_2_COL_CLASS = "grid gap-6 md:grid-cols-2";
 
 export default function NewInstallerPage() {
+  const router = useRouter();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
+
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
+
+  // Google Auth Status
+  const [googleAuthStatus, setGoogleAuthStatus] = useState<{
+    isAuthenticated: boolean;
+    hasRefreshToken: boolean;
+    accountEmail: string | null;
+  } | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   // Registration flow states
   const [registrationStatus, setRegistrationStatus] = useState<
@@ -189,6 +203,48 @@ export default function NewInstallerPage() {
     };
     fetchSettings();
   }, []);
+
+  // Check Google Auth Status
+  useEffect(() => {
+    const checkGoogleAuth = async () => {
+      try {
+        setAuthLoading(true);
+        const response = await fetch("/api/google-auth/status");
+        const data = await response.json();
+        setGoogleAuthStatus(data);
+      } catch (error) {
+        console.error("Failed to check Google auth status:", error);
+        toast.error("Failed to check Google Contacts authentication status");
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+    checkGoogleAuth();
+  }, []);
+
+  // Handle Google Authentication
+  const handleAuthenticateGoogle = async () => {
+    if (!isAdmin) {
+      toast.error("Only administrators can authenticate Google Contacts");
+      return;
+    }
+
+    try {
+      setAuthLoading(true);
+      const response = await fetch("/api/google-auth/initiate");
+      const data = await response.json();
+
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
+      } else {
+        toast.error("Failed to initiate authentication");
+      }
+    } catch (error) {
+      console.error("Error initiating Google auth:", error);
+      toast.error("Failed to start authentication process");
+      setAuthLoading(false);
+    }
+  };
 
   // Auto-sync effects
   useEffect(() => {
@@ -512,6 +568,69 @@ export default function NewInstallerPage() {
       {/* Main Form */}
       <div className="p-6">
         <div className="max-w-4xl mx-auto">
+          {/* Google Auth Warning Banner */}
+          {!authLoading && !googleAuthStatus?.isAuthenticated && (
+            <Card className="mb-6 bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800">
+              <CardContent className="py-6">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-start gap-3">
+                    <svg
+                      className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-1">
+                        Google Contacts Authentication Required
+                      </h3>
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        {isAdmin
+                          ? "Please authenticate Google Contacts before registering installers. This allows automatic contact creation in Google Contacts."
+                          : "Google Contacts is not authenticated. Please contact an administrator to authenticate Google Contacts before registering installers."}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleAuthenticateGoogle}
+                      disabled={!isAdmin || authLoading}
+                      className="bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-300"
+                    >
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 10V3L4 14h7v7l9-11h-7z"
+                        />
+                      </svg>
+                      {authLoading ? "Authenticating..." : "Authenticate Google Contacts"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push("/installers")}
+                    >
+                      Back to Installers
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <div className="flex justify-between items-center my-8">
               {steps.map((s, i) => (
@@ -525,7 +644,12 @@ export default function NewInstallerPage() {
                 />
               ))}
             </div>
-            <CardContent>
+            <CardContent
+              className={cn(
+                !googleAuthStatus?.isAuthenticated &&
+                  "opacity-50 pointer-events-none select-none"
+              )}
+            >
               {/* Step Content */}
               <div className="space-y-6">
                 {/* Step 1: Personal Info */}

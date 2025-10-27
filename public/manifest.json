@@ -1,29 +1,21 @@
 {
-  "name": "Installer Program Management System",
+  "name": "Installer Program Management System - Fronus Solar Energy",
   "short_name": "IPMS",
-  "description": "Fronus Solar Energy Installer Program Management System",
+  "description": "Fronus Solar Energy Installer Program Management System with rewards tracking, Google Contacts integration, and comprehensive installer database management",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4f46e5",
   "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
-    {
-      "src": "/favicon.ico",
-      "sizes": "48x48",
-      "type": "image/x-icon"
-    },
-    {
-      "src": "/favicon.svg",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
     {
       "src": "/favicon-96x96.png",
       "sizes": "96x96",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/web-app-manifest-192x192.png",
@@ -36,8 +28,18 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
   ],
-  "categories": ["business", "productivity"],
+  "categories": ["business", "productivity", "utilities"],
   "screenshots": []
 }
