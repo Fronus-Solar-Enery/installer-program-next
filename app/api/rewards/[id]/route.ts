@@ -94,7 +94,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Track changes for activity log
-    const changes = getChanges(reward.toObject(), validatedData);
+    const changes = getChanges(reward.toObject() as unknown as Record<string, unknown>, validatedData);
     const oldPaymentStatus = reward.paymentStatus;
 
     // Update reward

@@ -12,12 +12,13 @@ import { User, Mail, Shield, Calendar, Edit, Save, X, Key } from "lucide-react";
 import { toast } from "sonner";
 import ChangePasswordModal from "@/components/ChangePasswordModal";
 import { UserAvatar } from "@/components/UserAvatar";
+import { TeamRole } from "@/models/TeamMember";
 
 interface UserProfile {
   _id: string;
   name: string;
   email: string;
-  role: string;
+  role: TeamRole;
   image?: string;
   createdAt: string;
   updatedAt: string;

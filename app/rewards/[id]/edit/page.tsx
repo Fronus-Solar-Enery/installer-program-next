@@ -256,7 +256,7 @@ export default function EditRewardPage() {
                 <SelectContent>
                   {PRODUCT_MODELS.map((product) => (
                     <SelectItem key={product.value} value={product.value}>
-                      {product.label} (Rs. {product.reward.toLocaleString()})
+                      {product.label} {product.reward ? `(Rs. ${product.reward.toLocaleString()})` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Bank, BANKS, PRODUCT_MODELS, SERIAL_STATUSES } from "@/lib/constants";
+import { PRODUCT_MODELS, SERIAL_STATUSES } from "@/lib/constants";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { HyperText } from "@/components/ui/hypertext";
@@ -9,16 +9,12 @@ import { ReviewSectionHeader } from "./ReviewSectionHeader";
 import { ReviewItem } from "./ReviewItem";
 import {
   IconUserId,
-  IconBarcode,
-  IconSmartphone2,
   IconMapPoint,
   IconBank,
   IconCard,
   IconUserHeartRounded,
   IconBuildings,
-  IconBoxMinimalistic,
   IconProduct,
-  IconInstallerCode,
   IconSerialNumber,
 } from "@/components/icons";
 import IconUser from "@/components/icons/User";

@@ -45,7 +45,7 @@ export const formatPhoneNumber = (value: string): string => {
  */
 export const phoneNumberToDBFormat = (value: string): string => {
   // Remove all non-digit characters
-  let digits = value.replace(/\D/g, "");
+  const digits = value.replace(/\D/g, "");
 
   // Handle different formats
   if (digits.startsWith("92") && digits.length >= 12) {

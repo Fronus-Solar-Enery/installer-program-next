@@ -5,6 +5,16 @@ import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -73,6 +83,7 @@ export default function BulkUploadInstallersPage() {
   const [uploadPercent, setUploadPercent] = useState(0);
   const [fileReading, setFileReading] = useState(false);
   const [fileReadProgress, setFileReadProgress] = useState(0);
+  const [terminateDialogOpen, setTerminateDialogOpen] = useState(false);
 
   type TemplateRow = {
     "Installer Code": string;
@@ -628,9 +639,36 @@ export default function BulkUploadInstallersPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleTerminateInvalid = () => {
+    const invalidRecords = preview.filter((p) => !p.isValid);
+    if (invalidRecords.length === 0) {
+      toast.info("No invalid records to terminate");
+      return;
+    }
+    setTerminateDialogOpen(true);
+  };
 
+  const terminateInvalidRecords = () => {
+    const validRecords = preview.filter((p) => p.isValid);
+    const invalidCount = preview.length - validRecords.length;
+
+    setPreview(validRecords);
+    setTerminateDialogOpen(false);
+    toast.success(
+      `Terminated ${invalidCount} invalid record(s). ${validRecords.length} valid record(s) remaining.`
+    );
+  };
+
+  const downloadAndTerminateInvalid = () => {
+    downloadInvalidRecords();
+
+    // Wait a bit for download to start, then terminate
+    setTimeout(() => {
+      terminateInvalidRecords();
+    }, 500);
+  };
+
+  const handleSubmit = async () => {
     if (preview.length === 0) {
       toast.error("No data to upload. Please select a valid Excel file.");
       return;
@@ -668,7 +706,7 @@ export default function BulkUploadInstallersPage() {
       {
         id: "register",
         title: "Registering Installers",
-        description: `Processing ${totalRecords} installer(s)`,
+        description: `Processing 0 of ${totalRecords} installer(s)`,
         status: "pending",
         progress: 0,
       },
@@ -713,119 +751,177 @@ export default function BulkUploadInstallersPage() {
         )
       );
 
-      // Step 2: Start registering installers
+      // Step 2: Start registering installers in chunks
       setUploadSteps((prev) =>
         prev.map((step) =>
           step.id === "register" ? { ...step, status: "processing" } : step
         )
       );
 
-      const response = await fetch("/api/installers/bulk-register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ installers: preview }),
-      });
+      // Process in chunks for real-time progress
+      const CHUNK_SIZE = 10; // Process 10 installers at a time
+      let totalSuccess = 0;
+      let totalFailed = 0;
+      let totalGoogleContacts = 0;
+      const allErrors: string[] = [];
 
-      const data = await response.json();
+      for (let i = 0; i < validInstallers.length; i += CHUNK_SIZE) {
+        const chunk = validInstallers.slice(i, i + CHUNK_SIZE);
+        const currentBatch = Math.min(i + CHUNK_SIZE, validInstallers.length);
 
-      if (response.ok) {
-        // Step 2: Complete registration
-        setProcessedRecords(totalRecords);
-        setSuccessCount(data.data.success || 0);
-        setFailedCount(data.data.failed || 0);
+        try {
+          const response = await fetch("/api/installers/bulk-register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ installers: chunk }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            totalSuccess += data.data.success || 0;
+            totalFailed += data.data.failed || 0;
+            totalGoogleContacts += data.data.googleContactsCreated || 0;
+
+            if (data.data.errors && data.data.errors.length > 0) {
+              allErrors.push(...data.data.errors);
+            }
+          } else {
+            totalFailed += chunk.length;
+            allErrors.push(data.error || "Chunk upload failed");
+          }
+        } catch (err) {
+          totalFailed += chunk.length;
+          allErrors.push(
+            `Chunk ${i / CHUNK_SIZE + 1} failed: ${
+              err instanceof Error ? err.message : "Unknown error"
+            }`
+          );
+        }
+
+        // Update progress in real-time
+        const progress = Math.round((currentBatch / totalRecords) * 100);
+        setProcessedRecords(currentBatch);
+        setSuccessCount(totalSuccess);
+        setFailedCount(totalFailed);
 
         setUploadSteps((prev) =>
           prev.map((step) =>
             step.id === "register"
               ? {
                   ...step,
-                  status: "completed",
-                  progress: 100,
-                  details: `Registered ${data.data.success} out of ${totalRecords} installers`,
+                  status: "processing",
+                  progress: progress,
+                  description: `Processing ${currentBatch} of ${totalRecords} installer(s)`,
+                  details: `Registered: ${totalSuccess} | Failed: ${totalFailed}`,
                 }
               : step
           )
         );
 
-        // Step 3: Google Contacts
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        setUploadSteps((prev) =>
-          prev.map((step) =>
-            step.id === "google" ? { ...step, status: "processing" } : step
-          )
-        );
+        // Small delay between chunks to allow UI updates
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
 
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        setUploadSteps((prev) =>
-          prev.map((step) =>
-            step.id === "google"
-              ? {
-                  ...step,
-                  status: "completed",
-                  progress: 100,
-                  details: `Created ${
-                    data.data.googleContactsCreated || 0
-                  } Google contacts`,
-                }
-              : step
-          )
-        );
+      // Step 2: Complete registration
+      setUploadSteps((prev) =>
+        prev.map((step) =>
+          step.id === "register"
+            ? {
+                ...step,
+                status: totalSuccess > 0 ? "completed" : "error",
+                progress: 100,
+                details: `Registered ${totalSuccess} out of ${totalRecords} installers`,
+                error: totalFailed > 0 ? `${totalFailed} failed` : undefined,
+              }
+            : step
+        )
+      );
 
-        // Step 4: Activity Logging
-        await new Promise((resolve) => setTimeout(resolve, 300));
+      if (totalSuccess === 0) {
         setUploadSteps((prev) =>
           prev.map((step) =>
-            step.id === "activity" ? { ...step, status: "processing" } : step
-          )
-        );
-
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        setUploadSteps((prev) =>
-          prev.map((step) =>
-            step.id === "activity"
-              ? {
-                  ...step,
-                  status: "completed",
-                  progress: 100,
-                  details: `Logged ${data.data.success} activities`,
-                }
-              : step
-          )
-        );
-
-        // Step 5: Complete
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        setUploadSteps((prev) =>
-          prev.map((step) =>
-            step.id === "complete"
-              ? {
-                  ...step,
-                  status: "completed",
-                  progress: 100,
-                  details: "Upload process completed successfully",
-                }
-              : {
-                  ...step,
-                  status: step.status === "pending" ? "completed" : step.status,
-                }
-          )
-        );
-
-        setSuccess(`Successfully uploaded ${data.data.success} installer(s)!`);
-      } else {
-        // Handle error
-        setUploadSteps((prev) =>
-          prev.map((step) =>
-            step.status === "processing"
+            step.status === "pending" || step.status === "processing"
               ? {
                   ...step,
                   status: "error",
-                  error: data.error || "Upload failed",
+                  error: "No installers were registered successfully",
                 }
               : step
           )
         );
-        setError(data.error || "Upload failed");
+        setError(`Registration failed. Errors: ${allErrors.join(", ")}`);
+        return;
+      }
+
+      // Step 3: Google Contacts (already created during registration)
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      setUploadSteps((prev) =>
+        prev.map((step) =>
+          step.id === "google" ? { ...step, status: "processing" } : step
+        )
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setUploadSteps((prev) =>
+        prev.map((step) =>
+          step.id === "google"
+            ? {
+                ...step,
+                status: "completed",
+                progress: 100,
+                details: `Created ${totalGoogleContacts} Google contacts`,
+              }
+            : step
+        )
+      );
+
+      // Step 4: Activity Logging (already done during registration)
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      setUploadSteps((prev) =>
+        prev.map((step) =>
+          step.id === "activity" ? { ...step, status: "processing" } : step
+        )
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setUploadSteps((prev) =>
+        prev.map((step) =>
+          step.id === "activity"
+            ? {
+                ...step,
+                status: "completed",
+                progress: 100,
+                details: `Logged ${totalSuccess} activities`,
+              }
+            : step
+        )
+      );
+
+      // Step 5: Complete
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      setUploadSteps((prev) =>
+        prev.map((step) =>
+          step.id === "complete"
+            ? {
+                ...step,
+                status: "completed",
+                progress: 100,
+                details: `Upload completed: ${totalSuccess} successful, ${totalFailed} failed`,
+              }
+            : {
+                ...step,
+                status: step.status === "pending" ? "completed" : step.status,
+              }
+        )
+      );
+
+      setSuccess(`Successfully uploaded ${totalSuccess} installer(s)!`);
+
+      if (totalFailed > 0) {
+        setError(
+          `${totalFailed} installer(s) failed. Check the logs for details.`
+        );
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
@@ -897,14 +993,14 @@ export default function BulkUploadInstallersPage() {
               </Button>
             </div>
 
-            <div className="pt-4 border-t border-border">
+            {/* <div className="pt-4 border-t border-border">
               <p className="text-sm font-medium mb-2 mt-3">Validation Rules:</p>
               <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                 <li>Installer code must be unique</li>
                 <li>All required fields must be filled</li>
                 <li>Bank name MUST match exactly (case-sensitive)</li>
               </ul>
-            </div>
+            </div> */}
           </CardContent>
         </div>
 
@@ -1056,22 +1152,32 @@ export default function BulkUploadInstallersPage() {
               )}
             </div>
             {invalidCount > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={downloadInvalidRecords}
-                size="sm"
-                disabled={downloadingInvalid}
-              >
-                {downloadingInvalid ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4 mr-2" />
-                )}
-                {downloadingInvalid
-                  ? "Downloading..."
-                  : "Download Invalid Records"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={downloadInvalidRecords}
+                  disabled={downloadingInvalid}
+                >
+                  {downloadingInvalid ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {downloadingInvalid
+                    ? "Downloading..."
+                    : "Download Invalid Records"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleTerminateInvalid}
+                  disabled={loading || validating || fileReading}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Terminate Invalid
+                </Button>
+              </div>
             )}
           </div>
         )}
@@ -1079,7 +1185,8 @@ export default function BulkUploadInstallersPage() {
         {preview.length > 0 && (
           <div className="flex gap-2">
             <Button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
               disabled={
                 loading || invalidCount > 0 || validating || fileReading
               }
@@ -1203,6 +1310,37 @@ export default function BulkUploadInstallersPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Terminate Invalid Records Dialog */}
+      <AlertDialog
+        open={terminateDialogOpen}
+        onOpenChange={setTerminateDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Terminate Invalid Records?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {invalidCount} invalid record(s) will be permanently removed from
+              the preview list. You can download them first before terminating,
+              or just terminate without downloading.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button variant="outline" onClick={downloadAndTerminateInvalid}>
+              <Download className="h-4 w-4 mr-2" />
+              Download & Terminate
+            </Button>
+            <AlertDialogAction
+              onClick={terminateInvalidRecords}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Just Terminate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Progress Modal */}
       <BulkUploadProgressModal

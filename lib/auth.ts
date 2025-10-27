@@ -1,9 +1,9 @@
-import NextAuth, { NextAuthConfig } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import GoogleProvider from 'next-auth/providers/google';
-import bcrypt from 'bcryptjs';
-import dbConnect from '@/lib/mongodb';
-import TeamMember, { TeamRole } from '@/models/TeamMember';
+import NextAuth, { NextAuthConfig } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
+import bcrypt from "bcryptjs";
+import dbConnect from "@/lib/mongodb";
+import TeamMember, { TeamRole } from "@/models/TeamMember";
 
 export const authConfig: NextAuthConfig = {
   providers: [
@@ -12,43 +12,47 @@ export const authConfig: NextAuthConfig = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
     CredentialsProvider({
-      name: 'Credentials',
+      name: "Credentials",
       credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Please enter both email and password');
+          throw new Error("Please enter both email and password");
         }
 
         const email = String(credentials.email);
         const password = String(credentials.password);
 
         if (!email.trim()) {
-          throw new Error('Email cannot be empty');
+          throw new Error("Email cannot be empty");
         }
 
         if (!password.trim()) {
-          throw new Error('Password cannot be empty');
+          throw new Error("Password cannot be empty");
         }
 
         await dbConnect();
-        const user = await TeamMember.findOne({ email: email.trim().toLowerCase() });
+        const user = await TeamMember.findOne({
+          email: email.trim().toLowerCase(),
+        });
 
         if (!user) {
-          throw new Error('No account found with this email address');
+          throw new Error("No account found with this email address");
         }
 
         if (!user.password) {
-          throw new Error('This account uses Google Sign-In. Please sign in with Google.');
+          throw new Error(
+            "This account uses Google Sign-In. Please sign in with Google."
+          );
         }
 
         const passwordHash: string = user.password as string;
         const isValid = await bcrypt.compare(password, passwordHash);
 
         if (!isValid) {
-          throw new Error('Incorrect password. Please try again.');
+          throw new Error("Incorrect password. Please try again.");
         }
 
         return {
@@ -62,8 +66,8 @@ export const authConfig: NextAuthConfig = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
-      if (account?.provider === 'google') {
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
         await dbConnect();
 
         const existingUser = await TeamMember.findOne({ email: user.email });
@@ -97,7 +101,7 @@ export const authConfig: NextAuthConfig = {
       }
 
       // Update token on session update
-      if (trigger === 'update' && session) {
+      if (trigger === "update" && session) {
         token.name = session.name;
         token.email = session.email;
       }
@@ -124,11 +128,11 @@ export const authConfig: NextAuthConfig = {
     },
   },
   pages: {
-    signIn: '/auth/signin',
-    error: '/auth/error',
+    signIn: "/auth/signin",
+    error: "/auth/error",
   },
   session: {
-    strategy: 'jwt',
+    strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: process.env.NEXTAUTH_SECRET,

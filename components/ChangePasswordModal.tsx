@@ -125,9 +125,10 @@ export default function ChangePasswordModal({
       toast.success("Password changed successfully");
       resetForm();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error changing password:", error);
-      toast.error(error.message || "Failed to change password");
+      const errorMessage = error instanceof Error ? error.message : "Failed to change password";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -273,7 +274,7 @@ export default function ChangePasswordModal({
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-0.5">•</span>
-                <span>Don't reuse passwords from other accounts</span>
+                <span>Don&apos;t reuse passwords from other accounts</span>
               </li>
             </ul>
           </div>

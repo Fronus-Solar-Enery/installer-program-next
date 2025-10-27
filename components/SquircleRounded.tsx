@@ -34,7 +34,6 @@ export const ApplySquircleToDom: React.FC = () => {
       }
       // Directly set inline properties (with !important for border-radius)
       el.style.setProperty("border-radius", "90px", PRIORITY);
-      // corner-shape may not be supported everywhere; we still add it as inline property
       el.style.setProperty("corner-shape", "superellipse(1.2)");
     };
 

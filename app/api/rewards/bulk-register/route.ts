@@ -199,8 +199,8 @@ export async function POST(request: NextRequest) {
 
         // Log activity
         await Activity.create({
-          type: 'REWARD_ADDED',
-          description: `Added reward for installer ${rewardData.installerCode} (Product: ${rewardData.productModel}, Serial: ${rewardData.serialNumber}) via bulk upload`,
+          type: 'REWARD_REGISTERED',
+          description: `Registered reward for installer ${rewardData.installerCode} (Product: ${rewardData.productModel}, Serial: ${rewardData.serialNumber}) via bulk upload`,
           performedBy: session.user.id,
           targetType: 'InstallerReward',
           targetId: newReward._id,
@@ -209,7 +209,7 @@ export async function POST(request: NextRequest) {
             productModel: rewardData.productModel,
             serialNumber: rewardData.serialNumber,
             rewardAmount: rewardAmount,
-            method: 'bulk_create',
+            method: 'bulk_register',
           },
         });
 

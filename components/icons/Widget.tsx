@@ -1,5 +1,12 @@
 import { FC } from "react";
 
+export interface IconProps {
+  className?: string;
+  fill?: boolean;
+  duotone?: boolean;
+  width?: string | number;
+}
+
 const IconWidget: FC<IconProps> = ({
   className,
   fill = false,

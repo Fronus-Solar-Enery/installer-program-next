@@ -12,6 +12,8 @@ interface RewardInput {
   teamMemberEmail?: string;
   referrerCode?: string;
   referrerRewardAmount?: string | number;
+  referrerTransactionId?: string;
+  paymentStatus?: string;
   issues?: string[];
   isValid?: boolean;
 }
@@ -23,7 +25,7 @@ interface ExistingRewardLean {
 interface InstallerLean {
   installerCode: string;
   fullName: string;
-  referredBy?: unknown;
+  referrerCode?: string;
 }
 
 interface TeamMemberLean {
@@ -62,13 +64,13 @@ export async function POST(request: NextRequest) {
     // Fetch all installers with full name and referrer info
     const installers = await Installer.find(
       {},
-      { installerCode: 1, fullName: 1, referredBy: 1, _id: 0 }
+      { installerCode: 1, fullName: 1, referrerCode: 1, _id: 0 }
     ).lean<InstallerLean[]>();
 
     const installerMap = new Map(
       installers.map((i) => [
         i.installerCode.toUpperCase(),
-        { fullName: i.fullName, hasReferrer: !!i.referredBy }
+        { fullName: i.fullName, referrerCode: i.referrerCode || null }
       ])
     );
 
@@ -91,7 +93,10 @@ export async function POST(request: NextRequest) {
       const installerCode = reward.installerCode?.toString().toUpperCase();
       const serialNumber = reward.serialNumber?.toString().toUpperCase();
       const teamMemberEmail = reward.teamMemberEmail?.toString().toLowerCase();
-      const referrerCode = reward.referrerCode?.toString().toUpperCase();
+
+      // Auto-extract referrer from installer if available
+      let referrerCode = null;
+      let autoExtractedReferrer = false;
 
       // Check if team member email exists
       if (teamMemberEmail && !teamMemberEmails.has(teamMemberEmail)) {
@@ -113,15 +118,21 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Check referrer reward amount requirement
-        if (installerInfo?.hasReferrer && !reward.referrerRewardAmount) {
-          newIssues.push('Referrer reward amount is required for this installer');
-        }
-      }
+        // Auto-extract referrer from installer record
+        if (installerInfo?.referrerCode) {
+          referrerCode = installerInfo.referrerCode;
+          autoExtractedReferrer = true;
 
-      // Check if referrer code exists (if provided)
-      if (referrerCode && !installerCodes.has(referrerCode)) {
-        newIssues.push(`Referrer code "${reward.referrerCode}" is not a registered installer`);
+          // Check referrer reward amount requirement
+          if (!reward.referrerRewardAmount) {
+            newIssues.push('Referrer reward amount is required for this installer (has referrer in system)');
+          }
+
+          // Check referrer transaction ID requirement
+          if (!reward.referrerTransactionId) {
+            newIssues.push('Referrer transaction ID is required for this installer (has referrer in system)');
+          }
+        }
       }
 
       // Check if serial number already exists in database
@@ -145,6 +156,8 @@ export async function POST(request: NextRequest) {
 
       return {
         ...reward,
+        referrerCode: referrerCode || undefined,
+        autoExtractedReferrer,
         issues: [...(reward.issues || []), ...newIssues],
         isValid: reward.isValid && newIssues.length === 0,
       };

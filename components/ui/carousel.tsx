@@ -4,7 +4,6 @@ import * as React from "react";
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react";
-import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -184,6 +183,8 @@ function CarouselPrevious({
     <div
       className={cn(
         "absolute top-1/2 left-0 -translate-y-1/2 flex items-center justify-center bg-gradient-to-r to-transparent h-full px-2",
+
+        orientation === "horizontal" ? "" : "pt-4",
         className
       )}
     >
@@ -215,6 +216,7 @@ function CarouselNext({
     <div
       className={cn(
         "absolute top-1/2 right-0 flex items-center justify-center -translate-y-1/2 bg-gradient-to-l to-transparent h-full px-2",
+        orientation === "horizontal" ? "" : "pt-4",
         className
       )}
     >

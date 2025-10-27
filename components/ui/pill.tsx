@@ -4,12 +4,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-export type PillProps = ComponentProps<typeof Badge> & {
-  themed?: boolean;
-};
+export type PillProps = ComponentProps<typeof Badge>;
 export const Pill = ({
   variant = "secondary",
-  themed = false,
   className,
   ...props
 }: PillProps) => (

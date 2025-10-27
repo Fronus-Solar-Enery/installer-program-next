@@ -867,7 +867,7 @@ export default function InstallersPage() {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 className="mb-4 !p-4 bg-muted/30"
               >
-                <CardContent className="p-0">
+                <CardContent className="p-0 ">
                   <div className="flex items-center gap-2">
                     <IconSetting4 className="size-4" duotone={false} />
                     Filters
@@ -1347,7 +1347,7 @@ export default function InstallersPage() {
             </AnimatePresence>
           )}
 
-          <div className="border border-border rounded-2xl overflow-hidden">
+          <div className="border border-border squircle rounded-2xl overflow-hidden">
             <Table>
               <TableHeader className="bg-muted">
                 <TableRow className="hover:bg-muted/50 ">

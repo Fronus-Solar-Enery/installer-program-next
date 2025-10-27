@@ -1,10 +1,10 @@
-import Activity, { ActivityType, IActivity } from '@/models/Activity';
-import { Types } from 'mongoose';
+import Activity, { ActivityType } from "@/models/Activity";
+import { Types } from "mongoose";
 
 interface LogActivityParams {
   type: ActivityType;
   performedBy: string | Types.ObjectId;
-  targetType: 'Installer' | 'InstallerReward' | 'TeamMember';
+  targetType: "Installer" | "InstallerReward" | "TeamMember";
   targetId: string | Types.ObjectId;
   targetName?: string;
   description: string;
@@ -32,14 +32,17 @@ export async function logActivity(params: LogActivityParams): Promise<void> {
     });
   } catch (error) {
     // Log error but don't throw - activity logging should not break the main flow
-    console.error('Failed to log activity:', error);
+    console.error("Failed to log activity:", error);
   }
 }
 
 /**
  * Helper to extract before/after changes for updates
  */
-export function getChanges(oldData: Record<string, unknown>, newData: Record<string, unknown>): Record<string, { before: unknown; after: unknown }> {
+export function getChanges(
+  oldData: Record<string, unknown>,
+  newData: Record<string, unknown>
+): Record<string, { before: unknown; after: unknown }> {
   const changes: Record<string, { before: unknown; after: unknown }> = {};
 
   for (const key in newData) {
@@ -58,12 +61,12 @@ export function getChanges(oldData: Record<string, unknown>, newData: Record<str
  * Get activities for a specific target (installer, reward, etc.)
  */
 export async function getTargetActivities(
-  targetType: 'Installer' | 'InstallerReward' | 'TeamMember',
+  targetType: "Installer" | "InstallerReward" | "TeamMember",
   targetId: string,
   limit: number = 50
 ) {
   return await Activity.find({ targetType, targetId })
-    .populate('performedBy', 'name email')
+    .populate("performedBy", "name email")
     .sort({ createdAt: -1 })
     .limit(limit)
     .lean();
@@ -74,7 +77,7 @@ export async function getTargetActivities(
  */
 export async function getRecentActivities(limit: number = 100) {
   return await Activity.find()
-    .populate('performedBy', 'name email')
+    .populate("performedBy", "name email")
     .sort({ createdAt: -1 })
     .limit(limit)
     .lean();

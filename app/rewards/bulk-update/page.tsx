@@ -6,6 +6,16 @@ import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -30,6 +40,9 @@ import { FileDropzone } from "@/components/ui/drop-zone";
 import { IconTrashBin2 } from "@/components/icons";
 import IconExcel from "@/components/icons/Excel";
 import { toast } from "sonner";
+import BulkUploadProgressModal, {
+  UploadStep,
+} from "@/components/BulkUploadProgressModal";
 
 interface RewardUpdate {
   serialNumber: string;
@@ -55,6 +68,13 @@ export default function BulkUploadRewardsPage() {
   const [fileReading, setFileReading] = useState(false);
   const [fileReadProgress, setFileReadProgress] = useState(0);
   const [terminateDialogOpen, setTerminateDialogOpen] = useState(false);
+
+  // Progress tracking state
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [uploadSteps, setUploadSteps] = useState<UploadStep[]>([]);
+  const [processedRecords, setProcessedRecords] = useState(0);
+  const [successCount, setSuccessCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
 
   const downloadTemplate = () => {
     setDownloadingTemplate(true);
@@ -358,26 +378,28 @@ export default function BulkUploadRewardsPage() {
 
       if (response.ok && data.data?.validatedRewards) {
         // Update payment status based on the validation results from backend
-        const updatedRewards = data.data.validatedRewards.map((reward: RewardUpdate) => {
-          let paymentStatus: string;
+        const updatedRewards = data.data.validatedRewards.map(
+          (reward: RewardUpdate) => {
+            let paymentStatus: string;
 
-          if (reward.issues && reward.issues.length > 0) {
-            // If there are validation errors (including from backend), mark as FAILED
-            paymentStatus = "FAILED";
-          } else if (reward.transactionId) {
-            // If validation passes and transaction ID is provided, mark as PAID
-            paymentStatus = "PAID";
-          } else {
-            // If validation passes but no transaction ID, mark as PENDING
-            paymentStatus = "PENDING";
+            if (reward.issues && reward.issues.length > 0) {
+              // If there are validation errors (including from backend), mark as FAILED
+              paymentStatus = "FAILED";
+            } else if (reward.transactionId) {
+              // If validation passes and transaction ID is provided, mark as PAID
+              paymentStatus = "PAID";
+            } else {
+              // If validation passes but no transaction ID, mark as PENDING
+              paymentStatus = "PENDING";
+            }
+
+            return {
+              ...reward,
+              paymentStatus,
+              isValid: !reward.issues || reward.issues.length === 0,
+            };
           }
-
-          return {
-            ...reward,
-            paymentStatus,
-            isValid: !reward.issues || reward.issues.length === 0,
-          };
-        });
+        );
 
         setPreview(updatedRewards);
       }
@@ -418,7 +440,9 @@ export default function BulkUploadRewardsPage() {
 
     setPreview(validRecords);
     setTerminateDialogOpen(false);
-    toast.success(`Terminated ${invalidCount} invalid record(s). ${validRecords.length} valid record(s) remaining.`);
+    toast.success(
+      `Terminated ${invalidCount} invalid record(s). ${validRecords.length} valid record(s) remaining.`
+    );
   };
 
   const downloadAndTerminateInvalid = () => {
@@ -471,121 +495,248 @@ export default function BulkUploadRewardsPage() {
     e.preventDefault();
 
     if (preview.length === 0) {
-      setError("No data to upload. Please select a valid Excel file.");
+      toast.error("No data to upload. Please select a valid Excel file.");
       return;
     }
 
     const invalidRows = preview.filter((p) => !p.isValid);
     if (invalidRows.length > 0) {
-      setError(
+      toast.error(
         `Cannot upload: ${invalidRows.length} row(s) have validation issues. Please fix them first.`
       );
       return;
     }
 
+    const validRewards = preview.filter((p) => p.isValid);
+    const totalRecords = validRewards.length;
+
+    // Initialize progress modal
+    setShowProgressModal(true);
+    setProcessedRecords(0);
+    setSuccessCount(0);
+    setFailedCount(0);
     setLoading(true);
     setError("");
     setSuccess("");
 
+    // Initialize steps
+    const initialSteps: UploadStep[] = [
+      {
+        id: "validate",
+        title: "Validating Data",
+        description: "Checking serial numbers and validating reward data",
+        status: "processing",
+        progress: 0,
+      },
+      {
+        id: "update",
+        title: "Updating Rewards",
+        description: `Processing 0 of ${totalRecords} reward(s)`,
+        status: "pending",
+        progress: 0,
+      },
+      {
+        id: "activity",
+        title: "Logging Activities",
+        description: "Recording reward update activities",
+        status: "pending",
+        progress: 0,
+      },
+      {
+        id: "complete",
+        title: "Finalizing Upload",
+        description: "Completing the bulk update process",
+        status: "pending",
+        progress: 0,
+      },
+    ];
+
+    setUploadSteps(initialSteps);
+
     try {
-      // Filter out validation fields before sending to API
-      const rewardsToUpdate = preview.map((reward) => ({
-        serialNumber: reward.serialNumber,
-        transactionId: reward.transactionId,
-        referrerTransactionId: reward.referrerTransactionId,
-        paymentStatus: reward.paymentStatus,
-        sendingDate: reward.sendingDate,
-        paymentMethod: reward.paymentMethod,
-      }));
+      // Step 1: Validation
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setUploadSteps((prev) =>
+        prev.map((step) =>
+          step.id === "validate"
+            ? {
+                ...step,
+                status: "completed",
+                progress: 100,
+                details: `Validated ${totalRecords} records`,
+              }
+            : step
+        )
+      );
 
-      console.log("📤 Sending bulk update request:", {
-        totalRecords: rewardsToUpdate.length,
-        sampleRecord: rewardsToUpdate[0],
-        payload: { rewards: rewardsToUpdate },
-      });
+      // Step 2: Start updating rewards in chunks
+      setUploadSteps((prev) =>
+        prev.map((step) =>
+          step.id === "update" ? { ...step, status: "processing" } : step
+        )
+      );
 
-      const response = await fetch("/api/rewards/bulk-update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rewards: rewardsToUpdate }),
-      });
+      // Process in chunks for real-time progress
+      const CHUNK_SIZE = 10; // Process 10 rewards at a time
+      let totalSuccess = 0;
+      let totalFailed = 0;
+      const allErrors: string[] = [];
 
-      const data = await response.json();
+      for (let i = 0; i < validRewards.length; i += CHUNK_SIZE) {
+        const chunk = validRewards.slice(i, i + CHUNK_SIZE);
+        const currentBatch = Math.min(i + CHUNK_SIZE, validRewards.length);
 
-      console.log("📥 API Response:", {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        data,
-      });
+        // Filter out validation fields before sending to API
+        const rewardsToUpdate = chunk.map((reward) => ({
+          serialNumber: reward.serialNumber,
+          transactionId: reward.transactionId,
+          referrerTransactionId: reward.referrerTransactionId,
+          paymentStatus: reward.paymentStatus,
+          sendingDate: reward.sendingDate,
+          paymentMethod: reward.paymentMethod,
+        }));
 
-      if (response.ok) {
-        setSuccess(
-          data.message ||
-            `Successfully updated ${data.data?.success} reward(s)!`
-        );
-        if (data.data?.errors && data.data.errors.length > 0) {
-          setError(`Some errors occurred: ${data.data.errors.join(", ")}`);
-        }
-        toast.success(
-          `Successfully updated ${
-            data.data?.success || preview.length
-          } reward(s)!`
-        );
-        setTimeout(() => {
-          router.push("/rewards");
-        }, 2000);
-      } else {
-        // Enhanced error handling with detailed information
-        const errorMessage = data.error || data.message || "Upload failed";
-        const errorDetails = data.details || data.errors || [];
-        const validationErrors = data.validationErrors || [];
-
-        console.error("❌ API Error:", {
-          status: response.status,
-          error: errorMessage,
-          details: errorDetails,
-          validationErrors,
-          fullResponse: data,
-        });
-
-        // Build comprehensive error message
-        let fullErrorMessage = `Error (${response.status}): ${errorMessage}`;
-
-        if (validationErrors.length > 0) {
-          fullErrorMessage += "\n\nValidation Errors:\n";
-          validationErrors.forEach((err: unknown, index: number) => {
-            const error = err as { path?: string; message: string };
-            fullErrorMessage += `${index + 1}. ${error.path || "Field"}: ${
-              error.message
-            }\n`;
+        try {
+          const response = await fetch("/api/rewards/bulk-update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rewards: rewardsToUpdate }),
           });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            totalSuccess += data.data?.success || 0;
+            totalFailed += data.data?.failed || 0;
+
+            if (data.data?.errors && data.data.errors.length > 0) {
+              allErrors.push(...data.data.errors);
+            }
+          } else {
+            totalFailed += chunk.length;
+            allErrors.push(data.error || "Chunk update failed");
+          }
+        } catch (err) {
+          totalFailed += chunk.length;
+          allErrors.push(
+            `Chunk ${i / CHUNK_SIZE + 1} failed: ${
+              err instanceof Error ? err.message : "Unknown error"
+            }`
+          );
         }
 
-        if (Array.isArray(errorDetails) && errorDetails.length > 0) {
-          fullErrorMessage += "\n\nDetails:\n";
-          errorDetails.forEach((detail: unknown, index: number) => {
-            fullErrorMessage += `${index + 1}. ${
-              typeof detail === "string" ? detail : JSON.stringify(detail)
-            }\n`;
-          });
-        }
+        // Update progress in real-time
+        const progress = Math.round((currentBatch / totalRecords) * 100);
+        setProcessedRecords(currentBatch);
+        setSuccessCount(totalSuccess);
+        setFailedCount(totalFailed);
 
-        setError(fullErrorMessage);
-        toast.error(errorMessage);
+        setUploadSteps((prev) =>
+          prev.map((step) =>
+            step.id === "update"
+              ? {
+                  ...step,
+                  status: "processing",
+                  progress: progress,
+                  description: `Processing ${currentBatch} of ${totalRecords} reward(s)`,
+                  details: `Updated: ${totalSuccess} | Failed: ${totalFailed}`,
+                }
+              : step
+          )
+        );
+
+        // Small delay between chunks to allow UI updates
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+
+      // Step 2: Complete update
+      setUploadSteps((prev) =>
+        prev.map((step) =>
+          step.id === "update"
+            ? {
+                ...step,
+                status: totalSuccess > 0 ? "completed" : "error",
+                progress: 100,
+                details: `Updated ${totalSuccess} out of ${totalRecords} rewards`,
+                error: totalFailed > 0 ? `${totalFailed} failed` : undefined,
+              }
+            : step
+        )
+      );
+
+      if (totalSuccess === 0) {
+        setUploadSteps((prev) =>
+          prev.map((step) =>
+            step.status === "pending" || step.status === "processing"
+              ? {
+                  ...step,
+                  status: "error",
+                  error: "No rewards were updated successfully",
+                }
+              : step
+          )
+        );
+        setError(`Update failed. Errors: ${allErrors.join(", ")}`);
+        return;
+      }
+
+      // Step 3: Activity Logging (already done during update)
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      setUploadSteps((prev) =>
+        prev.map((step) =>
+          step.id === "activity" ? { ...step, status: "processing" } : step
+        )
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setUploadSteps((prev) =>
+        prev.map((step) =>
+          step.id === "activity"
+            ? {
+                ...step,
+                status: "completed",
+                progress: 100,
+                details: `Logged ${totalSuccess} activities`,
+              }
+            : step
+        )
+      );
+
+      // Step 4: Complete
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      setUploadSteps((prev) =>
+        prev.map((step) =>
+          step.id === "complete"
+            ? {
+                ...step,
+                status: "completed",
+                progress: 100,
+                details: `Update completed: ${totalSuccess} successful, ${totalFailed} failed`,
+              }
+            : {
+                ...step,
+                status: step.status === "pending" ? "completed" : step.status,
+              }
+        )
+      );
+
+      setSuccess(`Successfully updated ${totalSuccess} reward(s)!`);
+
+      if (totalFailed > 0) {
+        setError(
+          `${totalFailed} reward(s) failed. Check the logs for details.`
+        );
       }
     } catch (err: unknown) {
-      const errorMessage =
-        "Failed to upload rewards: " +
-        (err instanceof Error ? err.message : "Unknown error");
-
-      console.error("❌ Request Error:", {
-        error: err,
-        message: errorMessage,
-      });
-
-      setError(errorMessage);
-      toast.error("Network error: Failed to connect to server");
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      setUploadSteps((prev) =>
+        prev.map((step) =>
+          step.status === "processing"
+            ? { ...step, status: "error", error: errorMessage }
+            : step
+        )
+      );
+      setError("Failed to update rewards: " + errorMessage);
     } finally {
       setLoading(false);
     }
@@ -640,7 +791,7 @@ export default function BulkUploadRewardsPage() {
               </Button>
             </div>
 
-            <div className="pt-4 border-t border-border">
+            {/* <div className="pt-4 border-t border-border">
               <p className="text-sm font-medium mb-2">Validation Rules:</p>
               <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                 <li>Serial number must exist in the system</li>
@@ -648,26 +799,7 @@ export default function BulkUploadRewardsPage() {
                 <li>Referrer Transaction ID is optional</li>
                 <li>Payment method: UBANK, UPaisa, or NayaPay (optional)</li>
               </ul>
-              <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800 space-y-2">
-                <p className="text-xs text-blue-800 dark:text-blue-200">
-                  <strong>Automatic Fields:</strong>
-                </p>
-                <ul className="text-xs text-blue-800 dark:text-blue-200 list-disc list-inside ml-2 space-y-1">
-                  <li>
-                    <strong>Payment Status:</strong> Automatically set based on validation:
-                    <ul className="list-disc list-inside ml-4 mt-1 space-y-0.5">
-                      <li><strong>PAID</strong> - All validations pass + transaction ID provided</li>
-                      <li><strong>PENDING</strong> - All validations pass but no transaction ID</li>
-                      <li><strong>FAILED</strong> - Any validation errors found</li>
-                    </ul>
-                  </li>
-                  <li>
-                    <strong>Sending Date:</strong> Automatically set to current
-                    date
-                  </li>
-                </ul>
-              </div>
-            </div>
+            </div> */}
           </CardContent>
         </div>
 
@@ -813,22 +945,32 @@ export default function BulkUploadRewardsPage() {
               )}
             </div>
             {invalidCount > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={downloadInvalidRecords}
-                size="sm"
-                disabled={downloadingInvalid}
-              >
-                {downloadingInvalid ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4 mr-2" />
-                )}
-                {downloadingInvalid
-                  ? "Downloading..."
-                  : "Download Invalid Records"}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={downloadInvalidRecords}
+                  disabled={downloadingInvalid}
+                >
+                  {downloadingInvalid ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
+                  {downloadingInvalid
+                    ? "Downloading..."
+                    : "Download Invalid Records"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleTerminateInvalid}
+                  disabled={loading || validating || fileReading}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Terminate Invalid
+                </Button>
+              </div>
             )}
           </div>
         )}
@@ -974,6 +1116,53 @@ export default function BulkUploadRewardsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Terminate Invalid Records Dialog */}
+      <AlertDialog
+        open={terminateDialogOpen}
+        onOpenChange={setTerminateDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Terminate Invalid Records?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {invalidCount} invalid record(s) will be permanently removed from
+              the preview list. You can download them first before terminating,
+              or just terminate without downloading.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button variant="outline" onClick={downloadAndTerminateInvalid}>
+              <Download className="h-4 w-4 mr-2" />
+              Download & Terminate
+            </Button>
+            <AlertDialogAction
+              onClick={terminateInvalidRecords}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Just Terminate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Progress Modal */}
+      <BulkUploadProgressModal
+        isOpen={showProgressModal}
+        steps={uploadSteps}
+        totalRecords={preview.filter((p) => p.isValid).length}
+        processedRecords={processedRecords}
+        successCount={successCount}
+        failedCount={failedCount}
+        onClose={() => {
+          setShowProgressModal(false);
+          if (success) {
+            setTimeout(() => router.push("/rewards"), 500);
+          }
+        }}
+      />
     </div>
   );
 }

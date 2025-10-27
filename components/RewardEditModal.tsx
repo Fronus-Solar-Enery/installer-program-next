@@ -1,10 +1,27 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Modal from './Modal';
-import { PRODUCT_MODELS, PAYMENT_METHOD } from '@/lib/constants';
-import { PaymentStatus } from '@/types/rewards';
-import { toast } from 'sonner';
+import { useState, useEffect, useCallback } from "react";
+import Modal from "./Modal";
+import { PRODUCT_MODELS, PAYMENT_METHOD } from "@/lib/constants";
+import { PaymentStatus } from "@/types/rewards";
+import { toast } from "sonner";
+
+interface RewardData {
+  serialNumber: string;
+  rewardAmount: number;
+  productModel: string;
+  inverterSerialNumber?: string;
+  paymentStatus: string;
+  transactionId?: string;
+  referrerTransactionId?: string;
+  sendingDate?: string;
+  paymentMethod?: string;
+  installer?: {
+    installerCode: string;
+    fullName: string;
+  };
+  referrer?: unknown;
+}
 
 interface RewardEditModalProps {
   open: boolean;
@@ -21,52 +38,60 @@ export default function RewardEditModal({
 }: RewardEditModalProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [reward, setReward] = useState<any>(null);
+  const [reward, setReward] = useState<RewardData | null>(null);
 
   // Form fields
-  const [serialNumber, setSerialNumber] = useState('');
-  const [productModel, setProductModel] = useState('');
-  const [inverterSerialNumber, setInverterSerialNumber] = useState('');
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(PaymentStatus.PENDING);
-  const [transactionId, setTransactionId] = useState('');
-  const [referrerTransactionId, setReferrerTransactionId] = useState('');
-  const [sendingDate, setSendingDate] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('');
+  const [serialNumber, setSerialNumber] = useState("");
+  const [productModel, setProductModel] = useState("");
+  const [inverterSerialNumber, setInverterSerialNumber] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(
+    PaymentStatus.PENDING
+  );
+  const [transactionId, setTransactionId] = useState("");
+  const [referrerTransactionId, setReferrerTransactionId] = useState("");
+  const [sendingDate, setSendingDate] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
 
-  useEffect(() => {
-    if (open && rewardId) {
-      fetchReward();
-    }
-  }, [open, rewardId]);
-
-  const fetchReward = async () => {
+  const fetchReward = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/rewards/${rewardId}`);
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch reward');
+        throw new Error(data.error || "Failed to fetch reward");
       }
 
       const r = data.data;
       setReward(r);
 
       // Populate form fields
-      setSerialNumber(r.serialNumber || '');
-      setProductModel(r.productModel || '');
-      setInverterSerialNumber(r.inverterSerialNumber || '');
+      setSerialNumber(r.serialNumber || "");
+      setProductModel(r.productModel || "");
+      setInverterSerialNumber(r.inverterSerialNumber || "");
       setPaymentStatus(r.paymentStatus);
-      setTransactionId(r.transactionId || '');
-      setReferrerTransactionId(r.referrerTransactionId || '');
-      setSendingDate(r.sendingDate ? new Date(r.sendingDate).toISOString().split('T')[0] : '');
-      setPaymentMethod(r.paymentMethod || '');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to load reward');
+      setTransactionId(r.transactionId || "");
+      setReferrerTransactionId(r.referrerTransactionId || "");
+      setSendingDate(
+        r.sendingDate
+          ? new Date(r.sendingDate as string).toISOString().split("T")[0]
+          : ""
+      );
+      setPaymentMethod(r.paymentMethod || "");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load reward";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [rewardId]);
+
+  useEffect(() => {
+    if (open && rewardId) {
+      fetchReward();
+    }
+  }, [open, rewardId, fetchReward]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,15 +99,17 @@ export default function RewardEditModal({
 
     try {
       const response = await fetch(`/api/rewards/${rewardId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           serialNumber,
           productModel,
           inverterSerialNumber,
           paymentStatus,
           transactionId: transactionId || undefined,
-          referrerTransactionId: reward?.referrer ? (referrerTransactionId || undefined) : undefined,
+          referrerTransactionId: reward?.referrer
+            ? referrerTransactionId || undefined
+            : undefined,
           sendingDate: sendingDate || undefined,
           paymentMethod: paymentMethod || undefined,
         }),
@@ -91,15 +118,15 @@ export default function RewardEditModal({
       const data = await response.json();
 
       if (response.ok) {
-        toast.success('Reward updated successfully');
+        toast.success("Reward updated successfully");
         onSuccess?.();
         onOpenChange(false);
       } else {
-        toast.error(data.error || 'Failed to update reward');
+        toast.error(data.error || "Failed to update reward");
       }
     } catch (error) {
-      console.error('Failed to update reward:', error);
-      toast.error('An error occurred while updating');
+      console.error("Failed to update reward:", error);
+      toast.error("An error occurred while updating");
     } finally {
       setSaving(false);
     }
@@ -127,20 +154,26 @@ export default function RewardEditModal({
       title="Edit Reward"
       description={`Serial Number: ${reward?.serialNumber}`}
       size="xl"
-      openInTabUrl={`/rewards/${rewardId}/edit`}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Reward Summary */}
         <div className="bg-muted rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-2">Reward Information</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-2">
+            Reward Information
+          </h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
               <span className="text-muted-foreground">Installer:</span>
-              <span className="ml-2 font-medium">{reward?.installer?.installerCode} - {reward?.installer?.fullName}</span>
+              <span className="ml-2 font-medium">
+                {reward?.installer?.installerCode} -{" "}
+                {reward?.installer?.fullName}
+              </span>
             </div>
             <div>
               <span className="text-muted-foreground">Reward Amount:</span>
-              <span className="ml-2 font-medium text-green-600">Rs. {reward?.rewardAmount?.toLocaleString()}</span>
+              <span className="ml-2 font-medium text-green-600">
+                Rs. {reward?.rewardAmount?.toLocaleString()}
+              </span>
             </div>
           </div>
         </div>
@@ -174,7 +207,10 @@ export default function RewardEditModal({
               <option value="">Select product model</option>
               {PRODUCT_MODELS.map((product) => (
                 <option key={product.value} value={product.value}>
-                  {product.label} (Rs. {product.reward.toLocaleString()})
+                  {product.label}{" "}
+                  {product.reward
+                    ? `(Rs. ${product.reward.toLocaleString()})`
+                    : ""}
                 </option>
               ))}
             </select>
@@ -201,7 +237,9 @@ export default function RewardEditModal({
             </label>
             <select
               value={paymentStatus}
-              onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}
+              onChange={(e) =>
+                setPaymentStatus(e.target.value as PaymentStatus)
+              }
               className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
               required
             >
@@ -225,7 +263,7 @@ export default function RewardEditModal({
           </div>
 
           {/* Referrer Transaction ID - Only if referrer exists */}
-          {reward?.referrer && (
+          {!!reward?.referrer && (
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
                 Referrer Transaction ID
@@ -263,8 +301,10 @@ export default function RewardEditModal({
               className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
             >
               <option value="">Select payment method</option>
-              {PAYMENT_METHOD.map(method => (
-                <option key={method.value} value={method.value}>{method.label}</option>
+              {PAYMENT_METHOD.map((method) => (
+                <option key={method.value} value={method.value}>
+                  {method.label}
+                </option>
               ))}
             </select>
           </div>
@@ -284,7 +324,7 @@ export default function RewardEditModal({
             disabled={saving}
             className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400"
           >
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </form>

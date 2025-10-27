@@ -1624,7 +1624,7 @@ const giftIconVariants = [
   "text-orange-600",
 ];
 
-export const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
+const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
   activeInstallers,
 }) => {
   const { copyToClipboard, copied } = useClipboard();

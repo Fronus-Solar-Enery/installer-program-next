@@ -112,7 +112,7 @@ export const FileDropzone = React.memo(
           // If something unexpected happens, reject the file without crashing the app.
           return {
             code: "file-invalid-type",
-            message: `Only ${fileTypeLabel} are allowed`,
+            message: `Only ${fileTypeLabel} are allowed ${err}`,
           };
         }
       },

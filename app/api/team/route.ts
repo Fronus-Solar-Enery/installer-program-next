@@ -83,20 +83,20 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!name || !email || !password || !role) {
       return ApiResponse.validationError([
-        { field: 'required', message: 'Name, email, password, and role are required' },
+        { path: ['required'], message: 'Name, email, password, and role are required' },
       ]);
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return ApiResponse.validationError([{ field: 'email', message: 'Invalid email format' }]);
+      return ApiResponse.validationError([{ path: ['email'], message: 'Invalid email format' }]);
     }
 
     // Validate password length
     if (password.length < 6) {
       return ApiResponse.validationError([
-        { field: 'password', message: 'Password must be at least 6 characters' },
+        { path: ['password'], message: 'Password must be at least 6 characters' },
       ]);
     }
 

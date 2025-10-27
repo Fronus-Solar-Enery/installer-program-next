@@ -1,12 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Upload, X } from "lucide-react";
+import Image from "next/image";
 
 interface ProfileEditModalProps {
   isOpen: boolean;
@@ -104,9 +110,11 @@ export default function ProfileEditModal({
       toast.success("Profile updated successfully");
       onSuccess();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error updating profile:", error);
-      toast.error(error.message || "Failed to update profile");
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to update profile";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -127,7 +135,7 @@ export default function ProfileEditModal({
               <div className="relative">
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center overflow-hidden">
                   {imagePreview ? (
-                    <img
+                    <Image
                       src={imagePreview}
                       alt="Profile"
                       className="w-full h-full object-cover"

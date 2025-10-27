@@ -1,14 +1,5 @@
 import { cva } from "class-variance-authority";
 
-const baseStyles = [
-  "inline-flex relative items-center justify-center",
-  "gap-1.5 text-sm tracking-wide select-none",
-  "focus-visible:outline-2",
-  "pointer-events-none disabled:opacity-50",
-  "transition-colors duration-500",
-  "active:translate-y-[1px] overflow-hidden whitespace-nowrap",
-];
-
 export const variants = {
   default: [
     "bg-zinc-300/70 text-zinc-900",

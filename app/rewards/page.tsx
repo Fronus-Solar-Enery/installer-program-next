@@ -557,7 +557,7 @@ export default function RewardsPage() {
               />
             </Button>
             <Button
-              onClick={() => router.push("/rewards/bulk-upload")}
+              onClick={() => router.push("/rewards/bulk-update")}
               variant="outline"
               disabled={loading}
               title="Bulk Update"

@@ -76,8 +76,8 @@ function parseMongoUri(uri: string): {
 }
 
 // Helper function to classify and explain errors
-function classifyMongoError(error: any): { cause: string; solution: string } {
-  const errorMsg = error.message || String(error);
+function classifyMongoError(error: unknown): { cause: string; solution: string } {
+  const errorMsg = error instanceof Error ? error.message : String(error);
 
   // Connection refused errors
   if (
