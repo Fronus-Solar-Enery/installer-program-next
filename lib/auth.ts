@@ -5,6 +5,15 @@ import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/mongodb";
 import TeamMember, { TeamRole } from "@/models/TeamMember";
 
+// Validate required environment variables
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error("NEXTAUTH_SECRET environment variable is not set");
+}
+
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  console.warn("Google OAuth credentials are not set");
+}
+
 export const authConfig: NextAuthConfig = {
   providers: [
     GoogleProvider({
@@ -68,28 +77,33 @@ export const authConfig: NextAuthConfig = {
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
-        await dbConnect();
+        try {
+          await dbConnect();
 
-        const existingUser = await TeamMember.findOne({ email: user.email });
+          const existingUser = await TeamMember.findOne({ email: user.email });
 
-        if (!existingUser) {
-          // Create new user with Google account
-          const newUser = await TeamMember.create({
-            name: user.name,
-            email: user.email,
-            googleId: account.providerAccountId,
-            image: user.image,
-            role: TeamRole.USER, // Default role
-          });
-          user.id = newUser._id.toString();
-        } else {
-          // Update existing user with Google ID if not set
-          if (!existingUser.googleId) {
-            existingUser.googleId = account.providerAccountId;
-            existingUser.image = user.image || undefined;
-            await existingUser.save();
+          if (!existingUser) {
+            // Create new user with Google account
+            const newUser = await TeamMember.create({
+              name: user.name,
+              email: user.email,
+              googleId: account.providerAccountId,
+              image: user.image,
+              role: TeamRole.USER, // Default role
+            });
+            user.id = newUser._id.toString();
+          } else {
+            // Update existing user with Google ID if not set
+            if (!existingUser.googleId) {
+              existingUser.googleId = account.providerAccountId;
+              existingUser.image = user.image || undefined;
+              await existingUser.save();
+            }
+            user.id = existingUser._id.toString();
           }
-          user.id = existingUser._id.toString();
+        } catch (error) {
+          console.error("Error in signIn callback:", error);
+          return false; // Prevent sign in if database operation fails
         }
       }
       return true;
@@ -106,14 +120,19 @@ export const authConfig: NextAuthConfig = {
         token.email = session.email;
       }
 
-      // Fetch latest user data from database
+      // Fetch latest user data from database (with error handling)
       if (token.email) {
-        await dbConnect();
-        const dbUser = await TeamMember.findOne({ email: token.email });
-        if (dbUser) {
-          token.id = dbUser._id.toString();
-          token.role = dbUser.role;
-          token.name = dbUser.name;
+        try {
+          await dbConnect();
+          const dbUser = await TeamMember.findOne({ email: token.email });
+          if (dbUser) {
+            token.id = dbUser._id.toString();
+            token.role = dbUser.role;
+            token.name = dbUser.name;
+          }
+        } catch (error) {
+          console.error("Error fetching user in JWT callback:", error);
+          // Continue with existing token data if DB fetch fails
         }
       }
 
