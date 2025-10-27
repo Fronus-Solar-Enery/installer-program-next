@@ -163,9 +163,9 @@ export async function POST(req: NextRequest) {
         results.success++;
         results.successfulCodes.push(newInstaller.installerCode);
 
-        // Try to create Google Contact (non-blocking)
+        // Try to create Google Contact (using global authentication)
         try {
-          const googleContactId = await createGoogleContact(session.user.id, {
+          const googleContactId = await createGoogleContact({
             fullName: newInstaller.fullName,
             phoneNumber: newInstaller.phoneNumber,
             whatsappNumber: newInstaller.whatsappNumber,

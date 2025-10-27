@@ -103,18 +103,20 @@ async function getOrCreateContactGroup(
   }
 }
 
-async function getAuthClient(userId: string) {
+async function getAuthClient() {
   await dbConnect();
 
+  // Find ANY active Google auth (global authentication)
   const googleAuth = await GoogleAuth.findOne({
-    userId,
     isActive: true,
   });
 
   if (!googleAuth?.refreshToken) {
-    console.warn("No active Google auth found for user:", userId);
+    console.warn("No active Google auth found. Please authenticate Google Contacts.");
     return null;
   }
+
+  console.log(`Using Google auth for account: ${googleAuth.accountEmail}`);
 
   const CLIENT_ID =
     process.env.GOOGLE_CONTACTS_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
@@ -142,11 +144,10 @@ async function getAuthClient(userId: string) {
 }
 
 export async function createGoogleContact(
-  userId: string,
   data: ContactData
 ): Promise<string | null> {
   try {
-    const authClient = await getAuthClient(userId);
+    const authClient = await getAuthClient();
 
     if (!authClient) {
       console.warn(
@@ -306,12 +307,11 @@ export async function createGoogleContact(
 }
 
 export async function updateGoogleContact(
-  userId: string,
   resourceName: string,
   data: ContactData
 ): Promise<boolean> {
   try {
-    const authClient = await getAuthClient(userId);
+    const authClient = await getAuthClient();
 
     if (!authClient) {
       console.warn(
@@ -470,11 +470,10 @@ export async function updateGoogleContact(
 }
 
 export async function deleteGoogleContact(
-  userId: string,
   resourceName: string
 ): Promise<boolean> {
   try {
-    const authClient = await getAuthClient(userId);
+    const authClient = await getAuthClient();
 
     if (!authClient) {
       console.warn(

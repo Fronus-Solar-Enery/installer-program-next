@@ -118,10 +118,10 @@ export async function POST(request: NextRequest) {
       registeredBy: session.user.id,
     });
 
-    // Create Google Contact
+    // Create Google Contact (using global authentication)
     let googleContactStatus = 'not attempted';
     try {
-      const googleContactId = await createGoogleContact(session.user.id, {
+      const googleContactId = await createGoogleContact({
         fullName: installer.fullName,
         phoneNumber: installer.phoneNumber,
         whatsappNumber: installer.whatsappNumber,

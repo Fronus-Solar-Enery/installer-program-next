@@ -140,10 +140,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     Object.assign(installer, validatedData);
     await installer.save();
 
-    // Update Google Contact
+    // Update Google Contact (using global authentication)
     if (installer.googleContactId) {
       try {
-        await updateGoogleContact(session.user.id, installer.googleContactId, {
+        await updateGoogleContact(installer.googleContactId, {
           fullName: installer.fullName,
           phoneNumber: installer.phoneNumber,
           whatsappNumber: installer.whatsappNumber,
@@ -214,11 +214,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       );
     }
 
-    // Delete Google Contact
+    // Delete Google Contact (using global authentication)
     if (installer.googleContactId) {
       try {
         console.log(`Attempting to delete Google contact: ${installer.googleContactId} for installer: ${installer.installerCode}`);
-        const deleted = await deleteGoogleContact(session.user.id, installer.googleContactId);
+        const deleted = await deleteGoogleContact(installer.googleContactId);
         if (deleted) {
           console.log(`Successfully deleted Google contact for installer: ${installer.installerCode}`);
         } else {
