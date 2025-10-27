@@ -16,8 +16,40 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Installer Program Management",
-  description: "Installer program management system with rewards tracking",
+  title: {
+    default: "Installer Program Management System",
+    template: "%s | IPMS",
+  },
+  description: "Fronus Solar Energy Installer Program Management System with rewards tracking and Google Contacts integration",
+  applicationName: "IPMS",
+  keywords: ["installer", "program", "management", "rewards", "solar", "fronus"],
+  authors: [{ name: "Fronus Solar Energy" }],
+  creator: "Fronus Solar Energy",
+  publisher: "Fronus Solar Energy",
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48", type: "image/x-icon" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+  },
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+  ],
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 5,
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "IPMS",
+  },
 };
 
 export default function RootLayout({

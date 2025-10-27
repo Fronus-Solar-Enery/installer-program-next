@@ -18,6 +18,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import {
   Card,
@@ -630,13 +631,58 @@ export default function InstallersPage() {
         }
         action={
           <>
-            {/* Show auth button only to admins when not authenticated */}
-            {isAdmin && googleAuthStatus && !googleAuthStatus.isAuthenticated && (
+            <Button
+              variant="outline"
+              onClick={fetchInstallers}
+              disabled={loading}
+              title="Refresh data"
+              className="gap-2"
+            >
+              Refresh
+              <IconRefresh2
+                duotone={false}
+                width={2}
+                className={cn("h-3.5 w-3.5", loading && "animate-spin")}
+              />
+            </Button>
+
+            <Button
+              onClick={() => router.push("/installers/bulk-register")}
+              variant="outline"
+              disabled={loading || !googleAuthStatus?.isAuthenticated}
+              title={!googleAuthStatus?.isAuthenticated ? "Google Contacts authentication required" : "Bulk Register"}
+              className="gap-2"
+            >
+              Bulk Register
+              <IconLayer
+                duotone={false}
+                width={2}
+                className={cn("h-3.5 w-3.5")}
+              />
+            </Button>
+
+            {/* Register New Installer OR Authenticate Google Contacts */}
+            {googleAuthStatus?.isAuthenticated ? (
               <Button
-                onClick={handleAuthenticateGoogle}
-                disabled={authLoading}
+                onClick={() => router.push("/installers/new")}
+                disabled={loading}
+                title="Register New Installer"
+                className="gap-2"
+              >
+                <IconAdd
+                  duotone={false}
+                  width={2}
+                  className={cn("h-3.5 w-3.5")}
+                />
+                Register New Installer
+              </Button>
+            ) : (
+              <Button
+                onClick={isAdmin ? handleAuthenticateGoogle : undefined}
+                disabled={!isAdmin || authLoading}
                 variant="default"
-                className="bg-yellow-600 hover:bg-yellow-700"
+                className="bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-300"
+                title={!isAdmin ? "Only administrators can authenticate Google Contacts" : "Authenticate Google Contacts to enable registration"}
               >
                 <svg
                   className="w-5 h-5 mr-2"
@@ -656,56 +702,12 @@ export default function InstallersPage() {
                   : "Authenticate Google Contacts"}
               </Button>
             )}
-
-            {/* Always show regular action buttons */}
-            <Button
-              variant="outline"
-              onClick={fetchInstallers}
-              disabled={loading}
-              title="Refresh data"
-              className="gap-2"
-            >
-              Refresh
-              <IconRefresh2
-                duotone={false}
-                width={2}
-                className={cn("h-3.5 w-3.5", loading && "animate-spin")}
-              />
-            </Button>
-
-            <Button
-              onClick={() => router.push("/installers/bulk-register")}
-              variant="outline"
-              disabled={loading}
-              title="Bulk Register"
-              className="gap-2"
-            >
-              Bulk Register
-              <IconLayer
-                duotone={false}
-                width={2}
-                className={cn("h-3.5 w-3.5")}
-              />
-            </Button>
-            <Button
-              onClick={() => router.push("/installers/new")}
-              disabled={loading}
-              title="Register New Installer"
-              className="gap-2"
-            >
-              <IconAdd
-                duotone={false}
-                width={2}
-                className={cn("h-3.5 w-3.5")}
-              />
-              Register New Installer
-            </Button>
           </>
         }
       />
 
       {/* Google Account Status Indicator */}
-      {googleAuthStatus?.isAuthenticated && googleAuthStatus.accountEmail && (
+      {googleAuthStatus?.isAuthenticated && googleAuthStatus.accountEmail ? (
         <Card className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
           <CardContent className="py-3 px-4">
             <div className="flex items-center gap-2 text-sm">
@@ -716,6 +718,19 @@ export default function InstallersPage() {
               <Badge variant="secondary" className="font-mono">
                 {googleAuthStatus.accountEmail}
               </Badge>
+            </div>
+          </CardContent>
+        </Card>
+      ) : googleAuthStatus && !googleAuthStatus.isAuthenticated && (
+        <Card className="bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center gap-2 text-sm">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <span className="text-muted-foreground">
+                {isAdmin
+                  ? "Google Contacts authentication required to register installers. Click the 'Authenticate Google Contacts' button above."
+                  : "Google Contacts not authenticated. Please contact an administrator to enable installer registration."}
+              </span>
             </div>
           </CardContent>
         </Card>
