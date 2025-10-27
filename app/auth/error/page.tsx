@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Home, Copy } from "lucide-react";
+import { AlertCircle, Home, Copy, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 interface DebugInfo {
@@ -52,6 +52,30 @@ export default function ErrorPage() {
   const [error, setError] = useState<string>("Default");
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const fetchDebugInfo = async () => {
+    setLoading(true);
+    setFetchError(null);
+
+    try {
+      const response = await fetch("/api/debug-auth");
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log("Debug info received:", data);
+      setDebugInfo(data);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      console.error("Failed to fetch debug info:", err);
+      setFetchError(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const errorParam = searchParams.get("error");
@@ -59,23 +83,22 @@ export default function ErrorPage() {
       setError(errorParam);
     }
 
-    // Fetch debug information
-    fetch("/api/debug-auth")
-      .then((res) => res.json())
-      .then((data) => {
-        setDebugInfo(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch debug info:", err);
-        setLoading(false);
-      });
+    fetchDebugInfo();
   }, [searchParams]);
 
   const errorInfo = errorMessages[error] || errorMessages.Default;
 
   const copyDebugInfo = () => {
-    const info = JSON.stringify(debugInfo, null, 2);
+    const info = JSON.stringify(
+      {
+        errorCode: error,
+        debugInfo,
+        fetchError,
+        timestamp: new Date().toISOString(),
+      },
+      null,
+      2
+    );
     navigator.clipboard.writeText(info);
     toast.success("Debug info copied to clipboard");
   };
@@ -99,20 +122,25 @@ export default function ErrorPage() {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Error Code: {error}</AlertTitle>
             <AlertDescription>
-              If this problem persists, please contact support with the error
-              code and debug information below.
+              Review the debug information below to identify the issue.
             </AlertDescription>
           </Alert>
 
-          {/* Debug Information */}
-          {loading ? (
-            <div className="text-center text-muted-foreground py-4">
-              Loading diagnostic information...
-            </div>
-          ) : debugInfo ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold">Debug Information</h3>
+          {/* Debug Information Section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Diagnostic Information</h3>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={fetchDebugInfo}
+                  disabled={loading}
+                  className="h-8"
+                >
+                  <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
+                  Reload
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
@@ -123,66 +151,111 @@ export default function ErrorPage() {
                   Copy
                 </Button>
               </div>
+            </div>
 
-              <div className="bg-muted rounded-md p-4 space-y-2 text-sm font-mono">
-                <div>
-                  <span className="text-muted-foreground">Environment:</span>{" "}
-                  <span className="font-semibold">{debugInfo.environment || "unknown"}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Timestamp:</span>{" "}
-                  <span>{debugInfo.timestamp}</span>
-                </div>
-
-                <div className="pt-2 border-t border-border">
-                  <div className="text-muted-foreground mb-2">Environment Variables:</div>
-                  {debugInfo.envVars && Object.entries(debugInfo.envVars).map(([key, value]) => (
-                    <div key={key} className="flex items-center gap-2 py-1">
-                      <span className={value === "NOT SET" ? "text-destructive" : "text-green-600"}>
-                        {value === "NOT SET" ? "✗" : "✓"}
-                      </span>
-                      <span className="text-muted-foreground">{key}:</span>
-                      <span className={value === "NOT SET" ? "text-destructive font-semibold" : ""}>
-                        {String(value)}
-                      </span>
+            {loading ? (
+              <div className="bg-muted rounded-md p-8 text-center">
+                <div className="animate-spin inline-block w-6 h-6 border-2 border-current border-t-transparent rounded-full mb-2" />
+                <p className="text-sm text-muted-foreground">Loading diagnostic data...</p>
+              </div>
+            ) : fetchError ? (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Failed to Load Debug Info</AlertTitle>
+                <AlertDescription>
+                  <div className="space-y-2">
+                    <p>Error: {fetchError}</p>
+                    <p className="text-xs">This might indicate a server configuration issue.</p>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            ) : debugInfo ? (
+              <div className="space-y-3">
+                <div className="bg-muted rounded-md p-4 space-y-3 text-sm font-mono">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-muted-foreground">Environment:</span>
                     </div>
-                  ))}
-                </div>
-
-                {debugInfo.authModuleError && (
-                  <div className="pt-2 border-t border-destructive">
-                    <div className="text-destructive font-semibold mb-2">Auth Module Error:</div>
-                    <div className="text-destructive whitespace-pre-wrap break-all">
-                      {debugInfo.authModuleError}
+                    <div>
+                      <span className="font-semibold">{debugInfo.environment || "unknown"}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Timestamp:</span>
+                    </div>
+                    <div>
+                      <span className="text-xs">{new Date(debugInfo.timestamp).toLocaleString()}</span>
                     </div>
                   </div>
+
+                  <div className="pt-3 border-t border-border">
+                    <div className="font-semibold mb-3 text-foreground">Environment Variables Status:</div>
+                    <div className="space-y-2">
+                      {debugInfo.envVars && Object.entries(debugInfo.envVars).map(([key, value]) => {
+                        const isSet = value !== "NOT SET";
+                        return (
+                          <div key={key} className="flex items-start gap-3 p-2 rounded bg-background">
+                            <div className="flex-shrink-0 mt-0.5">
+                              {isSet ? (
+                                <span className="text-green-600 font-bold text-lg">✓</span>
+                              ) : (
+                                <span className="text-destructive font-bold text-lg">✗</span>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-semibold text-foreground">{key}</div>
+                              <div className={`text-xs ${isSet ? 'text-muted-foreground' : 'text-destructive font-semibold'}`}>
+                                {String(value)}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {debugInfo.authModuleError && (
+                    <div className="pt-3 border-t border-destructive">
+                      <div className="text-destructive font-semibold mb-2 text-foreground">Auth Module Error:</div>
+                      <div className="bg-destructive/10 p-3 rounded text-destructive text-xs whitespace-pre-wrap break-all">
+                        {debugInfo.authModuleError}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Actionable recommendations */}
+                {debugInfo.envVars && Object.entries(debugInfo.envVars).some(([_, value]) => value === "NOT SET") && (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Action Required</AlertTitle>
+                    <AlertDescription>
+                      <div className="space-y-2">
+                        <p>Missing environment variables detected. To fix this:</p>
+                        <ol className="list-decimal list-inside space-y-1 text-xs ml-2">
+                          <li>Go to your Vercel dashboard</li>
+                          <li>Select this project</li>
+                          <li>Navigate to Settings → Environment Variables</li>
+                          <li>Add the missing variables for Production environment</li>
+                          <li>Redeploy the application</li>
+                        </ol>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
                 )}
               </div>
+            ) : (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  No diagnostic data available. Try reloading or check browser console.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
 
-              {/* Troubleshooting hints */}
-              {debugInfo.envVars && Object.entries(debugInfo.envVars).some(([_, value]) => value === "NOT SET") && (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Missing Environment Variables</AlertTitle>
-                  <AlertDescription>
-                    Some required environment variables are not set. Please check your deployment settings
-                    and ensure all variables are configured for the production environment.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </div>
-          ) : (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Unable to load diagnostic information. Check browser console for details.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <div className="flex flex-col gap-2 pt-4">
+          <div className="flex flex-col gap-2 pt-4 border-t">
             <Button asChild className="w-full">
-              <Link href="/auth/signin">Try Again</Link>
+              <Link href="/auth/signin">Try Signing In Again</Link>
             </Button>
             <Button asChild variant="outline" className="w-full">
               <Link href="/">
