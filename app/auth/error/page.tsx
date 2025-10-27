@@ -15,6 +15,19 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Home, Copy } from "lucide-react";
 import { toast } from "sonner";
 
+interface DebugInfo {
+  timestamp: string;
+  environment: string;
+  envVars: {
+    NEXTAUTH_URL: string;
+    NEXTAUTH_SECRET: string;
+    MONGODB_URI: string;
+    GOOGLE_CLIENT_ID: string;
+    GOOGLE_CLIENT_SECRET: string;
+  };
+  authModuleError: string | null;
+}
+
 const errorMessages: Record<string, { title: string; description: string }> = {
   Configuration: {
     title: "Server Configuration Error",
@@ -39,7 +52,7 @@ const errorMessages: Record<string, { title: string; description: string }> = {
 export default function ErrorPage() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string>("Default");
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
