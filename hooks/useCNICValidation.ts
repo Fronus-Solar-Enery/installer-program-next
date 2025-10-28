@@ -9,7 +9,7 @@ interface InstallerResponse {
   fullName?: string;
 }
 
-export function useCNICValidation() {
+export function useCNICValidation(excludeCnic?: string) {
   const [cnic, setCnic] = useState("");
   const [cnicDisplay, setCnicDisplay] = useState("");
   const [cnicChecked, setCnicChecked] = useState(false);
@@ -29,6 +29,13 @@ export function useCNICValidation() {
   const checkCNIC = useCallback(async (cnicValue: string) => {
     if (!cnicValue || cnicValue.length < 13) {
       setCnicChecked(false);
+      setCnicError("");
+      return;
+    }
+
+    // Skip validation if CNIC matches the excluded one (original CNIC in edit mode)
+    if (excludeCnic && cnicValue === excludeCnic.replace(/\D/g, "")) {
+      setCnicChecked(true);
       setCnicError("");
       return;
     }
@@ -64,7 +71,7 @@ export function useCNICValidation() {
     } finally {
       setCnicValidating(false);
     }
-  }, []);
+  }, [excludeCnic]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -83,5 +90,8 @@ export function useCNICValidation() {
     cnicValidating,
     cnicError,
     handleCNICChange,
+    setCnic,
+    setCnicDisplay,
+    setCnicChecked,
   };
 }

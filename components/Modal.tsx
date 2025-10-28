@@ -1,5 +1,6 @@
 "use client";
 
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ReactNode } from "react";
 import {
   Dialog,
@@ -36,6 +37,10 @@ export default function Modal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      <VisuallyHidden>
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>{description}</DialogDescription>
+      </VisuallyHidden>
       <DialogContent className={sizeClasses[size]}>
         <DialogHeader>
           <div className="flex items-start justify-between">

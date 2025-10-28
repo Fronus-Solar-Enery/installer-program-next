@@ -85,5 +85,6 @@ export function useReferrerValidation() {
     referrerData,
     referrerError,
     handleReferrerChange,
+    setReferrerCode,
   };
 }

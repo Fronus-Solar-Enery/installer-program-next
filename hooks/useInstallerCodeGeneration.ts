@@ -11,7 +11,8 @@ interface InstallerResponse {
 
 export function useInstallerCodeGeneration(
   trainingCenter: string,
-  allowManualEdit: boolean
+  allowManualEdit: boolean,
+  excludeCode?: string
 ) {
   const [installerCode, setInstallerCode] = useState("");
   const [codeGenerating, setCodeGenerating] = useState(false);
@@ -64,6 +65,13 @@ export function useInstallerCodeGeneration(
       if (!code || code.length < 3) {
         setCodeError(null);
         setCodeValid(false);
+        return;
+      }
+
+      // Skip validation if code matches the excluded one (original code in edit mode)
+      if (excludeCode && code.toUpperCase() === excludeCode.toUpperCase()) {
+        setCodeValid(true);
+        setCodeError(null);
         return;
       }
 
@@ -128,14 +136,16 @@ export function useInstallerCodeGeneration(
         setCodeValidating(false);
       }
     },
-    [trainingCenter]
+    [trainingCenter, excludeCode]
   );
 
   useEffect(() => {
-    if (trainingCenter && !allowManualEdit) {
+    // Only auto-generate if: training center is selected, manual edit is disabled, and code is empty
+    // This prevents overwriting existing codes when editing
+    if (trainingCenter && !allowManualEdit && !installerCode) {
       generateInstallerCode();
     }
-  }, [trainingCenter, allowManualEdit, generateInstallerCode]);
+  }, [trainingCenter, allowManualEdit, installerCode, generateInstallerCode]);
 
   useEffect(() => {
     if (allowManualEdit && installerCode && trainingCenter) {
@@ -162,5 +172,6 @@ export function useInstallerCodeGeneration(
     codeError,
     codeValid,
     handleInstallerCodeChange,
+    setInstallerCode,
   };
 }
