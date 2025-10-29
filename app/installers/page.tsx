@@ -83,6 +83,7 @@ import {
   IconEdit2,
   IconEye,
   IconRefresh2,
+  IconSquareArrowRightUp,
   IconSquareShareLine,
   IconUserCog,
 } from "@/components/icons";
@@ -650,7 +651,11 @@ export default function InstallersPage() {
               onClick={() => router.push("/installers/bulk-register")}
               variant="outline"
               disabled={loading || !googleAuthStatus?.isAuthenticated}
-              title={!googleAuthStatus?.isAuthenticated ? "Google Contacts authentication required" : "Bulk Register"}
+              title={
+                !googleAuthStatus?.isAuthenticated
+                  ? "Google Contacts authentication required"
+                  : "Bulk Register"
+              }
               className="gap-2"
             >
               Bulk Register
@@ -680,26 +685,17 @@ export default function InstallersPage() {
               <Button
                 onClick={isAdmin ? handleAuthenticateGoogle : undefined}
                 disabled={!isAdmin || authLoading}
-                variant="default"
-                className="bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-300"
-                title={!isAdmin ? "Only administrators can authenticate Google Contacts" : "Authenticate Google Contacts to enable registration"}
+                variant="warning"
+                title={
+                  !isAdmin
+                    ? "Only administrators can authenticate Google Contacts"
+                    : "Authenticate Google Contacts to enable registration"
+                }
               >
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
                 {authLoading
                   ? "Authenticating..."
                   : "Authenticate Google Contacts"}
+                <IconSquareArrowRightUp className="h-5 w-5 ml-2" />
               </Button>
             )}
           </>
@@ -721,19 +717,22 @@ export default function InstallersPage() {
             </div>
           </CardContent>
         </Card>
-      ) : googleAuthStatus && !googleAuthStatus.isAuthenticated && (
-        <Card className="bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800">
-          <CardContent className="py-3 px-4">
-            <div className="flex items-center gap-2 text-sm">
-              <AlertCircle className="h-4 w-4 text-yellow-600" />
-              <span className="text-muted-foreground">
-                {isAdmin
-                  ? "Google Contacts authentication required to register installers. Click the 'Authenticate Google Contacts' button above."
-                  : "Google Contacts not authenticated. Please contact an administrator to enable installer registration."}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+      ) : (
+        googleAuthStatus &&
+        !googleAuthStatus.isAuthenticated && (
+          <Card className="bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-center gap-2 text-sm">
+                <AlertCircle className="h-4 w-4 text-yellow-600" />
+                <span className="text-muted-foreground">
+                  {isAdmin
+                    ? "Google Contacts authentication required to register installers. Click the 'Authenticate Google Contacts' button above."
+                    : "Google Contacts not authenticated. Please contact an administrator to enable installer registration."}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )
       )}
 
       {/* Statistics Cards */}

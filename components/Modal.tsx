@@ -38,10 +38,6 @@ export default function Modal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <VisuallyHidden>
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
-      </VisuallyHidden>
-      <DialogContent className={sizeClasses[size]}>
         <DialogHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -52,8 +48,8 @@ export default function Modal({
             </div>
           </div>
         </DialogHeader>
-        <div className="mt-4">{children}</div>
-      </DialogContent>
+      </VisuallyHidden>
+      <DialogContent className={sizeClasses[size]}>{children}</DialogContent>
     </Dialog>
   );
 }
