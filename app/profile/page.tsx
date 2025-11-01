@@ -186,7 +186,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="p-6">
+    <>
       <PageHeader
         title="My Profile"
         description="Manage your account information"
@@ -202,7 +202,7 @@ export default function ProfilePage() {
         }
       />
 
-      <div className="mt-6 grid gap-6">
+      <div className="mt-4 grid gap-4">
         {/* Profile Card */}
         <Card className="p-6">
           <div className="flex items-start justify-between mb-6">
@@ -270,7 +270,7 @@ export default function ProfilePage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-4 border-t pt-6">
+            <div className="space-y-4 border-t border-border pt-6">
               <div className="flex items-center gap-3">
                 <User className="w-5 h-5 text-muted-foreground" />
                 <div>
@@ -350,6 +350,6 @@ export default function ProfilePage() {
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
       />
-    </div>
+    </>
   );
 }

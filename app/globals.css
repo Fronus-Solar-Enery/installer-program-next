@@ -71,8 +71,8 @@
   --muted-foreground: oklch(0.708 0 0);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(45.5% 0.188 13.697);
-  --destructive-hover: oklch(51.4% 0.222 16.935);
+  --destructive: oklch(44.4% 0.177 26.899);
+  --destructive-hover: oklch(50.5% 0.213 27.518);
   --destructive-text: oklch(60.4% 0.191 22.216);
   --destructive-text-hover: oklch(70.4% 0.191 22.216);
   --success: oklch(45% 0.145 163.225);

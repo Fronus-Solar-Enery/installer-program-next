@@ -48,6 +48,7 @@ import {
   IconAltArrowRight,
   IconAltArrowLeft,
   IconEdit2,
+  IconDangerCircle,
 } from "@/components/icons";
 import Loading from "@/components/ui/loading";
 import { Switch } from "@/components/ui/switch";
@@ -60,6 +61,7 @@ import { CNICInput } from "@/app/installers/new/CNICInput";
 import { InstallerCodeDisplay } from "@/app/installers/new/InstallerCodeDisplay";
 import { FormStep } from "@/components/ui/FormStep";
 import PageHeader from "./PageHeader";
+import IconDanger from "./icons/Danger";
 
 interface InstallerEditModalProps {
   open: boolean;
@@ -1412,21 +1414,26 @@ export default function InstallerEditModal({
       )}
 
       <AlertDialog open={showCloseAlert} onOpenChange={setShowCloseAlert}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
+        <AlertDialogContent className="rounded-4xl">
+          <AlertDialogHeader className="flex flex-col items-center">
+            <IconDanger
+              className="size-24 text-destructive-text"
+              fill
+              opacity={"0.1"}
+            />
             <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className="w-19/20 text-center">
               You have unsaved changes. Are you sure you want to close? All
               changes will be lost.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelClose}>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel onClick={cancelClose} className="w-full">
               Continue Editing
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmClose}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full"
             >
               Discard Changes
             </AlertDialogAction>
