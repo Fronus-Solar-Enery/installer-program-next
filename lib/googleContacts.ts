@@ -367,7 +367,7 @@ export async function updateGoogleContact(
         etag: currentContact.data.etag,
         names: [
           {
-            givenName: data.fullName,
+            givenName: displayName,
             displayName: displayName,
           },
         ],
@@ -440,6 +440,39 @@ export async function updateGoogleContact(
           ?.filter((m: any) => m.contactGroupMembership)
           .map((m: any) => m.contactGroupMembership.contactGroupResourceName) ||
         [];
+
+      // Get all possible training center short codes for comparison
+      const allTrainingCenterShorts = TRAINING_CENTER.map((tc) => tc.short);
+
+      // Get list of all contact groups to identify training center groups
+      const allGroups = await people.contactGroups.list();
+      const trainingCenterGroupIds = allGroups.data.contactGroups
+        ?.filter((g: any) =>
+          g.name &&
+          allTrainingCenterShorts.includes(g.name) &&
+          g.resourceName
+        )
+        .map((g: any) => g.resourceName) || [];
+
+      // Remove from old training center groups (groups that are training center labels but not in groupsToAdd)
+      for (const existingGroupId of existingGroupIds) {
+        const isTrainingCenterGroup = trainingCenterGroupIds.includes(existingGroupId);
+        const shouldKeep = groupsToAdd.includes(existingGroupId);
+
+        if (isTrainingCenterGroup && !shouldKeep) {
+          try {
+            await people.contactGroups.members.modify({
+              resourceName: existingGroupId,
+              requestBody: {
+                resourceNamesToRemove: [resourceName],
+              },
+            });
+            console.log(`✓ Removed from old group: ${existingGroupId.split("/").pop()}`);
+          } catch (removeError) {
+            console.error(`Failed to remove from group ${existingGroupId}:`, removeError);
+          }
+        }
+      }
 
       // Add to new groups if not already member
       for (const groupResourceName of groupsToAdd) {

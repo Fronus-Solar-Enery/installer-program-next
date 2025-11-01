@@ -325,6 +325,10 @@ export default function InstallerEditModal({
       setLoading(true);
       setCurrentStep(1);
       setHasUnsavedChanges(false);
+      // Reset CNIC state to prevent validation from triggering on close
+      setCnic("");
+      setCnicDisplay("");
+      setCnicChecked(false);
       setOriginalCnic("");
       setOriginalInstallerCode("");
     }
@@ -488,11 +492,9 @@ export default function InstallerEditModal({
         updateData.trainingCenter = trainingCenter;
       }
 
-      // Only include installerCode if editing is enabled OR if training center changed (requires new code)
-      if (
-        settings?.allowInstallerCodeEdit ||
-        (canEditTrainingCenter && trainingCenter !== initialTrainingCenter)
-      ) {
+      // Always include installerCode to ensure it's synced with database and Google Contacts
+      // The backend will validate if the change is allowed
+      if (installerCode) {
         updateData.installerCode = installerCode;
       }
 

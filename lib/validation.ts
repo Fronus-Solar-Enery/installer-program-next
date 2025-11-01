@@ -71,7 +71,7 @@ export const registerInstallerSchema = z.object({
   certified: z.boolean().default(false),
 });
 
-export const updateInstallerSchema = registerInstallerSchema.omit({ installerCode: true }).partial();
+export const updateInstallerSchema = registerInstallerSchema.partial();
 
 // Installer Reward Schemas
 export const registerRewardSchema = z.object({

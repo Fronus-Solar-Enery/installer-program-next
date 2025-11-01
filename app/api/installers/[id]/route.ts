@@ -7,7 +7,7 @@ import { updateInstallerSchema } from '@/lib/validation';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
 import mongoose from 'mongoose';
 import { TeamRole } from '@/models/TeamMember';
-import { updateGoogleContact, deleteGoogleContact } from '@/lib/googleContacts';
+import { createGoogleContact, updateGoogleContact, deleteGoogleContact } from '@/lib/googleContacts';
 import { ZodError } from 'zod';
 
 // GET single installer with stats
@@ -140,8 +140,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     Object.assign(installer, validatedData);
     await installer.save();
 
-    // Update Google Contact (using global authentication)
+    // Update or Create Google Contact (using global authentication)
     if (installer.googleContactId) {
+      // Update existing Google Contact
       try {
         await updateGoogleContact(installer.googleContactId, {
           fullName: installer.fullName,
@@ -152,11 +153,38 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           province: installer.province,
           companyName: installer.companyName,
           installerCode: installer.installerCode,
+          referrerCode: installer.referrerCode,
           cnic: installer.cnic,
           trainingCenter: installer.trainingCenter,
         });
+        console.log('✓ Google contact updated successfully');
       } catch (error) {
         console.error('Failed to update Google contact:', error);
+      }
+    } else {
+      // Create Google Contact if it doesn't exist
+      try {
+        const googleContactId = await createGoogleContact({
+          fullName: installer.fullName,
+          phoneNumber: installer.phoneNumber,
+          whatsappNumber: installer.whatsappNumber,
+          address: installer.address,
+          city: installer.city,
+          province: installer.province,
+          companyName: installer.companyName,
+          installerCode: installer.installerCode,
+          referrerCode: installer.referrerCode,
+          cnic: installer.cnic,
+          trainingCenter: installer.trainingCenter,
+        });
+
+        if (googleContactId) {
+          installer.googleContactId = googleContactId;
+          await installer.save();
+          console.log('✓ Google contact created:', googleContactId);
+        }
+      } catch (error) {
+        console.error('Failed to create Google contact:', error);
       }
     }
 
