@@ -49,7 +49,12 @@ export default function Modal({
           </div>
         </DialogHeader>
       </VisuallyHidden>
-      <DialogContent className={sizeClasses[size]}>{children}</DialogContent>
+      <DialogContent
+        aria-describedby={description}
+        className={sizeClasses[size]}
+      >
+        {children}
+      </DialogContent>
     </Dialog>
   );
 }

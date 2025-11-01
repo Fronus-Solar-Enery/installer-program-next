@@ -11,10 +11,21 @@ import {
 } from "@/lib/constants";
 import { toast } from "sonner";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { HyperText } from "@/components/ui/hypertext";
 import { FormField } from "@/components/ui/form-field";
 import { useCNICValidation } from "@/hooks/useCNICValidation";
@@ -36,6 +47,7 @@ import {
   IconUserOctagon,
   IconAltArrowRight,
   IconAltArrowLeft,
+  IconEdit2,
 } from "@/components/icons";
 import Loading from "@/components/ui/loading";
 import { Switch } from "@/components/ui/switch";
@@ -47,6 +59,7 @@ import { StepHeader } from "@/components/StepHeader";
 import { CNICInput } from "@/app/installers/new/CNICInput";
 import { InstallerCodeDisplay } from "@/app/installers/new/InstallerCodeDisplay";
 import { FormStep } from "@/components/ui/FormStep";
+import PageHeader from "./PageHeader";
 
 interface InstallerEditModalProps {
   open: boolean;
@@ -96,6 +109,7 @@ export default function InstallerEditModal({
   const [originalData, setOriginalData] =
     useState<Partial<InstallerData> | null>(null);
   const [originalCnic, setOriginalCnic] = useState<string>("");
+  const [showCloseAlert, setShowCloseAlert] = useState(false);
 
   // Custom hooks - pass original CNIC to skip validation for unchanged CNIC
   const {
@@ -325,14 +339,13 @@ export default function InstallerEditModal({
       setLoading(true);
       setCurrentStep(1);
       setHasUnsavedChanges(false);
-      // Reset CNIC state to prevent validation from triggering on close
       setCnic("");
       setCnicDisplay("");
       setCnicChecked(false);
       setOriginalCnic("");
       setOriginalInstallerCode("");
     }
-  }, [open]);
+  }, [open, setCnic, setCnicDisplay, setCnicChecked]);
 
   // Auto-sync effects
   useEffect(() => {
@@ -530,12 +543,20 @@ export default function InstallerEditModal({
   // Handle modal close with unsaved changes warning
   const handleModalClose = (open: boolean) => {
     if (!open && hasUnsavedChanges) {
-      const confirmClose = window.confirm(
-        "You have unsaved changes. Are you sure you want to close?"
-      );
-      if (!confirmClose) return;
+      setShowCloseAlert(true);
+      return;
     }
     onOpenChange(open);
+  };
+
+  const confirmClose = () => {
+    setShowCloseAlert(false);
+    setHasUnsavedChanges(false);
+    onOpenChange(false);
+  };
+
+  const cancelClose = () => {
+    setShowCloseAlert(false);
   };
 
   // Memoize selected bank and digital payment check
@@ -610,21 +631,6 @@ export default function InstallerEditModal({
 
   const referrerJoined = useRelativeTime(referrerData?.createdAt || "");
 
-  if (loading) {
-    return (
-      <Modal
-        open={open}
-        onOpenChange={handleModalClose}
-        title="Edit Installer"
-        size="xl"
-      >
-        <div className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">Loading installer data...</p>
-        </div>
-      </Modal>
-    );
-  }
-
   return (
     <Modal
       open={open}
@@ -633,667 +639,800 @@ export default function InstallerEditModal({
       description="Update installer information"
       size="xl"
     >
-      <form onSubmit={handleSubmit}>
-        <div className="flex justify-between items-center my-8">
-          {steps.map((s, i) => (
-            <FormStep
-              key={i}
-              step={i}
-              currentStep={currentStep}
-              name={s.title}
-              description={s.title}
-              totalSteps={steps.length}
-            />
-          ))}
-        </div>
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
+            Edit {loading ? <Skeleton className="h-6 w-20" /> : fullName}{" "}
+            details
+          </span>
+        }
+        Icon={IconEdit2}
+        description={
+          <>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Manage installers, view details, and add new entries
+            </p>
+          </>
+        }
+        titleClassName="text-xl"
+        iconFill
+      />
+      {loading ? (
+        <>
+          {/* Step Progress Skeleton */}
+          <div className="flex justify-between items-center my-8">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="flex flex-col items-center gap-2">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            ))}
+          </div>
 
-        <div className="space-y-6">
-          {/* Step 1: Personal Info */}
-          {currentStep === 1 && (
-            <div className="space-y-4">
-              <StepHeader
-                icon={IconUserOctagon}
-                title="Basic Information"
-                description="Please provide the installer's CNIC, full name, and contact numbers. All fields are required."
-              />
-
-              <div
-                className={cn(
-                  "text-card-foreground",
-                  GRID_2_COL_CLASS,
-                  CARD_SECTION_CLASS
-                )}
-              >
-                <CNICInput
-                  value={cnicDisplay}
-                  onChange={handleCNICChange}
-                  isValidating={cnicValidating}
-                  isChecked={cnicChecked}
-                  error={cnicError}
-                  cnicLength={cnic.length}
-                />
-
-                {cnicChecked && (
-                  <>
-                    <FormField
-                      type="text"
-                      label="Full Name"
-                      id="fullName"
-                      value={fullName}
-                      onChange={setFullName}
-                      placeholder="e.g., Muhammad Ahmed Khan"
-                      hint="Enter the full name as it appears on the CNIC"
-                      labelClassName="block"
-                      required
-                      aria-label="Installer's full name as on CNIC"
-                      aria-required="true"
-                    />
-
-                    <FormField
-                      type="text"
-                      label="Phone Number"
-                      id="phoneNumber"
-                      value={phoneInput.value}
-                      onChange={phoneInput.onChange}
-                      onFocus={phoneInput.onFocus}
-                      onBlur={phoneInput.onBlur}
-                      placeholder="0300-1234567"
-                      hint="Enter 11-digit mobile number starting with 03"
-                      maxLength={12}
-                      required
-                      aria-label="Mobile phone number for contact"
-                      aria-required="true"
-                      aria-describedby="phone-hint"
-                    />
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="sameAsPhone"
-                            checked={sameAsPhone}
-                            onCheckedChange={(checked) =>
-                              setSameAsPhone(checked as boolean)
-                            }
-                          />
-                          <Label
-                            htmlFor="sameAsPhone"
-                            className="text-sm font-normal cursor-pointer"
-                          >
-                            Same as phone
-                          </Label>
-                        </div>
-                      </div>
-                      <Input
-                        id="whatsappNumber"
-                        type="text"
-                        value={whatsappInput.value}
-                        onChange={(e) => {
-                          whatsappInput.onChange(e.target.value);
-                          setSameAsPhone(false);
-                        }}
-                        onFocus={whatsappInput.onFocus}
-                        onBlur={whatsappInput.onBlur}
-                        maxLength={12}
-                        placeholder="03##-#######"
-                        disabled={sameAsPhone}
-                      />
-                    </div>
-                  </>
-                )}
+          {/* Step 1 Skeleton */}
+          <div className="space-y-4">
+            {/* Step Header Skeleton */}
+            <div className="flex items-center gap-4 mb-6">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="flex-1">
+                <Skeleton className="h-6 w-48 mb-2" />
+                <Skeleton className="h-4 w-96" />
               </div>
             </div>
-          )}
 
-          {/* Step 2: Location & Training */}
-          {currentStep === 2 && (
-            <div className="space-y-4">
-              <StepHeader
-                icon={IconLocation}
-                title="Location Information"
-                description="Enter the installer's address and location details"
-              />
-
-              <Card className={CARD_SECTION_CLASS}>
-                <CardContent className="space-y-4 !p-0">
-                  <div className={GRID_2_COL_CLASS}>
-                    <FormField
-                      type="select"
-                      label="City"
-                      id="city"
-                      value={city}
-                      onChange={setCity}
-                      placeholder="Select City"
-                      icon={IconCity}
-                      groups={cityGroups}
-                      searchable
-                      searchPlaceholder="Search cities..."
-                      emptyMessage="No city found."
-                      required
-                    />
-
-                    <FormField
-                      type="text"
-                      label="Province"
-                      id="province"
-                      value={province}
-                      onChange={() => {}}
-                      icon={IconMapPoint}
-                      disabled
-                    />
-
-                    <div className="col-span-2">
-                      <FormField
-                        type="text"
-                        label="Address"
-                        id="address"
-                        value={address}
-                        onChange={setAddress}
-                        placeholder="Enter complete address"
-                        icon={IconMapPoint}
-                        autocomplete={"on"}
-                        required
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 col-span-2 gap-4">
-                      <FormField
-                        type="select"
-                        label="Training Center"
-                        id="trainingCenter"
-                        value={trainingCenter}
-                        onChange={setTrainingCenter}
-                        placeholder="Select Training Center"
-                        icon={IconTeacher}
-                        options={trainingCenterOptions}
-                        searchable
-                        searchPlaceholder="Search training centers..."
-                        emptyMessage="No training center found."
-                        required
-                        disabled={!canEditTrainingCenter}
-                        hint={
-                          !canEditTrainingCenter
-                            ? "Training center editing is disabled by admin"
-                            : undefined
-                        }
-                      />
-
-                      {trainingCenter && (
-                        <InstallerCodeDisplay
-                          code={installerCode}
-                          isGenerating={codeGenerating}
-                          isManualEdit={!installerCodeAutoGen}
-                          onCodeChange={handleInstallerCodeChange}
-                          isValidating={codeValidating}
-                          error={codeError}
-                          isValid={codeValid}
-                        />
-                      )}
-                    </div>
+            {/* Form Fields Skeleton */}
+            <Card className={CARD_SECTION_CLASS}>
+              <CardContent className="space-y-6 !p-6">
+                <div className={GRID_2_COL_CLASS}>
+                  {/* CNIC Field */}
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-3 w-48" />
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
 
-          {/* Step 3: Banking Details */}
-          {currentStep === 3 && (
-            <div className="space-y-4">
-              <StepHeader
-                icon={IconBank}
-                title="Payment Information"
-                description="Enter installer's bank details for reward payments"
+                  {/* Full Name Field */}
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-3 w-56" />
+                  </div>
+
+                  {/* Phone Number Field */}
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-3 w-64" />
+                  </div>
+
+                  {/* WhatsApp Number Field */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <Skeleton className="h-4 w-36" />
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-4 rounded" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Navigation Buttons Skeleton */}
+          <CardFooter
+            className={cn(
+              "flex justify-between items-center my-6",
+              CARD_SECTION_CLASS
+            )}
+          >
+            <Skeleton className="h-10 w-28" />
+            <Skeleton className="h-10 w-20" />
+          </CardFooter>
+        </>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <div className="flex justify-between items-center my-8">
+            {steps.map((s, i) => (
+              <FormStep
+                key={i}
+                step={i}
+                currentStep={currentStep}
+                name={s.title}
+                description={s.title}
+                totalSteps={steps.length}
               />
+            ))}
+          </div>
 
-              <Card className="space-y-4 p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    type="select"
-                    label="Bank / Payment Method"
-                    id="bankName"
-                    value={bankName}
-                    onChange={(value) => {
-                      setBankName(value);
-                      setAccountNumber("");
-                    }}
-                    placeholder="Select Bank / Payment Method"
-                    groups={bankGroups}
-                    searchable
-                    searchPlaceholder="Search banks..."
-                    emptyMessage="No bank found."
-                    required
+          <div className="space-y-6">
+            {/* Step 1: Personal Info */}
+            {currentStep === 1 && (
+              <div className="space-y-4">
+                <StepHeader
+                  icon={IconUserOctagon}
+                  title="Basic Information"
+                  description="Please provide the installer's CNIC, full name, and contact numbers. All fields are required."
+                />
+
+                <div
+                  className={cn(
+                    "text-card-foreground",
+                    GRID_2_COL_CLASS,
+                    CARD_SECTION_CLASS
+                  )}
+                >
+                  <CNICInput
+                    value={cnicDisplay}
+                    onChange={handleCNICChange}
+                    isValidating={cnicValidating}
+                    isChecked={cnicChecked}
+                    error={cnicError}
+                    cnicLength={cnic.length}
                   />
 
-                  {bankName && (
+                  {cnicChecked && (
                     <>
+                      <FormField
+                        type="text"
+                        label="Full Name"
+                        id="fullName"
+                        value={fullName}
+                        onChange={setFullName}
+                        placeholder="e.g., Muhammad Ahmed Khan"
+                        hint="Enter the full name as it appears on the CNIC"
+                        labelClassName="block"
+                        required
+                        aria-label="Installer's full name as on CNIC"
+                        aria-required="true"
+                      />
+
+                      <FormField
+                        type="text"
+                        label="Phone Number"
+                        id="phoneNumber"
+                        value={phoneInput.value}
+                        onChange={phoneInput.onChange}
+                        onFocus={phoneInput.onFocus}
+                        onBlur={phoneInput.onBlur}
+                        placeholder="0300-1234567"
+                        hint="Enter 11-digit mobile number starting with 03"
+                        maxLength={12}
+                        required
+                        aria-label="Mobile phone number for contact"
+                        aria-required="true"
+                        aria-describedby="phone-hint"
+                      />
+
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <Label htmlFor="accountTitle">
-                            Account Title{" "}
-                            <span className="text-destructive">*</span>
+                          <Label htmlFor="whatsappNumber">
+                            WhatsApp Number
                           </Label>
                           <div className="flex items-center space-x-2">
                             <Checkbox
-                              id="sameAsName"
-                              checked={sameAsName}
+                              id="sameAsPhone"
+                              checked={sameAsPhone}
                               onCheckedChange={(checked) =>
-                                setSameAsName(checked as boolean)
+                                setSameAsPhone(checked as boolean)
                               }
                             />
                             <Label
-                              htmlFor="sameAsName"
+                              htmlFor="sameAsPhone"
                               className="text-sm font-normal cursor-pointer"
                             >
-                              Same as Name
+                              Same as phone
                             </Label>
                           </div>
                         </div>
                         <Input
-                          id="accountTitle"
+                          id="whatsappNumber"
                           type="text"
-                          value={accountTitle}
+                          value={whatsappInput.value}
                           onChange={(e) => {
-                            setAccountTitle(e.target.value);
-                            setSameAsName(false);
+                            whatsappInput.onChange(e.target.value);
+                            setSameAsPhone(false);
                           }}
-                          disabled={sameAsName}
-                          placeholder="Account holder name"
+                          onFocus={whatsappInput.onFocus}
+                          onBlur={whatsappInput.onBlur}
+                          maxLength={12}
+                          placeholder="03##-#######"
+                          disabled={sameAsPhone}
                         />
                       </div>
-
-                      <FormField
-                        type="text"
-                        className="col-span-2"
-                        label={
-                          isDigitalPayment
-                            ? "Mobile Number"
-                            : "Account Number / IBAN"
-                        }
-                        id="accountNumber"
-                        value={
-                          isDigitalPayment
-                            ? accountNumberInput.value
-                            : accountNumber
-                        }
-                        onChange={(val) =>
-                          isDigitalPayment
-                            ? accountNumberInput.onChange(val)
-                            : setAccountNumber(val)
-                        }
-                        onFocus={
-                          isDigitalPayment
-                            ? accountNumberInput.onFocus
-                            : undefined
-                        }
-                        onBlur={
-                          isDigitalPayment
-                            ? accountNumberInput.onBlur
-                            : undefined
-                        }
-                        placeholder={
-                          isDigitalPayment
-                            ? "03##-#######"
-                            : "IBAN or Account Number"
-                        }
-                        maxLength={isDigitalPayment ? 12 : undefined}
-                        hint={
-                          isDigitalPayment
-                            ? "Enter mobile number in format: 03##-#######"
-                            : undefined
-                        }
-                        required
-                      />
                     </>
                   )}
                 </div>
-              </Card>
-            </div>
-          )}
+              </div>
+            )}
 
-          {/* Step 4: Additional Info */}
-          {currentStep === 4 && (
-            <div className="space-y-4">
-              <StepHeader
-                icon={IconShieldStar}
-                title="Additional Information"
-                description="Enter certification status and optional information"
-              />
+            {/* Step 2: Location & Training */}
+            {currentStep === 2 && (
+              <div className="space-y-4">
+                <StepHeader
+                  icon={IconLocation}
+                  title="Location Information"
+                  description="Enter the installer's address and location details"
+                />
 
-              <CardContent
-                className={cn("flex flex-col gap-6", CARD_SECTION_CLASS)}
-              >
-                <div className="flex items-center justify-between p-6 rounded-3xl border border-border bg-muted/40">
-                  <div className="flex items-center gap-2">
-                    {certified ? (
-                      <IconShieldStar className="w-7 h-7 text-cyan-400" />
-                    ) : (
-                      <IconShieldMinimalistic
-                        duotone={false}
-                        className="w-7 h-7 text-muted-foreground"
+                <Card className={CARD_SECTION_CLASS}>
+                  <CardContent className="space-y-4 !p-0">
+                    <div className={GRID_2_COL_CLASS}>
+                      <FormField
+                        type="select"
+                        label="City"
+                        id="city"
+                        value={city}
+                        onChange={setCity}
+                        placeholder="Select City"
+                        icon={IconCity}
+                        groups={cityGroups}
+                        searchable
+                        searchPlaceholder="Search cities..."
+                        emptyMessage="No city found."
+                        required
                       />
-                    )}
-                    <Label
-                      htmlFor="certified"
-                      className="font-medium cursor-pointer"
-                    >
-                      Certified Installer
-                    </Label>
-                  </div>
 
-                  <Switch
-                    name="certified"
-                    id="certified"
-                    checked={certified}
-                    onCheckedChange={(checked) =>
-                      setCertified(checked as boolean)
-                    }
-                  />
-                </div>
-
-                <div className={GRID_2_COL_CLASS}>
-                  <FormField
-                    type="text"
-                    label="Company Name"
-                    id="companyName"
-                    value={companyName}
-                    onChange={setCompanyName}
-                    placeholder="Enter company name (if any)"
-                    icon={IconBuildings}
-                    hint="Optional"
-                  />
-
-                  <div className="space-y-2">
-                    <Label htmlFor="referrerCode" className="block">
-                      Referrer Code{" "}
-                      <span className="text-xs text-muted-foreground">
-                        (Optional)
-                      </span>
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="referrerCode"
+                      <FormField
                         type="text"
-                        value={referrerCode}
-                        onChange={(e) => handleReferrerChange(e.target.value)}
-                        className="pl-10"
-                        placeholder="Enter referrer installer code"
+                        label="Province"
+                        id="province"
+                        value={province}
+                        onChange={() => {}}
+                        icon={IconMapPoint}
+                        disabled
                       />
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                        <IconUserHeartRounded
-                          duotone={false}
-                          className="size-4.5"
+
+                      <div className="col-span-2">
+                        <FormField
+                          type="text"
+                          label="Address"
+                          id="address"
+                          value={address}
+                          onChange={setAddress}
+                          placeholder="Enter complete address"
+                          icon={IconMapPoint}
+                          autocomplete={"on"}
+                          required
                         />
                       </div>
-                      {referrerValidating && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                          <Loading className="h-4 w-4" />
-                        </div>
-                      )}
-                      {!referrerValidating && referrerData && referrerCode && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                          <HyperText className="tracking-widest text-xs uppercase text-success-text pointer-events-none select-none">
-                            Valid
-                          </HyperText>
-                        </div>
-                      )}
+
+                      <div className="grid grid-cols-2 col-span-2 gap-4">
+                        <FormField
+                          type="select"
+                          label="Training Center"
+                          id="trainingCenter"
+                          value={trainingCenter}
+                          onChange={setTrainingCenter}
+                          placeholder="Select Training Center"
+                          icon={IconTeacher}
+                          options={trainingCenterOptions}
+                          searchable
+                          searchPlaceholder="Search training centers..."
+                          emptyMessage="No training center found."
+                          required
+                          disabled={!canEditTrainingCenter}
+                          hint={
+                            !canEditTrainingCenter
+                              ? "Training center editing is disabled by admin"
+                              : undefined
+                          }
+                        />
+
+                        {trainingCenter && (
+                          <InstallerCodeDisplay
+                            code={installerCode}
+                            isGenerating={codeGenerating}
+                            isManualEdit={!installerCodeAutoGen}
+                            onCodeChange={handleInstallerCodeChange}
+                            isValidating={codeValidating}
+                            error={codeError}
+                            isValid={codeValid}
+                          />
+                        )}
+                      </div>
                     </div>
-                    {referrerError && !referrerValidating && (
-                      <p className="text-sm text-destructive">
-                        {referrerError}
-                      </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Step 3: Banking Details */}
+            {currentStep === 3 && (
+              <div className="space-y-4">
+                <StepHeader
+                  icon={IconBank}
+                  title="Payment Information"
+                  description="Enter installer's bank details for reward payments"
+                />
+
+                <Card className="space-y-4 p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      type="select"
+                      label="Bank / Payment Method"
+                      id="bankName"
+                      value={bankName}
+                      onChange={(value) => {
+                        setBankName(value);
+                        setAccountNumber("");
+                      }}
+                      placeholder="Select Bank / Payment Method"
+                      groups={bankGroups}
+                      searchable
+                      searchPlaceholder="Search banks..."
+                      emptyMessage="No bank found."
+                      required
+                    />
+
+                    {bankName && (
+                      <>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="accountTitle">
+                              Account Title{" "}
+                              <span className="text-destructive">*</span>
+                            </Label>
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="sameAsName"
+                                checked={sameAsName}
+                                onCheckedChange={(checked) =>
+                                  setSameAsName(checked as boolean)
+                                }
+                              />
+                              <Label
+                                htmlFor="sameAsName"
+                                className="text-sm font-normal cursor-pointer"
+                              >
+                                Same as Name
+                              </Label>
+                            </div>
+                          </div>
+                          <Input
+                            id="accountTitle"
+                            type="text"
+                            value={accountTitle}
+                            onChange={(e) => {
+                              setAccountTitle(e.target.value);
+                              setSameAsName(false);
+                            }}
+                            disabled={sameAsName}
+                            placeholder="Account holder name"
+                          />
+                        </div>
+
+                        <FormField
+                          type="text"
+                          className="col-span-2"
+                          label={
+                            isDigitalPayment
+                              ? "Mobile Number"
+                              : "Account Number / IBAN"
+                          }
+                          id="accountNumber"
+                          value={
+                            isDigitalPayment
+                              ? accountNumberInput.value
+                              : accountNumber
+                          }
+                          onChange={(val) =>
+                            isDigitalPayment
+                              ? accountNumberInput.onChange(val)
+                              : setAccountNumber(val)
+                          }
+                          onFocus={
+                            isDigitalPayment
+                              ? accountNumberInput.onFocus
+                              : undefined
+                          }
+                          onBlur={
+                            isDigitalPayment
+                              ? accountNumberInput.onBlur
+                              : undefined
+                          }
+                          placeholder={
+                            isDigitalPayment
+                              ? "03##-#######"
+                              : "IBAN or Account Number"
+                          }
+                          maxLength={isDigitalPayment ? 12 : undefined}
+                          hint={
+                            isDigitalPayment
+                              ? "Enter mobile number in format: 03##-#######"
+                              : undefined
+                          }
+                          required
+                        />
+                      </>
                     )}
                   </div>
+                </Card>
+              </div>
+            )}
 
-                  {referrerData && !referrerValidating && (
-                    <Link
-                      href={
-                        referrerData ? `/installers/${referrerData._id}` : "#"
-                      }
-                      target={referrerData ? "_blank" : undefined}
-                      className="col-span-2"
-                    >
-                      <div
-                        className={cn(
-                          "mt-2 p-4 border pointer-events-none select-none border-border group rounded-3xl bg-muted/50 hover:bg-muted/70 transition-colors duration-300 flex items-center justify-between",
-                          referrerData && "pointer-events-auto"
-                        )}
+            {/* Step 4: Additional Info */}
+            {currentStep === 4 && (
+              <div className="space-y-4">
+                <StepHeader
+                  icon={IconShieldStar}
+                  title="Additional Information"
+                  description="Enter certification status and optional information"
+                />
+
+                <CardContent
+                  className={cn("flex flex-col gap-6", CARD_SECTION_CLASS)}
+                >
+                  <div className="flex items-center justify-between p-6 rounded-3xl border border-border bg-muted/40">
+                    <div className="flex items-center gap-2">
+                      {certified ? (
+                        <IconShieldStar className="w-7 h-7 text-cyan-400" />
+                      ) : (
+                        <IconShieldMinimalistic
+                          duotone={false}
+                          className="w-7 h-7 text-muted-foreground"
+                        />
+                      )}
+                      <Label
+                        htmlFor="certified"
+                        className="font-medium cursor-pointer"
                       >
-                        {referrerData && (
-                          <div className="flex items-center gap-4 w-full">
-                            <div className="relative">
-                              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-card text-sm font-medium text-muted-foreground">
-                                {getInitials(referrerData.fullName as string) ||
-                                  "?"}
-                              </div>
-                              {referrerData.certified && (
-                                <div className="absolute top-0 -right-2 p-1 flex items-center justify-center bg-muted/30 group-hover:bg-muted/50 backdrop-blur-2xl rounded-full transition-colors duration-300">
-                                  <IconStar
-                                    fill
-                                    className="w-3 h-3 text-cyan-500 group-hover:text-cyan-400 transition-colors duration-300"
-                                  />
+                        Certified Installer
+                      </Label>
+                    </div>
+
+                    <Switch
+                      name="certified"
+                      id="certified"
+                      checked={certified}
+                      onCheckedChange={(checked) =>
+                        setCertified(checked as boolean)
+                      }
+                    />
+                  </div>
+
+                  <div className={GRID_2_COL_CLASS}>
+                    <FormField
+                      type="text"
+                      label="Company Name"
+                      id="companyName"
+                      value={companyName}
+                      onChange={setCompanyName}
+                      placeholder="Enter company name (if any)"
+                      icon={IconBuildings}
+                      hint="Optional"
+                    />
+
+                    <div className="space-y-2">
+                      <Label htmlFor="referrerCode" className="block">
+                        Referrer Code{" "}
+                        <span className="text-xs text-muted-foreground">
+                          (Optional)
+                        </span>
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="referrerCode"
+                          type="text"
+                          value={referrerCode}
+                          onChange={(e) => handleReferrerChange(e.target.value)}
+                          className="pl-10"
+                          placeholder="Enter referrer installer code"
+                        />
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                          <IconUserHeartRounded
+                            duotone={false}
+                            className="size-4.5"
+                          />
+                        </div>
+                        {referrerValidating && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <Loading className="h-4 w-4" />
+                          </div>
+                        )}
+                        {!referrerValidating &&
+                          referrerData &&
+                          referrerCode && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <HyperText className="tracking-widest text-xs uppercase text-success-text pointer-events-none select-none">
+                                Valid
+                              </HyperText>
+                            </div>
+                          )}
+                      </div>
+                      {referrerError && !referrerValidating && (
+                        <p className="text-sm text-destructive">
+                          {referrerError}
+                        </p>
+                      )}
+                    </div>
+
+                    {referrerData && !referrerValidating && (
+                      <Link
+                        href={
+                          referrerData ? `/installers/${referrerData._id}` : "#"
+                        }
+                        target={referrerData ? "_blank" : undefined}
+                        className="col-span-2"
+                      >
+                        <div
+                          className={cn(
+                            "mt-2 p-4 border pointer-events-none select-none border-border group rounded-3xl bg-muted/50 hover:bg-muted/70 transition-colors duration-300 flex items-center justify-between",
+                            referrerData && "pointer-events-auto"
+                          )}
+                        >
+                          {referrerData && (
+                            <div className="flex items-center gap-4 w-full">
+                              <div className="relative">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-card text-sm font-medium text-muted-foreground">
+                                  {getInitials(
+                                    referrerData.fullName as string
+                                  ) || "?"}
                                 </div>
-                              )}
-                            </div>
-                            <div className="text-left leading-0">
-                              <kbd className="font-mono text-accent-foreground/50 text-xs">
-                                {referrerData.installerCode}
-                              </kbd>
-                              <div className="text-sm font-medium">
-                                {referrerData.fullName}
+                                {referrerData.certified && (
+                                  <div className="absolute top-0 -right-2 p-1 flex items-center justify-center bg-muted/30 group-hover:bg-muted/50 backdrop-blur-2xl rounded-full transition-colors duration-300">
+                                    <IconStar
+                                      fill
+                                      className="w-3 h-3 text-cyan-500 group-hover:text-cyan-400 transition-colors duration-300"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-left leading-0">
+                                <kbd className="font-mono text-accent-foreground/50 text-xs">
+                                  {referrerData.installerCode}
+                                </kbd>
+                                <div className="text-sm font-medium">
+                                  {referrerData.fullName}
+                                </div>
+                              </div>
+                              <div className="text-right ml-auto text-xs">
+                                <div className="font-medium">
+                                  {referrerData.city}
+                                </div>
+                                <kbd className="text-accent-foreground">
+                                  {referrerData.createdAt && referrerJoined}
+                                </kbd>
                               </div>
                             </div>
-                            <div className="text-right ml-auto text-xs">
-                              <div className="font-medium">
-                                {referrerData.city}
-                              </div>
-                              <kbd className="text-accent-foreground">
-                                {referrerData.createdAt && referrerJoined}
-                              </kbd>
-                            </div>
+                          )}
+                        </div>
+                      </Link>
+                    )}
+                  </div>
+                </CardContent>
+              </div>
+            )}
+
+            {/* Step 5: Review */}
+            {currentStep === 5 && (
+              <div className="space-y-4">
+                <StepHeader
+                  icon={IconShieldStar}
+                  title="Review & Confirm"
+                  description="Please review all information before updating"
+                />
+
+                <Card className={CARD_SECTION_CLASS}>
+                  <CardContent className="space-y-6 !p-6">
+                    {/* Personal Info */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+                        Personal Information
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">
+                            Installer Code:
+                          </span>
+                          <p className="font-medium">{installerCode}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">
+                            Full Name:
+                          </span>
+                          <p className="font-medium">{fullName}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">CNIC:</span>
+                          <p className="font-medium">{cnicDisplay}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Phone:</span>
+                          <p className="font-medium">
+                            {phoneInput.value || phoneNumber}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">
+                            WhatsApp:
+                          </span>
+                          <p className="font-medium">
+                            {whatsappInput.value || whatsappNumber}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Location */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+                        Location & Training
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">City:</span>
+                          <p className="font-medium">{city}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">
+                            Province:
+                          </span>
+                          <p className="font-medium">{province}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-muted-foreground">
+                            Address:
+                          </span>
+                          <p className="font-medium">{address}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">
+                            Training Center:
+                          </span>
+                          <p className="font-medium">{trainingCenter}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Banking */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+                        Banking Details
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Bank:</span>
+                          <p className="font-medium">{selectedBank?.label}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">
+                            Account Title:
+                          </span>
+                          <p className="font-medium">{accountTitle}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-muted-foreground">
+                            {isDigitalPayment
+                              ? "Mobile Number:"
+                              : "Account Number:"}
+                          </span>
+                          <p className="font-medium">
+                            {isDigitalPayment
+                              ? accountNumberInput.value
+                              : accountNumber}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Additional */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+                        Additional Information
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">
+                            Certified:
+                          </span>
+                          <p className="font-medium">
+                            {certified ? "Yes" : "No"}
+                          </p>
+                        </div>
+                        {companyName && (
+                          <div>
+                            <span className="text-muted-foreground">
+                              Company:
+                            </span>
+                            <p className="font-medium">{companyName}</p>
+                          </div>
+                        )}
+                        {referrerCode && (
+                          <div>
+                            <span className="text-muted-foreground">
+                              Referrer:
+                            </span>
+                            <p className="font-medium">{referrerCode}</p>
                           </div>
                         )}
                       </div>
-                    </Link>
-                  )}
-                </div>
-              </CardContent>
-            </div>
-          )}
-
-          {/* Step 5: Review */}
-          {currentStep === 5 && (
-            <div className="space-y-4">
-              <StepHeader
-                icon={IconShieldStar}
-                title="Review & Confirm"
-                description="Please review all information before updating"
-              />
-
-              <Card className={CARD_SECTION_CLASS}>
-                <CardContent className="space-y-6 !p-6">
-                  {/* Personal Info */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-muted-foreground mb-3">
-                      Personal Information
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">
-                          Installer Code:
-                        </span>
-                        <p className="font-medium">{installerCode}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">
-                          Full Name:
-                        </span>
-                        <p className="font-medium">{fullName}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">CNIC:</span>
-                        <p className="font-medium">{cnicDisplay}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Phone:</span>
-                        <p className="font-medium">
-                          {phoneInput.value || phoneNumber}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">WhatsApp:</span>
-                        <p className="font-medium">
-                          {whatsappInput.value || whatsappNumber}
-                        </p>
-                      </div>
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
 
-                  {/* Location */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-muted-foreground mb-3">
-                      Location & Training
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">City:</span>
-                        <p className="font-medium">{city}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Province:</span>
-                        <p className="font-medium">{province}</p>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="text-muted-foreground">Address:</span>
-                        <p className="font-medium">{address}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">
-                          Training Center:
-                        </span>
-                        <p className="font-medium">{trainingCenter}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Banking */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-muted-foreground mb-3">
-                      Banking Details
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">Bank:</span>
-                        <p className="font-medium">{selectedBank?.label}</p>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">
-                          Account Title:
-                        </span>
-                        <p className="font-medium">{accountTitle}</p>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="text-muted-foreground">
-                          {isDigitalPayment
-                            ? "Mobile Number:"
-                            : "Account Number:"}
-                        </span>
-                        <p className="font-medium">
-                          {isDigitalPayment
-                            ? accountNumberInput.value
-                            : accountNumber}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Additional */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-muted-foreground mb-3">
-                      Additional Information
-                    </h3>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="text-muted-foreground">
-                          Certified:
-                        </span>
-                        <p className="font-medium">
-                          {certified ? "Yes" : "No"}
-                        </p>
-                      </div>
-                      {companyName && (
-                        <div>
-                          <span className="text-muted-foreground">
-                            Company:
-                          </span>
-                          <p className="font-medium">{companyName}</p>
-                        </div>
-                      )}
-                      {referrerCode && (
-                        <div>
-                          <span className="text-muted-foreground">
-                            Referrer:
-                          </span>
-                          <p className="font-medium">{referrerCode}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
-
-        {/* Navigation Buttons */}
-        <CardFooter
-          className={cn(
-            "flex justify-between items-center my-6",
-            CARD_SECTION_CLASS
-          )}
-        >
-          <Button
-            type="button"
-            onClick={handlePrev}
-            disabled={currentStep === 1}
-            variant="outline"
-            className="gap-1 pl-2"
+          {/* Navigation Buttons */}
+          <CardFooter
+            className={cn(
+              "flex justify-between items-center my-6",
+              CARD_SECTION_CLASS
+            )}
           >
-            <IconAltArrowLeft width={2} className="size-4" duotone={false} />
-            Previous
-          </Button>
-
-          {currentStep < 5 ? (
             <Button
               type="button"
-              onClick={handleNext}
-              disabled={
-                (currentStep === 1 && !isStep1Valid()) ||
-                (currentStep === 2 && !isStep2Valid()) ||
-                (currentStep === 3 && !isStep3Valid()) ||
-                (currentStep === 4 && !isStep4Valid()) ||
-                codeGenerating ||
-                codeValidating
-              }
-              className="gap-1 pr-3"
+              onClick={handlePrev}
+              disabled={currentStep === 1}
+              variant="outline"
+              className="gap-1 pl-2"
             >
-              Next
-              <IconAltArrowRight width={2} className="size-4" duotone={false} />
+              <IconAltArrowLeft width={2} className="size-4" duotone={false} />
+              Previous
             </Button>
-          ) : (
-            <Button type="submit" disabled={saving} className="gap-2">
-              {saving ? (
-                <>
-                  Updating Installer
-                  <Loading className="h-4 w-4 fill-background" />
-                </>
-              ) : (
-                "Update Installer"
-              )}
-            </Button>
-          )}
-        </CardFooter>
-      </form>
+
+            {currentStep < 5 ? (
+              <Button
+                type="button"
+                onClick={handleNext}
+                disabled={
+                  (currentStep === 1 && !isStep1Valid()) ||
+                  (currentStep === 2 && !isStep2Valid()) ||
+                  (currentStep === 3 && !isStep3Valid()) ||
+                  (currentStep === 4 && !isStep4Valid()) ||
+                  codeGenerating ||
+                  codeValidating
+                }
+                className="gap-1 pr-3"
+              >
+                Next
+                <IconAltArrowRight
+                  width={2}
+                  className="size-4"
+                  duotone={false}
+                />
+              </Button>
+            ) : (
+              <Button type="submit" disabled={saving} className="gap-2">
+                {saving ? (
+                  <>
+                    Updating Installer
+                    <Loading className="h-4 w-4 fill-background" />
+                  </>
+                ) : (
+                  "Update Installer"
+                )}
+              </Button>
+            )}
+          </CardFooter>
+        </form>
+      )}
+
+      <AlertDialog open={showCloseAlert} onOpenChange={setShowCloseAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. Are you sure you want to close? All
+              changes will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelClose}>
+              Continue Editing
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmClose}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Discard Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Modal>
   );
 }
