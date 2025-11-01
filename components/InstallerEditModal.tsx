@@ -639,7 +639,7 @@ export default function InstallerEditModal({
       onOpenChange={handleModalClose}
       title="Edit Installer"
       description="Update installer information"
-      size="xl"
+      size="lg"
     >
       <PageHeader
         title={
@@ -1414,10 +1414,10 @@ export default function InstallerEditModal({
       )}
 
       <AlertDialog open={showCloseAlert} onOpenChange={setShowCloseAlert}>
-        <AlertDialogContent className="rounded-4xl">
+        <AlertDialogContent className="rounded-5xl">
           <AlertDialogHeader className="flex flex-col items-center">
             <IconDanger
-              className="size-24 text-destructive-text"
+              className="size-32 text-destructive-text"
               fill
               opacity={"0.1"}
             />
@@ -1428,15 +1428,15 @@ export default function InstallerEditModal({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-4">
-            <AlertDialogCancel onClick={cancelClose} className="w-full">
-              Continue Editing
-            </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmClose}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full"
             >
               Discard Changes
             </AlertDialogAction>
+            <AlertDialogCancel onClick={cancelClose} className="w-full">
+              Continue Editing
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -81,7 +81,6 @@ import {
   IconAdd,
   IconClockCircle,
   IconEdit2,
-  IconEye,
   IconRefresh2,
   IconSquareArrowRightUp,
   IconSquareShareLine,
@@ -1471,7 +1470,7 @@ export default function InstallersPage() {
                   <>
                     <TableSkeleton
                       rows={rowsPerPage}
-                      actionIcons={[IconEye, IconEdit2, IconTrashBin2]}
+                      actionIcons={[IconEdit2, IconTrashBin2]}
                       excludeLastColumn={true}
                     />
                   </>
@@ -1515,7 +1514,9 @@ export default function InstallersPage() {
                       {visibleColumns.installerCode && (
                         <TableCell className="font-medium">
                           <div className="font-mono flex items-center">
-                            <Link href={`/installers/${installer._id}`}>
+                            <Link
+                              href={`/installers/${installer.installerCode}`}
+                            >
                               {installer.installerCode}
                             </Link>
                             <CopyButton
@@ -1581,16 +1582,6 @@ export default function InstallersPage() {
                       )}
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              router.push(`/installers/${installer._id}`)
-                            }
-                            title="View Details"
-                          >
-                            <IconEye duotone={false} className="h-4 w-4" />
-                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"

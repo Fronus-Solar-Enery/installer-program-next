@@ -5,6 +5,7 @@ const IconTrashBin2: FC<IconProps> = ({
   fill = false,
   duotone = true,
   width = "1.5",
+  opacity = "0.4",
 }) => {
   return (
     <>
@@ -30,21 +31,21 @@ const IconTrashBin2: FC<IconProps> = ({
             strokeLinecap="round"
           />
           <path
-            opacity={duotone ? "0.5" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M9.5 11L10 16"
             stroke="currentColor"
             strokeWidth={width}
             strokeLinecap="round"
           />
           <path
-            opacity={duotone ? "0.5" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M14.5 11L14 16"
             stroke="currentColor"
             strokeWidth={width}
             strokeLinecap="round"
           />
           <path
-            opacity={duotone ? "0.5" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M6.5 6C6.55588 6 6.58382 6 6.60915 5.99936C7.43259 5.97849 8.15902 5.45491 8.43922 4.68032C8.44784 4.65649 8.45667 4.62999 8.47434 4.57697L8.57143 4.28571C8.65431 4.03708 8.69575 3.91276 8.75071 3.8072C8.97001 3.38607 9.37574 3.09364 9.84461 3.01877C9.96213 3 10.0932 3 10.3553 3H13.6447C13.9068 3 14.0379 3 14.1554 3.01877C14.6243 3.09364 15.03 3.38607 15.2493 3.8072C15.3043 3.91276 15.3457 4.03708 15.4286 4.28571L15.5257 4.57697C15.5433 4.62992 15.5522 4.65651 15.5608 4.68032C15.841 5.45491 16.5674 5.97849 17.3909 5.99936C17.4162 6 17.4441 6 17.5 6"
             stroke="currentColor"
             strokeWidth={width}
@@ -60,7 +61,7 @@ const IconTrashBin2: FC<IconProps> = ({
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            opacity={duotone ? "0.5" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M11.5956 22H12.4044C15.1871 22 16.5785 22 17.4831 21.1141C18.3878 20.2281 18.4803 18.7749 18.6654 15.8685L18.9321 11.6806C19.0326 10.1036 19.0828 9.31512 18.6289 8.81546C18.1751 8.3158 17.4087 8.3158 15.876 8.3158H8.12405C6.59127 8.3158 5.82488 8.3158 5.37105 8.81546C4.91722 9.31512 4.96744 10.1036 5.06788 11.6806L5.33459 15.8685C5.5197 18.7749 5.61225 20.2281 6.51689 21.1141C7.42153 22 8.81289 22 11.5956 22Z"
             fill="currentColor"
           />

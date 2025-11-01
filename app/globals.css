@@ -240,4 +240,11 @@ ol:has(li.my-toast) {
   .squircle.rounded-4xl {
     border-radius: 4rem;
   }
+  .squircle.rounded-5xl {
+    border-radius: 5rem;
+  }
+}
+.squircle.nosquircle {
+  corner-shape: unset !important;
+  border-radius: 50%;
 }

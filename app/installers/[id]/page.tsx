@@ -51,6 +51,13 @@ import { useBreadcrumb } from "@/contexts/BreadcrumbContext";
 import IconUser from "@/components/icons/User";
 import Loading from "@/components/ui/loading";
 import { CopyButton } from "@/components/CopyButton";
+import {
+  IconArrowLeft,
+  IconEdit2,
+  IconInfoCircle,
+  IconTrashBin2,
+} from "@/components/icons";
+import { InstallerAvatar } from "@/components/UserAvatar";
 
 interface InstallerDetails {
   _id: string;
@@ -165,18 +172,20 @@ export default function InstallerDetailsPage() {
   }, [fetchInstaller]);
 
   const fetchActivities = async () => {
+    if (!installer) return;
+
     try {
       setLoadingActivities(true);
 
-      // Fetch installer-specific activities
+      // Fetch installer-specific activities using the MongoDB _id
       const installerActivitiesRes = await fetch(
-        `/api/activities?targetType=Installer&targetId=${installerId}&limit=100`
+        `/api/activities?targetType=Installer&targetId=${installer._id}&limit=100`
       );
       const installerActivitiesData = await installerActivitiesRes.json();
 
       // Fetch all reward activities for this installer's rewards
       const productsRes = await fetch(
-        `/api/rewards?installer=${installerId}&limit=1000`
+        `/api/rewards?installer=${installer._id}&limit=1000`
       );
       const productsData = await productsRes.json();
 
@@ -224,10 +233,12 @@ export default function InstallerDetailsPage() {
   };
 
   const fetchProducts = async () => {
+    if (!installer) return;
+
     try {
       setLoadingProducts(true);
       const response = await fetch(
-        `/api/rewards?installer=${installerId}&limit=1000`
+        `/api/rewards?installer=${installer._id}&limit=1000`
       );
       const data = await response.json();
 
@@ -325,60 +336,87 @@ export default function InstallerDetailsPage() {
         description={`Installer Code: ${installer.installerCode}`}
         action={
           <div className="flex gap-3">
-            <Button variant="ghost" onClick={() => router.push("/installers")}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Installers
-            </Button>
             <Button onClick={() => setEditModalOpen(true)} variant="default">
-              <Edit className="h-4 w-4 mr-2" />
+              <IconEdit2 duotone={false} className="h-4 w-4 mr-2" />
               Edit
             </Button>
             {isAdmin && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Are you absolutely sure?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete the installer{" "}
-                      <strong>{installer.fullName}</strong> (
-                      {installer.installerCode}). This action cannot be undone.
-                      {statistics && statistics.totalRewards > 0 && (
-                        <span className="block mt-2 text-destructive font-medium">
-                          ⚠️ This installer has {statistics.totalRewards}{" "}
-                          reward(s). You must delete all rewards first.
+              <>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive">
+                      <IconTrashBin2
+                        duotone={false}
+                        className="h-4.5 w-4.5 mr-2"
+                      />
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="rounded-5xl">
+                    <AlertDialogHeader className="flex flex-col items-center">
+                      <IconTrashBin2
+                        className="size-32 text-destructive-text"
+                        fill
+                        opacity={"0.2"}
+                      />
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription className="w-19/20 flex flex-col items-center text-balance">
+                        This will permanently delete the installer{" "}
+                        <span className="flex items-center gap-2">
+                          <strong>{installer.fullName}</strong>{" "}
+                          {installer.installerCode}
                         </span>
-                      )}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDelete}
-                      disabled={deleting}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      {deleting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Deleting...
-                        </>
-                      ) : (
-                        "Delete Installer"
-                      )}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                        <span className="mt-2 flex items-center gap-2 text-destructive-text">
+                          <IconInfoCircle className="size-4" duotone={false} />{" "}
+                          This action cannot be undone.
+                        </span>
+                        {statistics && statistics.totalRewards > 0 && (
+                          <span className="block mt-2 text-destructive font-medium">
+                            ⚠️ This installer has {statistics.totalRewards}{" "}
+                            reward(s). You must delete all rewards first.
+                          </span>
+                        )}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-4">
+                      <AlertDialogAction
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {deleting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Deleting...
+                          </>
+                        ) : (
+                          "Delete Installer"
+                        )}
+                      </AlertDialogAction>
+                      <AlertDialogCancel className="w-full">
+                        Cancel
+                      </AlertDialogCancel>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             )}
           </div>
+        }
+        Icon={
+          <>
+            <Button
+              onClick={() => router.push("/installers")}
+              variant={"outline"}
+              className="flex items-center justify-center size-16 rounded-full nosquircle"
+            >
+              <IconArrowLeft duotone={false} className="size-5" />
+            </Button>
+            <InstallerAvatar
+              user={installer.fullName}
+              className="size-16 bg-muted"
+            />
+          </>
         }
       />
       {/* Certified Badge */}

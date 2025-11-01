@@ -4,7 +4,7 @@ interface PageHeaderProps {
   title: string | React.ReactNode;
   titleClassName?: string;
   description?: string | React.ReactNode;
-  Icon?: React.ComponentType<IconProps>;
+  Icon?: React.ComponentType<IconProps> | React.ReactNode;
   action?: React.ReactNode;
   iconFill?: boolean;
 }
@@ -17,15 +17,22 @@ export default function PageHeader({
   titleClassName,
   iconFill = false,
 }: PageHeaderProps) {
+  const renderIcon = () => {
+    if (!Icon) return null;
+    if (typeof Icon === "object" && "type" in Icon) return Icon; // if ReactNode
+    const IconComponent = Icon as React.ComponentType<IconProps>;
+    return (
+      <IconComponent
+        className="hidden md:block w-12 h-12 text-primary shrink-0"
+        fill={iconFill}
+      />
+    );
+  };
+
   return (
     <div className="flex w-full flex-wrap items-center justify-between gap-4 p-6 border lg:flex-nowrap bg-card squircle rounded-3xl border-border">
       <div className="flex items-center gap-4">
-        {Icon && (
-          <Icon
-            className="hidden md:block w-12 h-12 text-primary shrink-0"
-            fill={iconFill}
-          />
-        )}
+        {renderIcon()}
         <div>
           <h1
             className={cn(
