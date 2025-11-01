@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useClipboard } from "@/hooks/useCopyToClipboard";
 import {
   Copy,
   Check,
@@ -51,6 +50,7 @@ import InstallerEditModal from "@/components/InstallerEditModal";
 import { useBreadcrumb } from "@/contexts/BreadcrumbContext";
 import IconUser from "@/components/icons/User";
 import Loading from "@/components/ui/loading";
+import { CopyButton } from "@/components/CopyButton";
 
 interface InstallerDetails {
   _id: string;
@@ -125,8 +125,6 @@ export default function InstallerDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const installerId = params.id as string;
-
-  const { copyToClipboard, copied } = useClipboard();
 
   const { data: session } = useSession();
 
@@ -268,24 +266,6 @@ export default function InstallerDetailsPage() {
 
   // Check if user is admin
   const isAdmin = session?.user?.role === TeamRole.ADMIN;
-
-  const CopyButton = ({ text, label }: { text: string; label: string }) => {
-    return (
-      <Button
-        variant="ghost"
-        size="icon"
-        className="ml-2 h-6 w-6"
-        onClick={() => copyToClipboard(text)}
-        title={`Copy ${label}`}
-      >
-        {copied === text ? (
-          <Check className="h-4 w-4 text-green-600 dark:text-green-500" />
-        ) : (
-          <Copy className="h-4 w-4" />
-        )}
-      </Button>
-    );
-  };
 
   const pathname = usePathname();
   const { setOverride, clearOverride } = useBreadcrumb();

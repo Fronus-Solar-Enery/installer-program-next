@@ -14,7 +14,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, Package, DollarSign, Target, ArrowUpRight } from "lucide-react";
+import {
+  Users,
+  Package,
+  DollarSign,
+  Target,
+  ArrowUpRight,
+  RefreshCw,
+} from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -52,6 +59,8 @@ import {
   IconPackage,
   IconProduct,
   IconReferrer,
+  IconRefresh,
+  IconRefresh2,
   IconUser,
   IconUserCog,
 } from "@/components/icons";
@@ -617,6 +626,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3">
             <ToggleGroup
               type="single"
+              disabled={loading}
               defaultValue={timePeriod}
               // value={timePeriod}
               onValueChange={(value) => {
@@ -641,6 +651,7 @@ export default function DashboardPage() {
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
+                    disabled={loading}
                     size="sm"
                     className={cn(
                       "hidden sm:flex gap-2 rounded-xl text-zinc-400 px-2"
@@ -716,13 +727,230 @@ export default function DashboardPage() {
                 </PopoverContent>
               </Popover>
             </ToggleGroup>
+            <Button
+              variant="outline"
+              onClick={fetchStats}
+              disabled={loading}
+              className="gap-2"
+            >
+              <span className="hidden sm:inline">Refresh</span>
+              <IconRefresh2
+                duotone={false}
+                width={2}
+                className={cn("h-3.5 w-3.5", loading && "animate-spin")}
+              />
+            </Button>
           </div>
         }
       />
       {loading ? (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <Skeleton className="h-8 w-32" />
-        </div>
+        <>
+          {/* Financial Highlight Skeleton */}
+          <Card className="relative overflow-hidden border-border">
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-10 w-40" />
+                    <div className="flex items-center gap-4">
+                      <Skeleton className="h-3 w-32" />
+                      <Skeleton className="h-3 w-32" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-3 w-32" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-3 w-full rounded-full" />
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Stats Grid Skeleton */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i}>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-9 w-20 mb-2" />
+                  <Skeleton className="h-3 w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Charts Row 1 Skeleton */}
+          <div className="grid gap-4 lg:grid-cols-6">
+            {[1, 2].map((i) => (
+              <Card key={i} className="lg:col-span-3">
+                <CardHeader className="border-b border-border">
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-12 w-12 rounded-full hidden md:block" />
+                    <div className="flex-1">
+                      <Skeleton className="h-5 w-48 mb-2" />
+                      <Skeleton className="h-3 w-64" />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-[280px] w-full" />
+                </CardContent>
+                <CardFooter className="pt-4 border-t border-border">
+                  <Skeleton className="h-4 w-32" />
+                  <div className="ml-auto">
+                    <Skeleton className="h-7 w-16 mb-1" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+
+          {/* Active Installers by Training Center Skeleton */}
+          <Card>
+            <CardHeader className="border-b border-border">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-12 w-12 rounded-full hidden md:block" />
+                <div className="flex-1">
+                  <Skeleton className="h-5 w-64 mb-2" />
+                  <Skeleton className="h-3 w-80" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 p-4 rounded-2xl bg-muted/50 mb-2"
+                >
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-32 mb-2" />
+                    <Skeleton className="h-3 w-40" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Skeleton className="h-3 w-12 mb-1" />
+                      <Skeleton className="h-5 w-8" />
+                    </div>
+                    <div>
+                      <Skeleton className="h-3 w-20 mb-1" />
+                      <Skeleton className="h-5 w-12" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Charts Row 2 Skeleton */}
+          <div className="grid gap-4 lg:grid-cols-7">
+            <Card className="lg:col-span-3">
+              <CardHeader className="border-b border-border">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-12 w-12 rounded-full hidden md:block" />
+                  <div className="flex-1">
+                    <Skeleton className="h-5 w-40 mb-2" />
+                    <Skeleton className="h-3 w-64" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex-1">
+                      <Skeleton className="h-[200px] w-full rounded-xl" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter className="pt-4 border-t border-border">
+                <Skeleton className="h-4 w-32" />
+                <div className="ml-auto">
+                  <Skeleton className="h-7 w-16 mb-1" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              </CardFooter>
+            </Card>
+
+            <Card className="lg:col-span-4">
+              <CardHeader className="border-b border-border">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-12 w-12 rounded-full hidden md:block" />
+                  <div className="flex-1">
+                    <Skeleton className="h-5 w-48 mb-2" />
+                    <Skeleton className="h-3 w-72" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div key={i} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Skeleton className="h-4 w-32" />
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-5 w-24 rounded-full" />
+                          <Skeleton className="h-3 w-12" />
+                        </div>
+                      </div>
+                      <Skeleton className="h-2 w-full rounded-full" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Activity Row Skeleton */}
+          <div className="grid gap-4 md:grid-cols-2">
+            {[1, 2].map((i) => (
+              <Card key={i}>
+                <CardHeader className="border-b border-border">
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-12 w-12 rounded-full hidden md:block" />
+                    <div className="flex-1">
+                      <Skeleton className="h-5 w-40 mb-2" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                    <Skeleton className="h-6 w-8 rounded-full" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {[1, 2, 3, 4, 5].map((j) => (
+                      <div
+                        key={j}
+                        className="flex items-center gap-3 p-4 rounded-2xl bg-muted/50"
+                      >
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="flex-1">
+                          <Skeleton className="h-4 w-32 mb-2" />
+                          <Skeleton className="h-3 w-24" />
+                        </div>
+                        <div className="text-right">
+                          <Skeleton className="h-4 w-20 mb-1" />
+                          <Skeleton className="h-3 w-16" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
       ) : (
         <>
           {/* Financial Highlight Section */}
@@ -1013,7 +1241,7 @@ export default function DashboardPage() {
                       <h3 className="text-xl text-primary">
                         No Installation Found
                       </h3>
-                      <p className="text-xs text-muted-foreground mb-4 text-center text-balance">
+                      <p className="text-xs text-muted-foreground mb-4 text-center text-balance max-w-sm">
                         You haven&rsquo;t registered any installations. Add
                         first installation to get started.
                       </p>
@@ -1116,7 +1344,7 @@ export default function DashboardPage() {
                       <h3 className="text-xl text-primary">
                         No City Data Available
                       </h3>
-                      <p className="text-xs text-muted-foreground mb-4 text-center text-balance lg:w-3/4">
+                      <p className="text-xs text-muted-foreground mb-4 text-center text-balance max-w-sm">
                         There are no performance records from the previous year
                         yet. Check back once installers start registering
                         installations.
@@ -1211,8 +1439,19 @@ export default function DashboardPage() {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  No active installers in selected period
+                <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                  <div className="flex flex-col items-center gap-2">
+                    <IconFileSmile
+                      fill
+                      className="size-20 text-muted-foreground"
+                    />
+                    <h3 className="text-xl text-primary">No Data Available</h3>
+                    <p className="text-xs text-muted-foreground mb-4 text-center text-balance max-w-sm">
+                      There are no performance records from the previous year
+                      yet. Check back once installers start registering
+                      installations.
+                    </p>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -1243,7 +1482,7 @@ export default function DashboardPage() {
                       <h3 className="text-xl text-primary">
                         No Data Available
                       </h3>
-                      <p className="text-xs text-muted-foreground mb-4 text-center text-balance">
+                      <p className="text-xs text-muted-foreground mb-4 text-center text-balance max-w-sm">
                         There are no performance records from the previous year
                         yet. Check back once installers start registering
                         installations.
@@ -1342,7 +1581,7 @@ export default function DashboardPage() {
                 badge={String(recentInstallations.length)}
               />
               <CardContent>
-                <div className="space-y-3">
+                <div className="flex items-center justify-center size-full">
                   {recentInstallations.length > 0 ? (
                     recentInstallations.map((installation) => {
                       return (
@@ -1378,8 +1617,28 @@ export default function DashboardPage() {
                       );
                     })
                   ) : (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                      No recent installations
+                    <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                      <div className="flex flex-col items-center gap-2">
+                        <IconFileSmile
+                          fill
+                          className="size-20 text-muted-foreground"
+                        />
+                        <h3 className="text-xl text-primary">
+                          No Installation Found
+                        </h3>
+                        <p className="text-xs text-muted-foreground mb-4 text-center text-balance max-w-sm">
+                          You haven&rsquo;t registered any product. Register
+                          first product to get started.
+                        </p>
+                        <Button href="/rewards/new" className="gap-2">
+                          Add Installation
+                          <IconArrowRightUp
+                            className="size-4"
+                            width={2}
+                            duotone={false}
+                          />
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>

@@ -63,7 +63,7 @@ export default function TopNavbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-sidebar px-6">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-sidebar px-6 shadow-md">
         <div className="flex-1"></div>
 
         {/* Right Side Actions */}

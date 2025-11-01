@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { authenticate } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,8 +29,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export default function SignInPage() {
+function SignInForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -38,6 +39,14 @@ export default function SignInPage() {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Check for error in URL params (NextAuth redirects with error)
+  useEffect(() => {
+    const urlError = searchParams.get("error");
+    if (urlError) {
+      handleErrorMessage(decodeURIComponent(urlError));
+    }
+  }, [searchParams]);
 
   const validateEmail = (value: string) => {
     if (!value.trim()) {
@@ -82,9 +91,37 @@ export default function SignInPage() {
     }
   };
 
+  const handleErrorMessage = (errorMessage: string) => {
+    // Reset all errors first
+    setError("");
+    setEmailError("");
+    setPasswordError("");
+
+    // Set field-specific errors based on message content
+    if (errorMessage.toLowerCase().includes("no account found") ||
+        errorMessage.toLowerCase().includes("email address") ||
+        errorMessage.toLowerCase().includes("not registered")) {
+      setEmailError("This email is not registered");
+    } else if (errorMessage.toLowerCase().includes("incorrect password") ||
+               errorMessage.toLowerCase().includes("password is incorrect")) {
+      setPasswordError("Password is incorrect");
+    } else if (errorMessage.toLowerCase().includes("password")) {
+      // Generic password error
+      setPasswordError(errorMessage);
+    } else if (errorMessage.toLowerCase().includes("google sign")) {
+      // Google Sign-In error
+      setError(errorMessage);
+    } else {
+      // For other errors, show as general error
+      setError(errorMessage);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setEmailError("");
+    setPasswordError("");
 
     // Validate both fields
     const isEmailValid = validateEmail(email);
@@ -97,25 +134,14 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      const result = await signIn("credentials", {
-        email: email.trim(),
-        password,
-        redirect: false,
-      });
+      const result = await authenticate(email.trim(), password);
 
-      if (result?.error) {
-        // Display specific error message from backend
-        setError(result.error);
-
-        // Set field-specific errors based on message
-        if (result.error.toLowerCase().includes("email")) {
-          setEmailError(result.error);
-        } else if (result.error.toLowerCase().includes("password")) {
-          setPasswordError(result.error);
-        }
-      } else if (result?.ok) {
+      if (result.success) {
         router.push("/dashboard");
         router.refresh();
+      } else if (result.error) {
+        // Use the shared error handler
+        handleErrorMessage(result.error);
       }
     } catch (err) {
       setError(
@@ -264,5 +290,17 @@ export default function SignInPage() {
         </div>
       </Card>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loading className="size-8" />
+      </div>
+    }>
+      <SignInForm />
+    </Suspense>
   );
 }

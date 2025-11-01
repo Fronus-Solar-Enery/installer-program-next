@@ -1284,11 +1284,11 @@ export default function InstallerEditModal({
             <Button type="submit" disabled={saving} className="gap-2">
               {saving ? (
                 <>
-                  Saving
+                  Updating Installer
                   <Loading className="h-4 w-4 fill-background" />
                 </>
               ) : (
-                "Save Changes"
+                "Update Installer"
               )}
             </Button>
           )}

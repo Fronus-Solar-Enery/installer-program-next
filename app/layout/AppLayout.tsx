@@ -121,7 +121,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* Main Content Area */}
         <div
           ref={mainRef}
-          className={`flex flex-1 flex-col overflow-hidden transition-all duration-300 main-elem ml-64`}
+          className={`fixed top-0 right-0 left-0 bottom-0 flex flex-1 flex-col overflow-hidden transition-all duration-300 main-elem max-h-screen h-full ml-64`}
         >
           {/* Top Navbar */}
           <TopNavbar />

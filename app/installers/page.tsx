@@ -94,6 +94,8 @@ import IconSetting4 from "@/components/icons/Setting4";
 import { motion, AnimatePresence } from "framer-motion";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Label } from "@/components/ui/label";
+import { CopyButton } from "@/components/CopyButton";
+import Link from "next/link";
 
 interface InstallerWithId extends IInstaller {
   _id: string;
@@ -1512,15 +1514,15 @@ export default function InstallersPage() {
                       </TableCell>
                       {visibleColumns.installerCode && (
                         <TableCell className="font-medium">
-                          <Button
-                            variant="link"
-                            onClick={() =>
-                              router.push(`/installers/${installer._id}`)
-                            }
-                            className="font-mono p-0 h-auto"
-                          >
-                            {installer.installerCode}
-                          </Button>
+                          <div className="font-mono flex items-center">
+                            <Link href={`/installers/${installer._id}`}>
+                              {installer.installerCode}
+                            </Link>
+                            <CopyButton
+                              text={installer.installerCode}
+                              label="Installer Code"
+                            />
+                          </div>
                         </TableCell>
                       )}
                       {visibleColumns.fullName && (

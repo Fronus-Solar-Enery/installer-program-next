@@ -1,8 +1,19 @@
 import NextAuth, { NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/mongodb";
 import TeamMember, { TeamRole } from "@/models/TeamMember";
+
+// Custom error class for passing specific error messages to client
+// This is required for NextAuth v5 to properly pass error messages
+class CustomAuthError extends AuthError {
+  static type = "CredentialsSignin";
+  constructor(message: string) {
+    super(message);
+    this.name = "CredentialsSignin";
+  }
+}
 
 // Validate required environment variables
 if (!process.env.NEXTAUTH_SECRET) {
@@ -21,6 +32,32 @@ if (!process.env.MONGODB_URI) {
 
 export const authConfig: NextAuthConfig = {
   trustHost: true, // Required for NextAuth v5 in production
+  logger: {
+    error(error: Error) {
+      // Suppress credential-related errors in development
+      const isCredentialError = error.name === 'CredentialsSignin' ||
+        error.message?.includes('No account found') ||
+        error.message?.includes('Incorrect password') ||
+        error.message?.includes('Email cannot be empty') ||
+        error.message?.includes('Password cannot be empty');
+
+      // Only log non-credential errors in development, or all errors in production
+      if (process.env.NODE_ENV === 'production' || !isCredentialError) {
+        console.error(error);
+      }
+    },
+    warn(code: string) {
+      if (process.env.NODE_ENV === 'production') {
+        console.warn(code);
+      }
+    },
+    debug(message: string, metadata?: unknown) {
+      // Suppress debug logs in development
+      if (process.env.NEXTAUTH_DEBUG === 'true') {
+        console.log(message, metadata);
+      }
+    },
+  },
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -30,18 +67,18 @@ export const authConfig: NextAuthConfig = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Please enter both email and password");
+          throw new CustomAuthError("Please enter both email and password");
         }
 
         const email = String(credentials.email);
         const password = String(credentials.password);
 
         if (!email.trim()) {
-          throw new Error("Email cannot be empty");
+          throw new CustomAuthError("Email cannot be empty");
         }
 
         if (!password.trim()) {
-          throw new Error("Password cannot be empty");
+          throw new CustomAuthError("Password cannot be empty");
         }
 
         await dbConnect();
@@ -50,11 +87,11 @@ export const authConfig: NextAuthConfig = {
         });
 
         if (!user) {
-          throw new Error("No account found with this email address");
+          throw new CustomAuthError("No account found with this email address");
         }
 
         if (!user.password) {
-          throw new Error(
+          throw new CustomAuthError(
             "This account uses Google Sign-In. Please sign in with Google."
           );
         }
@@ -63,7 +100,7 @@ export const authConfig: NextAuthConfig = {
         const isValid = await bcrypt.compare(password, passwordHash);
 
         if (!isValid) {
-          throw new Error("Incorrect password. Please try again.");
+          throw new CustomAuthError("Incorrect password. Please try again.");
         }
 
         return {
@@ -119,7 +156,6 @@ export const authConfig: NextAuthConfig = {
   },
   pages: {
     signIn: "/auth/signin",
-    error: "/auth/error",
   },
   session: {
     strategy: "jwt",

@@ -444,11 +444,11 @@ function Sidebar({
         </Link>
         {/* Collapse Toggle */}
         {collapsible && (
-          <div className="w-6.5 h-6.5 absolute -bottom-3 -right-4 z-50 shadow-sm">
+          <div className="w-6.5 h-6.5 absolute -bottom-3 -right-4 z-50">
             <Button
               variant="outline"
               size="icon"
-              className="h-6 w-6 rounded-full border border-border bg-background active:!translate-y-0"
+              className="h-6 w-6 rounded-full border border-border bg-background active:!translate-y-0 shadow-sm"
               onClick={handleToggle}
             >
               <IconAltArrowLeft
