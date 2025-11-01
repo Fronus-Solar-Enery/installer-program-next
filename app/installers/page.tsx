@@ -684,7 +684,7 @@ export default function InstallersPage() {
             ) : (
               <Button
                 onClick={isAdmin ? handleAuthenticateGoogle : undefined}
-                disabled={!isAdmin || authLoading}
+                disabled={!isAdmin || authLoading || loading}
                 variant="warning"
                 title={
                   !isAdmin
