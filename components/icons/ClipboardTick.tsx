@@ -3,20 +3,17 @@ import { FC } from "react";
 const IconClipboardTick: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             opacity={duotone ? "0.4" : "1"}
             d="M9.97998 14.7L11.48 16.2L15.48 12.2"
@@ -43,14 +40,11 @@ const IconClipboardTick: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             opacity={duotone ? "0.4" : "1"}
             d="M16.91 3.65002H8.42996C5.95996 3.65002 3.95996 5.66002 3.95996 8.12002V17.53C3.95996 19.99 5.96996 22 8.42996 22H16.9C19.37 22 21.37 19.99 21.37 17.53V8.12002C21.38 5.65002 19.37 3.65002 16.91 3.65002Z"
@@ -66,14 +60,11 @@ const IconClipboardTick: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M15.0199 2H10.3199C9.27993 2 8.42993 2.84 8.42993 3.88V4.82C8.42993 5.86 9.26993 6.7 10.3099 6.7H15.0199C16.0599 6.7 16.8999 5.86 16.8999 4.82V3.88C16.9099 2.84 16.0599 2 15.0199 2Z"
             fill="currentColor"

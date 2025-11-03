@@ -16,12 +16,9 @@ export const CopyButton = ({
       title={`Copy ${label}`}
     >
       {copied === text ? (
-        <IconCheck
-          className="h-4 w-4 text-green-600 dark:text-green-500"
-          duotone={false}
-        />
+        <IconCheck className="text-green-600 dark:text-green-500" />
       ) : (
-        <IconCopy className="h-4 w-4" duotone={false} />
+        <IconCopy />
       )}
     </button>
   );

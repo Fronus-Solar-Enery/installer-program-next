@@ -558,15 +558,12 @@ export default function NewRewardPage() {
                           aria-describedby="installer-code-hint"
                         />
                         <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                          <IconInstallerCode
-                            duotone={false}
-                            className="size-4"
-                          />
+                          <IconInstallerCode />
                         </div>
 
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
                           {installerValidating && (
-                            <Loading className="h-4 w-4" />
+                            <Loading />
                           )}
                           {!installerValidating && installerData && (
                             <HyperText className="tracking-widest leading-none text-xs uppercase text-success-text pointer-events-none select-none">
@@ -604,7 +601,7 @@ export default function NewRewardPage() {
                       <div className="rounded-2xl border border-border p-4">
                         <div className="col-span-2 text-primary flex items-center gap-2 py-2 rounded-2xl">
                           <div className="dark:bg-background bg-muted p-2.5 rounded-xl">
-                            <IconUser className="size-4" fill duotone={false} />{" "}
+                            <IconUser fill />
                           </div>
                           Installer
                         </div>
@@ -616,10 +613,7 @@ export default function NewRewardPage() {
                             valueClass="font-mono tracking-wide"
                             isHighlighted={true}
                             icon={
-                              <IconUser
-                                duotone={false}
-                                className="h-3.5 w-3.5 text-muted-foreground/90"
-                              />
+                              <IconUser className="h-3.5 w-3.5 text-muted-foreground/90" />
                             }
                           />
                           <ReviewItem
@@ -628,10 +622,7 @@ export default function NewRewardPage() {
                             valueClass="font-mono tracking-wide"
                             isHighlighted={true}
                             icon={
-                              <IconInstallerCode
-                                duotone={false}
-                                className="h-3.5 w-3.5 text-muted-foreground/90"
-                              />
+                              <IconInstallerCode className="h-3.5 w-3.5 text-muted-foreground/90" />
                             }
                           />
                           <ReviewItem
@@ -640,10 +631,7 @@ export default function NewRewardPage() {
                             isHighlighted={true}
                             valueClass="font-mono tracking-wide"
                             icon={
-                              <IconCity
-                                duotone={false}
-                                className="h-3.5 w-3.5 text-muted-foreground/90"
-                              />
+                              <IconCity className="h-3.5 w-3.5 text-muted-foreground/90" />
                             }
                           />
                           {installerData.companyName && (
@@ -653,10 +641,7 @@ export default function NewRewardPage() {
                               valueClass="font-mono tracking-wide"
                               isHighlighted={true}
                               icon={
-                                <IconCompany
-                                  duotone={false}
-                                  className="h-3.5 w-3.5 text-muted-foreground/90"
-                                />
+                                <IconCompany className="h-3.5 w-3.5 text-muted-foreground/90" />
                               }
                             />
                           )}
@@ -665,11 +650,7 @@ export default function NewRewardPage() {
                             <>
                               <div className="col-span-2 text-primary flex items-center gap-2 rounded-2xl">
                                 <div className="dark:bg-background bg-muted p-2.5 rounded-xl">
-                                  <IconReferrer
-                                    className="size-4"
-                                    fill
-                                    duotone={false}
-                                  />{" "}
+                                  <IconReferrer fill />{" "}
                                 </div>
                                 Referrer Installer
                               </div>
@@ -679,10 +660,7 @@ export default function NewRewardPage() {
                                 valueClass="font-mono tracking-wide"
                                 isHighlighted={true}
                                 icon={
-                                  <IconReferrer
-                                    duotone={false}
-                                    className="h-3.5 w-3.5 text-muted-foreground/90"
-                                  />
+                                  <IconReferrer className="h-3.5 w-3.5 text-muted-foreground/90" />
                                 }
                               />
                               <ReviewItem
@@ -691,10 +669,7 @@ export default function NewRewardPage() {
                                 valueClass="font-mono tracking-wide"
                                 isHighlighted={true}
                                 icon={
-                                  <IconReward
-                                    duotone={false}
-                                    className="h-3.5 w-3.5 text-muted-foreground/90"
-                                  />
+                                  <IconReward className="h-3.5 w-3.5 text-muted-foreground/90" />
                                 }
                               />
                             </>
@@ -730,15 +705,12 @@ export default function NewRewardPage() {
                             className={`pl-10`}
                           />
                           <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                            <IconSerialNumber
-                              duotone={false}
-                              className="size-4"
-                            />
+                            <IconSerialNumber />
                           </div>
 
                           <div className="absolute right-3 top-1/2 -translate-y-1/2">
                             {serialValidating && (
-                              <Loading className="h-4 w-4" />
+                              <Loading />
                             )}
                             {!serialValidating && serialValid && (
                               <HyperText className="tracking-widest leading-none text-xs uppercase text-success-text pointer-events-none select-none">
@@ -917,11 +889,7 @@ export default function NewRewardPage() {
                 variant="outline"
                 className="gap-1"
               >
-                <IconAltArrowLeft
-                  width={2}
-                  className="size-4"
-                  duotone={false}
-                />
+                <IconAltArrowLeft width={2} />
                 Previous
               </Button>
 
@@ -937,11 +905,7 @@ export default function NewRewardPage() {
                   className="gap-1"
                 >
                   Next
-                  <IconAltArrowRight
-                    width={2}
-                    className="size-4"
-                    duotone={false}
-                  />
+                  <IconAltArrowRight width={2} />
                 </Button>
               ) : (
                 <Button
@@ -952,7 +916,7 @@ export default function NewRewardPage() {
                   {loading ? (
                     <>
                       Submitting
-                      <Loading className="h-4 w-4 fill-background" />
+                      <Loading className="fill-background" />
                     </>
                   ) : (
                     "Register Reward"

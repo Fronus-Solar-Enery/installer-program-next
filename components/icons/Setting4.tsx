@@ -3,20 +3,17 @@ import { FC } from "react";
 const IconSetting4: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M22.6699 6.5H16.6699"
             stroke="currentColor"
@@ -71,14 +68,11 @@ const IconSetting4: FC<IconProps> = ({
           </g>
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             opacity={duotone ? "0.4" : "1"}
             d="M21.8999 7.61998H16.3599C15.9799 7.61998 15.6699 7.30998 15.6699 6.91998C15.6699 6.53998 15.9799 6.22998 16.3599 6.22998H21.8999C22.2799 6.22998 22.5899 6.53998 22.5899 6.91998C22.5899 7.30998 22.2799 7.61998 21.8999 7.61998Z"
@@ -109,14 +103,11 @@ const IconSetting4: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M21.9699 7.58018H16.3899C15.9999 7.58018 15.6899 7.27018 15.6899 6.88018C15.6899 6.49018 15.9999 6.18018 16.3899 6.18018H21.9699C22.3599 6.18018 22.6699 6.49018 22.6699 6.88018C22.6699 7.27018 22.3599 7.58018 21.9699 7.58018Z"
             fill="currentColor"

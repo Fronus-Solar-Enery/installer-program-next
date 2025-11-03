@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import Modal from "./Modal";
 import {
   CITIES,
@@ -42,13 +42,13 @@ import {
   IconShieldMinimalistic,
   IconShieldStar,
   IconStar,
-  IconTeacher,
   IconUserHeartRounded,
   IconUserOctagon,
   IconAltArrowRight,
   IconAltArrowLeft,
   IconEdit2,
   IconDangerCircle,
+  IconTrainingCenter,
 } from "@/components/icons";
 import Loading from "@/components/ui/loading";
 import { Switch } from "@/components/ui/switch";
@@ -372,22 +372,30 @@ export default function InstallerEditModal({
   useEffect(() => {
     if (
       trainingCenter &&
-      trainingCenter !== initialTrainingCenter &&
       canEditTrainingCenter &&
       !loading &&
       initialTrainingCenter // Only if we have an initial value (edit mode)
     ) {
-      // Training center has changed, clear the installer code to trigger regeneration
-      setInstallerCode("");
-      console.log(
-        "Training center changed, clearing code to trigger regeneration"
-      );
+      if (trainingCenter === initialTrainingCenter) {
+        // Training center changed back to original, restore original installer code
+        setInstallerCode(originalInstallerCode);
+        console.log(
+          "Training center restored to original, restoring original installer code"
+        );
+      } else if (trainingCenter !== initialTrainingCenter) {
+        // Training center changed to something different, clear code to trigger regeneration
+        setInstallerCode("");
+        console.log(
+          "Training center changed, clearing code to trigger regeneration"
+        );
+      }
     }
   }, [
     trainingCenter,
     initialTrainingCenter,
     canEditTrainingCenter,
     loading,
+    originalInstallerCode,
     setInstallerCode,
   ]);
 
@@ -909,7 +917,7 @@ export default function InstallerEditModal({
                           value={trainingCenter}
                           onChange={setTrainingCenter}
                           placeholder="Select Training Center"
-                          icon={IconTeacher}
+                          icon={IconTrainingCenter}
                           options={trainingCenterOptions}
                           searchable
                           searchPlaceholder="Search training centers..."
@@ -1072,10 +1080,7 @@ export default function InstallerEditModal({
                       {certified ? (
                         <IconShieldStar className="w-7 h-7 text-cyan-400" />
                       ) : (
-                        <IconShieldMinimalistic
-                          duotone={false}
-                          className="w-7 h-7 text-muted-foreground"
-                        />
+                        <IconShieldMinimalistic className="w-7 h-7 text-muted-foreground" />
                       )}
                       <Label
                         htmlFor="certified"
@@ -1124,14 +1129,11 @@ export default function InstallerEditModal({
                           placeholder="Enter referrer installer code"
                         />
                         <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                          <IconUserHeartRounded
-                            duotone={false}
-                            className="size-4.5"
-                          />
+                          <IconUserHeartRounded className="size-4.5" />
                         </div>
                         {referrerValidating && (
                           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                            <Loading className="h-4 w-4" />
+                            <Loading />
                           </div>
                         )}
                         {!referrerValidating &&
@@ -1372,7 +1374,7 @@ export default function InstallerEditModal({
               variant="outline"
               className="gap-1 pl-2"
             >
-              <IconAltArrowLeft width={2} className="size-4" duotone={false} />
+              <IconAltArrowLeft width={2} />
               Previous
             </Button>
 
@@ -1391,18 +1393,14 @@ export default function InstallerEditModal({
                 className="gap-1 pr-3"
               >
                 Next
-                <IconAltArrowRight
-                  width={2}
-                  className="size-4"
-                  duotone={false}
-                />
+                <IconAltArrowRight width={2} />
               </Button>
             ) : (
               <Button type="submit" disabled={saving} className="gap-2">
                 {saving ? (
                   <>
                     Updating Installer
-                    <Loading className="h-4 w-4 fill-background" />
+                    <Loading className="fill-background" />
                   </>
                 ) : (
                   "Update Installer"

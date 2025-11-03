@@ -51,7 +51,7 @@ export function InstallerCodeDisplay({
             />
             {isValidating && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <Loading className="h-4 w-4" />
+                <Loading />
               </div>
             )}
             {!isValidating && isValid && code && (
@@ -75,15 +75,12 @@ export function InstallerCodeDisplay({
                 <div className="uppercase text-xs font-bold tracking-wide">
                   Generating
                 </div>
-                <Loading className="size-4 mr-2" />
+                <Loading className="mr-2" />
               </div>
             ) : (
               <div className="flex items-center justify-between w-full gap-2">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <IconInstallerCode
-                    className="size-4 text-muted-foreground"
-                    duotone={false}
-                  />
+                  <IconInstallerCode className="text-muted-foreground" />
                 </div>
                 <HyperText className="pointer-events-none ml-6 [&>*]:leading-none">
                   {code}

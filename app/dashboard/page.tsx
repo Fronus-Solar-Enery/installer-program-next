@@ -55,14 +55,13 @@ import {
   IconCheck,
   IconCity,
   IconCopy,
+  IconDiagramUp,
   IconGift,
+  IconInstaller,
   IconPackage,
   IconProduct,
-  IconReferrer,
-  IconRefresh,
   IconRefresh2,
   IconUser,
-  IconUserCog,
 } from "@/components/icons";
 import IconFileSmile from "@/components/icons/FileSmile";
 import {
@@ -621,6 +620,7 @@ export default function DashboardPage() {
     <div className="flex-1 overflow-auto space-y-4 mx-auto">
       <PageHeader
         title="Dashboard"
+        Icon={IconDiagramUp}
         description="Overview of installer activity, rewards, and performance metrics"
         action={
           <div className="flex items-center gap-3">
@@ -657,7 +657,7 @@ export default function DashboardPage() {
                       "hidden sm:flex gap-2 rounded-xl text-zinc-400 px-2"
                     )}
                   >
-                    <IconClockCircle className="h-5 w-5" duotone={false} />
+                    <IconClockCircle className="h-5 w-5" />
                   </Button>
                 </PopoverTrigger>
 
@@ -735,7 +735,6 @@ export default function DashboardPage() {
             >
               <span className="hidden sm:inline">Refresh</span>
               <IconRefresh2
-                duotone={false}
                 width={2}
                 className={cn("h-3.5 w-3.5", loading && "animate-spin")}
               />
@@ -1236,6 +1235,7 @@ export default function DashboardPage() {
                     <div className="flex flex-col items-center gap-2">
                       <IconFileSmile
                         fill
+                        duotone
                         className="size-20 text-muted-foreground"
                       />
                       <h3 className="text-xl text-primary">
@@ -1247,11 +1247,7 @@ export default function DashboardPage() {
                       </p>
                       <Button href="/rewards/new" className="gap-2">
                         Add Installation
-                        <IconArrowRightUp
-                          className="size-4"
-                          width={2}
-                          duotone={false}
-                        />
+                        <IconArrowRightUp width={2} />
                       </Button>
                     </div>
                   </div>
@@ -1339,6 +1335,7 @@ export default function DashboardPage() {
                     <div className="flex flex-col items-center gap-2">
                       <IconFileSmile
                         fill
+                        duotone
                         className="size-20 text-muted-foreground"
                       />
                       <h3 className="text-xl text-primary">
@@ -1443,6 +1440,7 @@ export default function DashboardPage() {
                   <div className="flex flex-col items-center gap-2">
                     <IconFileSmile
                       fill
+                      duotone
                       className="size-20 text-muted-foreground"
                     />
                     <h3 className="text-xl text-primary">No Data Available</h3>
@@ -1477,6 +1475,7 @@ export default function DashboardPage() {
                     <div className="flex flex-col items-center gap-2">
                       <IconFileSmile
                         fill
+                        duotone
                         className="size-20 text-muted-foreground"
                       />
                       <h3 className="text-xl text-primary">
@@ -1621,6 +1620,7 @@ export default function DashboardPage() {
                       <div className="flex flex-col items-center gap-2">
                         <IconFileSmile
                           fill
+                          duotone
                           className="size-20 text-muted-foreground"
                         />
                         <h3 className="text-xl text-primary">
@@ -1632,11 +1632,7 @@ export default function DashboardPage() {
                         </p>
                         <Button href="/rewards/new" className="gap-2">
                           Add Installation
-                          <IconArrowRightUp
-                            className="size-4"
-                            width={2}
-                            duotone={false}
-                          />
+                          <IconArrowRightUp width={2} />
                         </Button>
                       </div>
                     </div>
@@ -1650,7 +1646,7 @@ export default function DashboardPage() {
               <DashboardCardHeader
                 title="Recent Installers"
                 description={`Newly registered installers in ${timeLabels[timePeriod]}`}
-                Icon={IconUserCog}
+                Icon={IconInstaller}
                 badge={String(recentInstallers.length)}
               />
               <CardContent>
@@ -1662,10 +1658,7 @@ export default function DashboardPage() {
                         className="flex items-center gap-3 p-4 squircle rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
                       >
                         <div className="h-10 w-10 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center shrink-0">
-                          <IconUser
-                            duotone={false}
-                            className="size-5 text-blue-500"
-                          />
+                          <IconUser className="size-5 text-blue-500" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm truncate">
@@ -1812,7 +1805,7 @@ const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
     <CardHeader className="flex flex-row items-center gap-2 border-b border-border md:text-left">
       <div className="flex-1 flex items-center gap-4 mb-0">
         <div className="hidden md:block">
-          <Icon className="w-12 h-12 mb-0 text-primary" fill />
+          <Icon className="w-12 h-12 mb-0 text-primary" fill duotone />
         </div>
         <div>
           <CardTitle className="flex items-center font-normal text-xl md:justify-start">
@@ -1828,7 +1821,6 @@ const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
       ) : (
         <div className="squircle rounded-xl bg-emerald-100 dark:bg-emerald-950 p-2 hidden md:block">
           <Icon
-            duotone={false}
             fill
             className="h-5 w-5 text-emerald-600 dark:text-emerald-400"
           />
@@ -1964,9 +1956,9 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                           variant={"ghost"}
                         >
                           {copied === installer.installerCode ? (
-                            <IconCheck className="size-3" duotone={false} />
+                            <IconCheck className="size-3" />
                           ) : (
-                            <IconCopy className="size-3" duotone={false} />
+                            <IconCopy className="size-3" />
                           )}
                         </Button>
                       </div>

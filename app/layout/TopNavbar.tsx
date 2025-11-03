@@ -76,10 +76,7 @@ export default function TopNavbar() {
             className="max-w-xs w- h-10 justify-start text-left font-normal rounded-full border border-border"
             aria-label="Open search"
           >
-            <IconMagnifer
-              className="shrink-0 w-4.5 h-4.5 text-zinc-500 dark:text-zinc-400"
-              duotone={false}
-            />
+            <IconMagnifer className="shrink-0 w-4.5 h-4.5 text-zinc-500 dark:text-zinc-400" />
             <span className="hidden sm:inline-flex items-center justify-between w-full ml-2 text-sm text-zinc-500 dark:text-zinc-400/60 leading-none">
               Search...
               <kbd className="flex items-center px-2 py-1 text-xs font-bold bg-card dark:bg-background rounded-full ml-3 leading-none text-foreground">
@@ -91,16 +88,16 @@ export default function TopNavbar() {
           {/* Fullscreen Toggle */}
           <Button
             variant="ghost"
-            className="rounded-xl hover:border border-border"
+            className="rounded-full hover:border border-border"
             size={"icon"}
             onClick={toggleFullscreen}
             aria-label="Toggle fullscreen"
           >
             <div>
               {isFullscreen ? (
-                <IconQuitFullScreen className="w-5 h-5" duotone={false} />
+                <IconQuitFullScreen className="w-5 h-5" />
               ) : (
-                <IconFullScreen className="w-5 h-5" duotone={false} />
+                <IconFullScreen className="w-5 h-5" />
               )}
             </div>
           </Button>
@@ -123,10 +120,7 @@ export default function TopNavbar() {
                 <span className="hidden sm:inline-block text-sm font-medium">
                   {session?.user?.name || "User"}
                 </span>
-                <IconArrowUpDown
-                  className="h-5 w-5 text-muted-foreground"
-                  duotone={false}
-                />
+                <IconArrowUpDown className="h-5 w-5 text-muted-foreground" />
               </Button>
             </DropdownTrigger>
             <DropdownContent align="right" className="w-56">
@@ -160,7 +154,7 @@ export default function TopNavbar() {
                   className="w-full justify-start px-2 py-2 text-sm bg-transparent rounded-lg"
                   href="/profile"
                 >
-                  <IconUserRounded className="w-4 h-4 mr-2" />
+                  <IconUserRounded className="mr-2" />
                   Profile
                 </Button>
                 <Button
@@ -169,7 +163,7 @@ export default function TopNavbar() {
                   className="w-full justify-start px-2 py-2 text-sm bg-transparent rounded-lg"
                   href="/profile"
                 >
-                  <IconSettings className="w-4 h-4 mr-2" />
+                  <IconSettings className="mr-2" />
                   Settings
                 </Button>
               </div>
@@ -181,7 +175,7 @@ export default function TopNavbar() {
                   onClick={() => signOut({ callbackUrl: "/auth/signin" })}
                   className="w-full justify-start px-2 py-2 text-sm text-rose-500 hover:text-rose-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                 >
-                  <IconLogout2 className="w-4 h-4 mr-2" duotone={false} />
+                  <IconLogout2 className="mr-2" />
                   Logout
                 </Button>
               </div>

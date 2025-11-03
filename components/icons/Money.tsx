@@ -6,8 +6,7 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
 
 const IconMoney = ({ size = 24, ...props }: IconProps) => {
   return (
-    <svg
-      width={size}
+    <svg className={`size-4 ${className}`} width={size}
       height={size}
       viewBox="0 0 24 24"
       fill="none"
@@ -15,8 +14,7 @@ const IconMoney = ({ size = 24, ...props }: IconProps) => {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      {...props}
-    >
+      {...props}>
       <rect width="20" height="12" x="2" y="6" rx="2" />
       <circle cx="12" cy="12" r="2" />
       <path d="M6 12h.01M18 12h.01" />

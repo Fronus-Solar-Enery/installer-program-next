@@ -3,14 +3,14 @@ import { FC } from "react";
 const IconDocument: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
 }) => {
   return (
     <>
       {!fill ? (
         <svg
-          className={className}
+          className={`size-4 ${className}`}
           width="24"
           height="24"
           viewBox="0 0 24 24"
@@ -38,7 +38,7 @@ const IconDocument: FC<IconProps> = ({
         </svg>
       ) : duotone ? (
         <svg
-          className={className}
+          className={`size-4 ${className}`}
           width="24"
           height="24"
           viewBox="0 0 24 24"
@@ -65,7 +65,7 @@ const IconDocument: FC<IconProps> = ({
         </svg>
       ) : (
         <svg
-          className={className}
+          className={`size-4 ${className}`}
           width="24"
           height="24"
           viewBox="0 0 24 24"

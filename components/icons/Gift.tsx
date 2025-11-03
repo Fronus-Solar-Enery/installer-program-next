@@ -3,20 +3,17 @@ import { FC } from "react";
 const IconGift: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M20.6399 10H4.63989V18C4.63989 21 5.63989 22 8.63989 22H16.6399C19.6399 22 20.6399 21 20.6399 18V10Z"
             stroke="currentColor"
@@ -63,14 +60,11 @@ const IconGift: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             opacity={duotone ? "0.4" : "1"}
             d="M20.6399 10V18C20.6399 21 19.6399 22 16.6399 22H8.63989C5.63989 22 4.63989 21 4.63989 18V10H20.6399Z"
@@ -97,14 +91,11 @@ const IconGift: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M20.6699 12V18C20.6699 20.21 18.8799 22 16.6699 22H8.66992C6.45992 22 4.66992 20.21 4.66992 18V12C4.66992 11.45 5.11992 11 5.66992 11H7.63992C8.18992 11 8.63992 11.45 8.63992 12V15.14C8.63992 15.88 9.04992 16.56 9.69992 16.91C9.98992 17.07 10.3099 17.15 10.6399 17.15C11.0199 17.15 11.3999 17.04 11.7299 16.82L12.6799 16.2L13.5599 16.79C14.1699 17.2 14.9499 17.25 15.5999 16.9C16.2599 16.55 16.6699 15.88 16.6699 15.13V12C16.6699 11.45 17.1199 11 17.6699 11H19.6699C20.2199 11 20.6699 11.45 20.6699 12Z"
             fill="currentColor"

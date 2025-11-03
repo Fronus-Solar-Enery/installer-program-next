@@ -1035,10 +1035,7 @@ export default function BulkCreateRewardsPage() {
                     disabled={loading || validating || fileReading}
                     className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer"
                   >
-                    <IconTrashBin2
-                      className="size-5 text-destructive-text hover:text-destructive-text-hover transition-colors"
-                      duotone={false}
-                    />
+                    <IconTrashBin2 className="size-5 text-destructive-text hover:text-destructive-text-hover transition-colors" />
                   </button>
                 </div>
 
@@ -1128,7 +1125,6 @@ export default function BulkCreateRewardsPage() {
                   type="button"
                   variant="outline"
                   onClick={downloadInvalidRecords}
-                  
                   disabled={downloadingInvalid}
                 >
                   {downloadingInvalid ? (
@@ -1144,7 +1140,6 @@ export default function BulkCreateRewardsPage() {
                   type="button"
                   variant="destructive"
                   onClick={handleTerminateInvalid}
-                  
                   disabled={loading || validating || fileReading}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />

@@ -81,10 +81,7 @@ export function SearchableSelect({
           <div className="truncate flex-1 text-left">
             {selectedOption ? selectedOption.label : placeholder}
           </div>
-          <IconArrowUpDown
-            className="ml-2 h-5 w-5 shrink-0 opacity-50"
-            duotone={false}
-          />
+          <IconArrowUpDown className="ml-2 h-5 w-5 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent

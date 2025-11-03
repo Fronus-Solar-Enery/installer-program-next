@@ -12,7 +12,6 @@ import {
   XCircle,
   MapPin,
   X,
-  Calendar,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -23,6 +22,7 @@ import {
 import {
   Card,
   CardContent,
+  CardFooter,
   CardHeader,
   CardTitle,
   MotionCard,
@@ -79,12 +79,18 @@ import { TableSkeleton } from "@/components/TableSkeleton";
 import {
   IconActivity,
   IconAdd,
+  IconArrowUpDown,
+  IconBuildings2,
+  IconClock,
   IconClockCircle,
   IconEdit2,
+  IconInstaller,
   IconRefresh2,
+  IconSortFromBottomToTop,
+  IconSortFromTopToBottom,
   IconSquareArrowRightUp,
   IconSquareShareLine,
-  IconUserCog,
+  IconTrainingCenter,
 } from "@/components/icons";
 import IconTrashBin2 from "@/components/icons/TrashBin2";
 import { EmptyState } from "@/components/EmptyState";
@@ -92,9 +98,12 @@ import Loading from "@/components/ui/loading";
 import IconSetting4 from "@/components/icons/Setting4";
 import { motion, AnimatePresence } from "framer-motion";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Label } from "@/components/ui/label";
 import { CopyButton } from "@/components/CopyButton";
 import Link from "next/link";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import type { DateRange } from "react-day-picker";
+import IconDocumentFilter from "@/components/icons/DocumentFilter";
+import { Label } from "@/components/ui/label";
 
 interface InstallerWithId extends IInstaller {
   _id: string;
@@ -150,12 +159,33 @@ export default function InstallersPage() {
     province: "",
     trainingCenter: "",
     certified: "",
-    bankName: "",
     dateRange: "all" as "all" | "today" | "week" | "month" | "year" | "custom",
     customStartDate: "",
     customEndDate: "",
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [isCustomDateOpen, setIsCustomDateOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+
+  // Sync dateRange with filters when popover opens
+  useEffect(() => {
+    if (isCustomDateOpen && filters.customStartDate && filters.customEndDate) {
+      setDateRange({
+        from: new Date(filters.customStartDate),
+        to: new Date(filters.customEndDate),
+      });
+    } else if (!isCustomDateOpen) {
+      // Reset when popover closes
+      if (filters.dateRange !== "custom") {
+        setDateRange(undefined);
+      }
+    }
+  }, [
+    isCustomDateOpen,
+    filters.customStartDate,
+    filters.customEndDate,
+    filters.dateRange,
+  ]);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -371,7 +401,6 @@ export default function InstallersPage() {
         province: filters.province || "",
         trainingCenter: filters.trainingCenter || "",
         certified: filters.certified || "",
-        bankName: filters.bankName || "",
         dateRange: filters.dateRange !== "all" ? filters.dateRange : "",
         customStartDate: filters.customStartDate || "",
         customEndDate: filters.customEndDate || "",
@@ -485,6 +514,7 @@ export default function InstallersPage() {
         filters.customEndDate
       ) {
         startDate = new Date(filters.customStartDate);
+        startDate.setHours(0, 0, 0, 0);
         endDate = new Date(filters.customEndDate);
         endDate.setHours(23, 59, 59, 999);
       }
@@ -512,9 +542,6 @@ export default function InstallersPage() {
     if (filters.certified !== "") {
       const isCertified = filters.certified === "true";
       result = result.filter((i) => i.certified === isCertified);
-    }
-    if (filters.bankName) {
-      result = result.filter((i) => i.bankName === filters.bankName);
     }
 
     return result;
@@ -554,11 +581,8 @@ export default function InstallersPage() {
     const trainingCenters = [
       ...new Set(installers.map((i) => i.trainingCenter).filter(Boolean)),
     ].sort();
-    const banks = [
-      ...new Set(installers.map((i) => i.bankName).filter(Boolean)),
-    ].sort();
 
-    return { cities, provinces, trainingCenters, banks };
+    return { cities, provinces, trainingCenters };
   }, [installers]);
 
   // Pagination calculations
@@ -611,6 +635,7 @@ export default function InstallersPage() {
       }),
     [filteredInstallers, sortField, sortDirection]
   );
+
   const activeColumnsLength =
     Object.values(visibleColumns).filter(Boolean).length;
   // Get paginated data
@@ -619,11 +644,27 @@ export default function InstallersPage() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const refreshRelTime = useRelativeTime(lastUpdated);
 
+  // Animated container variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    show: { opacity: 1, y: 0 },
+  };
+
   return (
     <div className="flex-1 overflow-auto space-y-4">
       <PageHeader
         title="Installers"
-        Icon={IconUserCog}
+        Icon={IconInstaller}
         description={
           <>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -642,7 +683,6 @@ export default function InstallersPage() {
             >
               Refresh
               <IconRefresh2
-                duotone={false}
                 width={2}
                 className={cn("h-3.5 w-3.5", loading && "animate-spin")}
               />
@@ -660,11 +700,7 @@ export default function InstallersPage() {
               className="gap-2"
             >
               Bulk Register
-              <IconLayer
-                duotone={false}
-                width={2}
-                className={cn("h-3.5 w-3.5")}
-              />
+              <IconLayer width={2} className="h-3.5 w-3.5" />
             </Button>
 
             {/* Register New Installer OR Authenticate Google Contacts */}
@@ -675,11 +711,7 @@ export default function InstallersPage() {
                 title="Register New Installer"
                 className="gap-2"
               >
-                <IconAdd
-                  duotone={false}
-                  width={2}
-                  className={cn("h-3.5 w-3.5")}
-                />
+                <IconAdd width={2} className="h-3.5 w-3.5" />
                 Register New Installer
               </Button>
             ) : (
@@ -803,11 +835,131 @@ export default function InstallersPage() {
       </div>
 
       <Card>
-        <CardHeader className="!flex-row items-center justify-between w-full bg-muted">
+        <CardHeader className="!flex-row items-center justify-between w-full bg-muted/70 border-b border-border">
           <CardTitle className="text-lg font-semibold">
             Installers Database
           </CardTitle>
           <div className="flex items-center gap-2">
+            {/* DATE RANGE FILTER */}
+            <ToggleGroup
+              type="single"
+              value={filters.dateRange}
+              onValueChange={(value) => {
+                if (!value) return;
+
+                setFilters((prev) => ({
+                  ...prev,
+                  dateRange: value as typeof prev.dateRange,
+                  customStartDate:
+                    value !== "custom" ? "" : prev.customStartDate,
+                  customEndDate: value !== "custom" ? "" : prev.customEndDate,
+                }));
+              }}
+              className="h-10 bg-background"
+            >
+              <ToggleGroupItem className="h-max p-2" value="all">
+                ALL
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-max p-2" value="today">
+                1D
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-max p-2" value="week">
+                1W
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-max p-2" value="month">
+                1M
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-max p-2" value="year">
+                1Y
+              </ToggleGroupItem>
+
+              <Popover
+                open={isCustomDateOpen}
+                onOpenChange={setIsCustomDateOpen}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "hidden sm:flex gap-2 rounded-xl py-1.5 px-2 h-max",
+                      filters.dateRange === "custom"
+                        ? "text-primary"
+                        : "text-zinc-400"
+                    )}
+                  >
+                    <IconClockCircle className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+
+                <PopoverContent className="w-auto p-0" align="end">
+                  <div className="space-y-4">
+                    <div className="space-y-2 p-4">
+                      <h4 className="font-medium text-sm">Select Date Range</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Select a custom date range for filtering installers
+                      </p>
+                    </div>
+                    <CalendarComponent
+                      mode="range"
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date("1900-01-01")
+                      }
+                    />
+                    <div className="flex gap-2 pt-2 border-t border-border p-4">
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          if (dateRange?.from && dateRange?.to) {
+                            // Convert dates to local date strings (YYYY-MM-DD)
+                            const fromDate = new Date(
+                              dateRange.from.getTime() -
+                                dateRange.from.getTimezoneOffset() * 60000
+                            );
+                            const toDate = new Date(
+                              dateRange.to.getTime() -
+                                dateRange.to.getTimezoneOffset() * 60000
+                            );
+
+                            setFilters((prev) => ({
+                              ...prev,
+                              dateRange: "custom",
+                              customStartDate: fromDate
+                                .toISOString()
+                                .split("T")[0],
+                              customEndDate: toDate.toISOString().split("T")[0],
+                            }));
+                            setIsCustomDateOpen(false);
+                          }
+                        }}
+                        disabled={!dateRange?.from || !dateRange?.to}
+                      >
+                        Apply
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setDateRange(undefined);
+                          setFilters((prev) => ({
+                            ...prev,
+                            dateRange: "all",
+                            customStartDate: "",
+                            customEndDate: "",
+                          }));
+                          setIsCustomDateOpen(false);
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </ToggleGroup>
             <Button
               variant="outline"
               onClick={handleDownloadReport}
@@ -818,20 +970,16 @@ export default function InstallersPage() {
             >
               {downloadingReport ? (
                 <>
-                  Downloading <Loading className="size-4" />
+                  Downloading <Loading />
                 </>
               ) : loading ? (
                 <>
-                  Generating <Loading className="size-4" />
+                  Generating <Loading />
                 </>
               ) : (
                 <>
                   Export
-                  <IconSquareShareLine
-                    duotone={false}
-                    width={2}
-                    className="h-4 w-4"
-                  />
+                  <IconSquareShareLine width={2} />
                 </>
               )}
             </Button>
@@ -839,7 +987,7 @@ export default function InstallersPage() {
               <DropdownTrigger asChild>
                 <Button variant="outline" className="gap-2">
                   Columns
-                  <IconLayer duotone={false} width={2} className="h-4 w-4" />
+                  <IconLayer width={2} />
                 </Button>
               </DropdownTrigger>
               <DropdownContent className="w-54 p-2 pr-0.5">
@@ -849,7 +997,7 @@ export default function InstallersPage() {
                 <ScrollArea className="h-72 pr-2 rounded-xl">
                   <div className="space-y-1 w-[98%]">
                     {Object.entries(visibleColumns).map(([key, value]) => (
-                      <label
+                      <Label
                         key={key}
                         className={cn(
                           "flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-accent transition-colors whitespace-nowrap",
@@ -866,7 +1014,7 @@ export default function InstallersPage() {
                         <span className="capitalize text-sm">
                           {key.replace(/([A-Z])/g, " $1").trim()}
                         </span>
-                      </label>
+                      </Label>
                     ))}
                   </div>
                 </ScrollArea>
@@ -874,511 +1022,339 @@ export default function InstallersPage() {
             </Dropdown>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="mb-4 flex items-center justify-between gap-2">
+            {/* SEARCH */}
             <Input
               type="text"
               placeholder="Search by name, code, CNIC, phone, WhatsApp, account, company..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="flex-1"
+              className="grow h-10"
             />
-            <Button
-              className="gap-2 rounded-full"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              Filters <IconSetting4 className="size-4" duotone={false} />
-            </Button>
           </div>
-          {showFilters && (
-            <AnimatePresence>
-              <MotionCard
-                key="filters"
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 5 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="mb-4 !p-4 bg-muted/30"
-              >
-                <CardContent className="p-0 ">
-                  <div className="flex items-center gap-2">
-                    <IconSetting4 className="size-4" duotone={false} />
-                    Filters
-                  </div>
-                  <div className="space-y-4">
-                    {/* Date Range Filter */}
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          Date Range
-                        </label>
-                        <Select
-                          value={filters.dateRange}
-                          onValueChange={(value) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              dateRange: value as typeof prev.dateRange,
-                              customStartDate:
-                                value !== "custom" ? "" : prev.customStartDate,
-                              customEndDate:
-                                value !== "custom" ? "" : prev.customEndDate,
-                            }))
-                          }
+          <Card className="overflow-visible">
+            <CardHeader className="border-b border-border flex-row justify-between items-center bg-muted/20 rounded-t-3xl">
+              <h3 className="flex items-center gap-2">
+                <IconDocumentFilter className="size-6" duotone />
+                Filters
+              </h3>
+              {/* SORT FILTER */}
+              <Dropdown>
+                <DropdownTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className="gap-2 rounded-xl"
+                    size={"sm"}
+                  >
+                    {sortField === "fullName" && "Name"}
+                    {sortField === "createdAt" && "Date Joined"}
+                    {sortField === "trainingCenter" && "Training Center"}
+                    {sortField === "city" && "City"}
+                    {sortField === "province" && "Province"}
+                    {![
+                      "fullName",
+                      "createdAt",
+                      "trainingCenter",
+                      "city",
+                      "province",
+                    ].includes(sortField) && "Sort"}
+                    {sortDirection === "asc" ? (
+                      <IconSortFromTopToBottom duotone />
+                    ) : (
+                      <IconSortFromBottomToTop duotone />
+                    )}
+                  </Button>
+                </DropdownTrigger>
+                <DropdownContent align="right" className="w-46">
+                  <div className="px-1 py-1 flex flex-col gap-1">
+                    {[
+                      {
+                        label: "Name",
+                        field: "fullName" as keyof InstallerWithId,
+                        icon: IconBuildings2,
+                      },
+                      {
+                        label: "Date Joined",
+                        field: "createdAt" as keyof InstallerWithId,
+                        icon: IconClock,
+                      },
+                      {
+                        label: "Training Center",
+                        field: "trainingCenter" as keyof InstallerWithId,
+                        icon: IconTrainingCenter,
+                      },
+                      {
+                        label: "City",
+                        field: "city" as keyof InstallerWithId,
+                        icon: IconBuildings2,
+                      },
+                      {
+                        label: "Province",
+                        field: "province" as keyof InstallerWithId,
+                        icon: IconBuildings2,
+                      },
+                    ].map(({ field, label, icon: Icon }) => {
+                      return (
+                        <Button
+                          key={field}
+                          variant={sortField === field ? "secondary" : "ghost"}
+                          className={cn(
+                            "gap-2 rounded-xl justify-between",
+                            sortField !== field && "text-muted-foreground"
+                          )}
+                          size="sm"
+                          onClick={() => handleSort(field)}
                         >
-                          <div className="flex items-center gap-3">
-                            <ToggleGroup
-                              type="single"
-                              defaultValue={filters.dateRange}
-                              onValueChange={(value) =>
-                                setFilters((prev) => ({
-                                  ...prev,
-                                  dateRange: value as typeof prev.dateRange,
-                                  customStartDate:
-                                    value !== "custom"
-                                      ? ""
-                                      : prev.customStartDate,
-                                  customEndDate:
-                                    value !== "custom"
-                                      ? ""
-                                      : prev.customEndDate,
-                                }))
-                              }
-                            >
-                              <ToggleGroupItem value="all">ALL</ToggleGroupItem>
-                              <ToggleGroupItem value="today">
-                                1D
-                              </ToggleGroupItem>
-                              <ToggleGroupItem value="week">1W</ToggleGroupItem>
-                              <ToggleGroupItem value="month">
-                                1M
-                              </ToggleGroupItem>
-                              <ToggleGroupItem value="year">1Y</ToggleGroupItem>
-
-                              <Popover
-                              // open={isCustomDateOpen}
-                              // onOpenChange={setIsCustomDateOpen}
-                              >
-                                <PopoverTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className={cn(
-                                      "hidden sm:flex gap-2 rounded-xl text-zinc-400 px-2"
-                                    )}
-                                  >
-                                    <IconClockCircle
-                                      className="h-5 w-5"
-                                      duotone={false}
-                                    />
-                                  </Button>
-                                </PopoverTrigger>
-
-                                <PopoverContent className="w-80" align="end">
-                                  <div className="space-y-4">
-                                    <div className="space-y-2">
-                                      <h4 className="font-medium text-sm">
-                                        Custom Date Range
-                                      </h4>
-                                      <p className="text-xs text-muted-foreground">
-                                        Select a custom date range for filtering
-                                        dashboard data
-                                      </p>
-                                    </div>
-                                    <div className="space-y-3">
-                                      <div className="space-y-1.5">
-                                        <Label
-                                          htmlFor="start-date"
-                                          className="text-xs"
-                                        >
-                                          Start Date
-                                        </Label>
-                                        <Input
-                                          id="start-date"
-                                          type="date"
-                                          // value={customStartDate}
-                                          // onChange={(e) =>
-                                          //   setCustomStartDate(
-                                          //     e.target.value
-                                          //   )
-                                          // }
-                                          // max={customEndDate || undefined}
-                                        />
-                                      </div>
-                                      <div className="space-y-1.5">
-                                        <Label
-                                          htmlFor="end-date"
-                                          className="text-xs"
-                                        >
-                                          End Date
-                                        </Label>
-                                        <Input
-                                          id="end-date"
-                                          type="date"
-                                          // value={customEndDate}
-                                          // onChange={(e) =>
-                                          //   setCustomEndDate(e.target.value)
-                                          // }
-                                          // min={customStartDate || undefined}
-                                          // max={
-                                          //   new Date()
-                                          //     .toISOString()
-                                          //     .split("T")[0]
-                                          // }
-                                        />
-                                      </div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <Button
-                                        size="sm"
-                                        className="flex-1"
-                                        // onClick={() => {
-                                        //   if (
-                                        //     customStartDate &&
-                                        //     customEndDate
-                                        //   ) {
-                                        //     setTimePeriod("custom");
-                                        //     setIsCustomDateOpen(false);
-                                        //   }
-                                        // }}
-                                        // disabled={
-                                        //   !customStartDate || !customEndDate
-                                        // }
-                                      >
-                                        Apply
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => {
-                                          // setCustomStartDate("");
-                                          // setCustomEndDate("");
-                                          // setTimePeriod("last30days");
-                                          // setIsCustomDateOpen(false);
-                                        }}
-                                      >
-                                        Clear
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </PopoverContent>
-                              </Popover>
-                            </ToggleGroup>
+                          <div className="flex items-center leading-none gap-2">
+                            <Icon />
+                            {label}
                           </div>
-                        </Select>
-                      </div>
-
-                      {filters.dateRange === "custom" && (
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium">
-                            Custom Date Range
-                          </label>
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="space-y-1">
-                              <Label
-                                htmlFor="custom-start-date"
-                                className="text-xs"
-                              >
-                                From
-                              </Label>
-                              <Input
-                                id="custom-start-date"
-                                type="date"
-                                value={filters.customStartDate}
-                                onChange={(e) =>
-                                  setFilters((prev) => ({
-                                    ...prev,
-                                    customStartDate: e.target.value,
-                                  }))
-                                }
-                                max={
-                                  filters.customEndDate ||
-                                  new Date().toISOString().split("T")[0]
-                                }
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label
-                                htmlFor="custom-end-date"
-                                className="text-xs"
-                              >
-                                To
-                              </Label>
-                              <Input
-                                id="custom-end-date"
-                                type="date"
-                                value={filters.customEndDate}
-                                onChange={(e) =>
-                                  setFilters((prev) => ({
-                                    ...prev,
-                                    customEndDate: e.target.value,
-                                  }))
-                                }
-                                min={filters.customStartDate}
-                                max={new Date().toISOString().split("T")[0]}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Other Filters */}
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">City</label>
-                        <Select
-                          value={filters.city || "all"}
-                          onValueChange={(value) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              city: value === "all" ? "" : value,
-                            }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="All cities" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All cities</SelectItem>
-                            {uniqueValues.cities.map((city) => (
-                              <SelectItem key={city} value={city}>
-                                {city}
-                              </SelectItem>
+                          {sortField === field &&
+                            (sortDirection === "asc" ? (
+                              <IconSortFromTopToBottom duotone />
+                            ) : (
+                              <IconSortFromBottomToTop duotone />
                             ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Province</label>
-                        <Select
-                          value={filters.province || "all"}
-                          onValueChange={(value) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              province: value === "all" ? "" : value,
-                            }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="All provinces" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All provinces</SelectItem>
-                            {uniqueValues.provinces.map((province) => (
-                              <SelectItem key={province} value={province}>
-                                {province}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">
-                          Training Center
-                        </label>
-                        <Select
-                          value={filters.trainingCenter || "all"}
-                          onValueChange={(value) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              trainingCenter: value === "all" ? "" : value,
-                            }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="All centers" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All centers</SelectItem>
-                            {uniqueValues.trainingCenters.map((center) => (
-                              <SelectItem key={center} value={center}>
-                                {center}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">
-                          Certification
-                        </label>
-                        <Select
-                          value={filters.certified || "all"}
-                          onValueChange={(value) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              certified: value === "all" ? "" : value,
-                            }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="All statuses" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All statuses</SelectItem>
-                            <SelectItem value="true">Certified</SelectItem>
-                            <SelectItem value="false">Not Certified</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Bank</label>
-                        <Select
-                          value={filters.bankName || "all"}
-                          onValueChange={(value) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              bankName: value === "all" ? "" : value,
-                            }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="All banks" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All banks</SelectItem>
-                            {uniqueValues.banks.map((bank) => (
-                              <SelectItem key={bank} value={bank}>
-                                {bank}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+                        </Button>
+                      );
+                    })}
                   </div>
+                </DropdownContent>
+              </Dropdown>
+            </CardHeader>
+            <CardContent className="!p-4 flex gap-2">
+              {/* CITIES FILTER */}
+              <div className="space-y-2 w-full">
+                <Label htmlFor="cityFilter">City</Label>
+                <Select
+                  value={filters.city || "all"}
+                  onValueChange={(value) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      city: value === "all" ? "" : value,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All cities" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All cities</SelectItem>
+                    {uniqueValues.cities.map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* PROVINCES FILTER */}
+              <div className="space-y-2 w-full">
+                <Label htmlFor="cityFilter">Province</Label>
+                <Select
+                  value={filters.province || "all"}
+                  onValueChange={(value) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      province: value === "all" ? "" : value,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All provinces" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All provinces</SelectItem>
+                    {uniqueValues.provinces.map((province) => (
+                      <SelectItem key={province} value={province}>
+                        {province}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  {(filters.city ||
-                    filters.province ||
-                    filters.trainingCenter ||
-                    filters.certified ||
-                    filters.bankName ||
-                    filters.dateRange !== "all") && (
-                    <div className="mt-4 flex items-center justify-between">
-                      <div className="flex flex-wrap gap-2">
-                        {filters.dateRange !== "all" && (
-                          <Badge variant="secondary" className="gap-1">
-                            {filters.dateRange === "today" && "Today"}
-                            {filters.dateRange === "week" && "Last 7 days"}
-                            {filters.dateRange === "month" && "Last 30 days"}
-                            {filters.dateRange === "year" && "Last year"}
-                            {filters.dateRange === "custom" &&
-                              `${filters.customStartDate} to ${filters.customEndDate}`}
-                            <X
-                              className="h-3 w-3 cursor-pointer"
-                              onClick={() =>
-                                setFilters((prev) => ({
-                                  ...prev,
-                                  dateRange: "all",
-                                  customStartDate: "",
-                                  customEndDate: "",
-                                }))
-                              }
-                            />
-                          </Badge>
-                        )}
-                        {filters.city && (
-                          <Badge variant="secondary" className="gap-1">
-                            City: {filters.city}
-                            <X
-                              className="h-3 w-3 cursor-pointer"
-                              onClick={() =>
-                                setFilters((prev) => ({
-                                  ...prev,
-                                  city: "",
-                                }))
-                              }
-                            />
-                          </Badge>
-                        )}
-                        {filters.province && (
-                          <Badge variant="secondary" className="gap-1">
-                            Province: {filters.province}
-                            <X
-                              className="h-3 w-3 cursor-pointer"
-                              onClick={() =>
-                                setFilters((prev) => ({
-                                  ...prev,
-                                  province: "",
-                                }))
-                              }
-                            />
-                          </Badge>
-                        )}
-                        {filters.trainingCenter && (
-                          <Badge variant="secondary" className="gap-1">
-                            Center: {filters.trainingCenter}
-                            <X
-                              className="h-3 w-3 cursor-pointer"
-                              onClick={() =>
-                                setFilters((prev) => ({
-                                  ...prev,
-                                  trainingCenter: "",
-                                }))
-                              }
-                            />
-                          </Badge>
-                        )}
-                        {filters.certified && (
-                          <Badge variant="secondary" className="gap-1">
-                            {filters.certified === "true"
-                              ? "Certified"
-                              : "Not Certified"}
-                            <X
-                              className="h-3 w-3 cursor-pointer"
-                              onClick={() =>
-                                setFilters((prev) => ({
-                                  ...prev,
-                                  certified: "",
-                                }))
-                              }
-                            />
-                          </Badge>
-                        )}
-                        {filters.bankName && (
-                          <Badge variant="secondary" className="gap-1">
-                            Bank: {filters.bankName}
-                            <X
-                              className="h-3 w-3 cursor-pointer"
-                              onClick={() =>
-                                setFilters((prev) => ({
-                                  ...prev,
-                                  bankName: "",
-                                }))
-                              }
-                            />
-                          </Badge>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
+              {/* TRAINING CENTERS FILTER */}
+
+              <div className="space-y-2 w-full">
+                <Label htmlFor="cityFilter">Training Center</Label>
+                <Select
+                  value={filters.trainingCenter || "all"}
+                  onValueChange={(value) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      trainingCenter: value === "all" ? "" : value,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All centers" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All centers</SelectItem>
+                    {uniqueValues.trainingCenters.map((center) => (
+                      <SelectItem key={center} value={center}>
+                        {center}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* CERTIFICATION FILTER */}
+              <div className="space-y-2 w-full">
+                <Label htmlFor="cityFilter">Province</Label>
+                <Select
+                  value={filters.certified || "all"}
+                  onValueChange={(value) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      certified: value === "all" ? "" : value,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    <SelectItem value="true">Certified</SelectItem>
+                    <SelectItem value="false">Not Certified</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+            {(filters.city ||
+              filters.province ||
+              filters.trainingCenter ||
+              filters.certified ||
+              sortField !== "createdAt" ||
+              sortDirection !== "desc" ||
+              filters.dateRange !== "all") && (
+              <CardFooter className="border-t border-border p-4 justify-between">
+                <div className="flex flex-wrap gap-2">
+                  {filters.dateRange !== "all" && (
+                    <Badge variant="secondary" className="gap-1">
+                      {filters.dateRange === "today" && "Today"}
+                      {filters.dateRange === "week" && "Last 7 days"}
+                      {filters.dateRange === "month" && "Last 30 days"}
+                      {filters.dateRange === "year" && "Last year"}
+                      {filters.dateRange === "custom" &&
+                        `${filters.customStartDate} to ${filters.customEndDate}`}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
                         onClick={() =>
-                          setFilters({
-                            city: "",
-                            province: "",
-                            trainingCenter: "",
-                            certified: "",
-                            bankName: "",
+                          setFilters((prev) => ({
+                            ...prev,
                             dateRange: "all",
                             customStartDate: "",
                             customEndDate: "",
-                          })
+                          }))
                         }
-                      >
-                        Clear All
-                      </Button>
-                    </div>
+                      />
+                    </Badge>
                   )}
-                </CardContent>
-              </MotionCard>
-            </AnimatePresence>
-          )}
+                  {filters.city && (
+                    <Badge variant="secondary" className="gap-1">
+                      City: {filters.city}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            city: "",
+                          }))
+                        }
+                      />
+                    </Badge>
+                  )}
+                  {filters.province && (
+                    <Badge variant="secondary" className="gap-1">
+                      Province: {filters.province}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            province: "",
+                          }))
+                        }
+                      />
+                    </Badge>
+                  )}
+                  {filters.trainingCenter && (
+                    <Badge variant="secondary" className="gap-1">
+                      Center: {filters.trainingCenter}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            trainingCenter: "",
+                          }))
+                        }
+                      />
+                    </Badge>
+                  )}
+                  {filters.certified && (
+                    <Badge variant="secondary" className="gap-1">
+                      {filters.certified === "true"
+                        ? "Certified"
+                        : "Not Certified"}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() =>
+                          setFilters((prev) => ({
+                            ...prev,
+                            certified: "",
+                          }))
+                        }
+                      />
+                    </Badge>
+                  )}
+                  {(sortField !== "createdAt" || sortDirection !== "desc") && (
+                    <Badge variant="secondary" className="gap-1">
+                      Sort: {sortField === "fullName" && "Name"}
+                      {sortField === "createdAt" && "Date Joined"}
+                      {sortField === "trainingCenter" && "Training Center"}
+                      {sortField === "city" && "City"}
+                      {sortField === "province" && "Province"}{" "}
+                      {sortDirection === "asc" ? "↑" : "↓"}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() => {
+                          setSortField("createdAt");
+                          setSortDirection("desc");
+                        }}
+                      />
+                    </Badge>
+                  )}
+                </div>
+                {/* FILTER CLEAR BUTTON */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFilters({
+                      city: "",
+                      province: "",
+                      trainingCenter: "",
+                      certified: "",
+                      dateRange: "all",
+                      customStartDate: "",
+                      customEndDate: "",
+                    });
+                    setSortField("createdAt");
+                    setSortDirection("desc");
+                  }}
+                  className="min-w-fit rounded-3xl"
+                >
+                  Clear All
+                </Button>
+              </CardFooter>
+            )}
+          </Card>
 
           <div className="border border-border squircle rounded-2xl overflow-hidden">
             <Table>
@@ -1489,7 +1465,7 @@ export default function InstallersPage() {
                           label: (
                             <div className="flex items-center gap-2">
                               Register Installer
-                              <IconAdd className="size-4" duotone={false} />
+                              <IconAdd />
                             </div>
                           ),
                           onClick: () => router.push("/installers/new"),
@@ -1591,7 +1567,7 @@ export default function InstallersPage() {
                             }}
                             title="Edit"
                           >
-                            <IconEdit2 duotone={false} className="h-4 w-4" />
+                            <IconEdit2 />
                           </Button>
                           {isAdmin && (
                             <AlertDialog>
@@ -1603,10 +1579,7 @@ export default function InstallersPage() {
                                   disabled={deletingId === installer._id}
                                   className="group"
                                 >
-                                  <IconTrashBin2
-                                    duotone={false}
-                                    className="h-4.5 w-4.5 text-destructive-text group-hover:text-destructive-text-hover transition-colors duration-300"
-                                  />
+                                  <IconTrashBin2 className="h-4.5 w-4.5 text-destructive-text group-hover:text-destructive-text-hover transition-colors duration-300" />
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
@@ -1657,11 +1630,7 @@ export default function InstallersPage() {
                       <div className="flex items-center gap-2">
                         <span>Last Updated:</span>
                         <span className="capitalize">
-                          {loading ? (
-                            <Loading className="size-4" />
-                          ) : (
-                            refreshRelTime
-                          )}
+                          {loading ? <Loading /> : refreshRelTime}
                         </span>
                       </div>
                     </div>
@@ -1772,11 +1741,7 @@ export default function InstallersPage() {
                           {bulkDeleting ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            <IconTrashBin2
-                              width={2}
-                              duotone={false}
-                              className="h-4 w-4"
-                            />
+                            <IconTrashBin2 width={2} />
                           )}
                         </Button>
                       </AlertDialogTrigger>

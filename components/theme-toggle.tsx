@@ -21,12 +21,12 @@ type Theme = "light" | "dark" | "system";
 const getThemeIcon = (theme: string | undefined) => {
   switch (theme) {
     case "dark":
-      return <IconMoon className="w-5 h-5" duotone={false} />;
+      return <IconMoon className="w-5 h-5" />;
     case "light":
-      return <IconSun2 className="w-5 h-5" duotone={false} />;
+      return <IconSun2 className="w-5 h-5" />;
     case "system":
     default:
-      return <IconNotebookMinimalistic className="w-5 h-5" duotone={false} />;
+      return <IconNotebookMinimalistic className="w-5 h-5" />;
   }
 };
 
@@ -61,7 +61,7 @@ export function ThemeToggle() {
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-xl hover:border border-border"
+          className="hover:border border-border rounded-full"
         >
           {currentIcon}
         </Button>
@@ -120,7 +120,7 @@ function ThemeOption({
         isActive && "font-medium text-primary bg-secondary"
       )}
     >
-      <Icon className="w-4 h-4 mr-2" duotone={false} />
+      <Icon className="mr-2" />
       {label}
     </Button>
   );

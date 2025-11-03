@@ -3,20 +3,17 @@ import { FC } from "react";
 const IconUserHeartRounded: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="24"
+        <svg className={`size-4 ${className}`} width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <circle
             cx="10"
             cy="6.00049"
@@ -39,14 +36,11 @@ const IconUserHeartRounded: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="24"
+        <svg className={`size-4 ${className}`} width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <circle cx="12" cy="6.00049" r="4" fill="currentColor" />
           <path
             opacity={duotone ? "0.5" : "1"}
@@ -61,14 +55,11 @@ const IconUserHeartRounded: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="24"
+        <svg className={`size-4 ${className}`} width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <circle cx="10" cy="6.00049" r="4" fill="currentColor" />
           <ellipse cx="10" cy="17.0005" rx="7" ry="4" fill="currentColor" />
           <path

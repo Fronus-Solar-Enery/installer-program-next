@@ -164,30 +164,21 @@ export function ReviewStep(props: ReviewStepProps) {
                 valueClass="font-mono tracking-wide"
                 isHighlighted={true}
                 icon={
-                  <IconUserId
-                    duotone={false}
-                    className="h-3.5 w-3.5 text-muted-foreground/90"
-                  />
+                  <IconUserId className="h-3.5 w-3.5 text-muted-foreground/90" />
                 }
               />
               <ReviewItem
                 label="Name"
                 value={installerData?.fullName || "N/A"}
                 icon={
-                  <IconUser
-                    duotone={false}
-                    className="h-3.5 w-3.5 text-muted-foreground/90"
-                  />
+                  <IconUser className="h-3.5 w-3.5 text-muted-foreground/90" />
                 }
               />
               <ReviewItem
                 label="City"
                 value={installerData?.city || "N/A"}
                 icon={
-                  <IconMapPoint
-                    duotone={false}
-                    className="h-3.5 w-3.5 text-muted-foreground/90"
-                  />
+                  <IconMapPoint className="h-3.5 w-3.5 text-muted-foreground/90" />
                 }
               />
               <ReviewItem
@@ -200,10 +191,7 @@ export function ReviewStep(props: ReviewStepProps) {
                 }
                 icon={
                   installerData?.companyName ? (
-                    <IconBuildings
-                      duotone={false}
-                      className="h-3.5 w-3.5 text-muted-foreground/90"
-                    />
+                    <IconBuildings className="h-3.5 w-3.5 text-muted-foreground/90" />
                   ) : undefined
                 }
               />
@@ -224,10 +212,7 @@ export function ReviewStep(props: ReviewStepProps) {
                 fullWidth={true}
                 isHighlighted={true}
                 icon={
-                  <IconProduct
-                    duotone={false}
-                    className="h-3.5 w-3.5 text-muted-foreground/90"
-                  />
+                  <IconProduct className="h-3.5 w-3.5 text-muted-foreground/90" />
                 }
               />
               <ReviewItem
@@ -235,20 +220,14 @@ export function ReviewStep(props: ReviewStepProps) {
                 value={`Rs. ${rewardAmount.toLocaleString()}`}
                 valueClass="text-green-600 font-semibold"
                 icon={
-                  <IconCard
-                    duotone={false}
-                    className="h-3.5 w-3.5 text-muted-foreground/90"
-                  />
+                  <IconCard className="h-3.5 w-3.5 text-muted-foreground/90" />
                 }
               />
               <ReviewItem
                 label="Serial Status"
                 value={selectedStatusLabel}
                 icon={
-                  <IconVerify
-                    duotone={false}
-                    className="h-3.5 w-3.5 text-muted-foreground/90"
-                  />
+                  <IconVerify className="h-3.5 w-3.5 text-muted-foreground/90" />
                 }
               />
               {isBatteryProduct && (
@@ -258,10 +237,7 @@ export function ReviewStep(props: ReviewStepProps) {
                   valueClass="font-mono tracking-wide"
                   fullWidth={true}
                   icon={
-                    <IconSerialNumber
-                      duotone={false}
-                      className="h-3.5 w-3.5 text-muted-foreground/90"
-                    />
+                    <IconSerialNumber className="h-3.5 w-3.5 text-muted-foreground/90" />
                   }
                 />
               )}
@@ -270,10 +246,7 @@ export function ReviewStep(props: ReviewStepProps) {
                 value={cityOfInstallation}
                 fullWidth={true}
                 icon={
-                  <IconMapPoint
-                    duotone={false}
-                    className="h-3.5 w-3.5 text-muted-foreground/90"
-                  />
+                  <IconMapPoint className="h-3.5 w-3.5 text-muted-foreground/90" />
                 }
               />
               {/* <ReviewItem
@@ -297,10 +270,7 @@ export function ReviewStep(props: ReviewStepProps) {
                 value={installerData?.accountTitle || "N/A"}
                 fullWidth={true}
                 icon={
-                  <IconUser
-                    duotone={false}
-                    className="h-3.5 w-3.5 text-muted-foreground/90"
-                  />
+                  <IconUser className="h-3.5 w-3.5 text-muted-foreground/90" />
                 }
               />
               <ReviewItem
@@ -308,10 +278,7 @@ export function ReviewStep(props: ReviewStepProps) {
                 value={installerData?.accountNumber || "N/A"}
                 valueClass="font-mono tracking-wide"
                 icon={
-                  <IconCard
-                    duotone={false}
-                    className="h-3.5 w-3.5 text-muted-foreground/90"
-                  />
+                  <IconCard className="h-3.5 w-3.5 text-muted-foreground/90" />
                 }
               />
               <ReviewItem
@@ -319,10 +286,7 @@ export function ReviewStep(props: ReviewStepProps) {
                 value={installerData?.bankName ?? ""}
                 isHighlighted={true}
                 icon={
-                  <IconBank
-                    duotone={false}
-                    className="h-3.5 w-3.5 text-muted-foreground/90"
-                  />
+                  <IconBank className="h-3.5 w-3.5 text-muted-foreground/90" />
                 }
               />
             </div>
@@ -342,10 +306,7 @@ export function ReviewStep(props: ReviewStepProps) {
                   value={installerData?.referrer?.fullName}
                   fullWidth={true}
                   icon={
-                    <IconUser
-                      duotone={false}
-                      className="h-3.5 w-3.5 text-muted-foreground/90"
-                    />
+                    <IconUser className="h-3.5 w-3.5 text-muted-foreground/90" />
                   }
                 />
                 <ReviewItem
@@ -354,10 +315,7 @@ export function ReviewStep(props: ReviewStepProps) {
                   valueClass="font-mono tracking-wide"
                   isHighlighted={true}
                   icon={
-                    <IconUserId
-                      duotone={false}
-                      className="h-3.5 w-3.5 text-muted-foreground/90"
-                    />
+                    <IconUserId className="h-3.5 w-3.5 text-muted-foreground/90" />
                   }
                 />
                 <ReviewItem
@@ -365,10 +323,7 @@ export function ReviewStep(props: ReviewStepProps) {
                   value="Rs. 500"
                   valueClass="text-green-600 font-semibold"
                   icon={
-                    <IconCard
-                      duotone={false}
-                      className="h-3.5 w-3.5 text-muted-foreground/90"
-                    />
+                    <IconCard className="h-3.5 w-3.5 text-muted-foreground/90" />
                   }
                 />
               </div>

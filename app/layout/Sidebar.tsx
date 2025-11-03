@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { FC, useMemo, useCallback, memo, useRef, forwardRef } from "react";
 import IconDashboard from "@/components/icons/Dashboard";
-import IconUserCog from "@/components/icons/UserCog";
 import IconUsersGroupRounded from "@/components/icons/UsersGroupRounded";
 import IconSettings from "@/components/icons/Settings";
 import IconDocument from "@/components/icons/Document";
@@ -26,7 +25,7 @@ import {
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { IconAltArrowLeft } from "@/components/icons";
+import { IconAltArrowLeft, IconInstaller } from "@/components/icons";
 
 // Types
 export interface NavItem {
@@ -67,7 +66,7 @@ const DEFAULT_NAV_ITEMS: NavItem[] = [
   {
     title: "Installers",
     href: "/installers",
-    Icon: IconUserCog,
+    Icon: IconInstaller,
     show: true,
   },
   {
@@ -550,6 +549,7 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
           <Icon
             className={cn("navitem-icon shrink-0 w-5 h-5")}
             fill={isActive}
+            duotone
           />
         </div>
         <div className="flex items-center justify-between flex-1 overflow-hidden navlink-title">

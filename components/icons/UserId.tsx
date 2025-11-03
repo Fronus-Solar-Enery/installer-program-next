@@ -3,21 +3,18 @@ import { FC } from "react";
 const IconUserId: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   opacity = "0.4",
   width = "1.5",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="24"
+        <svg className={`size-4 ${className}`} width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <circle
             cx="9"
             cy="9.00049"
@@ -57,14 +54,11 @@ const IconUserId: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="24"
+        <svg className={`size-4 ${className}`} width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             opacity={duotone ? opacity : "1"}
             d="M14 4.00049H10C6.22876 4.00049 4.34315 4.00049 3.17157 5.17206C2 6.34363 2 8.22925 2 12.0005C2 15.7717 2 17.6573 3.17157 18.8289C4.34315 20.0005 6.22876 20.0005 10 20.0005H14C17.7712 20.0005 19.6569 20.0005 20.8284 18.8289C22 17.6573 22 15.7717 22 12.0005C22 8.22925 22 6.34363 20.8284 5.17206C19.6569 4.00049 17.7712 4.00049 14 4.00049Z"
@@ -92,14 +86,11 @@ const IconUserId: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="24"
+        <svg className={`size-4 ${className}`} width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             fillRule="evenodd"
             clipRule="evenodd"

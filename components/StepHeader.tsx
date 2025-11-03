@@ -36,7 +36,12 @@ export function StepHeader({
   return (
     <CardHeader className="p-6 rounded-3xl border text-card-foreground bg-card border-border">
       <CardTitle className="text-base flex items-center gap-2">
-        <Icon className="h-12 w-12 mr-2 text-primary" fill opacity="0.2" />
+        <Icon
+          className="h-12 w-12 mr-2 text-primary"
+          fill
+          duotone
+          opacity="0.2"
+        />
         <motion.div
           variants={containerVariants}
           initial="hidden"

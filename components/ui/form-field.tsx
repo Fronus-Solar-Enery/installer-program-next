@@ -152,10 +152,7 @@ export function FormField(props: FormFieldProps) {
             <>
               {nonCheckboxProps.icon && iconPosition === "left" && (
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none z-10">
-                  <nonCheckboxProps.icon
-                    className="size-4.5 text-muted-foreground"
-                    duotone={false}
-                  />
+                  <nonCheckboxProps.icon className="size-4.5 text-muted-foreground" />
                 </div>
               )}
               <SearchableSelect
@@ -179,10 +176,7 @@ export function FormField(props: FormFieldProps) {
               />
               {nonCheckboxProps.icon && iconPosition === "right" && (
                 <div className="absolute right-10 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <nonCheckboxProps.icon
-                    className="h-4 w-4 text-muted-foreground"
-                    duotone={false}
-                  />
+                  <nonCheckboxProps.icon className="text-muted-foreground" />
                 </div>
               )}
             </>
@@ -190,10 +184,7 @@ export function FormField(props: FormFieldProps) {
             <>
               {nonCheckboxProps.icon && iconPosition === "left" && (
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none z-10">
-                  <nonCheckboxProps.icon
-                    className="size-4.5 text-muted-foreground"
-                    duotone={false}
-                  />
+                  <nonCheckboxProps.icon className="size-4.5 text-muted-foreground" />
                 </div>
               )}
               <Select
@@ -231,10 +222,7 @@ export function FormField(props: FormFieldProps) {
               </Select>
               {nonCheckboxProps.icon && iconPosition === "right" && (
                 <div className="absolute right-10 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <nonCheckboxProps.icon
-                    className="h-4 w-4 text-muted-foreground"
-                    duotone={false}
-                  />
+                  <nonCheckboxProps.icon className="text-muted-foreground" />
                 </div>
               )}
             </>
@@ -247,10 +235,7 @@ export function FormField(props: FormFieldProps) {
           <div className="relative">
             {nonCheckboxProps.icon && iconPosition === "left" && (
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <nonCheckboxProps.icon
-                  className="h-4.5 w-4.5 text-muted-foreground"
-                  duotone={false}
-                />
+                <nonCheckboxProps.icon className="h-4.5 w-4.5 text-muted-foreground" />
               </div>
             )}
             <Input
@@ -280,10 +265,7 @@ export function FormField(props: FormFieldProps) {
             />
             {nonCheckboxProps.icon && iconPosition === "right" && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <nonCheckboxProps.icon
-                  className="h-4 w-4 text-muted-foreground"
-                  duotone={false}
-                />
+                <nonCheckboxProps.icon className="text-muted-foreground" />
               </div>
             )}
           </div>

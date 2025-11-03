@@ -1,24 +1,19 @@
 import { FC } from "react";
 
-
-
 const IconCalendar: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M8.66992 2V5"
             stroke="currentColor"
@@ -59,14 +54,11 @@ const IconCalendar: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             fillRule="evenodd"
             clipRule="evenodd"
@@ -94,14 +86,11 @@ const IconCalendar: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M8.91992 5.75C8.50992 5.75 8.16992 5.41 8.16992 5V2C8.16992 1.59 8.50992 1.25 8.91992 1.25C9.32992 1.25 9.66992 1.59 9.66992 2V5C9.66992 5.41 9.32992 5.75 8.91992 5.75Z"
             fill="currentColor"

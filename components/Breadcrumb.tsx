@@ -12,7 +12,6 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip";
 import { BreadcrumbItem } from "@/contexts/BreadcrumbContext";
-import { IconProps } from "./icons/Widget";
 
 interface BreadcrumbProps {
   className?: string;
@@ -84,7 +83,7 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({
         // Render icon component safely
         const IconComp = item.icon as React.FC<IconProps> | undefined;
         const iconElement = IconComp ? (
-          <IconComp className={cn(iconClassName ?? "w-4 h-4")} fill={!isLast} />
+          <IconComp fill={!isLast} duotone />
         ) : null;
 
         return (

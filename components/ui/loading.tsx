@@ -5,7 +5,7 @@ const Loading = ({ className }: { className?: string }) => {
   return (
     <div aria-label="Loading..." role="status">
       <svg
-        className={cn("animate-spin fill-primary", className)}
+        className={cn("size-3.5 animate-spin fill-primary", className)}
         viewBox="3 3 18 18"
       >
         <path

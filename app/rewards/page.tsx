@@ -551,7 +551,6 @@ export default function RewardsPage() {
             >
               Refresh
               <IconRefresh2
-                duotone={false}
                 width={2}
                 className={cn("h-3.5 w-3.5", loading && "animate-spin")}
               />
@@ -564,7 +563,7 @@ export default function RewardsPage() {
               className="gap-2"
             >
               Bulk Update
-              <IconLayer duotone={false} width={2} className="h-3.5 w-3.5" />
+              <IconLayer width={2} className="h-3.5 w-3.5" />
             </Button>
             <Button
               onClick={() => router.push("/rewards/new")}
@@ -572,7 +571,7 @@ export default function RewardsPage() {
               title="Register New Installation"
               className="gap-2"
             >
-              <IconAdd duotone={false} width={2} className="h-3.5 w-3.5" />
+              <IconAdd width={2} className="h-3.5 w-3.5" />
               Add Installation
             </Button>
           </div>
@@ -659,20 +658,16 @@ export default function RewardsPage() {
             >
               {downloadingReport ? (
                 <>
-                  Downloading <Loading className="size-4" />
+                  Downloading <Loading />
                 </>
               ) : loading ? (
                 <>
-                  Generating <Loading className="size-4" />
+                  Generating <Loading />
                 </>
               ) : (
                 <>
                   Export
-                  <IconSquareShareLine
-                    duotone={false}
-                    width={2}
-                    className="h-4 w-4"
-                  />
+                  <IconSquareShareLine width={2} />
                 </>
               )}
             </Button>
@@ -824,7 +819,7 @@ export default function RewardsPage() {
               <DropdownTrigger asChild>
                 <Button variant="outline" className="gap-2">
                   Columns
-                  <IconLayer duotone={false} width={2} className="h-4 w-4" />
+                  <IconLayer width={2} />
                 </Button>
               </DropdownTrigger>
               <DropdownContent className="w-54 p-2 pr-0.5">
@@ -974,7 +969,7 @@ export default function RewardsPage() {
                           label: (
                             <div className="flex items-center gap-2">
                               Register Product
-                              <IconAdd className="size-4" duotone={false} />
+                              <IconAdd />
                             </div>
                           ),
                           onClick: () => router.push("/rewards/new"),
@@ -1092,7 +1087,7 @@ export default function RewardsPage() {
                               }
                               title="View Details"
                             >
-                              <IconEye duotone={false} className="h-4 w-4" />
+                              <IconEye />
                             </Button>
                             <Button
                               variant="ghost"
@@ -1103,7 +1098,7 @@ export default function RewardsPage() {
                               }}
                               title="Edit"
                             >
-                              <IconEdit2 duotone={false} className="h-4 w-4" />
+                              <IconEdit2 />
                             </Button>
                             <Button
                               variant="ghost"
@@ -1111,10 +1106,7 @@ export default function RewardsPage() {
                               onClick={() => handleDeleteClick(reward._id)}
                               title="Delete"
                             >
-                              <IconTrashBin2
-                                duotone={false}
-                                className="h-4 w-4 text-destructive-text"
-                              />
+                              <IconTrashBin2 className="text-destructive-text" />
                             </Button>
                           </div>
                         </TableCell>
@@ -1137,11 +1129,7 @@ export default function RewardsPage() {
                       <div className="flex items-center gap-2">
                         <span>Last Updated:</span>
                         <span className="capitalize">
-                          {loading ? (
-                            <Loading className="size-4" />
-                          ) : (
-                            refreshRelTime
-                          )}
+                          {loading ? <Loading /> : refreshRelTime}
                         </span>
                       </div>
                     </div>

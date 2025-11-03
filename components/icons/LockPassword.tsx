@@ -3,20 +3,17 @@ import { FC } from "react";
 const IconLockPassword: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="24"
+        <svg className={`size-4 ${className}`} width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M2 16.0005C2 13.1721 2 11.7578 2.87868 10.8792C3.75736 10.0005 5.17157 10.0005 8 10.0005H16C18.8284 10.0005 20.2426 10.0005 21.1213 10.8792C22 11.7578 22 13.1721 22 16.0005C22 18.8289 22 20.2431 21.1213 21.1218C20.2426 22.0005 18.8284 22.0005 16 22.0005H8C5.17157 22.0005 3.75736 22.0005 2.87868 21.1218C2 20.2431 2 18.8289 2 16.0005Z"
             stroke="currentColor"
@@ -45,14 +42,11 @@ const IconLockPassword: FC<IconProps> = ({
           </g>
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="24"
+        <svg className={`size-4 ${className}`} width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             opacity={duotone ? "0.5" : "1"}
             d="M2 16.0005C2 13.1721 2 11.7578 2.87868 10.8792C3.75736 10.0005 5.17157 10.0005 8 10.0005H16C18.8284 10.0005 20.2426 10.0005 21.1213 10.8792C22 11.7578 22 13.1721 22 16.0005C22 18.8289 22 20.2431 21.1213 21.1218C20.2426 22.0005 18.8284 22.0005 16 22.0005H8C5.17157 22.0005 3.75736 22.0005 2.87868 21.1218C2 20.2431 2 18.8289 2 16.0005Z"
@@ -76,14 +70,11 @@ const IconLockPassword: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="24"
+        <svg className={`size-4 ${className}`} width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             fillRule="evenodd"
             clipRule="evenodd"

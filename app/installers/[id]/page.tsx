@@ -286,7 +286,7 @@ export default function InstallerDetailsPage() {
     const isLoading = !installer?.installerCode || !installer?.fullName;
     const label = isLoading ? (
       <div className="flex items-center gap-2">
-        Loading <Loading className="size-3.5 text-primary" />
+        Loading <Loading />
       </div>
     ) : (
       `${installer.installerCode} ${installer.fullName}`
@@ -337,7 +337,7 @@ export default function InstallerDetailsPage() {
         action={
           <div className="flex gap-3">
             <Button onClick={() => setEditModalOpen(true)} variant="default">
-              <IconEdit2 duotone={false} className="h-4 w-4 mr-2" />
+              <IconEdit2 className="mr-2" />
               Edit
             </Button>
             {isAdmin && (
@@ -345,10 +345,7 @@ export default function InstallerDetailsPage() {
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive">
-                      <IconTrashBin2
-                        duotone={false}
-                        className="h-4.5 w-4.5 mr-2"
-                      />
+                      <IconTrashBin2 className="h-4.5 w-4.5 mr-2" />
                       Delete
                     </Button>
                   </AlertDialogTrigger>
@@ -367,8 +364,7 @@ export default function InstallerDetailsPage() {
                           {installer.installerCode}
                         </span>
                         <span className="mt-2 flex items-center gap-2 text-destructive-text">
-                          <IconInfoCircle className="size-4" duotone={false} />{" "}
-                          This action cannot be undone.
+                          <IconInfoCircle /> This action cannot be undone.
                         </span>
                         {statistics && statistics.totalRewards > 0 && (
                           <span className="block mt-2 text-destructive font-medium">
@@ -410,7 +406,7 @@ export default function InstallerDetailsPage() {
               variant={"outline"}
               className="flex items-center justify-center size-16 rounded-full nosquircle"
             >
-              <IconArrowLeft duotone={false} className="size-5" />
+              <IconArrowLeft className="size-5" />
             </Button>
             <InstallerAvatar
               user={installer.fullName}

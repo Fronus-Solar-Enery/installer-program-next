@@ -403,9 +403,9 @@ export default function GlobalSearchModal({
                     variant={"ghost"}
                   >
                     {copied === installerCode ? (
-                      <IconCheck className="size-3" duotone={false} />
+                      <IconCheck className="size-3" />
                     ) : (
-                      <IconCopy className="size-3" duotone={false} />
+                      <IconCopy className="size-3" />
                     )}
                   </Button>
                 </div>
@@ -478,9 +478,9 @@ export default function GlobalSearchModal({
                         variant={"ghost"}
                       >
                         {copied === installer.installerCode ? (
-                          <IconCheck className="size-3" duotone={false} />
+                          <IconCheck className="size-3" />
                         ) : (
-                          <IconCopy className="size-3" duotone={false} />
+                          <IconCopy className="size-3" />
                         )}
                       </Button>
                     </div>
@@ -489,20 +489,20 @@ export default function GlobalSearchModal({
                 <div className="text-xs text-muted-foreground flex items-center gap-4">
                   {installer.cnic && (
                     <span className="flex items-center gap-1 leading-none">
-                      <IconUserId className="size-3.5" duotone={false} />
+                      <IconUserId className="size-3.5" />
                       {installer.cnic}
                     </span>
                   )}
 
                   {installer.phoneNumber && (
                     <span className="flex items-center gap-1 leading-none">
-                      <IconSmartphone2 className="size-3.5" duotone={false} />
+                      <IconSmartphone2 className="size-3.5" />
                       {installer.phoneNumber}
                     </span>
                   )}
                   {installer.city && (
                     <span className="flex items-center gap-1 leading-none">
-                      <IconMapPoint className="size-3.5" duotone={false} />
+                      <IconMapPoint className="size-3.5" />
                       {installer.city}
                     </span>
                   )}
@@ -572,9 +572,9 @@ export default function GlobalSearchModal({
                       variant={"ghost"}
                     >
                       {copied === reward.serialNumber ? (
-                        <IconCheck className="size-3" duotone={false} />
+                        <IconCheck className="size-3" />
                       ) : (
-                        <IconCopy className="size-3" duotone={false} />
+                        <IconCopy className="size-3" />
                       )}
                     </Button>
                   </div>
@@ -583,21 +583,21 @@ export default function GlobalSearchModal({
               <div className="text-xs text-muted-foreground flex items-center gap-4">
                 {reward.installer?.fullName && (
                   <span className="flex items-center gap-1 leading-none">
-                    <IconUser className="size-3.5" duotone={false} />
+                    <IconUser className="size-3.5" />
                     {reward.installer?.fullName}
                   </span>
                 )}
 
                 {reward.cityOfInstallation && (
                   <span className="flex items-center gap-1 leading-none">
-                    <IconMapPoint className="size-3.5" duotone={false} />
+                    <IconMapPoint className="size-3.5" />
                     {reward.cityOfInstallation}
                   </span>
                 )}
 
                 {reward.rewardAmount && (
                   <span className="flex items-center gap-1 leading-none">
-                    <IconGift className="size-3.5" duotone={false} />
+                    <IconGift className="size-3.5" />
                     {reward.rewardAmount}
                   </span>
                 )}
@@ -642,10 +642,7 @@ export default function GlobalSearchModal({
         {/* Search Input */}
         <div className="flex items-center border-b border-border px-4 py-3 bg-card dark:bg-muted/40 backdrop-blur-2xl rounded-t-3xl">
           <div className="flex items-center w-full">
-            <IconMagnifer
-              duotone={false}
-              className="h-5 w-5 text-muted-foreground mr-3 pointer-events-none"
-            />
+            <IconMagnifer className="h-5 w-5 text-muted-foreground mr-3 pointer-events-none" />
             <Input
               placeholder="Search by installer code, CNIC, phone, serial number, transaction ID..."
               value={searchQuery}

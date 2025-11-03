@@ -213,13 +213,10 @@ export function RegistrationModal({
                                 animate={{ scale: 1 }}
                                 transition={{ type: "spring", stiffness: 500 }}
                               >
-                                <IconCheck
-                                  className="w-5 h-5"
-                                  duotone={false}
-                                />
+                                <IconCheck className="w-5 h-5" />
                               </motion.div>
                             ) : isCurrent ? (
-                              <Loading className="w-4 h-4 fill-background" />
+                              <Loading className="fill-background" />
                             ) : (
                               <span className="text-sm font-medium">
                                 {index + 1}
@@ -263,10 +260,7 @@ export function RegistrationModal({
                   className="mx-auto w-20 h-20 rounded-full bg-success/20 flex items-center justify-center"
                 >
                   <div className="w-16 h-16 rounded-full bg-success flex items-center justify-center">
-                    <IconCheck
-                      className="w-10 h-10 text-success-foreground"
-                      duotone={false}
-                    />
+                    <IconCheck className="w-10 h-10 text-success-foreground" />
                   </div>
                 </motion.div>
 
@@ -356,10 +350,7 @@ export function RegistrationModal({
                   className="mx-auto w-20 h-20 rounded-full bg-destructive/20 flex items-center justify-center"
                 >
                   <div className="w-16 h-16 rounded-full bg-destructive flex items-center justify-center">
-                    <IconClose
-                      className="w-10 h-10 text-destructive-foreground"
-                      duotone={false}
-                    />
+                    <IconClose className="w-10 h-10 text-destructive-foreground" />
                   </div>
                 </motion.div>
 

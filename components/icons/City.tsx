@@ -3,20 +3,17 @@ import { FC } from "react";
 const IconCity: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="24"
+        <svg className={`size-4 ${className}`} width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M17 22V16C17 14.1144 17 13.1716 16.4142 12.5858C15.8284 12 14.8856 12 13 12H11C9.11438 12 8.17157 12 7.58579 12.5858C7 13.1716 7 14.1144 7 16V22"
             stroke="currentColor"
@@ -55,14 +52,11 @@ const IconCity: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="24"
+        <svg className={`size-4 ${className}`} width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             fillRule="evenodd"
             clipRule="evenodd"
@@ -81,14 +75,11 @@ const IconCity: FC<IconProps> = ({
           </g>
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="24"
+        <svg className={`size-4 ${className}`} width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M9.70711 4.79289C9.41421 4.5 8.94281 4.5 8 4.5H7.75V3C7.75 2.58579 7.41421 2.25 7 2.25C6.58579 2.25 6.25 2.58579 6.25 3V4.5H6C5.05719 4.5 4.58579 4.5 4.29289 4.79289C4 5.08579 4 5.55719 4 6.5V6.7038C4.20249 6.65059 4.40564 6.61348 4.60559 6.5866C5.25121 6.4998 6.04487 6.49989 6.9105 6.49999H7.0895C7.95513 6.49989 8.74879 6.4998 9.39441 6.5866C9.59436 6.61348 9.79751 6.65059 9.99999 6.7038L10 6.5C10 5.55719 10 5.08579 9.70711 4.79289Z"
             fill="currentColor"

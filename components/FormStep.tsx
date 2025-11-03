@@ -41,7 +41,7 @@ export function FormStep({
         )}
       >
         {isCompleted ? (
-          <IconCheck duotone={false} className="h-5 w-5" />
+          <IconCheck  className="h-5 w-5" />
         ) : (
           step + 1
         )}

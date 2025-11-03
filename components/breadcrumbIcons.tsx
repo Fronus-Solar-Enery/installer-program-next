@@ -5,9 +5,9 @@ import {
   IconDocument,
   IconEdit,
   IconGift,
+  IconInstaller,
   IconSettings,
   IconUploadMinimalistic,
-  IconUserCog,
   IconUsersGroupRounded,
 } from "./icons";
 
@@ -20,13 +20,13 @@ const IconWrapper = ({
   className?: string;
   fill?: boolean;
 }) => {
-  return <Icon className={className} fill={fill} />;
+  return <Icon className={className} fill={fill} duotone />;
 };
 
 // Map of route segments to their icons
 export const routeIconMap: Record<string, React.FC<IconProps>> = {
   dashboard: (props) => <IconWrapper Icon={IconDashboard} {...props} />,
-  installers: (props) => <IconWrapper Icon={IconUserCog} {...props} />,
+  installers: (props) => <IconWrapper Icon={IconInstaller} {...props} />,
   rewards: (props) => <IconWrapper Icon={IconGift} {...props} />,
   reports: (props) => <IconWrapper Icon={IconDocument} {...props} />,
   settings: (props) => <IconWrapper Icon={IconSettings} {...props} />,

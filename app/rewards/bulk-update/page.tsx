@@ -856,10 +856,7 @@ export default function BulkUploadRewardsPage() {
                       disabled={loading || validating || fileReading}
                       className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer"
                     >
-                      <IconTrashBin2
-                        className="size-5 text-destructive-text hover:text-destructive-text-hover transition-colors"
-                        duotone={false}
-                      />
+                      <IconTrashBin2 className="size-5 text-destructive-text hover:text-destructive-text-hover transition-colors" />
                     </button>
                   </div>
 

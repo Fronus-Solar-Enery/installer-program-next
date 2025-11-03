@@ -3,21 +3,18 @@ import { FC } from "react";
 const IconUsdCoinUsdc: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
   opacity = "0.4",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             opacity={duotone ? opacity : "1"}
             d="M17.6201 16.95C20.3501 14.22 20.3501 9.78 17.6201 7.05"
@@ -62,14 +59,11 @@ const IconUsdCoinUsdc: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path d="M24.6699 0H0.669922V24H24.6699V0Z" fill="none" />
           <path
             opacity={duotone ? opacity : "1"}
@@ -90,14 +84,11 @@ const IconUsdCoinUsdc: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M13.4199 14.52H13.6499C13.9799 14.52 14.2599 14.22 14.2599 13.85C14.2599 13.38 14.1499 13.32 13.8299 13.21L13.4199 13.07V14.52Z"
             fill="none"

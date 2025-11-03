@@ -3,21 +3,18 @@ import { FC } from "react";
 const IconBoxTick: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
   opacity = "0.4",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M23.6711 17.91C23.6911 18.66 23.4911 19.37 23.1311 19.98C22.9311 20.34 22.6611 20.6701 22.3611 20.9401C21.6711 21.5801 20.7611 21.9701 19.7511 22.0001C18.2911 22.0301 17.0011 21.2801 16.2911 20.1301C15.9111 19.5401 15.6811 18.8301 15.6711 18.0801C15.6411 16.8201 16.2011 15.6801 17.1011 14.9301C17.7811 14.3701 18.6411 14.0201 19.5811 14.0001C21.7911 13.9501 23.6211 15.7 23.6711 17.91Z"
             stroke="currentColor"
@@ -58,14 +55,11 @@ const IconBoxTick: FC<IconProps> = ({
           </g>
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             opacity={duotone ? opacity : "1"}
             d="M20.0198 5.65995L13.7298 2.27C13.0698 1.91 12.2698 1.91 11.5998 2.27L5.30984 5.65995C4.84984 5.90995 4.56982 6.39998 4.56982 6.93998C4.56982 7.47998 4.84984 7.96995 5.30984 8.21995L11.5998 11.61C11.9298 11.79 12.2998 11.88 12.6598 11.88C13.0198 11.88 13.3898 11.79 13.7198 11.61L20.0098 8.21995C20.4698 7.96995 20.7498 7.47998 20.7498 6.93998C20.7698 6.39998 20.4798 5.90995 20.0198 5.65995Z"
@@ -87,14 +81,11 @@ const IconBoxTick: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M18.2709 5.30979L12.6209 2.26979C12.0209 1.94979 11.3109 1.94979 10.7109 2.26979L5.07088 5.30979C4.66088 5.53979 4.40088 5.97978 4.40088 6.45978C4.40088 6.94979 4.65088 7.38979 5.07088 7.60979L10.7209 10.6498C11.0209 10.8098 11.3509 10.8898 11.6709 10.8898C11.9909 10.8898 12.3309 10.8098 12.6209 10.6498L18.2709 7.60979C18.6809 7.38979 18.9409 6.94979 18.9409 6.45978C18.9409 5.97978 18.6809 5.53979 18.2709 5.30979Z"
             fill="currentColor"

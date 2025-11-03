@@ -1,23 +1,19 @@
 import { FC } from "react";
-import { IconProps } from "./Whatsapp";
 
 const IconUserCog: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="24"
+        <svg className={`size-4 ${className}`} width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <circle
             cx="12"
             cy="6"
@@ -41,14 +37,11 @@ const IconUserCog: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="24"
+        <svg className={`size-4 ${className}`} width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <circle cx="10.6262" cy="5.96169" r="4.27931" fill="currentColor" />
           <path
             opacity={duotone ? "0.5" : "1"}
@@ -63,14 +56,11 @@ const IconUserCog: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="24"
+        <svg className={`size-4 ${className}`} width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <circle cx="10.6262" cy="5.96169" r="4.27931" fill="currentColor" />
           <path
             opacity={duotone ? "0.5" : "1"}

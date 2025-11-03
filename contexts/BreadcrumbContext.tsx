@@ -1,7 +1,6 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback } from "react";
-import { IconProps } from "@/components/icons/Widget";
 
 export interface BreadcrumbItem {
   label: string | React.ReactNode;

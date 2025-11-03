@@ -3,20 +3,17 @@ import { FC } from "react";
 const IconUserEdit: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M12.6699 12C15.4313 12 17.6699 9.76142 17.6699 7C17.6699 4.23858 15.4313 2 12.6699 2C9.9085 2 7.66992 4.23858 7.66992 7C7.66992 9.76142 9.9085 12 12.6699 12Z"
             stroke="currentColor"
@@ -50,14 +47,11 @@ const IconUserEdit: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M12.6699 12C15.4313 12 17.6699 9.76142 17.6699 7C17.6699 4.23858 15.4313 2 12.6699 2C9.9085 2 7.66992 4.23858 7.66992 7C7.66992 9.76142 9.9085 12 12.6699 12Z"
             fill="currentColor"
@@ -73,14 +67,11 @@ const IconUserEdit: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M12.6699 2C9.90992 2 7.66992 4.24 7.66992 7C7.66992 9.76 9.90992 12 12.6699 12C15.4299 12 17.6699 9.76 17.6699 7C17.6699 4.24 15.4299 2 12.6699 2ZM14.8399 6.51L12.1399 9.21C12.0399 9.31 11.8299 9.41 11.6899 9.44L10.6599 9.58C10.2799 9.63 10.0199 9.37 10.0799 9L10.2299 7.97C10.2499 7.83 10.3499 7.62 10.4599 7.52L13.1599 4.82C13.6199 4.36 14.1699 4.14 14.8499 4.82C15.5199 5.51 15.2999 6.05 14.8399 6.51Z"
             fill="currentColor"

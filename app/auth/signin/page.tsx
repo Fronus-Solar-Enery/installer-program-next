@@ -22,12 +22,6 @@ import ProgramLogo from "@/components/ProgramLogo";
 import { Checkbox } from "@/components/ui/checkbox";
 import { IconEye, IconLockPassword, IconSms } from "@/components/icons";
 import Loading from "@/components/ui/loading";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 function SignInForm() {
   const router = useRouter();
@@ -98,12 +92,16 @@ function SignInForm() {
     setPasswordError("");
 
     // Set field-specific errors based on message content
-    if (errorMessage.toLowerCase().includes("no account found") ||
-        errorMessage.toLowerCase().includes("email address") ||
-        errorMessage.toLowerCase().includes("not registered")) {
+    if (
+      errorMessage.toLowerCase().includes("no account found") ||
+      errorMessage.toLowerCase().includes("email address") ||
+      errorMessage.toLowerCase().includes("not registered")
+    ) {
       setEmailError("This email is not registered");
-    } else if (errorMessage.toLowerCase().includes("incorrect password") ||
-               errorMessage.toLowerCase().includes("password is incorrect")) {
+    } else if (
+      errorMessage.toLowerCase().includes("incorrect password") ||
+      errorMessage.toLowerCase().includes("password is incorrect")
+    ) {
       setPasswordError("Password is incorrect");
     } else if (errorMessage.toLowerCase().includes("password")) {
       // Generic password error
@@ -205,10 +203,7 @@ function SignInForm() {
                       : ""
                   )}
                 />
-                <IconSms
-                  duotone={false}
-                  className="absolute -translate-y-1/2 top-1/2 left-3 size-4.5"
-                />
+                <IconSms className="absolute -translate-y-1/2 top-1/2 left-3 size-4.5" />
               </div>
               {emailError && (
                 <p className="text-sm text-destructive flex items-center gap-1">
@@ -237,15 +232,9 @@ function SignInForm() {
                       : ""
                   )}
                 />
-                <IconLockPassword
-                  duotone={false}
-                  className="absolute -translate-y-1/2 top-1/2 left-3 size-4.5"
-                />
+                <IconLockPassword className="absolute -translate-y-1/2 top-1/2 left-3 size-4.5" />
                 <div className="select-none" onClick={toggleShowPassword}>
-                  <IconEye
-                    duotone={false}
-                    className="absolute -translate-y-1/2 top-1/2 right-3 size-4.5 z-10 cursor-pointer text-muted-foreground/70 hover:text-muted-foreground transition-colors active:translate-y-[-45%]"
-                  />
+                  <IconEye className="absolute -translate-y-1/2 top-1/2 right-3 size-4.5 z-10 cursor-pointer text-muted-foreground/70 hover:text-muted-foreground transition-colors active:translate-y-[-45%]" />
                 </div>
               </div>
               {passwordError && (
@@ -263,7 +252,7 @@ function SignInForm() {
             >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <Loading className="size-4 fill-background" />
+                  <Loading className="fill-background" />
                   Signing in...
                 </span>
               ) : (
@@ -295,11 +284,13 @@ function SignInForm() {
 
 export default function SignInPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <Loading className="size-8" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <Loading className="size-8" />
+        </div>
+      }
+    >
       <SignInForm />
     </Suspense>
   );

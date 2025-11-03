@@ -3,21 +3,18 @@ import { FC } from "react";
 const IconBank: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
   opacity = "0.4",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M13.0399 2.14984L22.0399 5.74982C22.3899 5.88982 22.6699 6.30981 22.6699 6.67981V9.99982C22.6699 10.5498 22.2199 10.9998 21.6699 10.9998H3.66992C3.11992 10.9998 2.66992 10.5498 2.66992 9.99982V6.67981C2.66992 6.30981 2.94993 5.88982 3.29993 5.74982L12.2999 2.14984C12.4999 2.06984 12.8399 2.06984 13.0399 2.14984Z"
             stroke="currentColor"
@@ -98,14 +95,11 @@ const IconBank: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M22.6699 19V22H2.66992V19C2.66992 18.45 3.11992 18 3.66992 18H21.6699C22.2199 18 22.6699 18.45 22.6699 19Z"
             fill="currentColor"
@@ -144,14 +138,11 @@ const IconBank: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M22.6699 19V22H2.66992V19C2.66992 18.45 3.11992 18 3.66992 18H21.6699C22.2199 18 22.6699 18.45 22.6699 19Z"
             fill="currentColor"

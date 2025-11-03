@@ -1,24 +1,19 @@
 import { FC } from "react";
 
-
-
 const IconDashboard: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M22.6699 10.9V4.1C22.6699 2.6 22.0299 2 20.4399 2H16.3999C14.8099 2 14.1699 2.6 14.1699 4.1V10.9C14.1699 12.4 14.8099 13 16.3999 13H20.4399C22.0299 13 22.6699 12.4 22.6699 10.9Z"
             stroke="currentColor"
@@ -51,14 +46,11 @@ const IconDashboard: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M22.1699 10.9V4.1C22.1699 2.6 21.5299 2 19.9399 2H15.8999C14.3099 2 13.6699 2.6 13.6699 4.1V10.9C13.6699 12.4 14.3099 13 15.8999 13H19.9399C21.5299 13 22.1699 12.4 22.1699 10.9Z"
             fill="currentColor"
@@ -79,14 +71,11 @@ const IconDashboard: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M22.1699 10.9V4.1C22.1699 2.6 21.5299 2 19.9399 2H15.8999C14.3099 2 13.6699 2.6 13.6699 4.1V10.9C13.6699 12.4 14.3099 13 15.8999 13H19.9399C21.5299 13 22.1699 12.4 22.1699 10.9Z"
             fill="currentColor"

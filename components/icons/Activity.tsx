@@ -3,20 +3,17 @@ import { FC } from "react";
 const IconActivity: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             opacity={duotone ? "0.44" : "1"}
             d="M9.66992 22H15.6699C20.6699 22 22.6699 20 22.6699 15V9C22.6699 4 20.6699 2 15.6699 2H9.66992C4.66992 2 2.66992 4 2.66992 9V15C2.66992 20 4.66992 22 9.66992 22Z"
@@ -34,14 +31,11 @@ const IconActivity: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             opacity={duotone ? "0.4" : "1"}
             d="M16.8599 2H8.47992C4.83992 2 2.66992 4.17 2.66992 7.81V16.18C2.66992 19.83 4.83992 22 8.47992 22H16.8499C20.4899 22 22.6599 19.83 22.6599 16.19V7.81C22.6699 4.17 20.4999 2 16.8599 2Z"
@@ -53,14 +47,11 @@ const IconActivity: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M16.8599 2H8.47992C4.83992 2 2.66992 4.17 2.66992 7.81V16.18C2.66992 19.83 4.83992 22 8.47992 22H16.8499C20.4899 22 22.6599 19.83 22.6599 16.19V7.81C22.6699 4.17 20.4999 2 16.8599 2ZM17.9299 9.96L15.6199 12.94C15.3299 13.31 14.9199 13.55 14.4499 13.6C13.9799 13.66 13.5199 13.53 13.1499 13.24L11.3199 11.8C11.2499 11.74 11.1699 11.74 11.1299 11.75C11.0899 11.75 11.0199 11.77 10.9599 11.85L8.57992 14.94C8.42992 15.13 8.20992 15.23 7.98992 15.23C7.82992 15.23 7.66992 15.18 7.52992 15.07C7.19992 14.82 7.13992 14.35 7.38992 14.02L9.76992 10.93C10.0599 10.56 10.4699 10.32 10.9399 10.26C11.3999 10.2 11.8699 10.33 12.2399 10.62L14.0699 12.06C14.1399 12.12 14.2099 12.12 14.2599 12.11C14.2999 12.11 14.3699 12.09 14.4299 12.01L16.7399 9.03C16.9899 8.7 17.4699 8.64 17.7899 8.9C18.1199 9.17 18.1799 9.64 17.9299 9.96Z"
             fill="currentColor"

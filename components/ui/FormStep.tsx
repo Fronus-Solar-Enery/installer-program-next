@@ -31,20 +31,16 @@ export function FormStep({
     >
       <div
         className={cn(
-          "flex items-center justify-center w-8 h-8 rounded-full border text-xs relative z-10 transition-all duration-300",
+          "flex items-center justify-center w-8 h-8 rounded-full border-2 text-xs relative z-10 transition-all duration-300",
           isActive &&
-            "border-primary backdrop-blur-2xl bg-card/10 text-primary font-semibold",
+            "border-muted-foreground/60 backdrop-blur-2xl bg-card/10 text-primary font-semibold",
           isCompleted && "border-primary bg-primary text-primary-foreground",
           !isActive &&
             !isCompleted &&
             "border-muted bg-card/10 backdrop-blur-2xl text-muted-foreground/60"
         )}
       >
-        {isCompleted ? (
-          <IconCheck duotone={false} className="h-5 w-5" />
-        ) : (
-          step + 1
-        )}
+        {isCompleted ? <IconCheck className="h-5 w-5" /> : step + 1}
       </div>
       <div className="mt-2 text-center hidden sm:block">
         <p

@@ -90,7 +90,8 @@ export function RegistrationModal({
       // Formula: progress = target * (1 - e^(-3*t/duration))
       // This reaches ~95% of target at duration time
       const normalizedTime = elapsed / EXPECTED_DURATION;
-      const easedProgress = TARGET_PROGRESS * (1 - Math.exp(-3 * normalizedTime));
+      const easedProgress =
+        TARGET_PROGRESS * (1 - Math.exp(-3 * normalizedTime));
 
       setProgress(Math.min(easedProgress, TARGET_PROGRESS));
 
@@ -155,12 +156,13 @@ export function RegistrationModal({
                 <div className="space-y-2">
                   {REGISTRATION_STEPS.map((step, index) => {
                     // Calculate cumulative weight up to this step
-                    const cumulativeWeight = REGISTRATION_STEPS.slice(0, index).reduce(
-                      (sum, s) => sum + s.weight,
-                      0
-                    );
+                    const cumulativeWeight = REGISTRATION_STEPS.slice(
+                      0,
+                      index
+                    ).reduce((sum, s) => sum + s.weight, 0);
                     const stepThreshold = cumulativeWeight * 100;
-                    const stepEndThreshold = (cumulativeWeight + step.weight) * 100;
+                    const stepEndThreshold =
+                      (cumulativeWeight + step.weight) * 100;
 
                     const isCompleted = progress > stepEndThreshold;
                     const isCurrent =
@@ -170,7 +172,8 @@ export function RegistrationModal({
                     // Calculate progress for current step (0-100)
                     const stepProgress = isCurrent
                       ? Math.min(
-                          ((progress - stepThreshold) / (step.weight * 100)) * 100,
+                          ((progress - stepThreshold) / (step.weight * 100)) *
+                            100,
                           100
                         )
                       : 0;
@@ -211,10 +214,10 @@ export function RegistrationModal({
                                 animate={{ scale: 1 }}
                                 transition={{ type: "spring", stiffness: 500 }}
                               >
-                                <IconCheck className="w-5 h-5" duotone={false} />
+                                <IconCheck className="w-5 h-5" />
                               </motion.div>
                             ) : isCurrent ? (
-                              <Loading className="w-4 h-4 fill-background" />
+                              <Loading className="fill-background" />
                             ) : (
                               <span className="text-sm font-medium">
                                 {index + 1}
@@ -258,10 +261,7 @@ export function RegistrationModal({
                   className="mx-auto w-20 h-20 rounded-full bg-success/20 flex items-center justify-center"
                 >
                   <div className="w-16 h-16 rounded-full bg-success flex items-center justify-center">
-                    <IconCheck
-                      className="w-10 h-10 text-success-foreground"
-                      duotone={false}
-                    />
+                    <IconCheck className="w-10 h-10 text-success-foreground" />
                   </div>
                 </motion.div>
 
@@ -361,10 +361,7 @@ export function RegistrationModal({
                   className="mx-auto w-20 h-20 rounded-full bg-destructive/20 flex items-center justify-center"
                 >
                   <div className="w-16 h-16 rounded-full bg-destructive flex items-center justify-center">
-                    <IconClose
-                      className="w-10 h-10 text-destructive-foreground"
-                      duotone={false}
-                    />
+                    <IconClose className="w-10 h-10 text-destructive-foreground" />
                   </div>
                 </motion.div>
 
@@ -374,7 +371,8 @@ export function RegistrationModal({
                     ❌ Registration Failed
                   </DialogTitle>
                   <DialogDescription className="text-muted-foreground">
-                    The reward could not be registered. Please check the error details below:
+                    The reward could not be registered. Please check the error
+                    details below:
                   </DialogDescription>
                 </div>
 
@@ -390,7 +388,8 @@ export function RegistrationModal({
                       </div>
                     )) || (
                       <div className="text-sm text-destructive-text">
-                        ⚠️ An unexpected error occurred while registering the reward. Please try again or contact support.
+                        ⚠️ An unexpected error occurred while registering the
+                        reward. Please try again or contact support.
                       </div>
                     )}
                   </div>

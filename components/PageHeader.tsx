@@ -25,6 +25,7 @@ export default function PageHeader({
       <IconComponent
         className="hidden md:block w-12 h-12 text-primary shrink-0"
         fill={iconFill}
+        duotone
       />
     );
   };

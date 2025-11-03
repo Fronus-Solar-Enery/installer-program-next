@@ -3,20 +3,17 @@ import { FC } from "react";
 const IconLayer: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M13.6795 2.92007L19.5795 5.54007C21.2795 6.29007 21.2795 7.53007 19.5795 8.28007L13.6795 10.9001C13.0095 11.2001 11.9095 11.2001 11.2395 10.9001L5.33945 8.28007C3.63945 7.53007 3.63945 6.29007 5.33945 5.54007L11.2395 2.92007C11.9095 2.62007 13.0095 2.62007 13.6795 2.92007Z"
             stroke="currentColor"
@@ -42,14 +39,11 @@ const IconLayer: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M20.0396 4.89012L14.1796 2.28012C13.3196 1.90012 12.0196 1.90012 11.1596 2.28012L5.29961 4.89012C3.81961 5.55012 3.59961 6.45012 3.59961 6.93012C3.59961 7.41012 3.81961 8.31012 5.29961 8.97012L11.1596 11.5801C11.5896 11.7701 12.1296 11.8701 12.6696 11.8701C13.2096 11.8701 13.7496 11.7701 14.1796 11.5801L20.0396 8.97012C21.5196 8.31012 21.7396 7.41012 21.7396 6.93012C21.7396 6.45012 21.5296 5.55012 20.0396 4.89012Z"
             fill="currentColor"
@@ -66,14 +60,11 @@ const IconLayer: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg
-          className={className}
-          width="25"
+        <svg className={`size-4 ${className}`} width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
+          xmlns="http://www.w3.org/2000/svg">
           <path
             d="M20.0396 4.89012L14.1796 2.28012C13.3196 1.90012 12.0196 1.90012 11.1596 2.28012L5.29961 4.89012C3.81961 5.55012 3.59961 6.45012 3.59961 6.93012C3.59961 7.41012 3.81961 8.31012 5.29961 8.97012L11.1596 11.5801C11.5896 11.7701 12.1296 11.8701 12.6696 11.8701C13.2096 11.8701 13.7496 11.7701 14.1796 11.5801L20.0396 8.97012C21.5196 8.31012 21.7396 7.41012 21.7396 6.93012C21.7396 6.45012 21.5296 5.55012 20.0396 4.89012Z"
             fill="currentColor"
