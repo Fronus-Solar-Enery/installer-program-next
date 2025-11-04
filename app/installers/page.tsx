@@ -81,12 +81,14 @@ import {
   IconAdd,
   IconArrowUpDown,
   IconBuildings2,
+  IconCity,
   IconClock,
   IconClockCircle,
   IconClose,
   IconEdit2,
   IconInfoCircle,
   IconInstaller,
+  IconInstallerCode,
   IconRefresh2,
   IconSearchNormal,
   IconSortFromBottomToTop,
@@ -1095,12 +1097,12 @@ export default function InstallersPage() {
                         {
                           label: "Installer Code",
                           field: "installerCode" as keyof InstallerWithId,
-                          icon: IconBuildings2,
+                          icon: IconInstallerCode,
                         },
                         {
                           label: "Name",
                           field: "fullName" as keyof InstallerWithId,
-                          icon: IconBuildings2,
+                          icon: IconInstaller,
                         },
                         {
                           label: "Date Joined",
@@ -1115,12 +1117,12 @@ export default function InstallersPage() {
                         {
                           label: "City",
                           field: "city" as keyof InstallerWithId,
-                          icon: IconBuildings2,
+                          icon: IconCity,
                         },
                         {
                           label: "Province",
                           field: "province" as keyof InstallerWithId,
-                          icon: IconBuildings2,
+                          icon: IconCity,
                         },
                       ].map(({ field, label, icon: Icon }) => {
                         return (
@@ -1154,7 +1156,7 @@ export default function InstallersPage() {
                 </Dropdown>
               </div>
             </CardHeader>
-            <CardContent className="!p-4 flex gap-2">
+            <CardContent className="!p-4 flex items-center gap-2 min-h-40">
               {/* CITIES FILTER */}
               <div className="space-y-2 w-full">
                 <span className="text-sm px-2">City</span>
@@ -1406,7 +1408,7 @@ export default function InstallersPage() {
                     >
                       {filters.certified === "true"
                         ? "Certified"
-                        : "Not Certified"}
+                        : "Non Certified"}
                       <IconClose
                         className={"!size-4 cursor-pointer"}
                         onClick={() =>
@@ -1554,7 +1556,7 @@ export default function InstallersPage() {
                         title="No Forms Created"
                         description="You can create a new template to add in your pages."
                         icons={[IconActivity]}
-                        className="w-full border-none rounded-none bg-card"
+                        className="w-full border-none rounded-none"
                         action={{
                           label: (
                             <div className="flex items-center gap-2">
