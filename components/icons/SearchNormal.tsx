@@ -9,11 +9,14 @@ const IconSearchNormal: FC<IconProps> = ({
   return (
     <>
       {!fill ? (
-        <svg className={`size-4 ${className}`} width="25"
+        <svg
+          className={`size-4 ${className}`}
+          width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             d="M12.1699 21C17.4166 21 21.6699 16.7467 21.6699 11.5C21.6699 6.25329 17.4166 2 12.1699 2C6.92322 2 2.66992 6.25329 2.66992 11.5C2.66992 16.7467 6.92322 21 12.1699 21Z"
             stroke="currentColor"
@@ -31,11 +34,14 @@ const IconSearchNormal: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg className={`size-4 ${className}`} width="25"
+        <svg
+          className={`size-4 ${className}`}
+          width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             opacity={duotone ? "0.4" : "1"}
             d="M12.1699 21C17.4166 21 21.6699 16.7467 21.6699 11.5C21.6699 6.25329 17.4166 2 12.1699 2C6.92322 2 2.66992 6.25329 2.66992 11.5C2.66992 16.7467 6.92322 21 12.1699 21Z"
@@ -47,11 +53,14 @@ const IconSearchNormal: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg className={`size-4 ${className}`} width="25"
+        <svg
+          className={`size-4 ${className}`}
+          width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             d="M12.1699 21C17.4166 21 21.6699 16.7467 21.6699 11.5C21.6699 6.25329 17.4166 2 12.1699 2C6.92322 2 2.66992 6.25329 2.66992 11.5C2.66992 16.7467 6.92322 21 12.1699 21Z"
             fill="currentColor"

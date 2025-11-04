@@ -241,7 +241,11 @@ ol:has(li.my-toast) {
     border-radius: 4rem;
   }
   .squircle.rounded-5xl {
+    corner-shape: superellipse(1.2);
     border-radius: 5rem;
+  }
+  .squircle-icon {
+    corner-shape: superellipse(1.2);
   }
 }
 .squircle.nosquircle {

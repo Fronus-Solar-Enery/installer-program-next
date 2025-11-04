@@ -93,13 +93,13 @@ export default function TopNavbar() {
             onClick={toggleFullscreen}
             aria-label="Toggle fullscreen"
           >
-            <div>
+            <>
               {isFullscreen ? (
                 <IconQuitFullScreen className="w-5 h-5" />
               ) : (
                 <IconFullScreen className="w-5 h-5" />
               )}
-            </div>
+            </>
           </Button>
           {/* Theme Toggle */}
           <ThemeToggle />

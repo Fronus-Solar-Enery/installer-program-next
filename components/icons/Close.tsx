@@ -5,15 +5,20 @@ const IconClose: FC<IconProps> = ({
   fill = false,
   duotone = false,
   width = "1.5",
+  onClick,
 }) => {
   return (
     <>
       {!fill ? (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+          onClick={onClick}
+        >
           <path
             opacity={duotone ? "0.5" : "1"}
             d="M7.75732 7.75732L16.2426 16.2426"
@@ -31,11 +36,14 @@ const IconClose: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             opacity={duotone ? "0.5" : "1"}
             d="M15.7122 16.773L7.22687 8.28777C6.93696 7.99785 6.93696 7.51702 7.22687 7.22711C7.51679 6.93719 7.99762 6.93719 8.28753 7.22711L16.7728 15.7124C17.0627 16.0023 17.0627 16.4831 16.7728 16.773C16.4829 17.063 16.0021 17.063 15.7122 16.773Z"
@@ -47,11 +55,14 @@ const IconClose: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             d="M15.7122 16.773L7.22687 8.28777C6.93696 7.99785 6.93696 7.51702 7.22687 7.22711C7.51679 6.93719 7.99762 6.93719 8.28753 7.22711L16.7728 15.7124C17.0627 16.0023 17.0627 16.4831 16.7728 16.773C16.4829 17.063 16.0021 17.063 15.7122 16.773Z"
             fill="currentColor"

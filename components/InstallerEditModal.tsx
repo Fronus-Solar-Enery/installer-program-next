@@ -1412,12 +1412,13 @@ export default function InstallerEditModal({
       )}
 
       <AlertDialog open={showCloseAlert} onOpenChange={setShowCloseAlert}>
-        <AlertDialogContent className="rounded-5xl">
+        <AlertDialogContent className="rounded-4xl">
           <AlertDialogHeader className="flex flex-col items-center">
             <IconDanger
               className="size-32 text-destructive-text"
               fill
               opacity={"0.1"}
+              duotone={true}
             />
             <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
             <AlertDialogDescription className="w-19/20 text-center">

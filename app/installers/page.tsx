@@ -83,9 +83,12 @@ import {
   IconBuildings2,
   IconClock,
   IconClockCircle,
+  IconClose,
   IconEdit2,
+  IconInfoCircle,
   IconInstaller,
   IconRefresh2,
+  IconSearchNormal,
   IconSortFromBottomToTop,
   IconSortFromTopToBottom,
   IconSquareArrowRightUp,
@@ -104,6 +107,8 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
 import IconDocumentFilter from "@/components/icons/DocumentFilter";
 import { Label } from "@/components/ui/label";
+import IconRestart from "@/components/icons/Restart";
+import IconSortVertical from "@/components/icons/SortVertical";
 
 interface InstallerWithId extends IInstaller {
   _id: string;
@@ -454,17 +459,22 @@ export default function InstallersPage() {
 
   const getSortIcon = (field: string) => {
     if (sortField !== field) {
-      return <ArrowUpDown className="h-4 w-4 ml-1 inline" />;
+      return <IconSortVertical className="size-4 ml-1 inline" />;
     }
     return sortDirection === "asc" ? (
-      <ArrowUp className="h-4 w-4 ml-1 inline" />
+      <IconSortVertical duotone className="size-4 ml-1 inline text-primary" />
     ) : (
-      <ArrowDown className="h-4 w-4 ml-1 inline" />
+      <IconSortVertical
+        duotone
+        className="size-4 ml-1 inline rotate-180 text-primary"
+      />
     );
   };
 
   // Check if user is admin
-  const isAdmin = session?.user?.role === TeamRole.ADMIN;
+  const isAdmin =
+    session?.user?.role === TeamRole.ADMIN ||
+    session?.user?.role === TeamRole.MANAGER;
 
   const filteredInstallers = useMemo(() => {
     let result = installers;
@@ -675,20 +685,6 @@ export default function InstallersPage() {
         action={
           <>
             <Button
-              variant="outline"
-              onClick={fetchInstallers}
-              disabled={loading}
-              title="Refresh data"
-              className="gap-2"
-            >
-              Refresh
-              <IconRefresh2
-                width={2}
-                className={cn("h-3.5 w-3.5", loading && "animate-spin")}
-              />
-            </Button>
-
-            <Button
               onClick={() => router.push("/installers/bulk-register")}
               variant="outline"
               disabled={loading || !googleAuthStatus?.isAuthenticated}
@@ -709,10 +705,10 @@ export default function InstallersPage() {
                 onClick={() => router.push("/installers/new")}
                 disabled={loading}
                 title="Register New Installer"
-                className="gap-2"
+                className="gap-2 pl-2"
               >
                 <IconAdd width={2} className="h-3.5 w-3.5" />
-                Register New Installer
+                Register Installer
               </Button>
             ) : (
               <Button
@@ -834,132 +830,25 @@ export default function InstallersPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="bg-transparent">
         <CardHeader className="!flex-row items-center justify-between w-full bg-muted/70 border-b border-border">
           <CardTitle className="text-lg font-semibold">
             Installers Database
           </CardTitle>
           <div className="flex items-center gap-2">
-            {/* DATE RANGE FILTER */}
-            <ToggleGroup
-              type="single"
-              value={filters.dateRange}
-              onValueChange={(value) => {
-                if (!value) return;
-
-                setFilters((prev) => ({
-                  ...prev,
-                  dateRange: value as typeof prev.dateRange,
-                  customStartDate:
-                    value !== "custom" ? "" : prev.customStartDate,
-                  customEndDate: value !== "custom" ? "" : prev.customEndDate,
-                }));
-              }}
-              className="h-10 bg-background"
+            <Button
+              variant="outline"
+              onClick={fetchInstallers}
+              disabled={loading}
+              title="Refresh data"
+              className="gap-2"
             >
-              <ToggleGroupItem className="h-max p-2" value="all">
-                ALL
-              </ToggleGroupItem>
-              <ToggleGroupItem className="h-max p-2" value="today">
-                1D
-              </ToggleGroupItem>
-              <ToggleGroupItem className="h-max p-2" value="week">
-                1W
-              </ToggleGroupItem>
-              <ToggleGroupItem className="h-max p-2" value="month">
-                1M
-              </ToggleGroupItem>
-              <ToggleGroupItem className="h-max p-2" value="year">
-                1Y
-              </ToggleGroupItem>
-
-              <Popover
-                open={isCustomDateOpen}
-                onOpenChange={setIsCustomDateOpen}
-              >
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      "hidden sm:flex gap-2 rounded-xl py-1.5 px-2 h-max",
-                      filters.dateRange === "custom"
-                        ? "text-primary"
-                        : "text-zinc-400"
-                    )}
-                  >
-                    <IconClockCircle className="h-4 w-4" />
-                  </Button>
-                </PopoverTrigger>
-
-                <PopoverContent className="w-auto p-0" align="end">
-                  <div className="space-y-4">
-                    <div className="space-y-2 p-4">
-                      <h4 className="font-medium text-sm">Select Date Range</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Select a custom date range for filtering installers
-                      </p>
-                    </div>
-                    <CalendarComponent
-                      mode="range"
-                      selected={dateRange}
-                      onSelect={setDateRange}
-                      numberOfMonths={2}
-                      disabled={(date) =>
-                        date > new Date() || date < new Date("1900-01-01")
-                      }
-                    />
-                    <div className="flex gap-2 pt-2 border-t border-border p-4">
-                      <Button
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => {
-                          if (dateRange?.from && dateRange?.to) {
-                            // Convert dates to local date strings (YYYY-MM-DD)
-                            const fromDate = new Date(
-                              dateRange.from.getTime() -
-                                dateRange.from.getTimezoneOffset() * 60000
-                            );
-                            const toDate = new Date(
-                              dateRange.to.getTime() -
-                                dateRange.to.getTimezoneOffset() * 60000
-                            );
-
-                            setFilters((prev) => ({
-                              ...prev,
-                              dateRange: "custom",
-                              customStartDate: fromDate
-                                .toISOString()
-                                .split("T")[0],
-                              customEndDate: toDate.toISOString().split("T")[0],
-                            }));
-                            setIsCustomDateOpen(false);
-                          }
-                        }}
-                        disabled={!dateRange?.from || !dateRange?.to}
-                      >
-                        Apply
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setDateRange(undefined);
-                          setFilters((prev) => ({
-                            ...prev,
-                            dateRange: "all",
-                            customStartDate: "",
-                            customEndDate: "",
-                          }));
-                          setIsCustomDateOpen(false);
-                        }}
-                      >
-                        Clear
-                      </Button>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </ToggleGroup>
+              Refresh
+              <IconRefresh2
+                width={2}
+                className={cn("h-3.5 w-3.5", loading && "animate-spin")}
+              />
+            </Button>
             <Button
               variant="outline"
               onClick={handleDownloadReport}
@@ -972,10 +861,6 @@ export default function InstallersPage() {
                 <>
                   Downloading <Loading />
                 </>
-              ) : loading ? (
-                <>
-                  Generating <Loading />
-                </>
               ) : (
                 <>
                   Export
@@ -985,7 +870,7 @@ export default function InstallersPage() {
             </Button>
             <Dropdown>
               <DropdownTrigger asChild>
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2" disabled={loading}>
                   Columns
                   <IconLayer width={2} />
                 </Button>
@@ -1022,111 +907,257 @@ export default function InstallersPage() {
             </Dropdown>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="mb-4 flex items-center justify-between gap-2">
-            {/* SEARCH */}
-            <Input
-              type="text"
-              placeholder="Search by name, code, CNIC, phone, WhatsApp, account, company..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="grow h-10"
-            />
-          </div>
-          <Card className="overflow-visible">
-            <CardHeader className="border-b border-border flex-row justify-between items-center bg-muted/20 rounded-t-3xl">
+        <CardContent className="space-y-4 !p-2">
+          {/* FILTERS */}
+          <Card className="mt-2 bg-transparent overflow-hidden">
+            <CardHeader className="border-b border-border flex-row justify-between items-center bg-muted/40 rounded-t-3xl">
               <h3 className="flex items-center gap-2">
                 <IconDocumentFilter className="size-6" duotone />
                 Filters
               </h3>
-              {/* SORT FILTER */}
-              <Dropdown>
-                <DropdownTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className="gap-2 rounded-xl"
-                    size={"sm"}
-                  >
-                    {sortField === "fullName" && "Name"}
-                    {sortField === "createdAt" && "Date Joined"}
-                    {sortField === "trainingCenter" && "Training Center"}
-                    {sortField === "city" && "City"}
-                    {sortField === "province" && "Province"}
-                    {![
-                      "fullName",
-                      "createdAt",
-                      "trainingCenter",
-                      "city",
-                      "province",
-                    ].includes(sortField) && "Sort"}
-                    {sortDirection === "asc" ? (
-                      <IconSortFromTopToBottom duotone />
-                    ) : (
-                      <IconSortFromBottomToTop duotone />
+              <div className="flex items-center gap-2">
+                {/* SEARCH */}
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Search..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="grow h-9 border-border pl-10"
+                    disabled={loading}
+                  />
+                  <IconSearchNormal
+                    className={cn(
+                      "absolute left-3 top-1/2 -translate-y-1/2",
+                      loading && "text-muted-foreground/60"
                     )}
-                  </Button>
-                </DropdownTrigger>
-                <DropdownContent align="right" className="w-46">
-                  <div className="px-1 py-1 flex flex-col gap-1">
-                    {[
-                      {
-                        label: "Name",
-                        field: "fullName" as keyof InstallerWithId,
-                        icon: IconBuildings2,
-                      },
-                      {
-                        label: "Date Joined",
-                        field: "createdAt" as keyof InstallerWithId,
-                        icon: IconClock,
-                      },
-                      {
-                        label: "Training Center",
-                        field: "trainingCenter" as keyof InstallerWithId,
-                        icon: IconTrainingCenter,
-                      },
-                      {
-                        label: "City",
-                        field: "city" as keyof InstallerWithId,
-                        icon: IconBuildings2,
-                      },
-                      {
-                        label: "Province",
-                        field: "province" as keyof InstallerWithId,
-                        icon: IconBuildings2,
-                      },
-                    ].map(({ field, label, icon: Icon }) => {
-                      return (
-                        <Button
-                          key={field}
-                          variant={sortField === field ? "secondary" : "ghost"}
-                          className={cn(
-                            "gap-2 rounded-xl justify-between",
-                            sortField !== field && "text-muted-foreground"
-                          )}
-                          size="sm"
-                          onClick={() => handleSort(field)}
-                        >
-                          <div className="flex items-center leading-none gap-2">
-                            <Icon />
-                            {label}
-                          </div>
-                          {sortField === field &&
-                            (sortDirection === "asc" ? (
-                              <IconSortFromTopToBottom duotone />
-                            ) : (
-                              <IconSortFromBottomToTop duotone />
-                            ))}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </DropdownContent>
-              </Dropdown>
+                  />
+                </div>
+                {/* DATE RANGE FILTER */}
+                <ToggleGroup
+                  type="single"
+                  value={filters.dateRange}
+                  onValueChange={(value) => {
+                    if (!value) return;
+                    setFilters((prev) => ({
+                      ...prev,
+                      dateRange: value as typeof prev.dateRange,
+                      customStartDate:
+                        value !== "custom" ? "" : prev.customStartDate,
+                      customEndDate:
+                        value !== "custom" ? "" : prev.customEndDate,
+                    }));
+                  }}
+                  className={cn("h-9 bg-background", loading && "opacity-50")}
+                  disabled={loading}
+                >
+                  <ToggleGroupItem className="h-max p-2" value="all">
+                    ALL
+                  </ToggleGroupItem>
+                  <ToggleGroupItem className="h-max p-2" value="today">
+                    1D
+                  </ToggleGroupItem>
+                  <ToggleGroupItem className="h-max p-2" value="week">
+                    1W
+                  </ToggleGroupItem>
+                  <ToggleGroupItem className="h-max p-2" value="month">
+                    1M
+                  </ToggleGroupItem>
+                  <ToggleGroupItem className="h-max p-2" value="year">
+                    1Y
+                  </ToggleGroupItem>
+
+                  <Popover
+                    open={isCustomDateOpen}
+                    onOpenChange={setIsCustomDateOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          "hidden sm:flex gap-2 rounded-xl py-1.5 px-2 h-max",
+                          filters.dateRange === "custom"
+                            ? "text-primary"
+                            : "text-zinc-400"
+                        )}
+                        disabled={loading}
+                      >
+                        <IconClockCircle className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <div className="space-y-4">
+                        <div className="space-y-2 p-4">
+                          <h4 className="font-medium text-sm">
+                            Select Date Range
+                          </h4>
+                          <p className="text-xs text-muted-foreground">
+                            Select a custom date range for filtering installers
+                          </p>
+                        </div>
+                        <CalendarComponent
+                          mode="range"
+                          selected={dateRange}
+                          onSelect={setDateRange}
+                          numberOfMonths={2}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                        />
+                        <div className="flex gap-2 pt-2 border-t border-border p-4">
+                          <Button
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => {
+                              if (dateRange?.from && dateRange?.to) {
+                                // Convert dates to local date strings (YYYY-MM-DD)
+                                const fromDate = new Date(
+                                  dateRange.from.getTime() -
+                                    dateRange.from.getTimezoneOffset() * 60000
+                                );
+                                const toDate = new Date(
+                                  dateRange.to.getTime() -
+                                    dateRange.to.getTimezoneOffset() * 60000
+                                );
+
+                                setFilters((prev) => ({
+                                  ...prev,
+                                  dateRange: "custom",
+                                  customStartDate: fromDate
+                                    .toISOString()
+                                    .split("T")[0],
+                                  customEndDate: toDate
+                                    .toISOString()
+                                    .split("T")[0],
+                                }));
+                                setIsCustomDateOpen(false);
+                              }
+                            }}
+                            disabled={!dateRange?.from || !dateRange?.to}
+                          >
+                            Apply
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setDateRange(undefined);
+                              setFilters((prev) => ({
+                                ...prev,
+                                dateRange: "all",
+                                customStartDate: "",
+                                customEndDate: "",
+                              }));
+                              setIsCustomDateOpen(false);
+                            }}
+                          >
+                            Clear
+                          </Button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </ToggleGroup>
+                {/* SORT FILTER */}
+                <Dropdown>
+                  <DropdownTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className="gap-2 rounded-xl"
+                      size={"sm"}
+                      disabled={loading}
+                    >
+                      {sortField === "installerCode" && "Installer Code"}
+                      {sortField === "fullName" && "Name"}
+                      {sortField === "createdAt" && "Date Joined"}
+                      {sortField === "trainingCenter" && "Training Center"}
+                      {sortField === "city" && "City"}
+                      {sortField === "province" && "Province"}
+                      {![
+                        "fullName",
+                        "createdAt",
+                        "trainingCenter",
+                        "city",
+                        "province",
+                        "installerCode",
+                      ].includes(sortField) && "Sort"}
+                      {sortDirection === "asc" ? (
+                        <IconSortFromTopToBottom duotone />
+                      ) : (
+                        <IconSortFromBottomToTop duotone />
+                      )}
+                    </Button>
+                  </DropdownTrigger>
+                  <DropdownContent align="right" className="w-46">
+                    <div className="px-1 py-1 flex flex-col gap-1">
+                      {[
+                        {
+                          label: "Installer Code",
+                          field: "installerCode" as keyof InstallerWithId,
+                          icon: IconBuildings2,
+                        },
+                        {
+                          label: "Name",
+                          field: "fullName" as keyof InstallerWithId,
+                          icon: IconBuildings2,
+                        },
+                        {
+                          label: "Date Joined",
+                          field: "createdAt" as keyof InstallerWithId,
+                          icon: IconClock,
+                        },
+                        {
+                          label: "Training Center",
+                          field: "trainingCenter" as keyof InstallerWithId,
+                          icon: IconTrainingCenter,
+                        },
+                        {
+                          label: "City",
+                          field: "city" as keyof InstallerWithId,
+                          icon: IconBuildings2,
+                        },
+                        {
+                          label: "Province",
+                          field: "province" as keyof InstallerWithId,
+                          icon: IconBuildings2,
+                        },
+                      ].map(({ field, label, icon: Icon }) => {
+                        return (
+                          <Button
+                            key={field}
+                            variant={
+                              sortField === field ? "secondary" : "ghost"
+                            }
+                            className={cn(
+                              "gap-2 rounded-xl justify-between",
+                              sortField !== field && "text-muted-foreground"
+                            )}
+                            size="sm"
+                            onClick={() => handleSort(field)}
+                          >
+                            <div className="flex items-center leading-none gap-2">
+                              <Icon />
+                              {label}
+                            </div>
+                            {sortField === field &&
+                              (sortDirection === "asc" ? (
+                                <IconSortFromTopToBottom duotone />
+                              ) : (
+                                <IconSortFromBottomToTop duotone />
+                              ))}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </DropdownContent>
+                </Dropdown>
+              </div>
             </CardHeader>
             <CardContent className="!p-4 flex gap-2">
               {/* CITIES FILTER */}
               <div className="space-y-2 w-full">
-                <Label htmlFor="cityFilter">City</Label>
+                <span className="text-sm px-2">City</span>
                 <Select
                   value={filters.city || "all"}
                   onValueChange={(value) =>
@@ -1135,8 +1166,9 @@ export default function InstallersPage() {
                       city: value === "all" ? "" : value,
                     }))
                   }
+                  disabled={loading}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
                     <SelectValue placeholder="All cities" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1151,7 +1183,7 @@ export default function InstallersPage() {
               </div>
               {/* PROVINCES FILTER */}
               <div className="space-y-2 w-full">
-                <Label htmlFor="cityFilter">Province</Label>
+                <span className="text-sm px-2">Province</span>
                 <Select
                   value={filters.province || "all"}
                   onValueChange={(value) =>
@@ -1160,8 +1192,9 @@ export default function InstallersPage() {
                       province: value === "all" ? "" : value,
                     }))
                   }
+                  disabled={loading}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
                     <SelectValue placeholder="All provinces" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1176,9 +1209,8 @@ export default function InstallersPage() {
               </div>
 
               {/* TRAINING CENTERS FILTER */}
-
               <div className="space-y-2 w-full">
-                <Label htmlFor="cityFilter">Training Center</Label>
+                <span className="text-sm px-2">Training Center</span>
                 <Select
                   value={filters.trainingCenter || "all"}
                   onValueChange={(value) =>
@@ -1187,8 +1219,9 @@ export default function InstallersPage() {
                       trainingCenter: value === "all" ? "" : value,
                     }))
                   }
+                  disabled={loading}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
                     <SelectValue placeholder="All centers" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1204,7 +1237,7 @@ export default function InstallersPage() {
 
               {/* CERTIFICATION FILTER */}
               <div className="space-y-2 w-full">
-                <Label htmlFor="cityFilter">Province</Label>
+                <span className="text-sm px-2">Certification</span>
                 <Select
                   value={filters.certified || "all"}
                   onValueChange={(value) =>
@@ -1213,8 +1246,9 @@ export default function InstallersPage() {
                       certified: value === "all" ? "" : value,
                     }))
                   }
+                  disabled={loading}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
                     <SelectValue placeholder="All statuses" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1225,41 +1259,94 @@ export default function InstallersPage() {
                 </Select>
               </div>
             </CardContent>
-            {(filters.city ||
-              filters.province ||
-              filters.trainingCenter ||
-              filters.certified ||
-              sortField !== "createdAt" ||
-              sortDirection !== "desc" ||
-              filters.dateRange !== "all") && (
-              <CardFooter className="border-t border-border p-4 justify-between">
-                <div className="flex flex-wrap gap-2">
-                  {filters.dateRange !== "all" && (
-                    <Badge variant="secondary" className="gap-1">
-                      {filters.dateRange === "today" && "Today"}
-                      {filters.dateRange === "week" && "Last 7 days"}
-                      {filters.dateRange === "month" && "Last 30 days"}
-                      {filters.dateRange === "year" && "Last year"}
-                      {filters.dateRange === "custom" &&
-                        `${filters.customStartDate} to ${filters.customEndDate}`}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() =>
+            <CardFooter className="border-t border-border p-4 justify-between bg-muted/40">
+              <div className="flex items-center gap-2">
+                <p className="text-sm leading-none">Filters Applied:</p>
+
+                {/* Sort - Always Show */}
+                <div className="text-xs flex items-center gap-1 text-muted-foreground">
+                  Sort:
+                  <Badge
+                    variant="outline"
+                    className="gap-1 [&>svg]:pointer-events-auto h-5.5"
+                  >
+                    {sortDirection === "asc" ? (
+                      <IconSortFromTopToBottom duotone />
+                    ) : (
+                      <IconSortFromBottomToTop duotone />
+                    )}
+                    {sortField === "installerCode" && "Installer Code"}
+                    {sortField === "fullName" && "Name"}
+                    {sortField === "cnic" && "CNIC"}
+                    {sortField === "trainingCenter" && "Training Center"}
+                    {sortField === "city" && "City"}
+                    {sortField === "province" && "Province"}
+                    {sortField === "certified" && "Certified"}
+                    {sortField === "createdAt" && "Date"}
+                    <IconClose
+                      className={cn(
+                        "!size-4",
+                        sortField === "createdAt" && sortDirection === "desc"
+                          ? "cursor-not-allowed opacity-50"
+                          : "cursor-pointer"
+                      )}
+                      onClick={() => {
+                        if (
+                          sortField !== "createdAt" ||
+                          sortDirection !== "desc"
+                        ) {
+                          setSortField("createdAt");
+                          setSortDirection("desc");
+                        }
+                      }}
+                    />
+                  </Badge>
+                </div>
+
+                {/* Date Range - Always Show */}
+                <div className="text-xs flex items-center gap-1 text-muted-foreground">
+                  Date Range:
+                  <Badge
+                    variant="outline"
+                    className="gap-1 [&>svg]:pointer-events-auto h-5.5"
+                  >
+                    {filters.dateRange === "all" && "All"}
+                    {filters.dateRange === "today" && "Today"}
+                    {filters.dateRange === "week" && "Last 7 days"}
+                    {filters.dateRange === "month" && "Last 30 days"}
+                    {filters.dateRange === "year" && "Last year"}
+                    {filters.dateRange === "custom" &&
+                      `${filters.customStartDate} to ${filters.customEndDate}`}
+                    <IconClose
+                      className={cn(
+                        "!size-4",
+                        filters.dateRange === "all"
+                          ? "cursor-not-allowed opacity-50"
+                          : "cursor-pointer"
+                      )}
+                      onClick={() => {
+                        if (filters.dateRange !== "all") {
                           setFilters((prev) => ({
                             ...prev,
                             dateRange: "all",
                             customStartDate: "",
                             customEndDate: "",
-                          }))
+                          }));
                         }
-                      />
-                    </Badge>
-                  )}
-                  {filters.city && (
-                    <Badge variant="secondary" className="gap-1">
-                      City: {filters.city}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
+                      }}
+                    />
+                  </Badge>
+                </div>
+                {filters.city && (
+                  <div className="text-xs flex items-center gap-1 text-muted-foreground">
+                    City:
+                    <Badge
+                      variant="outline"
+                      className="gap-1 [&>svg]:pointer-events-auto h-5.5"
+                    >
+                      {filters.city}
+                      <IconClose
+                        className={"!size-4 cursor-pointer"}
                         onClick={() =>
                           setFilters((prev) => ({
                             ...prev,
@@ -1268,12 +1355,18 @@ export default function InstallersPage() {
                         }
                       />
                     </Badge>
-                  )}
-                  {filters.province && (
-                    <Badge variant="secondary" className="gap-1">
-                      Province: {filters.province}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
+                  </div>
+                )}
+                {filters.province && (
+                  <div className="text-xs flex items-center gap-1 text-muted-foreground">
+                    Province:
+                    <Badge
+                      variant="outline"
+                      className="gap-1 [&>svg]:pointer-events-auto h-5.5"
+                    >
+                      {filters.province}
+                      <IconClose
+                        className={"!size-4 cursor-pointer"}
                         onClick={() =>
                           setFilters((prev) => ({
                             ...prev,
@@ -1282,12 +1375,18 @@ export default function InstallersPage() {
                         }
                       />
                     </Badge>
-                  )}
-                  {filters.trainingCenter && (
-                    <Badge variant="secondary" className="gap-1">
-                      Center: {filters.trainingCenter}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
+                  </div>
+                )}
+                {filters.trainingCenter && (
+                  <div className="text-xs flex items-center gap-1 text-muted-foreground">
+                    Training Center:
+                    <Badge
+                      variant="outline"
+                      className="gap-1 [&>svg]:pointer-events-auto h-5.5"
+                    >
+                      {filters.trainingCenter}
+                      <IconClose
+                        className={"!size-4 cursor-pointer"}
                         onClick={() =>
                           setFilters((prev) => ({
                             ...prev,
@@ -1296,14 +1395,20 @@ export default function InstallersPage() {
                         }
                       />
                     </Badge>
-                  )}
-                  {filters.certified && (
-                    <Badge variant="secondary" className="gap-1">
+                  </div>
+                )}
+                {filters.certified && (
+                  <div className="text-xs flex items-center gap-1 text-muted-foreground">
+                    Certification:
+                    <Badge
+                      variant="outline"
+                      className="gap-1 [&>svg]:pointer-events-auto h-5.5"
+                    >
                       {filters.certified === "true"
                         ? "Certified"
                         : "Not Certified"}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
+                      <IconClose
+                        className={"!size-4 cursor-pointer"}
                         onClick={() =>
                           setFilters((prev) => ({
                             ...prev,
@@ -1312,54 +1417,48 @@ export default function InstallersPage() {
                         }
                       />
                     </Badge>
-                  )}
-                  {(sortField !== "createdAt" || sortDirection !== "desc") && (
-                    <Badge variant="secondary" className="gap-1">
-                      Sort: {sortField === "fullName" && "Name"}
-                      {sortField === "createdAt" && "Date Joined"}
-                      {sortField === "trainingCenter" && "Training Center"}
-                      {sortField === "city" && "City"}
-                      {sortField === "province" && "Province"}{" "}
-                      {sortDirection === "asc" ? "↑" : "↓"}
-                      <X
-                        className="h-3 w-3 cursor-pointer"
-                        onClick={() => {
-                          setSortField("createdAt");
-                          setSortDirection("desc");
-                        }}
-                      />
-                    </Badge>
-                  )}
-                </div>
-                {/* FILTER CLEAR BUTTON */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setFilters({
-                      city: "",
-                      province: "",
-                      trainingCenter: "",
-                      certified: "",
-                      dateRange: "all",
-                      customStartDate: "",
-                      customEndDate: "",
-                    });
-                    setSortField("createdAt");
-                    setSortDirection("desc");
-                  }}
-                  className="min-w-fit rounded-3xl"
-                >
-                  Clear All
-                </Button>
-              </CardFooter>
-            )}
+                  </div>
+                )}
+              </div>
+              {/* FILTER CLEAR BUTTON */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setFilters({
+                    city: "",
+                    province: "",
+                    trainingCenter: "",
+                    certified: "",
+                    dateRange: "all",
+                    customStartDate: "",
+                    customEndDate: "",
+                  });
+                  setSortField("createdAt");
+                  setSortDirection("desc");
+                }}
+                disabled={
+                  (!filters.city &&
+                    !filters.province &&
+                    !filters.trainingCenter &&
+                    !filters.certified &&
+                    sortField === "createdAt" &&
+                    sortDirection === "desc" &&
+                    filters.dateRange === "all") ||
+                  loading
+                }
+                className="min-w-fit rounded-3xl gap-1.5 pl-2"
+              >
+                <IconRestart />
+                Reset All
+              </Button>
+            </CardFooter>
           </Card>
-
+          {/* TABLE */}
           <div className="border border-border squircle rounded-2xl overflow-hidden">
             <Table>
-              <TableHeader className="bg-muted">
-                <TableRow className="hover:bg-muted/50 ">
+              <TableHeader className="bg-muted/40">
+                <TableRow className="hover:bg-muted/50">
                   <TableHead className="text-center w-12">
                     <Checkbox
                       checked={
@@ -1424,12 +1523,7 @@ export default function InstallersPage() {
                     <TableHead className="font-semibold">Company</TableHead>
                   )}
                   {visibleColumns.certified && (
-                    <TableHead
-                      className="cursor-pointer font-semibold"
-                      onClick={() => handleSort("certified")}
-                    >
-                      Certified {getSortIcon("certified")}
-                    </TableHead>
+                    <TableHead className="font-semibold">Certified</TableHead>
                   )}
                   {visibleColumns.bankName && (
                     <TableHead className="font-semibold">Bank</TableHead>
@@ -1569,51 +1663,77 @@ export default function InstallersPage() {
                           >
                             <IconEdit2 />
                           </Button>
-                          {isAdmin && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  title="Delete"
-                                  disabled={deletingId === installer._id}
-                                  className="group"
-                                >
+
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Delete"
+                                disabled={
+                                  !isAdmin || deletingId === installer._id
+                                }
+                                className="group"
+                              >
+                                {deletingId === installer._id ? (
+                                  <Loading />
+                                ) : (
                                   <IconTrashBin2 className="h-4.5 w-4.5 text-destructive-text group-hover:text-destructive-text-hover transition-colors duration-300" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    Delete Installer?
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete{" "}
-                                    <strong>{installer.fullName}</strong> (
-                                    {installer.installerCode})? This action
-                                    cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() =>
-                                      handleDelete(
-                                        installer._id,
-                                        installer.fullName
-                                      )
-                                    }
-                                    disabled={deletingId === installer._id}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  >
-                                    {deletingId === installer._id
-                                      ? "Deleting..."
-                                      : "Delete"}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
+                                )}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="rounded-4xl">
+                              <AlertDialogHeader className="flex flex-col items-center">
+                                <IconTrashBin2
+                                  className="size-32 text-destructive-text"
+                                  fill
+                                  opacity={"0.2"}
+                                  duotone={true}
+                                />
+                                <AlertDialogTitle>
+                                  Are you sure?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription className="w-19/20 flex flex-col items-center text-balance">
+                                  This will permanently delete the installer{" "}
+                                  <span className="flex items-center gap-2">
+                                    <strong>{installer.fullName}</strong>{" "}
+                                    {installer.installerCode}
+                                  </span>
+                                  <span className="mt-6 flex gap-2 text-destructive-text">
+                                    <IconInfoCircle className="size-8" />
+                                    <span>
+                                      This action cannot be undone. <br />
+                                      Installer with rewards cannot be deleted.
+                                    </span>
+                                  </span>
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter className="mt-4">
+                                <AlertDialogAction
+                                  onClick={() =>
+                                    handleDelete(
+                                      installer._id,
+                                      installer.fullName
+                                    )
+                                  }
+                                  disabled={deletingId === installer._id}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  {deletingId === installer._id ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    "Delete Installer"
+                                  )}
+                                </AlertDialogAction>
+                                <AlertDialogCancel className="w-full">
+                                  Cancel
+                                </AlertDialogCancel>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1639,144 +1759,165 @@ export default function InstallersPage() {
               </TableFooter>
             </Table>
           </div>
-          {/* Pagination Controls */}
-          <div className="flex items-center justify-between px-2 pt-4 relative">
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
-                Showing {startIndex + 1} to{" "}
-                <Select
-                  value={rowsPerPage.toString()}
-                  onValueChange={(value) => {
-                    setRowsPerPage(Number(value));
-                    setCurrentPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-8 w-max gap-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                  </SelectContent>
-                </Select>
-                of {filteredInstallers.length} results
-                {filteredInstallers.length !== installers.length && (
-                  <span className="ml-1">
-                    (filtered from {installers.length} total)
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronsLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm px-3">
-                  Page {currentPage} of {totalPages}
+        </CardContent>
+        <CardFooter className="flex items-center justify-between px-2 py-4 relative bg-muted/40">
+          {/* PAGINATION */}
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
+              Showing {startIndex + 1} to{" "}
+              <Select
+                value={rowsPerPage.toString()}
+                onValueChange={(value) => {
+                  setRowsPerPage(Number(value));
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="h-8 w-max gap-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+              of {filteredInstallers.length} results
+              {filteredInstallers.length !== installers.length && (
+                <span className="ml-1">
+                  (filtered from {installers.length} total)
                 </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-max h-full flex items-center justify-center">
-              {selectedInstallers.size > 0 && (
-                <AnimatePresence>
-                  <motion.div
-                    initial={{
-                      opacity: 0,
-                      y: 5,
-                    }}
-                    animate={{
-                      opacity: 1,
-                      y: 0,
-                    }}
-                    exit={{ opacity: 0, y: 5 }}
-                    className={cn(
-                      "border border-border rounded-2xl p-2 flex items-center gap-2 relative"
-                    )}
-                  >
-                    <div className="px-4 py-3 bg-background rounded-xl flex items-center justify-center leading-none select-none">
-                      Selected: {selectedInstallers.size}
-                    </div>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="destructive"
-                          size={"icon"}
-                          disabled={bulkDeleting}
-                          className="gap-1"
-                        >
-                          {bulkDeleting ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <IconTrashBin2 width={2} />
-                          )}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Delete {selectedInstallers.size} Installer(s)?
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. This will permanently
-                            delete the selected installers and their Google
-                            Contacts.
-                            <br />
-                            <br />
-                            <strong>Note:</strong> Installers with existing
-                            rewards cannot be deleted.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={handleBulkDelete}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete {selectedInstallers.size} Installer(s)
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </motion.div>
-                </AnimatePresence>
               )}
             </div>
           </div>
-        </CardContent>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+              >
+                <ChevronsLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm px-3">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronsRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-max h-full flex items-center justify-center">
+            {selectedInstallers.size > 0 && (
+              <AnimatePresence>
+                <motion.div
+                  initial={{
+                    opacity: 0,
+                    y: 5,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  exit={{ opacity: 0, y: 5 }}
+                  className={cn(
+                    "border border-border rounded-2xl p-2 flex items-center gap-2 relative"
+                  )}
+                >
+                  <div className="px-4 py-3 bg-background rounded-xl flex items-center justify-center leading-none select-none">
+                    Selected: {selectedInstallers.size}
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size={"icon"}
+                        disabled={bulkDeleting || !isAdmin}
+                        className="gap-1"
+                      >
+                        {bulkDeleting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <IconTrashBin2 width={2} />
+                        )}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="rounded-4xl">
+                      <AlertDialogHeader className="flex flex-col items-center">
+                        <IconTrashBin2
+                          className="size-32 text-destructive-text"
+                          fill
+                          opacity={"0.2"}
+                          duotone={true}
+                        />
+                        <AlertDialogTitle>
+                          Delete {selectedInstallers.size} Installer
+                          {selectedInstallers.size > 1 ? "s" : ""}?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="w-19/20 flex flex-col items-center text-balance">
+                          This will permanently delete the selected installers
+                          and their Google Contacts.
+                          <span className="mt-6 flex gap-2 text-destructive-text">
+                            <IconInfoCircle className="size-8" />
+                            <span>
+                              This action cannot be undone. <br />
+                              Installers with rewards cannot be deleted.
+                            </span>
+                          </span>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className="mt-4">
+                        <AlertDialogAction
+                          onClick={handleBulkDelete}
+                          disabled={bulkDeleting}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {bulkDeleting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Deleting...
+                            </>
+                          ) : (
+                            `Delete ${selectedInstallers.size} Installer${
+                              selectedInstallers.size > 1 ? "s" : ""
+                            }`
+                          )}
+                        </AlertDialogAction>
+                        <AlertDialogCancel className="w-full">
+                          Cancel
+                        </AlertDialogCancel>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </motion.div>
+              </AnimatePresence>
+            )}
+          </div>
+        </CardFooter>
       </Card>
       {/* Edit Modal */}
       <InstallerEditModal

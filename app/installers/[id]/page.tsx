@@ -276,7 +276,9 @@ export default function InstallerDetailsPage() {
   };
 
   // Check if user is admin
-  const isAdmin = session?.user?.role === TeamRole.ADMIN;
+  const isAdmin =
+    session?.user?.role === TeamRole.ADMIN ||
+    session?.user?.role === TeamRole.MANAGER;
 
   const pathname = usePathname();
   const { setOverride, clearOverride } = useBreadcrumb();
@@ -340,63 +342,60 @@ export default function InstallerDetailsPage() {
               <IconEdit2 className="mr-2" />
               Edit
             </Button>
-            {isAdmin && (
-              <>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive">
-                      <IconTrashBin2 className="h-4.5 w-4.5 mr-2" />
-                      Delete
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className="rounded-5xl">
-                    <AlertDialogHeader className="flex flex-col items-center">
-                      <IconTrashBin2
-                        className="size-32 text-destructive-text"
-                        fill
-                        opacity={"0.2"}
-                      />
-                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                      <AlertDialogDescription className="w-19/20 flex flex-col items-center text-balance">
-                        This will permanently delete the installer{" "}
-                        <span className="flex items-center gap-2">
-                          <strong>{installer.fullName}</strong>{" "}
-                          {installer.installerCode}
-                        </span>
-                        <span className="mt-2 flex items-center gap-2 text-destructive-text">
-                          <IconInfoCircle /> This action cannot be undone.
-                        </span>
-                        {statistics && statistics.totalRewards > 0 && (
-                          <span className="block mt-2 text-destructive font-medium">
-                            ⚠️ This installer has {statistics.totalRewards}{" "}
-                            reward(s). You must delete all rewards first.
-                          </span>
-                        )}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="mt-4">
-                      <AlertDialogAction
-                        onClick={handleDelete}
-                        disabled={deleting}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        {deleting ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Deleting...
-                          </>
-                        ) : (
-                          "Delete Installer"
-                        )}
-                      </AlertDialogAction>
-                      <AlertDialogCancel className="w-full">
-                        Cancel
-                      </AlertDialogCancel>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </>
-            )}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={!isAdmin}>
+                  <IconTrashBin2 className="h-4.5 w-4.5 mr-2" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="rounded-4xl">
+                <AlertDialogHeader className="flex flex-col items-center">
+                  <IconTrashBin2
+                    className="size-32 text-destructive-text"
+                    fill
+                    opacity={"0.2"}
+                    duotone={true}
+                  />
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription className="w-19/20 flex flex-col items-center text-balance">
+                    This will permanently delete the installer{" "}
+                    <span className="flex items-center gap-2">
+                      <strong>{installer.fullName}</strong>{" "}
+                      {installer.installerCode}
+                    </span>
+                    <span className="mt-2 flex items-center gap-2 text-destructive-text">
+                      <IconInfoCircle /> This action cannot be undone.
+                    </span>
+                    {statistics && statistics.totalRewards > 0 && (
+                      <span className="block mt-2 text-destructive font-medium">
+                        ⚠️ This installer has {statistics.totalRewards}{" "}
+                        reward(s). You must delete all rewards first.
+                      </span>
+                    )}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="mt-4">
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deleting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete Installer"
+                    )}
+                  </AlertDialogAction>
+                  <AlertDialogCancel className="w-full">
+                    Cancel
+                  </AlertDialogCancel>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         }
         Icon={

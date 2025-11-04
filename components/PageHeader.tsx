@@ -51,7 +51,7 @@ export default function PageHeader({
         </div>
       </div>
       {action && (
-        <div className="flex space-x-2 justify-end flex-shrink-0 w-full flex-wrap md:flex-nowrap md:w-auto md:block">
+        <div className="flex space-x-2 items-center justify-end flex-shrink-0 w-full flex-wrap md:flex-nowrap md:w-auto">
           {action}
         </div>
       )}

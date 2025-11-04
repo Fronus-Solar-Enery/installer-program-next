@@ -1,14 +1,14 @@
 import { TeamRole } from "./roles";
 
 declare global {
-  interface IconProps {
-    className?: string;
+  interface IconProps extends React.SVGProps<SVGSVGElement> {
     fill?: boolean;
     duotone?: boolean;
     width?: string | number;
     opacity?: string | number;
-    onClick?: () => void;
+    onClick?: React.MouseEventHandler<SVGSVGElement>;
   }
+
   interface SidebarUser {
     id?: string;
     name?: string | null | undefined;
