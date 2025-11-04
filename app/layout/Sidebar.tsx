@@ -539,7 +539,8 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
         ref={ref}
         href={to}
         className={cn(
-          "navitem-link flex items-center gap-2 px-3 py-3 rounded-4xl transition-all duration-200 w-full [corner-shape:squircle]",
+          "navitem-link flex items-center gap-2 px-3 py-3 rounded-2xl transition-all duration-200 w-full",
+          isExpanded ? "squircle" : "squircle-icon",
           isActive
             ? "bg-sidebar-primary text-primary font-medium"
             : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground"
