@@ -1,13 +1,16 @@
 "use client";
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { LazyInstallerEditModal } from "@/components/installers/LazyModals";
+import InstallerEditModal from "@/components/InstallerEditModal";
 import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Users,
   CheckCircle,
+  XCircle,
+  MapPin,
   X,
   ChevronLeft,
   ChevronRight,
@@ -63,6 +66,7 @@ import {
 import { toast } from "sonner";
 import { TeamRole } from "@/types/roles";
 import PageHeader from "@/components/PageHeader";
+import { IInstaller } from "@/models/Installer";
 import Dropdown, {
   DropdownContent,
   DropdownTrigger,
@@ -110,31 +114,16 @@ import IconRestart from "@/components/icons/Restart";
 import IconSortVertical from "@/components/icons/SortVertical";
 import IconCloseCircle from "@/components/icons/CloseCircle";
 
-// Optimization imports
-import { useInstallers, type InstallerWithId } from "@/hooks/useInstallers";
-import { useDebounce } from "@/hooks/useDebounce";
-import { useOptimizedInstallerFilter } from "@/hooks/useOptimizedInstallerFilter";
-import { StatisticsCards } from "@/components/installers/StatisticsCards";
-import { InstallerTableRow } from "@/components/installers/InstallerTableRow";
+interface InstallerWithId extends IInstaller {
+  _id: string;
+}
 
 export default function InstallersPage() {
   const router = useRouter();
   const { data: session } = useSession();
-
-  // React Query for data fetching
-  const {
-    data: queryData,
-    isLoading: loading,
-    refetch: fetchInstallers,
-  } = useInstallers();
-  const installers = useMemo(
-    () => queryData?.installers || [],
-    [queryData?.installers]
-  );
-
-  // Debounced search
+  const [installers, setInstallers] = useState<InstallerWithId[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 300);
   const [googleAuthStatus, setGoogleAuthStatus] = useState<{
     isAuthenticated: boolean;
     hasRefreshToken: boolean;
@@ -235,6 +224,7 @@ export default function InstallersPage() {
   const [downloadingReport, setDownloadingReport] = useState(false);
 
   useEffect(() => {
+    fetchInstallers();
     checkGoogleAuthStatus();
 
     // Check for auth callback success
@@ -286,78 +276,83 @@ export default function InstallersPage() {
     }
   };
 
-  // Track last update time
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const fetchInstallers = async () => {
+    try {
+      setLoading(true);
+      // Fetch all installers without pagination - frontend handles pagination
+      const response = await fetch("/api/installers?limit=10000");
+      const data = await response.json();
 
-  // Wrap refetch to update lastUpdated timestamp
-  const handleRefresh = useCallback(async () => {
-    await fetchInstallers();
-    setLastUpdated(new Date());
-  }, [fetchInstallers]);
+      if (data.success) {
+        setInstallers(data.data.installers);
+      }
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error("Failed to fetch installers:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleDelete = useCallback(
-    async (installerId: string, installerName: string) => {
-      // Set deleting state
-      setDeleteDialogState({
-        open: true,
-        status: "deleting",
-        installerId,
-        installerName,
+  const handleDelete = async (installerId: string, installerName: string) => {
+    // Set deleting state
+    setDeleteDialogState({
+      open: true,
+      status: "deleting",
+      installerId,
+      installerName,
+    });
+
+    setDeletingId(installerId);
+    try {
+      const response = await fetch(`/api/installers/${installerId}`, {
+        method: "DELETE",
       });
 
-      setDeletingId(installerId);
-      try {
-        const response = await fetch(`/api/installers/${installerId}`, {
-          method: "DELETE",
+      const data = await response.json();
+
+      if (response.ok) {
+        // Remove from local state
+        setInstallers((prev) => prev.filter((i) => i._id !== installerId));
+        // Remove from selection if selected
+        setSelectedInstallers((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(installerId);
+          return newSet;
         });
 
-        const data = await response.json();
-
-        if (response.ok) {
-          // React Query will auto-refetch, just update UI state
-          await fetchInstallers();
-
-          // Remove from selection if selected
-          setSelectedInstallers((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(installerId);
-            return newSet;
-          });
-
-          // Show success in dialog
-          setDeleteDialogState({
-            open: true,
-            status: "success",
-            message: `Installer "${installerName}" has been deleted successfully!`,
-            installerName,
-          });
-        } else {
-          // Show error in dialog
-          setDeleteDialogState({
-            open: true,
-            status: "error",
-            message: data.message || "Failed to delete installer",
-            installerName,
-          });
-        }
-      } catch (error) {
-        console.error("Failed to delete installer:", error);
+        // Show success in dialog
+        setDeleteDialogState({
+          open: true,
+          status: "success",
+          message: `Installer "${installerName}" has been deleted successfully!`,
+          installerName,
+        });
+      } else {
         // Show error in dialog
         setDeleteDialogState({
           open: true,
           status: "error",
-          message: "An error occurred while deleting the installer",
+          message: data.message || "Failed to delete installer",
           installerName,
         });
-      } finally {
-        setDeletingId(null);
       }
-    },
-    [fetchInstallers]
-  );
+    } catch (error) {
+      console.error("Failed to delete installer:", error);
+      // Show error in dialog
+      setDeleteDialogState({
+        open: true,
+        status: "error",
+        message: "An error occurred while deleting the installer",
+        installerName,
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Bulk delete handler
-  const handleBulkDelete = useCallback(async () => {
+  const handleBulkDelete = async () => {
     if (selectedInstallers.size === 0) return;
 
     setBulkDeleting(true);
@@ -382,6 +377,8 @@ export default function InstallersPage() {
 
           if (response.ok) {
             successCount++;
+            // Remove from local state
+            setInstallers((prev) => prev.filter((i) => i._id !== installerId));
           } else {
             failCount++;
             const data = await response.json();
@@ -399,9 +396,6 @@ export default function InstallersPage() {
           });
         }
       }
-
-      // React Query will auto-refetch
-      await fetchInstallers();
 
       // Clear selection
       setSelectedInstallers(new Set());
@@ -423,7 +417,7 @@ export default function InstallersPage() {
     } finally {
       setBulkDeleting(false);
     }
-  }, [selectedInstallers, installers, fetchInstallers]);
+  };
 
   // Toggle individual selection
   const toggleSelection = (installerId: string) => {
@@ -546,35 +540,182 @@ export default function InstallersPage() {
     session?.user?.role === TeamRole.ADMIN ||
     session?.user?.role === TeamRole.MANAGER;
 
-  // Optimized filtering, sorting, and statistics (single pass)
-  const {
-    filtered: filteredInstallers,
-    statistics,
-    uniqueValues,
-  } = useOptimizedInstallerFilter({
-    installers,
-    search: debouncedSearch,
-    filters,
-    sortField,
-    sortDirection,
-  });
+  const filteredInstallers = useMemo(() => {
+    let result = installers;
+
+    // Apply search filter
+    if (search) {
+      const searchLower = search.toLowerCase();
+      result = result.filter((installer) => {
+        return (
+          installer.fullName?.toLowerCase().includes(searchLower) ||
+          installer.installerCode?.toLowerCase().includes(searchLower) ||
+          installer.cnic?.includes(search) ||
+          installer.phoneNumber?.includes(search) ||
+          installer.whatsappNumber?.includes(search) ||
+          installer.accountNumber?.includes(search) ||
+          installer.accountTitle?.toLowerCase().includes(searchLower) ||
+          installer.companyName?.toLowerCase().includes(searchLower)
+        );
+      });
+    }
+
+    // Apply date range filter
+    if (filters.dateRange !== "all") {
+      const now = new Date();
+      let startDate: Date | null = null;
+      let endDate: Date | null = null;
+
+      if (filters.dateRange === "today") {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        endDate = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          23,
+          59,
+          59
+        );
+      } else if (filters.dateRange === "week") {
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      } else if (filters.dateRange === "month") {
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      } else if (filters.dateRange === "year") {
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+      } else if (
+        filters.dateRange === "custom" &&
+        filters.customStartDate &&
+        filters.customEndDate
+      ) {
+        startDate = new Date(filters.customStartDate);
+        startDate.setHours(0, 0, 0, 0);
+        endDate = new Date(filters.customEndDate);
+        endDate.setHours(23, 59, 59, 999);
+      }
+
+      if (startDate) {
+        result = result.filter((i) => {
+          const createdAt = new Date(i.createdAt || "");
+          return createdAt >= startDate! && (!endDate || createdAt <= endDate);
+        });
+      }
+    }
+
+    // Apply filters
+    if (filters.city) {
+      result = result.filter((i) => i.city === filters.city);
+    }
+    if (filters.province) {
+      result = result.filter((i) => i.province === filters.province);
+    }
+    if (filters.trainingCenter) {
+      result = result.filter(
+        (i) => i.trainingCenter === filters.trainingCenter
+      );
+    }
+    if (filters.certified !== "") {
+      const isCertified = filters.certified === "true";
+      result = result.filter((i) => i.certified === isCertified);
+    }
+
+    return result;
+  }, [installers, search, filters]);
+
+  // Calculate statistics
+  const statistics = useMemo(() => {
+    const total = installers.length;
+    const certified = installers.filter((i) => i.certified).length;
+    const notCertified = total - certified;
+    const cities = new Set(installers.map((i) => i.city).filter(Boolean)).size;
+    const provinces = new Set(installers.map((i) => i.province).filter(Boolean))
+      .size;
+    const trainingCenters = new Set(
+      installers.map((i) => i.trainingCenter).filter(Boolean)
+    ).size;
+
+    return {
+      total,
+      certified,
+      notCertified,
+      cities,
+      provinces,
+      trainingCenters,
+      filtered: filteredInstallers.length,
+    };
+  }, [installers, filteredInstallers]);
+
+  // Get unique values for filters
+  const uniqueValues = useMemo(() => {
+    const cities = [
+      ...new Set(installers.map((i) => i.city).filter(Boolean)),
+    ].sort();
+    const provinces = [
+      ...new Set(installers.map((i) => i.province).filter(Boolean)),
+    ].sort();
+    const trainingCenters = [
+      ...new Set(installers.map((i) => i.trainingCenter).filter(Boolean)),
+    ].sort();
+
+    return { cities, provinces, trainingCenters };
+  }, [installers]);
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredInstallers.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
 
-  // Reset to first page when filters or search change
+  // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters, debouncedSearch]);
+  }, [filters, search]);
+
+  const sortedInstallers = useMemo(
+    () =>
+      [...filteredInstallers].sort((a, b) => {
+        const aVal = a[sortField];
+        const bVal = b[sortField];
+
+        if (aVal === null || aVal === undefined) return 1;
+        if (bVal === null || bVal === undefined) return -1;
+
+        if (typeof aVal === "string" && typeof bVal === "string") {
+          return sortDirection === "asc"
+            ? aVal.localeCompare(bVal)
+            : bVal.localeCompare(aVal);
+        }
+
+        if (typeof aVal === "boolean" && typeof bVal === "boolean") {
+          return sortDirection === "asc"
+            ? aVal === bVal
+              ? 0
+              : aVal
+              ? 1
+              : -1
+            : aVal === bVal
+            ? 0
+            : bVal
+            ? 1
+            : -1;
+        }
+
+        if (typeof aVal === "number" && typeof bVal === "number") {
+          return sortDirection === "asc" ? aVal - bVal : bVal - aVal;
+        }
+
+        // For dates and other types, convert to string for comparison
+        return sortDirection === "asc"
+          ? String(aVal).localeCompare(String(bVal))
+          : String(bVal).localeCompare(String(aVal));
+      }),
+    [filteredInstallers, sortField, sortDirection]
+  );
 
   const activeColumnsLength =
     Object.values(visibleColumns).filter(Boolean).length;
+  // Get paginated data
+  const paginatedInstallers = sortedInstallers.slice(startIndex, endIndex);
 
-  // Get paginated data (filteredInstallers is already sorted)
-  const paginatedInstallers = filteredInstallers.slice(startIndex, endIndex);
-
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const refreshRelTime = useRelativeTime(lastUpdated);
 
   // Animated container variants
@@ -597,7 +738,6 @@ export default function InstallersPage() {
     <div className="flex-1 overflow-auto space-y-4">
       <PageHeader
         title="Installers"
-        iconFill
         Icon={IconInstaller}
         description={
           <>
@@ -688,8 +828,71 @@ export default function InstallersPage() {
         )
       )}
 
-      {/* Statistics Cards - Optimized Component */}
-      <StatisticsCards statistics={statistics} />
+      {/* Statistics Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Installers
+            </CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statistics.total}</div>
+            {statistics.total !== statistics.filtered && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {statistics.filtered} filtered
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Certified</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statistics.certified}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {statistics.total > 0
+                ? Math.round((statistics.certified / statistics.total) * 100)
+                : 0}
+              % of total
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Not Certified</CardTitle>
+            <XCircle className="h-4 w-4 text-orange-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statistics.notCertified}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {statistics.total > 0
+                ? Math.round((statistics.notCertified / statistics.total) * 100)
+                : 0}
+              % of total
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Locations</CardTitle>
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statistics.cities}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {statistics.provinces} provinces, {statistics.trainingCenters}{" "}
+              training centers
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="bg-transparent">
         <CardHeader className="!flex-row items-center justify-between w-full bg-muted/70 border-b border-border">
@@ -699,7 +902,7 @@ export default function InstallersPage() {
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              onClick={handleRefresh}
+              onClick={fetchInstallers}
               disabled={loading}
               title="Refresh data"
               className="gap-2"
@@ -1728,11 +1931,11 @@ export default function InstallersPage() {
         </CardFooter>
       </Card>
       {/* Edit Modal */}
-      <LazyInstallerEditModal
+      <InstallerEditModal
         open={editModalOpen}
         onOpenChange={setEditModalOpen}
         installerId={selectedInstallerId}
-        onSuccess={handleRefresh}
+        onSuccess={fetchInstallers}
       />
 
       {/* Delete Confirmation/Result Dialog */}

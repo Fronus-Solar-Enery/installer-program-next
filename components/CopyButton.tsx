@@ -6,7 +6,7 @@ export const CopyButton = ({
   label,
 }: {
   text: string;
-  label: string;
+  label?: string;
 }) => {
   const { copyToClipboard, copied } = useClipboard();
   return (

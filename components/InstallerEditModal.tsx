@@ -47,7 +47,6 @@ import {
   IconAltArrowRight,
   IconAltArrowLeft,
   IconEdit2,
-  IconDangerCircle,
   IconTrainingCenter,
 } from "@/components/icons";
 import Loading from "@/components/ui/loading";
@@ -62,8 +61,6 @@ import { InstallerCodeDisplay } from "@/app/installers/new/InstallerCodeDisplay"
 import { FormStep } from "@/components/ui/FormStep";
 import PageHeader from "./PageHeader";
 import IconDanger from "./icons/Danger";
-import { ProgressiveBlur } from "./ui/progressive-blur";
-import { useVerticalOverflow } from "@/hooks/useOverflow";
 
 interface InstallerEditModalProps {
   open: boolean;
