@@ -1,7 +1,7 @@
 "use client";
 
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { ReactNode } from "react";
+import { ReactNode, RefObject } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,13 +9,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 interface ModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   description?: string;
+  className?: string;
   children: ReactNode;
+  ref?: RefObject<HTMLDivElement | null>;
   size?: "sm" | "md" | "lg" | "xl" | "full";
 }
 
@@ -25,6 +28,8 @@ export default function Modal({
   title,
   description,
   children,
+  className,
+  ref,
   size = "lg",
 }: ModalProps) {
   const sizeClasses = {
@@ -50,10 +55,18 @@ export default function Modal({
         </DialogHeader>
       </VisuallyHidden>
       <DialogContent
+        ref={ref}
         aria-describedby={description}
-        className={sizeClasses[size]}
+        className={cn(
+          className,
+          sizeClasses[size],
+          "p-0 flex flex-col max-h-[90vh]"
+        )}
+        hideClose
       >
-        {children}
+        <div className="overflow-y-auto overflow-x-hidden flex-1 px-6 py-6">
+          {children}
+        </div>
       </DialogContent>
     </Dialog>
   );

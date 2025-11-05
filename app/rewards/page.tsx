@@ -827,7 +827,7 @@ export default function RewardsPage() {
                   Columns Visibility
                 </div>
                 <ScrollArea className="h-72 pr-2 rounded-xl">
-                  <div className="space-y-1 w-[98%]">
+                  <div className="space-y-1 w-[98%] bg-background p-1">
                     {Object.entries(visibleColumns).map(([key, value]) => (
                       <label
                         key={key}

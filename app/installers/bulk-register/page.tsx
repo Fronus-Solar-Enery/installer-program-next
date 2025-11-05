@@ -42,6 +42,7 @@ import { toast } from "sonner";
 import { FileDropzone } from "@/components/ui/drop-zone";
 import { IconTrashBin2 } from "@/components/icons";
 import IconExcel from "@/components/icons/Excel";
+import IconDownloadMinimalistic from "@/components/icons/DownloadMinimalistic";
 
 interface InstallerUpload {
   installerCode: string;
@@ -1335,6 +1336,45 @@ export default function BulkUploadInstallersPage() {
               <Trash2 className="h-4 w-4 mr-2" />
               Just Terminate
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={terminateDialogOpen}
+        onOpenChange={setTerminateDialogOpen}
+      >
+        <AlertDialogContent className="rounded-4xl !min-w-sm">
+          <AlertDialogHeader className="flex flex-col items-center">
+            <IconTrashBin2
+              className="size-32 text-destructive-text"
+              fill
+              opacity={"0.2"}
+              duotone={true}
+            />
+            <AlertDialogTitle>Terminate Invalid Records?</AlertDialogTitle>
+            <AlertDialogDescription className="w-19/20 flex flex-col items-center text-center text-balance">
+              {invalidCount} invalid record(s) will be permanently removed from
+              the preview list. <br /> <br /> You can download them first before
+              terminating, or just terminate without downloading.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogAction
+              onClick={terminateInvalidRecords}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <IconTrashBin2 className="mr-2" /> Just Terminate
+            </AlertDialogAction>
+            <Button
+              variant="outline"
+              onClick={downloadAndTerminateInvalid}
+              className="rounded-full"
+            >
+              <IconDownloadMinimalistic className="mr-2" />
+              Download & Terminate
+            </Button>
+            <AlertDialogCancel className="w-full">Cancel</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -1,10 +1,31 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Modal from "./Modal";
-import { PRODUCT_MODELS, PAYMENT_METHOD } from "@/lib/constants";
+import { PRODUCT_MODELS, PAYMENT_METHOD, ProductModels } from "@/lib/constants";
 import { PaymentStatus } from "@/types/rewards";
 import { toast } from "sonner";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { StepHeader } from "@/components/StepHeader";
+import { FormField } from "@/components/ui/form-field";
+import { FormStep } from "@/components/ui/FormStep";
+import {
+  IconProduct,
+  IconSerialNumber,
+  IconReward,
+  IconUser,
+  IconInstallerCode,
+  IconEdit2,
+  IconBank,
+  IconCalendar,
+  IconAltArrowLeft,
+  IconAltArrowRight,
+} from "@/components/icons";
+import Loading from "@/components/ui/loading";
+import PageHeader from "./PageHeader";
 
 interface RewardData {
   serialNumber: string;
@@ -20,7 +41,10 @@ interface RewardData {
     installerCode: string;
     fullName: string;
   };
-  referrer?: unknown;
+  referrer?: {
+    installerCode: string;
+    fullName: string;
+  };
 }
 
 interface RewardEditModalProps {
@@ -30,12 +54,17 @@ interface RewardEditModalProps {
   onSuccess?: () => void;
 }
 
+// Style constants - matching InstallerEditModal
+const CARD_SECTION_CLASS = "bg-card border-border border p-6 rounded-3xl";
+const GRID_2_COL_CLASS = "grid gap-6 md:grid-cols-2";
+
 export default function RewardEditModal({
   open,
   onOpenChange,
   rewardId,
   onSuccess,
 }: RewardEditModalProps) {
+  const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [reward, setReward] = useState<RewardData | null>(null);
@@ -51,6 +80,71 @@ export default function RewardEditModal({
   const [referrerTransactionId, setReferrerTransactionId] = useState("");
   const [sendingDate, setSendingDate] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
+
+  // Memoize selected product to avoid recalculation
+  const selectedProduct = useMemo(
+    () => PRODUCT_MODELS.find((p) => p.value === productModel),
+    [productModel]
+  );
+
+  const isBatteryProduct = useMemo(
+    () =>
+      (selectedProduct?.isBattery && selectedProduct?.requiresInverter) ||
+      false,
+    [selectedProduct]
+  );
+
+  // Memoize product groups for select dropdown
+  const productGroups = useMemo(() => {
+    const map = new Map<string, ProductModels[]>();
+
+    for (const m of PRODUCT_MODELS as ProductModels[]) {
+      const key = m.isBattery ? "Batteries" : "Inverters";
+      const arr = map.get(key);
+      if (arr) arr.push(m);
+      else map.set(key, [m]);
+    }
+
+    return Array.from(map, ([label, items]) => ({
+      label,
+      options: items
+        .slice()
+        .sort((a, b) => a.label.localeCompare(b.label))
+        .map((item) => ({
+          value: item.value,
+          label: (
+            <div className="flex items-end gap-2">
+              <span className="truncate">{item.label}</span>
+              {item.reward != null && (
+                <p className="text-muted-foreground text-[10px]">
+                  Rs {item.reward}
+                </p>
+              )}
+            </div>
+          ),
+        })),
+    }));
+  }, []);
+
+  // Memoize payment method options
+  const paymentMethodOptions = useMemo(
+    () =>
+      PAYMENT_METHOD.map((method) => ({
+        value: method.value,
+        label: method.label,
+      })),
+    []
+  );
+
+  // Memoize payment status options
+  const paymentStatusOptions = useMemo(
+    () => [
+      { value: PaymentStatus.PENDING, label: "Pending" },
+      { value: PaymentStatus.PAID, label: "Paid" },
+      { value: PaymentStatus.FAILED, label: "Failed" },
+    ],
+    []
+  );
 
   const fetchReward = useCallback(async () => {
     try {
@@ -93,8 +187,61 @@ export default function RewardEditModal({
     }
   }, [open, rewardId, fetchReward]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!open) {
+      setLoading(true);
+      setCurrentStep(1);
+    }
+  }, [open]);
+
+  // Memoize steps array to prevent recreating on every render
+  const steps = useMemo(
+    () => [
+      { number: 1, title: "Product Details" },
+      { number: 2, title: "Payment Info" },
+      { number: 3, title: "Review" },
+    ],
+    []
+  );
+
+  // Step validation
+  const isStep1Valid = useMemo(() => {
+    return (
+      serialNumber.trim() !== "" &&
+      productModel !== "" &&
+      (!isBatteryProduct || inverterSerialNumber.trim() !== "")
+    );
+  }, [serialNumber, productModel, isBatteryProduct, inverterSerialNumber]);
+
+  const isStep2Valid = useMemo(() => {
+    return (
+      paymentStatus &&
+      (paymentStatus === PaymentStatus.PENDING || paymentMethod !== "")
+    );
+  }, [paymentStatus, paymentMethod]);
+
+  // Navigation handlers
+  const handleNext = useCallback(() => {
+    if (currentStep === 1 && !isStep1Valid) {
+      toast.error(
+        "Please complete all required fields: Serial Number, Product Model" +
+          (isBatteryProduct ? ", and Inverter Serial Number" : "")
+      );
+      return;
+    }
+    if (currentStep === 2 && !isStep2Valid) {
+      toast.error("Please select payment status and method");
+      return;
+    }
+    setCurrentStep(currentStep + 1);
+  }, [currentStep, isStep1Valid, isStep2Valid, isBatteryProduct]);
+
+  const handlePrev = useCallback(() => {
+    setCurrentStep(currentStep - 1);
+  }, [currentStep]);
+
+  const handleSaveChanges = async () => {
     setSaving(true);
 
     try {
@@ -132,202 +279,506 @@ export default function RewardEditModal({
     }
   };
 
-  if (loading) {
-    return (
-      <Modal
-        open={open}
-        onOpenChange={onOpenChange}
-        title="Edit Reward"
-        size="xl"
-      >
-        <div className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">Loading reward data...</p>
-        </div>
-      </Modal>
-    );
-  }
-
   return (
     <Modal
       open={open}
       onOpenChange={onOpenChange}
       title="Edit Reward"
-      description={`Serial Number: ${reward?.serialNumber}`}
-      size="xl"
+      description="Update reward information"
+      size="lg"
     >
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Reward Summary */}
-        <div className="bg-muted rounded-lg p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-2">
-            Reward Information
-          </h3>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <span className="text-muted-foreground">Installer:</span>
-              <span className="ml-2 font-medium">
-                {reward?.installer?.installerCode} -{" "}
-                {reward?.installer?.fullName}
-              </span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Reward Amount:</span>
-              <span className="ml-2 font-medium text-green-600">
-                Rs. {reward?.rewardAmount?.toLocaleString()}
-              </span>
-            </div>
-          </div>
-        </div>
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
+            Edit{" "}
+            {loading ? (
+              <Skeleton className="h-6 w-32" />
+            ) : (
+              reward?.serialNumber
+            )}{" "}
+            details
+          </span>
+        }
+        Icon={IconEdit2}
+        description={
+          <>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Update reward details and payment information
+            </p>
+          </>
+        }
+        titleClassName="text-xl"
+        iconFill
+      />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Serial Number */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Serial Number <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={serialNumber}
-              onChange={(e) => setSerialNumber(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              required
-            />
+      {loading ? (
+        <div>
+          {/* Step Progress Skeleton */}
+          <div className="flex justify-between items-center my-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex flex-col items-center gap-2">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            ))}
           </div>
 
-          {/* Product Model */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Product Model <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={productModel}
-              onChange={(e) => setProductModel(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              required
-            >
-              <option value="">Select product model</option>
-              {PRODUCT_MODELS.map((product) => (
-                <option key={product.value} value={product.value}>
-                  {product.label}{" "}
-                  {product.reward
-                    ? `(Rs. ${product.reward.toLocaleString()})`
-                    : ""}
-                </option>
+          {/* Installer Info Skeleton */}
+          <div className={cn("mb-6", CARD_SECTION_CLASS)}>
+            <div className="flex items-center gap-4 mb-4">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="flex-1">
+                <Skeleton className="h-5 w-32 mb-2" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+            </div>
+            <div className={GRID_2_COL_CLASS}>
+              <div>
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-5 w-full" />
+              </div>
+              <div>
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-5 w-full" />
+              </div>
+            </div>
+          </div>
+
+          {/* Product Details Skeleton */}
+          <div className="space-y-4 mb-6">
+            <div className="p-6 rounded-3xl border text-card-foreground bg-card border-border">
+              <div className="text-base flex items-center gap-2">
+                <Skeleton className="h-12 w-12 mr-2 rounded-full" />
+                <div>
+                  <Skeleton className="h-6 w-48 mb-2" />
+                  <Skeleton className="h-4 w-96" />
+                </div>
+              </div>
+            </div>
+
+            <div className={cn(GRID_2_COL_CLASS, CARD_SECTION_CLASS)}>
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-11 w-full" />
+                  <Skeleton className="h-4 w-48" />
+                </div>
               ))}
-            </select>
+            </div>
           </div>
 
-          {/* Inverter Serial Number */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Inverter Serial Number <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={inverterSerialNumber}
-              onChange={(e) => setInverterSerialNumber(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              required
-            />
+          {/* Payment Details Skeleton */}
+          <div className="space-y-4">
+            <div className="p-6 rounded-3xl border text-card-foreground bg-card border-border">
+              <div className="text-base flex items-center gap-2">
+                <Skeleton className="h-12 w-12 mr-2 rounded-full" />
+                <div>
+                  <Skeleton className="h-6 w-48 mb-2" />
+                  <Skeleton className="h-4 w-96" />
+                </div>
+              </div>
+            </div>
+
+            <div className={cn(GRID_2_COL_CLASS, CARD_SECTION_CLASS)}>
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-11 w-full" />
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Payment Status */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Payment Status <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={paymentStatus}
-              onChange={(e) =>
-                setPaymentStatus(e.target.value as PaymentStatus)
-              }
-              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-              required
-            >
-              <option value={PaymentStatus.PENDING}>Pending</option>
-              <option value={PaymentStatus.PAID}>Paid</option>
-              <option value={PaymentStatus.FAILED}>Failed</option>
-            </select>
-          </div>
-
-          {/* Installer Transaction ID */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Installer Transaction ID
-            </label>
-            <input
-              type="text"
-              value={transactionId}
-              onChange={(e) => setTransactionId(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-
-          {/* Referrer Transaction ID - Only if referrer exists */}
-          {!!reward?.referrer && (
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Referrer Transaction ID
-              </label>
-              <input
-                type="text"
-                value={referrerTransactionId}
-                onChange={(e) => setReferrerTransactionId(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+          {/* Action Buttons Skeleton */}
+          <CardFooter
+            className={cn("flex justify-end gap-3 mt-6", CARD_SECTION_CLASS)}
+          >
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-32" />
+          </CardFooter>
+        </div>
+      ) : (
+        <form onSubmit={(e) => e.preventDefault()}>
+          {/* Progress Steps */}
+          <div className="flex justify-between items-center my-8">
+            {steps.map((s, i) => (
+              <FormStep
+                key={i}
+                step={i}
+                currentStep={currentStep}
+                name={s.title}
+                description={s.title}
+                totalSteps={steps.length}
               />
+            ))}
+          </div>
+
+          {/* Reward Summary - Always visible */}
+          <div className={cn("mb-6", CARD_SECTION_CLASS)}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 rounded-xl bg-muted">
+                <IconUser className="h-6 w-6 text-primary" fill />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">
+                  Installer Information
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Reward owner details
+                </p>
+              </div>
+            </div>
+            <div className={GRID_2_COL_CLASS}>
+              <div>
+                <span className="text-xs text-muted-foreground flex items-center gap-1.5 mb-1">
+                  <IconInstallerCode className="h-3.5 w-3.5" />
+                  Installer Code
+                </span>
+                <p className="font-mono font-medium text-sm">
+                  {reward?.installer?.installerCode}
+                </p>
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground flex items-center gap-1.5 mb-1">
+                  <IconUser className="h-3.5 w-3.5" />
+                  Full Name
+                </span>
+                <p className="font-medium text-sm">
+                  {reward?.installer?.fullName}
+                </p>
+              </div>
+              <div>
+                <span className="text-xs text-muted-foreground flex items-center gap-1.5 mb-1">
+                  <IconReward className="h-3.5 w-3.5" />
+                  Reward Amount
+                </span>
+                <p className="font-mono font-medium text-sm text-success-text">
+                  Rs. {reward?.rewardAmount?.toLocaleString()}
+                </p>
+              </div>
+              {reward?.referrer && (
+                <div>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1.5 mb-1">
+                    <IconUser className="h-3.5 w-3.5" />
+                    Referrer
+                  </span>
+                  <p className="font-mono font-medium text-sm">
+                    {reward.referrer.installerCode} -{" "}
+                    {reward.referrer.fullName}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Step 1: Product Details */}
+          {currentStep === 1 && (
+            <div className="space-y-4 mb-6">
+            <StepHeader
+              icon={IconProduct}
+              title="Product Details"
+              description="Update product information and serial numbers"
+            />
+
+            <div className="space-y-6">
+              <div className={cn(GRID_2_COL_CLASS, CARD_SECTION_CLASS)}>
+                <FormField
+                  type="text"
+                  label="Serial Number"
+                  id="serialNumber"
+                  value={serialNumber}
+                  onChange={setSerialNumber}
+                  placeholder="e.g., SN123456789ABC"
+                  hint="Product serial number from the label"
+                  icon={IconSerialNumber}
+                  required
+                />
+
+                <FormField
+                  type="select"
+                  label="Product Model"
+                  id="productModel"
+                  value={productModel}
+                  onChange={setProductModel}
+                  placeholder="Select product model"
+                  hint="Choose the product model"
+                  icon={IconProduct}
+                  groups={productGroups}
+                  searchable
+                  searchPlaceholder="Type to search products..."
+                  required
+                />
+
+                <FormField
+                  type="text"
+                  label="Reward Amount"
+                  id="rewardAmount"
+                  value={`Rs. ${(selectedProduct?.reward || reward?.rewardAmount || 0).toLocaleString()}`}
+                  onChange={() => {}}
+                  disabled
+                  hint="Based on product model"
+                  icon={IconReward}
+                />
+              </div>
+
+              {/* Inverter Serial Number - Only for battery products */}
+              {isBatteryProduct && (
+                <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-blue-800 dark:text-blue-200 mb-3 flex items-start gap-2">
+                    <span className="text-lg">ℹ️</span>
+                    <span>
+                      <strong>Battery Installation:</strong> For battery
+                      products, you must also provide the serial number of
+                      the inverter that the battery is connected to.
+                    </span>
+                  </p>
+                  <FormField
+                    type="text"
+                    label="Inverter Serial Number"
+                    id="inverterSerialNumber"
+                    value={inverterSerialNumber}
+                    onChange={(value) =>
+                      setInverterSerialNumber(value.toUpperCase())
+                    }
+                    placeholder="e.g., INV987654321XYZ"
+                    hint="Enter the serial number of the inverter connected to this battery"
+                    icon={IconSerialNumber}
+                    required
+                  />
+                </div>
+              )}
+            </div>
             </div>
           )}
 
-          {/* Sending Date */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Sending Date
-            </label>
-            <input
-              type="date"
-              value={sendingDate}
-              onChange={(e) => setSendingDate(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+          {/* Step 2: Payment Details */}
+          {currentStep === 2 && (
+            <div className="space-y-4">
+            <StepHeader
+              icon={IconBank}
+              title="Payment Information"
+              description="Update payment status and transaction details"
             />
-          </div>
 
-          {/* Payment Method */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Payment Method
-            </label>
-            <select
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-              className="w-full px-3 py-2 border border-border rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            <div className={cn(GRID_2_COL_CLASS, CARD_SECTION_CLASS)}>
+              <FormField
+                type="select"
+                label="Payment Status"
+                id="paymentStatus"
+                value={paymentStatus}
+                onChange={(value) => setPaymentStatus(value as PaymentStatus)}
+                placeholder="Select status"
+                hint="Current payment status"
+                icon={IconBank}
+                options={paymentStatusOptions}
+                required
+              />
+
+              <FormField
+                type="select"
+                label="Payment Method"
+                id="paymentMethod"
+                value={paymentMethod}
+                onChange={setPaymentMethod}
+                placeholder="Select payment method"
+                hint="How the payment was sent"
+                icon={IconBank}
+                options={paymentMethodOptions}
+              />
+
+              <FormField
+                type="text"
+                label="Installer Transaction ID"
+                id="transactionId"
+                value={transactionId}
+                onChange={setTransactionId}
+                placeholder="e.g., TXN123456"
+                hint="Transaction ID for installer payment"
+              />
+
+              {!!reward?.referrer && (
+                <FormField
+                  type="text"
+                  label="Referrer Transaction ID"
+                  id="referrerTransactionId"
+                  value={referrerTransactionId}
+                  onChange={setReferrerTransactionId}
+                  placeholder="e.g., TXN789012"
+                  hint="Transaction ID for referrer payment"
+                />
+              )}
+
+              <FormField
+                type="date"
+                label="Sending Date"
+                id="sendingDate"
+                value={sendingDate}
+                onChange={setSendingDate}
+                hint="Date when payment was sent"
+                icon={IconCalendar}
+              />
+            </div>
+            </div>
+          )}
+
+          {/* Step 3: Review */}
+          {currentStep === 3 && (
+            <div className="space-y-4">
+              <StepHeader
+                icon={IconReward}
+                title="Review & Confirm"
+                description="Review all changes before saving"
+              />
+
+              <div className={cn("space-y-6", CARD_SECTION_CLASS)}>
+                {/* Product Information */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+                    Product Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">
+                        Serial Number:
+                      </span>
+                      <p className="font-medium">{serialNumber}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">
+                        Product Model:
+                      </span>
+                      <p className="font-medium">{selectedProduct?.label}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">
+                        Inverter Serial:
+                      </span>
+                      <p className="font-medium">
+                        {inverterSerialNumber || "N/A"}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">
+                        Reward Amount:
+                      </span>
+                      <p className="font-medium text-success-text">
+                        Rs.{" "}
+                        {(
+                          selectedProduct?.reward ||
+                          reward?.rewardAmount ||
+                          0
+                        ).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Information */}
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+                    Payment Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">
+                        Payment Status:
+                      </span>
+                      <p className="font-medium">
+                        {paymentStatusOptions.find(
+                          (o) => o.value === paymentStatus
+                        )?.label}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">
+                        Payment Method:
+                      </span>
+                      <p className="font-medium">
+                        {paymentMethodOptions.find(
+                          (o) => o.value === paymentMethod
+                        )?.label || "Not specified"}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">
+                        Installer Transaction ID:
+                      </span>
+                      <p className="font-medium">
+                        {transactionId || "Not provided"}
+                      </p>
+                    </div>
+                    {!!reward?.referrer && (
+                      <div>
+                        <span className="text-muted-foreground">
+                          Referrer Transaction ID:
+                        </span>
+                        <p className="font-medium">
+                          {referrerTransactionId || "Not provided"}
+                        </p>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-muted-foreground">
+                        Sending Date:
+                      </span>
+                      <p className="font-medium">
+                        {sendingDate || "Not specified"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation Buttons */}
+          <CardFooter
+            className={cn("flex justify-between items-center mt-6", CARD_SECTION_CLASS)}
+          >
+            <Button
+              type="button"
+              onClick={handlePrev}
+              disabled={currentStep === 1}
+              variant="outline"
+              className="gap-1 pl-2"
             >
-              <option value="">Select payment method</option>
-              {PAYMENT_METHOD.map((method) => (
-                <option key={method.value} value={method.value}>
-                  {method.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+              <IconAltArrowLeft width={2} />
+              Previous
+            </Button>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-border">
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="px-6 py-2 border border-border rounded-md text-foreground hover:bg-muted"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400"
-          >
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
-        </div>
-      </form>
+            {currentStep < 3 ? (
+              <Button
+                type="button"
+                onClick={handleNext}
+                disabled={
+                  (currentStep === 1 && !isStep1Valid) ||
+                  (currentStep === 2 && !isStep2Valid)
+                }
+                className="gap-1 pr-3"
+              >
+                Next
+                <IconAltArrowRight width={2} />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={handleSaveChanges}
+                disabled={saving}
+                className="gap-2"
+              >
+                {saving ? (
+                  <>
+                    Saving Changes
+                    <Loading className="fill-background" />
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            )}
+          </CardFooter>
+        </form>
+      )}
     </Modal>
   );
 }

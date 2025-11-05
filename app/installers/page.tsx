@@ -81,6 +81,7 @@ import {
   IconAdd,
   IconArrowUpDown,
   IconBuildings2,
+  IconCheckCircle,
   IconCity,
   IconClock,
   IconClockCircle,
@@ -111,6 +112,7 @@ import IconDocumentFilter from "@/components/icons/DocumentFilter";
 import { Label } from "@/components/ui/label";
 import IconRestart from "@/components/icons/Restart";
 import IconSortVertical from "@/components/icons/SortVertical";
+import IconCloseCircle from "@/components/icons/CloseCircle";
 
 interface InstallerWithId extends IInstaller {
   _id: string;
@@ -129,6 +131,28 @@ export default function InstallersPage() {
   } | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteDialogState, setDeleteDialogState] = useState<{
+    open: boolean;
+    status: "confirm" | "deleting" | "success" | "error";
+    message?: string;
+    installerId?: string;
+    installerName?: string;
+  }>({
+    open: false,
+    status: "confirm",
+  });
+
+  const [bulkDeleteResultState, setBulkDeleteResultState] = useState<{
+    open: boolean;
+    successCount: number;
+    failCount: number;
+    failures: Array<{ name: string; reason: string }>;
+  }>({
+    open: false,
+    successCount: 0,
+    failCount: 0,
+    failures: [],
+  });
 
   // Bulk selection state
   const [selectedInstallers, setSelectedInstallers] = useState<Set<string>>(
@@ -271,6 +295,14 @@ export default function InstallersPage() {
   };
 
   const handleDelete = async (installerId: string, installerName: string) => {
+    // Set deleting state
+    setDeleteDialogState({
+      open: true,
+      status: "deleting",
+      installerId,
+      installerName,
+    });
+
     setDeletingId(installerId);
     try {
       const response = await fetch(`/api/installers/${installerId}`, {
@@ -280,7 +312,6 @@ export default function InstallersPage() {
       const data = await response.json();
 
       if (response.ok) {
-        toast.success(`Installer "${installerName}" deleted successfully!`);
         // Remove from local state
         setInstallers((prev) => prev.filter((i) => i._id !== installerId));
         // Remove from selection if selected
@@ -289,12 +320,32 @@ export default function InstallersPage() {
           newSet.delete(installerId);
           return newSet;
         });
+
+        // Show success in dialog
+        setDeleteDialogState({
+          open: true,
+          status: "success",
+          message: `Installer "${installerName}" has been deleted successfully!`,
+          installerName,
+        });
       } else {
-        toast.error(data.error || "Failed to delete installer");
+        // Show error in dialog
+        setDeleteDialogState({
+          open: true,
+          status: "error",
+          message: data.message || "Failed to delete installer",
+          installerName,
+        });
       }
     } catch (error) {
       console.error("Failed to delete installer:", error);
-      toast.error("An error occurred while deleting the installer");
+      // Show error in dialog
+      setDeleteDialogState({
+        open: true,
+        status: "error",
+        message: "An error occurred while deleting the installer",
+        installerName,
+      });
     } finally {
       setDeletingId(null);
     }
@@ -312,11 +363,14 @@ export default function InstallersPage() {
     try {
       let successCount = 0;
       let failCount = 0;
-      const errors: string[] = [];
+      const failures: Array<{ name: string; reason: string }> = [];
 
       // Delete installers one by one
       for (const installerId of selectedInstallers) {
         try {
+          const installer = installers.find((i) => i._id === installerId);
+          const installerName = installer?.fullName || "Unknown";
+
           const response = await fetch(`/api/installers/${installerId}`, {
             method: "DELETE",
           });
@@ -328,11 +382,18 @@ export default function InstallersPage() {
           } else {
             failCount++;
             const data = await response.json();
-            errors.push(data.error || "Unknown error");
+            failures.push({
+              name: installerName,
+              reason: data.message || "Unknown error",
+            });
           }
         } catch (error) {
           failCount++;
-          errors.push("Network error");
+          const installer = installers.find((i) => i._id === installerId);
+          failures.push({
+            name: installer?.fullName || "Unknown",
+            reason: "Network error",
+          });
         }
       }
 
@@ -341,15 +402,14 @@ export default function InstallersPage() {
 
       // Show results
       toast.dismiss(toastId);
-      if (successCount > 0 && failCount === 0) {
-        toast.success(`Successfully deleted ${successCount} installer(s)!`);
-      } else if (successCount > 0 && failCount > 0) {
-        toast.warning(
-          `Deleted ${successCount} installer(s), ${failCount} failed`
-        );
-      } else {
-        toast.error(`Failed to delete installers: ${errors[0]}`);
-      }
+
+      // Show result dialog
+      setBulkDeleteResultState({
+        open: true,
+        successCount,
+        failCount,
+        failures,
+      });
     } catch (error) {
       toast.dismiss(toastId);
       console.error("Bulk delete error:", error);
@@ -461,7 +521,9 @@ export default function InstallersPage() {
 
   const getSortIcon = (field: string) => {
     if (sortField !== field) {
-      return <IconSortVertical className="size-4 ml-1 inline" />;
+      return (
+        <IconSortVertical className="size-4 ml-1 inline text-muted-foreground/50" />
+      );
     }
     return sortDirection === "asc" ? (
       <IconSortVertical duotone className="size-4 ml-1 inline text-primary" />
@@ -882,7 +944,7 @@ export default function InstallersPage() {
                   Columns Visibility
                 </div>
                 <ScrollArea className="h-72 pr-2 rounded-xl">
-                  <div className="space-y-1 w-[98%]">
+                  <div className="space-y-1 w-[98%] bg-background p-1">
                     {Object.entries(visibleColumns).map(([key, value]) => (
                       <Label
                         key={key}
@@ -1312,7 +1374,7 @@ export default function InstallersPage() {
                     variant="outline"
                     className="gap-1 [&>svg]:pointer-events-auto h-5.5"
                   >
-                    {filters.dateRange === "all" && "All"}
+                    {filters.dateRange === "all" && "All Time"}
                     {filters.dateRange === "today" && "Today"}
                     {filters.dateRange === "week" && "Last 7 days"}
                     {filters.dateRange === "month" && "Last 30 days"}
@@ -1666,76 +1728,23 @@ export default function InstallersPage() {
                             <IconEdit2 />
                           </Button>
 
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                title="Delete"
-                                disabled={
-                                  !isAdmin || deletingId === installer._id
-                                }
-                                className="group"
-                              >
-                                {deletingId === installer._id ? (
-                                  <Loading />
-                                ) : (
-                                  <IconTrashBin2 className="h-4.5 w-4.5 text-destructive-text group-hover:text-destructive-text-hover transition-colors duration-300" />
-                                )}
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent className="rounded-4xl">
-                              <AlertDialogHeader className="flex flex-col items-center">
-                                <IconTrashBin2
-                                  className="size-32 text-destructive-text"
-                                  fill
-                                  opacity={"0.2"}
-                                  duotone={true}
-                                />
-                                <AlertDialogTitle>
-                                  Are you sure?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription className="w-19/20 flex flex-col items-center text-balance">
-                                  This will permanently delete the installer{" "}
-                                  <span className="flex items-center gap-2">
-                                    <strong>{installer.fullName}</strong>{" "}
-                                    {installer.installerCode}
-                                  </span>
-                                  <span className="mt-6 flex gap-2 text-destructive-text">
-                                    <IconInfoCircle className="size-8" />
-                                    <span>
-                                      This action cannot be undone. <br />
-                                      Installer with rewards cannot be deleted.
-                                    </span>
-                                  </span>
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter className="mt-4">
-                                <AlertDialogAction
-                                  onClick={() =>
-                                    handleDelete(
-                                      installer._id,
-                                      installer.fullName
-                                    )
-                                  }
-                                  disabled={deletingId === installer._id}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  {deletingId === installer._id ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                      Deleting...
-                                    </>
-                                  ) : (
-                                    "Delete Installer"
-                                  )}
-                                </AlertDialogAction>
-                                <AlertDialogCancel className="w-full">
-                                  Cancel
-                                </AlertDialogCancel>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Delete"
+                            disabled={!isAdmin || deletingId === installer._id}
+                            className="group"
+                            onClick={() =>
+                              setDeleteDialogState({
+                                open: true,
+                                status: "confirm",
+                                installerId: installer._id,
+                                installerName: installer.fullName,
+                              })
+                            }
+                          >
+                            <IconTrashBin2 className="h-4.5 w-4.5 text-destructive-text group-hover:text-destructive-text-hover transition-colors duration-300" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -1928,6 +1937,269 @@ export default function InstallersPage() {
         installerId={selectedInstallerId}
         onSuccess={fetchInstallers}
       />
+
+      {/* Delete Confirmation/Result Dialog */}
+      <AlertDialog
+        open={deleteDialogState.open}
+        onOpenChange={(open) => {
+          // Prevent closing while deleting
+          if (!open && deleteDialogState.status !== "deleting") {
+            setDeleteDialogState({
+              open: false,
+              status: "confirm",
+            });
+          }
+        }}
+      >
+        <AlertDialogContent className="rounded-4xl">
+          <AlertDialogHeader className="flex flex-col items-center">
+            {deleteDialogState.status === "confirm" && (
+              <>
+                <IconTrashBin2
+                  className="size-32 text-destructive-text"
+                  fill
+                  opacity={"0.2"}
+                  duotone={true}
+                />
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription className="w-19/20 flex flex-col items-center text-balance">
+                  This will permanently delete the installer{" "}
+                  <span className="flex items-center gap-2">
+                    <strong className="whitespace-nowrap">
+                      {deleteDialogState.installerName}
+                    </strong>
+                  </span>
+                  <span className="mt-6 flex gap-2 text-destructive-text">
+                    <IconInfoCircle className="size-8" />
+                    <span>
+                      This action cannot be undone. <br />
+                      Installer with rewards cannot be deleted.
+                    </span>
+                  </span>
+                </AlertDialogDescription>
+              </>
+            )}
+
+            {deleteDialogState.status === "deleting" && (
+              <>
+                <div className="size-32 flex items-center justify-center">
+                  <Loading className="size-16" />
+                </div>
+                <AlertDialogTitle>Deleting...</AlertDialogTitle>
+                <AlertDialogDescription className="w-19/20 text-center text-balance">
+                  Please wait while we delete installer{" "}
+                  <strong>{deleteDialogState.installerName}</strong>
+                </AlertDialogDescription>
+              </>
+            )}
+
+            {deleteDialogState.status === "success" && (
+              <>
+                <IconCheckCircle
+                  duotone
+                  fill
+                  opacity={0.1}
+                  className="size-32 text-green-500"
+                />
+                <AlertDialogTitle>Success!</AlertDialogTitle>
+                <AlertDialogDescription className="w-19/20 text-center text-balance">
+                  {deleteDialogState.message}
+                </AlertDialogDescription>
+              </>
+            )}
+
+            {deleteDialogState.status === "error" && (
+              <>
+                <IconCloseCircle
+                  className="size-32 text-destructive-text"
+                  fill
+                  duotone
+                  opacity={0.1}
+                />
+                <AlertDialogTitle>Deletion Failed</AlertDialogTitle>
+                <AlertDialogDescription className="w-19/20 flex flex-col items-center text-balance">
+                  <span className="mb-2">
+                    Failed to delete installer{" "}
+                    <strong>{deleteDialogState.installerName}</strong>
+                  </span>
+                  <span className="mt-4 flex gap-2 text-destructive-text items-start justify-center">
+                    <IconInfoCircle className="mt-0.5 flex-shrink-0" />
+                    <span className="text-left">
+                      <strong>Reason:</strong> {deleteDialogState.message}
+                    </span>
+                  </span>
+                </AlertDialogDescription>
+              </>
+            )}
+          </AlertDialogHeader>
+
+          <AlertDialogFooter className="mt-4">
+            {(deleteDialogState.status === "confirm" ||
+              deleteDialogState.status === "deleting") && (
+              <>
+                <Button
+                  onClick={() => {
+                    if (
+                      deleteDialogState.installerId &&
+                      deleteDialogState.installerName
+                    ) {
+                      handleDelete(
+                        deleteDialogState.installerId,
+                        deleteDialogState.installerName
+                      );
+                    }
+                  }}
+                  className="w-full rounded-full"
+                  variant={"destructive"}
+                  disabled={deleteDialogState.status === "deleting"}
+                >
+                  {deleteDialogState.status === "confirm" && "Delete Installer"}
+                  {deleteDialogState.status === "deleting" && (
+                    <div className="flex items-center gap-2">
+                      Deleting Installer...
+                    </div>
+                  )}
+                </Button>
+                <AlertDialogCancel
+                  className="w-full"
+                  disabled={deleteDialogState.status === "deleting"}
+                >
+                  Cancel
+                </AlertDialogCancel>
+              </>
+            )}
+
+            {(deleteDialogState.status === "success" ||
+              deleteDialogState.status === "error") && (
+              <Button
+                variant={"outline"}
+                onClick={() =>
+                  setDeleteDialogState({
+                    open: false,
+                    status: "confirm",
+                  })
+                }
+                className="w-full"
+              >
+                Close
+              </Button>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Result Dialog */}
+      <AlertDialog
+        open={bulkDeleteResultState.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setBulkDeleteResultState({
+              open: false,
+              successCount: 0,
+              failCount: 0,
+              failures: [],
+            });
+          }
+        }}
+      >
+        <AlertDialogContent className="rounded-4xl max-w-xl">
+          <AlertDialogHeader className="flex flex-col items-center">
+            {bulkDeleteResultState.failCount === 0 ? (
+              <>
+                <IconCheckCircle
+                  duotone
+                  fill
+                  opacity={0.1}
+                  className="size-32 text-green-500"
+                />
+                <AlertDialogTitle>Bulk Delete Complete</AlertDialogTitle>
+                <AlertDialogDescription className="w-19/20 text-center text-balance">
+                  Successfully deleted {bulkDeleteResultState.successCount}{" "}
+                  installer(s)!
+                </AlertDialogDescription>
+              </>
+            ) : bulkDeleteResultState.successCount === 0 ? (
+              <>
+                <IconCloseCircle
+                  className="size-32 text-destructive-text"
+                  fill
+                  duotone
+                  opacity={0.1}
+                />
+                <AlertDialogTitle>All Deletions Failed</AlertDialogTitle>
+                <AlertDialogDescription className="w-19/20 text-center text-balance">
+                  Failed to delete {bulkDeleteResultState.failCount}{" "}
+                  installer(s). See details below.
+                </AlertDialogDescription>
+              </>
+            ) : (
+              <>
+                <div className="size-32 flex items-center justify-center relative">
+                  <IconCheckCircle
+                    duotone
+                    fill
+                    opacity={0.1}
+                    className="size-32 text-green-500 absolute"
+                  />
+                  <div className="size-12 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center font-bold text-xl absolute -bottom-2 -right-2 border-4 border-background">
+                    {bulkDeleteResultState.failCount}
+                  </div>
+                </div>
+                <AlertDialogTitle>Partial Success</AlertDialogTitle>
+                <AlertDialogDescription className="w-19/20 text-center text-balance">
+                  Successfully deleted {bulkDeleteResultState.successCount}{" "}
+                  installer(s), but {bulkDeleteResultState.failCount} failed.
+                </AlertDialogDescription>
+              </>
+            )}
+          </AlertDialogHeader>
+
+          {bulkDeleteResultState.failCount > 0 && (
+            <div className="mt-4 max-h-96 overflow-y-auto">
+              <div className="px-6 pb-2">
+                <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                  <IconInfoCircle className="size-5 text-destructive-text" />
+                  Failed Deletions ({bulkDeleteResultState.failCount})
+                </h4>
+                <div className="space-y-2">
+                  {bulkDeleteResultState.failures.map((failure, index) => (
+                    <div
+                      key={index}
+                      className="p-3 rounded-lg bg-destructive/10 border border-destructive/20"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{failure.name}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            <strong>Reason:</strong> {failure.reason}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <AlertDialogFooter className="mt-4">
+            <Button
+              variant={"outline"}
+              onClick={() =>
+                setBulkDeleteResultState({
+                  open: false,
+                  successCount: 0,
+                  failCount: 0,
+                  failures: [],
+                })
+              }
+              className="w-full"
+            >
+              Close
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
