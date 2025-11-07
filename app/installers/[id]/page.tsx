@@ -58,6 +58,7 @@ import {
   IconTrashBin2,
 } from "@/components/icons";
 import { InstallerAvatar } from "@/components/UserAvatar";
+import { SimpleDeleteDialog } from "@/components/SimpleDeleteDialog";
 
 interface InstallerDetails {
   _id: string;
@@ -145,6 +146,7 @@ export default function InstallerDetailsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const fetchInstaller = useCallback(async () => {
     try {
@@ -342,60 +344,14 @@ export default function InstallerDetailsPage() {
               <IconEdit2 className="mr-2" />
               Edit
             </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" disabled={!isAdmin}>
-                  <IconTrashBin2 className="h-4.5 w-4.5 mr-2" />
-                  Delete
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="rounded-4xl">
-                <AlertDialogHeader className="flex flex-col items-center">
-                  <IconTrashBin2
-                    className="size-32 text-destructive-text"
-                    fill
-                    opacity={"0.2"}
-                    duotone={true}
-                  />
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription className="w-19/20 flex flex-col items-center text-balance">
-                    This will permanently delete the installer{" "}
-                    <span className="flex items-center gap-2">
-                      <strong>{installer.fullName}</strong>{" "}
-                      {installer.installerCode}
-                    </span>
-                    <span className="mt-2 flex items-center gap-2 text-destructive-text">
-                      <IconInfoCircle /> This action cannot be undone.
-                    </span>
-                    {statistics && statistics.totalRewards > 0 && (
-                      <span className="block mt-2 text-destructive font-medium">
-                        ⚠️ This installer has {statistics.totalRewards}{" "}
-                        reward(s). You must delete all rewards first.
-                      </span>
-                    )}
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter className="mt-4">
-                  <AlertDialogAction
-                    onClick={handleDelete}
-                    disabled={deleting}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    {deleting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Deleting...
-                      </>
-                    ) : (
-                      "Delete Installer"
-                    )}
-                  </AlertDialogAction>
-                  <AlertDialogCancel className="w-full">
-                    Cancel
-                  </AlertDialogCancel>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button
+              variant="destructive"
+              disabled={!isAdmin}
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <IconTrashBin2 className="h-4.5 w-4.5 mr-2" />
+              Delete
+            </Button>
           </div>
         }
         Icon={
@@ -1189,6 +1145,25 @@ export default function InstallerDetailsPage() {
         onOpenChange={setEditModalOpen}
         installerId={installerId}
         onSuccess={fetchInstaller}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <SimpleDeleteDialog
+        open={deleteDialogOpen}
+        deleting={deleting}
+        itemName={`${installer.fullName} (${installer.installerCode})`}
+        entityType="installer"
+        warningMessage="Installer with rewards cannot be deleted."
+        additionalWarning={
+          statistics && statistics.totalRewards > 0 ? (
+            <span className="block mt-2 text-destructive font-medium">
+              ⚠️ This installer has {statistics.totalRewards} reward(s). You
+              must delete all rewards first.
+            </span>
+          ) : undefined
+        }
+        onConfirm={handleDelete}
+        onClose={() => setDeleteDialogOpen(false)}
       />
     </div>
   );

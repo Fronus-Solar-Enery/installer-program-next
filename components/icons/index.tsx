@@ -27,6 +27,7 @@ export { default as IconClipboardTick } from "./ClipboardTick";
 export { default as IconClock } from "./Clock";
 export { default as IconClockCircle } from "./ClockCircle";
 export { default as IconClose } from "./Close";
+export { default as IconCloseCircle } from "./CloseCircle";
 export { default as IconCloudUpload } from "./CloudUpload";
 export { default as IconCommand } from "./Command";
 export { default as IconCopy } from "./Copy";

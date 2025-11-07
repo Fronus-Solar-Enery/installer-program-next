@@ -46,11 +46,11 @@ import { getInitials } from "@/lib/getInitials";
 import { useRelativeTime } from "@/lib/getRelativeTime";
 import { useClipboard } from "@/hooks/useCopyToClipboard";
 import { StepHeader } from "@/components/StepHeader";
-import { CNICInput } from "@/app/installers/new/CNICInput";
-import { InstallerCodeDisplay } from "@/app/installers/new/InstallerCodeDisplay";
+import { CNICInput } from "@/app/installers/register/CNICInput";
+import { InstallerCodeDisplay } from "@/app/installers/register/InstallerCodeDisplay";
 import { FormStep } from "@/components/ui/FormStep";
 import { ReviewStep } from "./ReviewStep";
-import { RegistrationModal } from "@/app/installers/new/RegistrationModal";
+import { RegistrationModal } from "@/app/installers/register/RegistrationModal";
 
 interface Settings {
   allowInstallerCodeEdit?: boolean;
@@ -495,7 +495,7 @@ export default function NewInstallerPage() {
     // Completely reset the page by reloading
     // This ensures all hooks (CNIC validation, referrer validation, installer code generation)
     // are completely reset to their initial state
-    window.location.href = "/installers/new";
+    window.location.href = "/installers/register";
   }, []);
 
   // Memoize selected bank and digital payment check

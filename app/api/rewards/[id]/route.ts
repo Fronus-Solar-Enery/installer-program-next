@@ -7,7 +7,7 @@ import { ApiResponse, handleApiError } from '@/lib/apiResponse';
 import { logActivity, getChanges } from '@/lib/activityLogger';
 import { ActivityType } from '@/models/Activity';
 import { sendRewardPaymentMessage } from '@/lib/whatsappService';
-import { PaymentStatus } from '@/types/rewards';
+import { RewardStatus } from '@/types/rewards';
 import { ZodError } from 'zod';
 
 import { TeamRole } from '@/models/TeamMember';
@@ -95,7 +95,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     // Track changes for activity log
     const changes = getChanges(reward.toObject() as unknown as Record<string, unknown>, validatedData);
-    const oldPaymentStatus = reward.paymentStatus;
+    const oldRewardStatus = reward.paymentStatus;
 
     // Update reward
     Object.assign(reward, validatedData);
@@ -125,7 +125,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     // Check if payment status changed to PAID
-    if (oldPaymentStatus !== PaymentStatus.PAID && validatedData.paymentStatus === PaymentStatus.PAID) {
+    if (oldRewardStatus !== RewardStatus.PAID && validatedData.paymentStatus === RewardStatus.PAID) {
       // Send WhatsApp notification (non-blocking)
       sendRewardPaymentMessage(
         {

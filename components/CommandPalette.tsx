@@ -1,17 +1,28 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
-import { Input } from '@/components/ui/input';
-import { Search, LayoutDashboard, Users, Gift, FileText, Activity, UserCog, UserPlus, PackagePlus, ArrowRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { Input } from "@/components/ui/input";
+import {
+  Search,
+  LayoutDashboard,
+  Users,
+  Gift,
+  FileText,
+  Activity,
+  UserCog,
+  UserPlus,
+  PackagePlus,
+  ArrowRight,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CommandItem {
   title: string;
@@ -26,46 +37,49 @@ interface CommandPaletteProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export default function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
+export default function CommandPalette({
+  open,
+  onOpenChange,
+}: CommandPaletteProps) {
   const router = useRouter();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const commands: CommandItem[] = [
     {
-      title: 'Dashboard',
-      description: 'View overall statistics and performance',
+      title: "Dashboard",
+      description: "View overall statistics and performance",
       icon: LayoutDashboard,
-      href: '/dashboard',
-      group: 'Navigation',
+      href: "/dashboard",
+      group: "Navigation",
     },
     {
-      title: 'Installers',
-      description: 'Manage installer registrations',
+      title: "Installers",
+      description: "Manage installer registrations",
       icon: Users,
-      href: '/installers',
-      group: 'Navigation',
+      href: "/installers",
+      group: "Navigation",
     },
     {
-      title: 'Rewards',
-      description: 'Manage product installations and rewards',
+      title: "Rewards",
+      description: "Manage product installations and rewards",
       icon: Gift,
-      href: '/rewards',
-      group: 'Navigation',
+      href: "/rewards",
+      group: "Navigation",
     },
     {
-      title: 'Add New Installer',
-      description: 'Register a new installer',
+      title: "Add New Installer",
+      description: "Register a new installer",
       icon: UserPlus,
-      href: '/installers/new',
-      group: 'Actions',
+      href: "/installers/register",
+      group: "Actions",
     },
     {
-      title: 'Add New Reward',
-      description: 'Register a new product installation',
+      title: "Add New Reward",
+      description: "Register a new product installation",
       icon: PackagePlus,
-      href: '/rewards/new',
-      group: 'Actions',
+      href: "/rewards/register",
+      group: "Actions",
     },
   ];
 
@@ -81,45 +95,48 @@ export default function CommandPalette({ open, onOpenChange }: CommandPalettePro
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         onOpenChange(!open);
       }
 
       if (open) {
-        if (e.key === 'ArrowDown') {
+        if (e.key === "ArrowDown") {
           e.preventDefault();
           setSelectedIndex((prev) => (prev + 1) % filteredCommands.length);
         }
-        if (e.key === 'ArrowUp') {
+        if (e.key === "ArrowUp") {
           e.preventDefault();
-          setSelectedIndex((prev) => (prev - 1 + filteredCommands.length) % filteredCommands.length);
+          setSelectedIndex(
+            (prev) =>
+              (prev - 1 + filteredCommands.length) % filteredCommands.length
+          );
         }
-        if (e.key === 'Enter') {
+        if (e.key === "Enter") {
           e.preventDefault();
           const selected = filteredCommands[selectedIndex];
           if (selected) {
             router.push(selected.href);
             onOpenChange(false);
-            setSearch('');
+            setSearch("");
           }
         }
-        if (e.key === 'Escape') {
+        if (e.key === "Escape") {
           e.preventDefault();
           onOpenChange(false);
-          setSearch('');
+          setSearch("");
         }
       }
     };
 
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
   }, [open, filteredCommands, selectedIndex, onOpenChange, router]);
 
   const handleSelect = (command: CommandItem) => {
     router.push(command.href);
     onOpenChange(false);
-    setSearch('');
+    setSearch("");
   };
 
   return (
@@ -128,7 +145,8 @@ export default function CommandPalette({ open, onOpenChange }: CommandPalettePro
         <VisuallyHidden>
           <DialogTitle>Command Palette</DialogTitle>
           <DialogDescription>
-            Search for pages and actions. Use arrow keys to navigate and enter to select.
+            Search for pages and actions. Use arrow keys to navigate and enter
+            to select.
           </DialogDescription>
         </VisuallyHidden>
         {/* Search Input */}
@@ -156,8 +174,8 @@ export default function CommandPalette({ open, onOpenChange }: CommandPalettePro
                   key={command.href}
                   onClick={() => handleSelect(command)}
                   className={cn(
-                    'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent',
-                    index === selectedIndex && 'bg-accent'
+                    "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent",
+                    index === selectedIndex && "bg-accent"
                   )}
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">

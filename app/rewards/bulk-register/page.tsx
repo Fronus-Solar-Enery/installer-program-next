@@ -42,7 +42,7 @@ import {
   SERIAL_STATUSES,
 } from "@/lib/constants";
 import { FileDropzone } from "@/components/ui/drop-zone";
-import { IconTrashBin2 } from "@/components/icons";
+import { IconLayer, IconTrashBin2 } from "@/components/icons";
 import IconExcel from "@/components/icons/Excel";
 import { toast } from "sonner";
 import BulkUploadProgressModal, {
@@ -157,7 +157,7 @@ export default function BulkCreateRewardsPage() {
     }
   };
 
-  const validatePaymentStatus = (status: string): boolean => {
+  const validateRewardStatus = (status: string): boolean => {
     const validStatuses = ["PAID", "PENDING", "FAILED"];
     return validStatuses.includes(status.toUpperCase());
   };
@@ -343,7 +343,7 @@ export default function BulkCreateRewardsPage() {
     // Payment status validation
     if (!reward.paymentStatus) {
       issues.push("Payment status is required");
-    } else if (!validatePaymentStatus(reward.paymentStatus)) {
+    } else if (!validateRewardStatus(reward.paymentStatus)) {
       issues.push(
         `Invalid payment status "${reward.paymentStatus}" (must be: PAID, PENDING, or FAILED)`
       );
@@ -896,6 +896,8 @@ export default function BulkCreateRewardsPage() {
   return (
     <div className="flex-1 overflow-auto space-y-4">
       <PageHeader
+        Icon={IconLayer}
+        iconFill
         title="Bulk Register Rewards"
         description="Create multiple reward records at once using an Excel file"
         action={

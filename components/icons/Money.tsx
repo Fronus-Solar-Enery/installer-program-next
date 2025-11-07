@@ -3,7 +3,7 @@ import { FC } from "react";
 const IconMoney: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
   opacity = "0.4",
 }) => {

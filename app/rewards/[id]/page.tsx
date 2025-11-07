@@ -2,28 +2,25 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Copy, Check, Edit, Trash2, ArrowLeft, Loader2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useClipboard } from "@/hooks/useCopyToClipboard";
+  IconArrowLeft,
+  IconEdit2,
+  IconInstaller,
+  IconSerialNumber,
+} from "@/components/icons";
+import PageHeader from "@/components/PageHeader";
+import { CopyButton } from "@/components/CopyButton";
+import { SimpleDeleteDialog } from "@/components/SimpleDeleteDialog";
 
 export default function RewardDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const rewardId = params.id as string;
-  const { copied, copyToClipboard } = useClipboard();
 
   const [loading, setLoading] = useState(true);
   const [reward, setReward] = useState<{
@@ -106,26 +103,6 @@ export default function RewardDetailsPage() {
     }
   };
 
-  const CopyButton = ({ text, label }: { text: string; label: string }) => {
-    const isCopied = copied === text;
-
-    return (
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => copyToClipboard(text)}
-        className="ml-2 h-8 w-8 p-0"
-        title={`Copy ${label}`}
-      >
-        {isCopied ? (
-          <Check className="h-4 w-4 text-green-600" />
-        ) : (
-          <Copy className="h-4 w-4" />
-        )}
-      </Button>
-    );
-  };
-
   if (loading) {
     return (
       <div className="p-6">
@@ -160,50 +137,77 @@ export default function RewardDetailsPage() {
   return (
     <div>
       {/* Header */}
-      <Button
-        variant="ghost"
-        onClick={() => router.push("/rewards")}
-        className="mb-4"
-      >
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Rewards
-      </Button>
-      <div className="flex justify-between items-start my-4">
-        <div className="flex items-center gap-6">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-bold">Reward Details</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Serial Number: {reward.serialNumber}
-            </p>
+      <PageHeader
+        title={
+          <div className="flex items-center gap-2">
+            {reward.productModel}
+            <Badge
+              variant={
+                reward.paymentStatus === "PAID"
+                  ? "success"
+                  : reward.paymentStatus === "PENDING"
+                  ? "warning"
+                  : "destructive"
+              }
+            >
+              {reward.paymentStatus}
+            </Badge>
           </div>
+        }
+        description={
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <IconInstaller fill duotone opacity={0.1} className="size-6" />
+              <span className="space-y-1">
+                <p className="text-xs text-muted-foreground leading-none">
+                  Installer
+                </p>
+                <p className="leading-none text-xs text-foreground">
+                  {reward.installer?.fullName}
+                </p>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <IconSerialNumber fill duotone opacity={0.1} className="size-6" />
+              <span className="space-y-1">
+                <p className="text-xs text-muted-foreground leading-none">
+                  Serial Number
+                </p>
+                <p className="leading-none text-xs text-foreground flex items-center">
+                  {reward.serialNumber}{" "}
+                  <CopyButton className="size-4" text={reward.serialNumber} />
+                </p>
+              </span>
+            </div>
+          </div>
+        }
+        action={
+          <div className="flex gap-3">
+            <Button>
+              <IconEdit2 className="mr-2" />
+              Edit
+            </Button>
 
-          {/* Payment Status Badge */}
-          <Badge
-            variant={
-              reward.paymentStatus === "PAID"
-                ? "default"
-                : reward.paymentStatus === "PENDING"
-                ? "secondary"
-                : "destructive"
-            }
-            className="text-sm px-4 py-2"
-          >
-            {reward.paymentStatus}
-          </Badge>
-        </div>
-        <div className="flex gap-3">
-          <Button onClick={() => router.push(`/rewards/${rewardId}/edit`)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-          <Button variant="destructive" onClick={handleDeleteClick}>
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete
-          </Button>
-        </div>
-      </div>
+            <Button variant="destructive" onClick={handleDeleteClick}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </div>
+        }
+        Icon={
+          <>
+            <Button
+              onClick={() => router.push("/rewards")}
+              variant={"outline"}
+              className="flex items-center justify-center size-16 rounded-full nosquircle"
+            >
+              <IconArrowLeft className="size-5" />
+            </Button>
+          </>
+        }
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         {/* Product Information */}
         <Card>
           <CardHeader>
@@ -490,33 +494,15 @@ export default function RewardDetailsPage() {
         </Card>
       </div>
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              reward and remove it from the database.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              disabled={deleting}
-            >
-              {deleting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                "Delete"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <SimpleDeleteDialog
+        open={deleteDialogOpen}
+        deleting={deleting}
+        itemName={reward.serialNumber}
+        entityType="reward"
+        warningMessage="The reward will be permanently removed from the database."
+        onConfirm={handleDeleteConfirm}
+        onClose={() => setDeleteDialogOpen(false)}
+      />
     </div>
   );
 }

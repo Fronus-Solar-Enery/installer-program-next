@@ -240,7 +240,7 @@ export default function NewRewardPage() {
     }
   }, []);
 
-  // Optimized validation for serial number
+  // Optimized validation for serial number using dedicated check-serial endpoint
   const validateSerialNumber = useCallback(async (serial: string) => {
     // Early return for empty or too short serials
     if (!serial || serial.length < 3) {
@@ -253,18 +253,17 @@ export default function NewRewardPage() {
     setSerialTouched(true);
 
     try {
-      const response = await fetch(`/api/rewards?search=${serial}`);
+      const response = await fetch(
+        `/api/rewards/check-serial?serialNumber=${encodeURIComponent(serial)}`
+      );
       const data = await response.json();
 
-      if (response.ok && data.success) {
-        const exists = data.data.rewards.some(
-          (r: { serialNumber: string }) =>
-            r.serialNumber.toUpperCase() === serial.toUpperCase()
-        );
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to validate serial number");
+      }
 
-        if (exists) {
-          throw new Error("Serial number already exists in the system");
-        }
+      if (data.data.exists) {
+        throw new Error("Serial number already exists in the system");
       }
 
       setSerialValid(true);

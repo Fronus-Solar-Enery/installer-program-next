@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import PageHeader from "@/components/PageHeader";
+import { IconActivity } from "@/components/icons";
 
 interface ActivityData {
   _id: string;
@@ -179,6 +180,8 @@ export default function ActivityPage() {
       <PageHeader
         title="Activity Log"
         description="Track all system activities and changes"
+        // iconFill
+        Icon={IconActivity}
       />
       <div className="container mx-auto space-y-4">
         {/* Filter Tabs */}

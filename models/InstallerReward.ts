@@ -1,8 +1,8 @@
 import mongoose, { Schema, Model, Types } from 'mongoose';
-import { PaymentStatus } from '@/types/rewards';
+import { RewardStatus } from '@/types/rewards';
 
 // Re-export for backward compatibility
-export { PaymentStatus };
+export { RewardStatus };
 
 export interface IInstallerReward {
   _id?: string;
@@ -20,7 +20,7 @@ export interface IInstallerReward {
   bankName: string;
   accountNumber: string;
   accountTitle: string;
-  paymentStatus: PaymentStatus;
+  paymentStatus: RewardStatus;
   transactionId?: string;
   rewardAmount: number;
   referrerTransactionId?: string;
@@ -104,8 +104,8 @@ const InstallerRewardSchema = new Schema<IInstallerReward>(
     },
     paymentStatus: {
       type: String,
-      enum: Object.values(PaymentStatus),
-      default: PaymentStatus.PENDING,
+      enum: Object.values(RewardStatus),
+      default: RewardStatus.PENDING,
       required: true,
     },
     transactionId: {

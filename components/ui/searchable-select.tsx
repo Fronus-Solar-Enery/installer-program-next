@@ -23,7 +23,7 @@ export interface SearchableSelectOption {
 }
 
 export interface SearchableSelectGroup {
-  label: string;
+  label?: string;
   options: SearchableSelectOption[];
 }
 

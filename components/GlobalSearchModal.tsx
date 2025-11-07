@@ -396,18 +396,16 @@ export default function GlobalSearchModal({
                   )}
                 >
                   {installerCode}
-                  <Button
-                    size={"icon"}
+                  <div
                     onClick={handleCopy(installerCode)}
-                    className="!p-1 !size-max rounded-sm"
-                    variant={"ghost"}
+                    className="!p-1 !size-max rounded-sm hover:text-muted-foreground transition-colors"
                   >
                     {copied === installerCode ? (
-                      <IconCheck className="size-3" />
+                      <IconCheck className="text-green-500" />
                     ) : (
-                      <IconCopy className="size-3" />
+                      <IconCopy />
                     )}
-                  </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -471,18 +469,16 @@ export default function GlobalSearchModal({
                       )}
                     >
                       {installer.installerCode}
-                      <Button
-                        size={"icon"}
+                      <div
                         onClick={handleCopy(installer.installerCode)}
-                        className="!p-1 !size-max rounded-sm"
-                        variant={"ghost"}
+                        className="!p-1 !size-max rounded-sm hover:text-muted-foreground transition-colors"
                       >
                         {copied === installer.installerCode ? (
-                          <IconCheck className="size-3" />
+                          <IconCheck className="text-green-500" />
                         ) : (
-                          <IconCopy className="size-3" />
+                          <IconCopy />
                         )}
-                      </Button>
+                      </div>
                     </div>
                   )}
                 </h2>
@@ -565,18 +561,16 @@ export default function GlobalSearchModal({
                     )}
                   >
                     {reward.serialNumber}
-                    <Button
-                      size={"icon"}
+                    <div
                       onClick={handleCopy(reward.serialNumber)}
-                      className="!p-1 !size-max rounded-sm"
-                      variant={"ghost"}
+                      className="!p-1 !size-max rounded-sm hover:text-muted-foreground transition-colors"
                     >
                       {copied === reward.serialNumber ? (
-                        <IconCheck className="size-3" />
+                        <IconCheck className="text-green-500" />
                       ) : (
-                        <IconCopy className="size-3" />
+                        <IconCopy />
                       )}
-                    </Button>
+                    </div>
                   </div>
                 )}
               </div>

@@ -135,7 +135,7 @@ export const FileDropzone = React.memo(
     const dropzoneClasses = useMemo(
       () =>
         cn(
-          "relative h-full w-full border border-dashed p-6 pb-10 rounded-[4rem] transition-colors duration-300 group/dropzone border-black/20 dark:border-border [corner-shape:squircle]",
+          "relative h-full w-full border border-dashed p-6 pb-10 rounded-[4rem] transition-colors duration-300 group/dropzone border-black/20 dark:border-border squircle",
           "hover:bg-muted/20",
           isDragActive && "border-primary/30 border-[1.5px] bg-muted/40",
           disabled && "cursor-not-allowed opacity-50",

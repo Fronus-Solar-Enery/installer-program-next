@@ -5,17 +5,21 @@ const IconCommand: FC<IconProps> = ({
   fill = false,
   duotone = false,
   width = "1.5",
+  opacity = "0.5",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
-            opacity={duotone ? "0.5" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M8 8.00037H16V16.0004H8V8.00037Z"
             stroke="currentColor"
             strokeWidth={width}
@@ -42,11 +46,14 @@ const IconCommand: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             d="M16 16.0004L19 16.0009C20.6569 16.0006 22.0002 17.3435 22.0005 19.0004C22.0007 20.6572 20.6578 22.0006 19.0009 22.0009C17.3441 22.0011 16.0007 20.6582 16.0005 19.0013L16 16.0004Z"
             fill="currentColor"
@@ -62,17 +69,20 @@ const IconCommand: FC<IconProps> = ({
             fill="currentColor"
           />
           <path
-            opacity={duotone ? "0.5" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M16 8.00038L8.00047 8.00037L8 16.0004H16V8.00038Z"
             fill="currentColor"
           />
         </svg>
       ) : (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             d="M16 8.00038L19 8.00085C20.6569 8.00112 22.0002 6.65818 22.0005 5.00133C22.0007 3.34447 20.6578 2.00112 19.0009 2.00085C17.3441 2.00059 16.0007 3.34353 16.0005 5.00038L16 8.00038L8.00047 8.00037L8 5.00038C7.99974 3.34353 6.65638 2.00059 4.99953 2.00085C3.34267 2.00112 1.99974 3.34447 2 5.00133C2.00026 6.65818 3.34362 8.00112 5.00047 8.00085L8.00047 8.00037L8 16.0004H16V8.00038Z"
             fill="currentColor"

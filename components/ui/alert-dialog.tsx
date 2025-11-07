@@ -100,6 +100,7 @@ type ButtonVariant =
   | "warning"
   | null
   | undefined;
+type ButtonSize = "default" | "sm" | "lg" | "icon";
 interface AlertDialogButtonProps
   extends React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Action> {
   variant?: ButtonVariant;
@@ -124,16 +125,20 @@ AlertDialogAction.displayName = AlertDialogPrimitive.Action.displayName;
 interface AlertDialogCancelProps
   extends React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Cancel> {
   variant?: ButtonVariant;
+  size?: ButtonSize;
 }
 
 const AlertDialogCancel = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Cancel>,
   AlertDialogCancelProps
->(({ className, variant, ...props }, ref) => (
+>(({ className, variant, size, ...props }, ref) => (
   <AlertDialogPrimitive.Cancel
     ref={ref}
     className={cn(
-      buttonVariants({ variant: (variant ?? "outline") as ButtonVariant }),
+      buttonVariants({
+        variant: (variant ?? "outline") as ButtonVariant,
+        size: (size ?? undefined) as ButtonSize,
+      }),
       "mt-2 sm:mt-0 rounded-full",
       className
     )}

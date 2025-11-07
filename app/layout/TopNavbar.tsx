@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import IconArrowUpDown from "@/components/icons/ArrowUpDown";
 import IconMagnifer from "@/components/icons/Magnifer";
 import GlobalSearchModal from "@/components/GlobalSearchModal";
+import { IconCommand } from "@/components/icons";
 
 export default function TopNavbar() {
   const { data: session } = useSession();
@@ -73,14 +74,17 @@ export default function TopNavbar() {
             variant="secondary"
             size="sm"
             onClick={() => setSearchOpen(true)}
-            className="max-w-xs w- h-10 justify-start text-left font-normal rounded-full border border-border"
+            className="squircle-icon max-w-xs w- h-10 justify-start text-left font-normal rounded-full border border-border"
             aria-label="Open search"
           >
             <IconMagnifer className="shrink-0 w-4.5 h-4.5 text-zinc-500 dark:text-zinc-400" />
             <span className="hidden sm:inline-flex items-center justify-between w-full ml-2 text-sm text-zinc-500 dark:text-zinc-400/60 leading-none">
               Search...
               <kbd className="flex items-center px-2 py-1 text-xs font-bold bg-card dark:bg-background rounded-full ml-3 leading-none text-foreground">
-                <span className="text-[10px] mr-1">⌘</span> K
+                <span className="text-[10px] mr-1">
+                  <IconCommand className="!size-2.5" width={2} />
+                </span>{" "}
+                K
               </kbd>
             </span>
           </Button>
@@ -110,7 +114,7 @@ export default function TopNavbar() {
             <DropdownTrigger asChild>
               <Button
                 variant="secondary"
-                className="gap-2 pl-1 pr-3 text-left font-normal rounded-full border border-border"
+                className="squircle-icon gap-2 pl-1 pr-3 text-left font-normal border border-border"
               >
                 <UserAvatar
                   user={session?.user}

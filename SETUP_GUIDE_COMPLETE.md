@@ -20,10 +20,12 @@
 ## Quick Start
 
 ### What You Have ✅
+
 - Google OAuth credentials configured
 - Google Contacts credentials configured
 
 ### What You Need to Setup ❌
+
 1. **MongoDB Database** (8 min)
 2. **NEXTAUTH_SECRET** (30 sec)
 3. **Admin User** (30 sec)
@@ -46,6 +48,7 @@ npm run dev
 ```
 
 **Login:** http://localhost:3000
+
 - Email: `admin@example.com`
 - Password: `admin123`
 
@@ -56,6 +59,7 @@ npm run dev
 ### ✅ Setup Checklist
 
 #### Pre-Setup
+
 - [ ] Node.js 18+ installed
 - [ ] Code editor (VS Code recommended)
 
@@ -64,6 +68,7 @@ npm run dev
 **1. MongoDB Database** (Choose ONE option)
 
 **Option A: MongoDB Atlas (Recommended - 8 min)**
+
 - [ ] Created MongoDB Atlas account
 - [ ] Created free M0 cluster (512MB forever free)
 - [ ] Created database user (saved password!)
@@ -72,39 +77,47 @@ npm run dev
 - [ ] Updated `.env.local` with Atlas URI
 
 **Example:**
+
 ```env
 MONGODB_URI=mongodb+srv://user:password@cluster0.xxxxx.mongodb.net/installer_program?retryWrites=true&w=majority
 ```
 
 **Option B: Local MongoDB**
+
 - [ ] MongoDB installed locally
 - [ ] MongoDB service started
 - [ ] `.env.local` has local URI
 
 **Example:**
+
 ```env
 MONGODB_URI=mongodb://localhost:27017/installer_program
 ```
 
 **2. NextAuth Secret**
+
 - [ ] Run: `npm run setup:secret`
 - [ ] Copy generated secret to `.env.local` as `NEXTAUTH_SECRET`
 
 **3. Google OAuth** (Already Done! ✅)
+
 - [x] `GOOGLE_CLIENT_ID` configured
 - [x] `GOOGLE_CLIENT_SECRET` configured
 
 **4. Google Contacts API** (Optional)
+
 - [ ] Google People API enabled
 - [ ] OAuth redirect URI configured
 - [ ] User authenticated via UI
 
 #### Database Setup
+
 - [ ] MongoDB service is running
 - [ ] Run: `npm run setup:admin`
 - [ ] Admin user created successfully
 
 #### Final Steps
+
 - [ ] Run: `npm install` (if not done)
 - [ ] Run: `npm run dev`
 - [ ] Open: http://localhost:3000
@@ -112,6 +125,7 @@ MONGODB_URI=mongodb://localhost:27017/installer_program
 - [ ] Change admin password immediately
 
 #### Post-Setup
+
 - [ ] Create team members (MANAGER/USER)
 - [ ] Test installer registration
 - [ ] Test reward registration
@@ -132,6 +146,7 @@ MONGODB_URI=mongodb://localhost:27017/installer_program
 ### ⚡ MongoDB Atlas Setup (Recommended - 8 minutes)
 
 **Why MongoDB Atlas?**
+
 - ✅ No Installation - Works immediately
 - ✅ Free Forever - M0 tier never expires (512MB)
 - ✅ Always On - Access from anywhere
@@ -140,9 +155,11 @@ MONGODB_URI=mongodb://localhost:27017/installer_program
 #### Step 1: Create Account (2 minutes)
 
 1. **Go to MongoDB Atlas**
+
    - Visit: https://www.mongodb.com/cloud/atlas/register
 
 2. **Sign Up**
+
    - Option A: Click "Sign up with Google" (fastest)
    - Option B: Enter email and password manually
 
@@ -153,14 +170,17 @@ MONGODB_URI=mongodb://localhost:27017/installer_program
 #### Step 2: Create Free Cluster (3 minutes)
 
 1. **Start Cluster Creation**
+
    - Click "Create" or "Build a Database"
 
 2. **Choose Deployment Type**
+
    - Select: **"M0 FREE"**
    - Shows: "512 MB Storage" and "Shared RAM"
    - Click: "Create Deployment"
 
 3. **Choose Provider & Region**
+
    - Provider: AWS, Google Cloud, or Azure
    - Region: Choose closest to your location
      - Asia: `ap-south-1` (Mumbai) or `ap-southeast-1` (Singapore)
@@ -168,6 +188,7 @@ MONGODB_URI=mongodb://localhost:27017/installer_program
      - Europe: `eu-west-1` (Ireland) or `eu-central-1` (Frankfurt)
 
 4. **Cluster Name** (Optional)
+
    - Default: `Cluster0` (you can keep this)
    - Or rename to: `installer-program`
 
@@ -177,6 +198,7 @@ MONGODB_URI=mongodb://localhost:27017/installer_program
 #### Step 3: Create Database User (1 minute)
 
 1. **In Security Quickstart Window:**
+
    - Select: "Username and Password"
 
 2. **Create User**
@@ -188,6 +210,7 @@ MONGODB_URI=mongodb://localhost:27017/installer_program
 #### Step 4: Configure Network Access (1 minute)
 
 1. **Add IP Address**
+
    - For Development: Click "Add My Current IP Address"
    - For Testing: Click "Allow Access from Anywhere" (0.0.0.0/0)
 
@@ -197,9 +220,11 @@ MONGODB_URI=mongodb://localhost:27017/installer_program
 #### Step 5: Get Connection String (1 minute)
 
 1. **On Database Deployments Page**
+
    - Find your cluster (should show "Active")
 
 2. **Click "Connect" Button**
+
    - Choose: "Drivers"
    - Driver: "Node.js"
 
@@ -211,16 +236,19 @@ MONGODB_URI=mongodb://localhost:27017/installer_program
 #### Step 6: Update `.env.local` (30 seconds)
 
 **Replace:**
+
 ```env
 MONGODB_URI=mongodb://localhost:27017/installer_program
 ```
 
 **With** (use YOUR values):
+
 ```env
 MONGODB_URI=mongodb+srv://adminuser:YOUR_PASSWORD@cluster0.xxxxx.mongodb.net/installer_program?retryWrites=true&w=majority
 ```
 
 **Important:**
+
 - Replace `<password>` with your actual password
 - Add `/installer_program` before the `?`
 - URL encode special characters in password:
@@ -235,6 +263,7 @@ npm run setup:admin
 ```
 
 **Expected Output:**
+
 ```
 📦 Connected to MongoDB
 ✅ Admin user created successfully!
@@ -247,6 +276,7 @@ npm run setup:admin
 ### 🔄 Alternative: Local MongoDB
 
 #### Windows
+
 ```bash
 # Download from: https://www.mongodb.com/try/download/community
 # After installation:
@@ -254,6 +284,7 @@ net start MongoDB
 ```
 
 #### Mac
+
 ```bash
 brew tap mongodb/brew
 brew install mongodb-community
@@ -261,6 +292,7 @@ brew services start mongodb-community
 ```
 
 #### Linux (Ubuntu/Debian)
+
 ```bash
 sudo apt-get install -y mongodb-org
 sudo systemctl start mongod
@@ -281,6 +313,7 @@ npm run test:db
 ```
 
 **What it does:**
+
 - ✅ Tests MongoDB connection
 - ✅ Diagnoses connection errors with specific solutions
 - ✅ Measures connection speed
@@ -289,6 +322,7 @@ npm run test:db
 - ✅ Color-coded output (green=success, red=error, yellow=warning)
 
 **Example output:**
+
 ```
 🧪 MONGODB CONNECTION TEST
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -321,16 +355,19 @@ npm run test:db
 When connection fails, the test tool automatically identifies the root cause:
 
 **ECONNREFUSED Error:**
+
 - 🔴 Identifies if MongoDB is not running locally
 - 📋 Provides specific solutions (Atlas setup or local installation)
 - 💡 Shows exact commands to fix the issue
 
 **Authentication Errors:**
+
 - 🔴 Detects wrong credentials
 - 📋 Shows how to reset password
 - 💡 Explains URL encoding for special characters
 
 **Network Errors:**
+
 - 🔴 Identifies DNS/timeout issues
 - 📋 Suggests IP whitelisting (Atlas)
 - 💡 Provides network troubleshooting steps
@@ -357,6 +394,7 @@ When you run `npm run dev`, the server automatically logs database configuration
 The MongoDB connection module now provides detailed logging:
 
 **On Connection Attempt:**
+
 ```
 🔌 MongoDB Connection Attempt:
    Type: MongoDB Atlas (Cloud)
@@ -367,6 +405,7 @@ The MongoDB connection module now provides detailed logging:
 ```
 
 **On Success:**
+
 ```
 ✅ MongoDB Connected Successfully!
    Database: installer_program
@@ -375,6 +414,7 @@ The MongoDB connection module now provides detailed logging:
 ```
 
 **On Failure:**
+
 ```
 ❌ MongoDB Connection Failed!
 
@@ -396,6 +436,7 @@ Check database status programmatically (Admin only):
 **Endpoint:** `GET /api/health/db`
 
 **Response (Success):**
+
 ```json
 {
   "status": "healthy",
@@ -417,6 +458,7 @@ Check database status programmatically (Admin only):
 ```
 
 **Response (Failure):**
+
 ```json
 {
   "status": "unhealthy",
@@ -436,6 +478,7 @@ Check database status programmatically (Admin only):
 ### 💡 Quick Debugging Tips
 
 **If you see ECONNREFUSED:**
+
 ```bash
 # Run the test tool for detailed diagnosis
 npm run test:db
@@ -444,6 +487,7 @@ npm run test:db
 ```
 
 **Check current database status:**
+
 ```bash
 # The dev server shows DB config on startup
 npm run dev
@@ -453,6 +497,7 @@ curl http://localhost:3000/api/health/db
 ```
 
 **Common fixes:**
+
 - Local MongoDB not running → `net start MongoDB` (Windows)
 - Wrong credentials → Check .env.local
 - IP not whitelisted → Atlas → Network Access → Add IP
@@ -493,7 +538,7 @@ The app uses a user-friendly OAuth flow where users authenticate Google Contacts
 
 #### How to Use
 
-1. Navigate to `/installers/new`
+1. Navigate to `/installers/register`
 2. If not connected, see yellow warning banner
 3. Click "🔗 Authenticate Google Contacts"
 4. Sign in and grant permissions
@@ -542,10 +587,12 @@ Send WhatsApp notifications when installers are registered or rewards are paid.
 #### Setup Steps
 
 **1. Add CallMeBot to WhatsApp**
+
 - Save number: **+34 644 31 95 72**
 - Name it: **CallMeBot**
 
 **2. Activate API Key**
+
 - Send message to CallMeBot:
   ```
   I allow callmebot to send me messages
@@ -555,16 +602,19 @@ Send WhatsApp notifications when installers are registered or rewards are paid.
 **3. Configure Environment**
 
 Add to `.env.local`:
+
 ```env
 CALLMEBOT_API_KEY=your-api-key-here
 ```
 
 **4. Test**
+
 - Register a test installer
 - Mark reward as PAID
 - Check Activity logs for delivery status
 
 #### Important Notes
+
 - FREE but has rate limits
 - Recipients must have CallMeBot activated
 - Failed messages logged in Activity section
@@ -577,19 +627,23 @@ CALLMEBOT_API_KEY=your-api-key-here
 #### Setup Steps
 
 1. **Create Twilio Account**
+
    - Go to: https://www.twilio.com/console
    - Sign up and verify
 
 2. **Enable WhatsApp Sandbox** (testing)
+
    - Messaging → Try it out → Send WhatsApp message
    - Follow instructions
 
 3. **Get Credentials**
+
    - Account SID
    - Auth Token
    - WhatsApp Phone Number
 
 4. **Install Package**
+
    ```bash
    npm install twilio
    ```
@@ -619,6 +673,7 @@ CALLMEBOT_API_KEY=your-api-key-here
 ### What This Application Does
 
 A comprehensive system to manage:
+
 - **Team Members** (Admin, Manager, User roles)
 - **Installers** (with referral tracking)
 - **Rewards** (with automatic referrer compensation)
@@ -654,18 +709,21 @@ A comprehensive system to manage:
 ### User Roles & Permissions
 
 #### 👑 ADMIN
+
 - ✅ All features
 - ✅ Register ADMIN/MANAGER/USER
 - ✅ Delete team members
 - ✅ Full access to all data
 
 #### 👔 MANAGER
+
 - ✅ Register MANAGER/USER (not ADMIN)
 - ✅ Delete installers/rewards
 - ✅ Full CRUD on installers/rewards
 - ❌ Cannot delete ADMIN users
 
 #### 👤 USER
+
 - ✅ View/Register installers
 - ✅ View/Register rewards
 - ✅ Update own profile
@@ -674,16 +732,19 @@ A comprehensive system to manage:
 ### Key Features
 
 **Referral System**
+
 - Installer A refers Installer B
 - When B gets a reward → A gets Rs. 500 automatically
 - Max 5 referrals per installer
 
 **Google Contacts Sync**
+
 - Auto-creates contact when installer registered
 - Updates contact when modified
 - Deletes contact when removed
 
 **Excel Reports**
+
 - Installers: Complete data export
 - Rewards: Filtered by status/date
 - Payment Format: Bank-ready with phone numbers
@@ -691,18 +752,21 @@ A comprehensive system to manage:
 ### Technologies Used
 
 **Frontend**
+
 - Next.js 15 (App Router)
 - React 19
 - TypeScript 5
 - Tailwind CSS 4
 
 **Backend**
+
 - Next.js API Routes
 - MongoDB 6
 - Mongoose 8
 - NextAuth.js v5
 
 **Integrations**
+
 - Google OAuth 2.0
 - Google People API
 - XLSX (Excel generation)
@@ -714,34 +778,41 @@ A comprehensive system to manage:
 ### MongoDB Errors
 
 **Error: "Authentication failed"**
+
 - Check username/password in connection string
 - URL encode special characters in password
 
 **Error: "IP address not whitelisted"**
+
 - Atlas → Security → Network Access
 - Add your current IP
 - Wait 1-2 minutes for changes
 
 **Error: "Database not found"**
+
 - Add `/installer_program` before `?` in connection string
 
 ### Google OAuth Errors
 
 **Error: "redirect_uri_mismatch"**
+
 - Add exact redirect URI to Google Console:
   - `http://localhost:3000/api/auth/callback/google`
   - `http://localhost:3000/api/google-auth/callback`
 
 **Error: "Access blocked: This app's request is invalid"**
+
 - Add email as test user in OAuth consent screen
 - Enable People API
 
 ### WhatsApp Errors
 
 **"WhatsApp service not configured"**
+
 - Add `CALLMEBOT_API_KEY` to `.env.local`
 
 **Messages not received**
+
 - Check recipient has CallMeBot activated
 - Verify phone number format: +92XXXXXXXXXX
 - Check rate limits
@@ -749,13 +820,16 @@ A comprehensive system to manage:
 ### General Issues
 
 **Can't login to app**
+
 - Run `npm run setup:admin` again
 
 **Admin user already exists**
+
 ```javascript
 // In MongoDB Compass or Shell
-db.teammembers.deleteOne({ email: 'admin@example.com' })
+db.teammembers.deleteOne({ email: "admin@example.com" });
 ```
+
 Then run: `npm run setup:admin`
 
 ---
@@ -807,15 +881,19 @@ npm run build
 ## Next Steps After Setup
 
 1. **Change Admin Password**
+
    - Profile → Change Password
 
 2. **Create Team Members**
+
    - Team → Register New Member
 
 3. **Register Installers**
+
    - Installers → Register New Installer
 
 4. **Register Rewards**
+
    - Rewards → Register New Reward
    - Referrers automatically get Rs. 500
 

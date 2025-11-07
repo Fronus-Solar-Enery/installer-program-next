@@ -488,7 +488,7 @@ function Sidebar({
       {/* User Profile */}
       {showUserInfo && currentUser && (
         <div className="mt-auto p-3 justify-center flex">
-          <div className="profile-container p-3 bg-card border shadow-lg rounded-4xl border-border w-full flex items-center gap-2 [corner-shape:squircle]">
+          <div className="profile-container p-3 bg-card border shadow-lg rounded-4xl border-border w-full flex items-center gap-2 squircle">
             <UserAvatar
               user={currentUser}
               className="profile-avatar rounded-2xl flex items-center justify-center size-9 shadow-sm"

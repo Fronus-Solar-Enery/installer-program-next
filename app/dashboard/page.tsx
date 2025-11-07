@@ -73,6 +73,7 @@ import { InstallerAvatar } from "@/components/UserAvatar";
 import { formatNumber } from "@/lib/formatNumber";
 import { useClipboard } from "@/hooks/useCopyToClipboard";
 import Link from "next/link";
+import { CopyButton } from "@/components/CopyButton";
 
 interface Stats {
   totalInstallers: number;
@@ -621,6 +622,7 @@ export default function DashboardPage() {
       <PageHeader
         title="Dashboard"
         Icon={IconDiagramUp}
+        // iconFill
         description="Overview of installer activity, rewards, and performance metrics"
         action={
           <div className="flex items-center gap-3">
@@ -1245,7 +1247,7 @@ export default function DashboardPage() {
                         You haven&rsquo;t registered any installations. Add
                         first installation to get started.
                       </p>
-                      <Button href="/rewards/new" className="gap-2">
+                      <Button href="/rewards/register" className="gap-2">
                         Add Installation
                         <IconArrowRightUp width={2} />
                       </Button>
@@ -1580,7 +1582,7 @@ export default function DashboardPage() {
                 badge={String(recentInstallations.length)}
               />
               <CardContent>
-                <div className="flex items-center justify-center size-full">
+                <div className="space-y-3">
                   {recentInstallations.length > 0 ? (
                     recentInstallations.map((installation) => {
                       return (
@@ -1630,7 +1632,7 @@ export default function DashboardPage() {
                           You haven&rsquo;t registered any product. Register
                           first product to get started.
                         </p>
-                        <Button href="/rewards/new" className="gap-2">
+                        <Button href="/rewards/register" className="gap-2">
                           Add Installation
                           <IconArrowRightUp width={2} />
                         </Button>
@@ -1888,10 +1890,12 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
     }));
   }, [activeInstallers]);
 
-  // Stable click handler factory to avoid inline recreation in map
   const handleCopy = useCallback(
-    (code: string) => () => void copyToClipboard(code),
-    [copyToClipboard]
+    (code: string) => (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation(); // defensive — CopyButton also stops propagation
+      e.preventDefault();
+    },
+    []
   );
 
   return (
@@ -1948,19 +1952,10 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                     >
                       <div className="inline-flex items-center">
                         {installer.installerCode}
-
-                        <Button
-                          size={"icon"}
+                        <CopyButton
+                          text={installer.installerCode}
                           onClick={handleCopy(installer.installerCode)}
-                          className="!p-1 !size-max rounded-sm"
-                          variant={"ghost"}
-                        >
-                          {copied === installer.installerCode ? (
-                            <IconCheck className="size-3" />
-                          ) : (
-                            <IconCopy className="size-3" />
-                          )}
-                        </Button>
+                        />
                       </div>
                     </div>
                   </h2>

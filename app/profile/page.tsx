@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import ChangePasswordModal from "@/components/ChangePasswordModal";
 import { UserAvatar } from "@/components/UserAvatar";
 import { TeamRole } from "@/models/TeamMember";
+import { IconUser } from "@/components/icons";
 
 interface UserProfile {
   _id: string;
@@ -158,6 +159,8 @@ export default function ProfilePage() {
     return (
       <div className="p-6">
         <PageHeader
+          iconFill
+          Icon={IconUser}
           title="My Profile"
           description="Manage your account information"
         />
@@ -172,6 +175,8 @@ export default function ProfilePage() {
     return (
       <div className="p-6">
         <PageHeader
+          iconFill
+          Icon={IconUser}
           title="My Profile"
           description="Manage your account information"
         />
@@ -188,6 +193,8 @@ export default function ProfilePage() {
   return (
     <>
       <PageHeader
+        iconFill
+        Icon={IconUser}
         title="My Profile"
         description="Manage your account information"
         action={

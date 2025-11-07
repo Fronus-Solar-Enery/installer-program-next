@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { PaymentStatus } from '@/types/rewards';
+import { RewardStatus } from '@/types/rewards';
 import { PRODUCT_MODELS, PAYMENT_METHOD } from '@/lib/constants';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +30,7 @@ export default function EditRewardPage() {
     serialNumber?: string;
     productModel?: string;
     inverterSerialNumber?: string;
-    paymentStatus?: PaymentStatus;
+    paymentStatus?: RewardStatus;
     transactionId?: string;
     referrerTransactionId?: string;
     sendingDate?: string;
@@ -45,7 +45,7 @@ export default function EditRewardPage() {
   const [serialNumber, setSerialNumber] = useState('');
   const [productModel, setProductModel] = useState('');
   const [inverterSerialNumber, setInverterSerialNumber] = useState('');
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(PaymentStatus.PENDING);
+  const [paymentStatus, setRewardStatus] = useState<RewardStatus>(RewardStatus.PENDING);
   const [transactionId, setTransactionId] = useState('');
   const [referrerTransactionId, setReferrerTransactionId] = useState('');
   const [sendingDate, setSendingDate] = useState('');
@@ -66,7 +66,7 @@ export default function EditRewardPage() {
       setSerialNumber(data.data.serialNumber || '');
       setProductModel(data.data.productModel || '');
       setInverterSerialNumber(data.data.inverterSerialNumber || '');
-      setPaymentStatus(data.data.paymentStatus);
+      setRewardStatus(data.data.paymentStatus);
       setTransactionId(data.data.transactionId || '');
       setReferrerTransactionId(data.data.referrerTransactionId || '');
       setSendingDate(data.data.sendingDate ? new Date(data.data.sendingDate).toISOString().split('T')[0] : '');
@@ -283,14 +283,14 @@ export default function EditRewardPage() {
               <Label htmlFor="payment-status">
                 Payment Status <span className="text-destructive">*</span>
               </Label>
-              <Select value={paymentStatus} onValueChange={(value) => setPaymentStatus(value as PaymentStatus)} required>
+              <Select value={paymentStatus} onValueChange={(value) => setRewardStatus(value as RewardStatus)} required>
                 <SelectTrigger id="payment-status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={PaymentStatus.PENDING}>Pending</SelectItem>
-                  <SelectItem value={PaymentStatus.PAID}>Paid</SelectItem>
-                  <SelectItem value={PaymentStatus.FAILED}>Failed</SelectItem>
+                  <SelectItem value={RewardStatus.PENDING}>Pending</SelectItem>
+                  <SelectItem value={RewardStatus.PAID}>Paid</SelectItem>
+                  <SelectItem value={RewardStatus.FAILED}>Failed</SelectItem>
                 </SelectContent>
               </Select>
             </div>

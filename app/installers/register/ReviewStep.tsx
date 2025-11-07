@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { StepHeader } from "@/components/StepHeader";
-import { ReviewSectionHeader } from "@/app/installers/new/ReviewSectionHeader";
-import { ReviewItem } from "@/app/installers/new/ReviewItem";
+import { ReviewSectionHeader } from "@/app/installers/register/ReviewSectionHeader";
+import { ReviewItem } from "@/app/installers/register/ReviewItem";
 import {
   IconCheck,
   IconCopy,
@@ -30,6 +30,7 @@ import {
 import IconUser from "@/components/icons/User";
 import IconKey from "@/components/icons/Key";
 import IconVerify from "@/components/icons/Verify";
+import { CopyButton } from "@/components/CopyButton";
 
 interface InstallerResponse {
   _id: string;
@@ -135,22 +136,7 @@ export function ReviewStep(props: ReviewStepProps) {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span
-                          onClick={() =>
-                            copyToClipboard(installerCode, `Installer Code`)
-                          }
-                          className={cn(
-                            "transition-colors duration-200 flex items-center justify-center cursor-pointer hover:bg-background/50 p-1 rounded-sm",
-                            copied === "Installer Code" &&
-                              "text-emerald-500 opacity-100"
-                          )}
-                        >
-                          {copied === "Installer Code" ? (
-                            <IconCheck className="w-4.5 h-4.5" />
-                          ) : (
-                            <IconCopy className="w-4.5 h-4.5" />
-                          )}
-                        </span>
+                        <CopyButton text={installerCode} />
                       </TooltipTrigger>
                       <TooltipContent>
                         {copied
