@@ -99,8 +99,8 @@ export const RewardsFiltersSection = React.memo<RewardsFiltersSectionProps>(
     );
 
     return (
-      <Card>
-        <CardHeader className="!flex-row items-center justify-between w-full bg-muted">
+      <Card className="dark:bg-transparent">
+        <CardHeader className="flex-row items-center justify-between w-full bg-muted/70 border-b border-border">
           <CardTitle className="text-lg font-semibold">Filters</CardTitle>
           <div className="flex items-center gap-2">
             <Button
@@ -130,7 +130,7 @@ export const RewardsFiltersSection = React.memo<RewardsFiltersSectionProps>(
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {/* Search Input */}
           <div className="mb-4">
             <Label htmlFor="search">Search</Label>

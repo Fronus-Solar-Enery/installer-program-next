@@ -154,10 +154,14 @@ export const RewardsTable = React.memo<RewardsTableProps>(
     }, [onPageChange, totalPages]);
 
     return (
-      <Card>
-        <CardHeader className="!flex-row items-center justify-between w-full bg-muted">
+      <Card className="dark:bg-transparent">
+        <CardHeader className="flex-row items-center justify-between w-full bg-muted/70 border-b border-border">
           <CardTitle className="text-lg font-semibold">
             Rewards & Installations Database
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Last Updated:</span>
+              <span>{loading ? <Loading /> : lastUpdatedText}</span>
+            </div>
           </CardTitle>
           <div className="flex items-center gap-2">
             <Dropdown>
@@ -201,7 +205,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
             </Dropdown>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0!">
           <div className="border border-border rounded-2xl overflow-hidden">
             <Table>
               <TableHeader className="bg-muted">
@@ -347,30 +351,11 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   </>
                 )}
               </TableBody>
-
-              {/* Table Footer */}
-              <TableFooter>
-                <TableRow>
-                  <TableCell
-                    colSpan={activeColumnsLength + 2}
-                    className="py-4"
-                  >
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <span>Last Updated:</span>
-                        <span className="capitalize">
-                          {loading ? <Loading /> : lastUpdatedText}
-                        </span>
-                      </div>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              </TableFooter>
             </Table>
           </div>
 
           {/* Pagination Controls */}
-          <div className="flex items-center justify-between px-2 pt-4 relative">
+          <div className="flex items-center justify-between p-4 relative">
             <div className="flex items-center gap-4">
               <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
                 Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}

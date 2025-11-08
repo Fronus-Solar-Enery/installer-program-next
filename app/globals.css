@@ -194,33 +194,33 @@ body {
   /* background: var(--background); */
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-  @apply bg-background;
+  @apply bg-muted dark:bg-background;
 }
 
 ol:has(li.my-toast) {
-  @apply !flex !justify-center;
+  @apply flex! justify-center!;
 }
 
 [data-expanded="true"].my-toast,
 [data-type="error"].my-toast,
 [data-type="loading"].my-toast,
 [data-type="success"].my-toast {
-  @apply !border-none !rounded-full !shadow-none !ease-fluid !py-3 !px-6 !flex !items-center !justify-center !w-max whitespace-nowrap;
+  @apply border-none! rounded-full! shadow-none! ease-fluid! py-3! px-6! flex! items-center! justify-center! w-max! whitespace-nowrap;
 }
 
 [data-type="success"].my-toast {
-  @apply !bg-emerald-50 !text-emerald-700 dark:!bg-emerald-950 dark:!text-emerald-100 shadow-background;
+  @apply bg-emerald-50! text-emerald-700! dark:bg-emerald-950! dark:text-emerald-100! shadow-background;
 }
 
 [data-type="loading"].my-toast {
-  @apply !bg-muted !text-muted-foreground shadow-background;
+  @apply bg-muted! text-muted-foreground! shadow-background;
 }
 
 [data-type="error"].my-toast {
-  @apply !bg-red-50 !text-red-700 dark:!bg-red-950 dark:!text-red-100 shadow-background;
+  @apply bg-red-50! text-red-700! dark:bg-red-950! dark:text-red-100! shadow-background;
 }
 .my-toas > [data-content] {
-  @apply !flex !items-center;
+  @apply flex! items-center!;
 }
 
 @supports (corner-shape: squircle) {

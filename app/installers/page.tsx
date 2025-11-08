@@ -894,9 +894,14 @@ export default function InstallersPage() {
       <StatisticsCards statistics={statistics} />
 
       <Card className="dark:bg-transparent">
-        <CardHeader className="!flex-row items-center justify-between w-full bg-muted/70 border-b border-border">
+        <CardHeader className="flex-row items-center justify-between w-full bg-muted/70 border-b border-border">
           <CardTitle className="text-lg font-semibold">
             Installers Database
+            {/* <div /> */}
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Last Updated:</span>
+              <span>{loading ? <Loading /> : refreshRelTime}</span>
+            </div>
           </CardTitle>
 
           <div className="flex items-center gap-2">
@@ -1055,41 +1060,11 @@ export default function InstallersPage() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="!p-0">
+        <CardContent className="p-0!">
           {/* TABLE */}
           <div>
             <div className="flex justify-between p-4 bg-muted/30">
               <div className="space-y-2">
-                <div className="text-sm text-muted-foreground inline-flex items-center gap-1">
-                  Show
-                  <Select
-                    value={rowsPerPage.toString()}
-                    onValueChange={(value) => {
-                      setRowsPerPage(Number(value));
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <SelectTrigger className="h-6 w-max gap-1 px-1 pl-2 rounded-md">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="!p-0">
-                      <SelectItem className="h-6" value="10">
-                        10
-                      </SelectItem>
-                      <SelectItem className="h-6" value="25">
-                        25
-                      </SelectItem>
-                      <SelectItem className="h-6" value="50">
-                        50
-                      </SelectItem>
-                      <SelectItem className="h-6" value="100">
-                        100
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  per page
-                </div>
-
                 <div className="flex items-center gap-2">
                   <p className="text-sm leading-none">Filters Applied:</p>
 
@@ -1115,7 +1090,7 @@ export default function InstallersPage() {
                       {sortField === "createdAt" && "Date"}
                       <IconClose
                         className={cn(
-                          "!size-4",
+                          "size-4!",
                           sortField === "createdAt" && sortDirection === "desc"
                             ? "cursor-not-allowed opacity-50"
                             : "cursor-pointer"
@@ -1149,7 +1124,7 @@ export default function InstallersPage() {
                         `${filters.customStartDate} to ${filters.customEndDate}`}
                       <IconClose
                         className={cn(
-                          "!size-4",
+                          "size-4!",
                           filters.dateRange === "all"
                             ? "cursor-not-allowed opacity-50"
                             : "cursor-pointer"
@@ -1177,7 +1152,7 @@ export default function InstallersPage() {
                       >
                         {filters.city}
                         <IconClose
-                          className={"!size-4 cursor-pointer"}
+                          className={"size-4! cursor-pointer"}
                           onClick={() =>
                             setFilters((prev) => ({
                               ...prev,
@@ -1198,7 +1173,7 @@ export default function InstallersPage() {
                       >
                         {filters.province}
                         <IconClose
-                          className={"!size-4 cursor-pointer"}
+                          className={"size-4! cursor-pointer"}
                           onClick={() =>
                             setFilters((prev) => ({
                               ...prev,
@@ -1219,7 +1194,7 @@ export default function InstallersPage() {
                       >
                         {filters.trainingCenter}
                         <IconClose
-                          className={"!size-4 cursor-pointer"}
+                          className={"size-4! cursor-pointer"}
                           onClick={() =>
                             setFilters((prev) => ({
                               ...prev,
@@ -1242,7 +1217,7 @@ export default function InstallersPage() {
                           ? "Certified"
                           : "Non Certified"}
                         <IconClose
-                          className={"!size-4 cursor-pointer"}
+                          className={"size-4! cursor-pointer"}
                           onClick={() =>
                             setFilters((prev) => ({
                               ...prev,
@@ -1253,6 +1228,36 @@ export default function InstallersPage() {
                       </Badge>
                     </div>
                   )}
+                </div>
+                <div className="text-sm text-muted-foreground inline-flex items-center gap-1">
+                  Show
+                  <Select
+                    value={rowsPerPage.toString()}
+                    onValueChange={(value) => {
+                      setRowsPerPage(Number(value));
+                      setCurrentPage(1);
+                    }}
+                    disabled={loading}
+                  >
+                    <SelectTrigger className="h-6 w-max gap-1 px-1 pl-2 rounded-md">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="p-0!">
+                      <SelectItem className="h-6" value="10">
+                        10
+                      </SelectItem>
+                      <SelectItem className="h-6" value="25">
+                        25
+                      </SelectItem>
+                      <SelectItem className="h-6" value="50">
+                        50
+                      </SelectItem>
+                      <SelectItem className="h-6" value="100">
+                        100
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  rows per page
                 </div>
               </div>
               <div className="flex gap-1">
@@ -1332,7 +1337,7 @@ export default function InstallersPage() {
             {/* FILTERS */}
             {showFilters && (
               <>
-                <CardContent className="!p-4 flex items-center gap-2">
+                <CardContent className="p-4 flex items-center gap-2">
                   {/* CITIES FILTER */}
                   <div className="space-y-2 w-full">
                     <span className="text-sm px-2">City</span>
@@ -1614,23 +1619,37 @@ export default function InstallersPage() {
           </div>
         </CardContent>
         <CardFooter className="flex items-center justify-between p-4 relative bg-muted/30 text-xs text-muted-foreground">
-          {/* <div /> */}
-          <div className="flex items-center gap-2">
-            <span>Last Updated:</span>
-            <span className="capitalize">
-              {loading ? <Loading /> : refreshRelTime}
-            </span>
-          </div>
-
           {/* PAGINATION */}
-          <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
-            Showing {startIndex + 1}-{rowsPerPage + startIndex} of{" "}
-            {filteredInstallers.length} results
-            {filteredInstallers.length !== installers.length && (
-              <span className="ml-1">
-                (filtered from {installers.length} total)
-              </span>
-            )}
+
+          <div className="text-sm text-muted-foreground inline-flex items-center gap-1">
+            Show
+            <Select
+              value={rowsPerPage.toString()}
+              onValueChange={(value) => {
+                setRowsPerPage(Number(value));
+                setCurrentPage(1);
+              }}
+              disabled={loading}
+            >
+              <SelectTrigger className="h-6 w-max gap-1 px-1 pl-2 rounded-md">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="!p-0">
+                <SelectItem className="h-6" value="10">
+                  10
+                </SelectItem>
+                <SelectItem className="h-6" value="25">
+                  25
+                </SelectItem>
+                <SelectItem className="h-6" value="50">
+                  50
+                </SelectItem>
+                <SelectItem className="h-6" value="100">
+                  100
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            rows per page
           </div>
 
           <div className="flex items-center gap-2">
@@ -1639,7 +1658,7 @@ export default function InstallersPage() {
                 variant="outline"
                 size="icon"
                 onClick={() => setCurrentPage(1)}
-                disabled={currentPage === 1}
+                disabled={currentPage === 1 || loading}
               >
                 <ChevronsLeft className="h-4 w-4" />
               </Button>
@@ -1647,7 +1666,7 @@ export default function InstallersPage() {
                 variant="outline"
                 size="icon"
                 onClick={() => setCurrentPage(currentPage - 1)}
-                disabled={currentPage === 1}
+                disabled={currentPage === 1 || loading}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -1658,7 +1677,7 @@ export default function InstallersPage() {
                 variant="outline"
                 size="icon"
                 onClick={() => setCurrentPage(currentPage + 1)}
-                disabled={currentPage === totalPages}
+                disabled={currentPage === totalPages || loading}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -1666,11 +1685,20 @@ export default function InstallersPage() {
                 variant="outline"
                 size="icon"
                 onClick={() => setCurrentPage(totalPages)}
-                disabled={currentPage === totalPages}
+                disabled={currentPage === totalPages || loading}
               >
                 <ChevronsRight className="h-4 w-4" />
               </Button>
             </div>
+          </div>
+          <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
+            Showing {startIndex + 1}-{rowsPerPage + startIndex} of{" "}
+            {filteredInstallers.length} results
+            {filteredInstallers.length !== installers.length && (
+              <span className="ml-1">
+                (filtered from {installers.length} total)
+              </span>
+            )}
           </div>
           <div className="absolute pb-4 inset-0 w-full h-full flex items-center justify-center pointer-events-none">
             {selectedInstallers.size > 0 && (

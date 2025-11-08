@@ -175,8 +175,7 @@ export default function BulkUploadInstallersPage() {
 
     generationPromise
       .catch((err) => {
-        // optional console logging for debugging; keep UI errors handled by toast
-        // eslint-disable-next-line no-console
+        // optional console logging for debugging; keep UI errors handled by toast 
         console.error("downloadTemplate error:", err);
       })
       .finally(() => {
@@ -951,7 +950,6 @@ export default function BulkUploadInstallersPage() {
   return (
     <div className="flex-1 overflow-auto space-y-4">
       <PageHeader
-        // iconFill
         title="Bulk Upload Installers"
         description="Upload multiple installers at once using an Excel file"
         action={

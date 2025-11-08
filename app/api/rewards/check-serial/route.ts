@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import InstallerReward from "@/models/InstallerReward";

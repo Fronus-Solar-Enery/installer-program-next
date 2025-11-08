@@ -23,7 +23,6 @@ import {
 import { RewardsStatisticsCards } from "@/components/RewardsStatisticsCards";
 import { RewardsFiltersSection } from "@/components/RewardsFiltersSection";
 import { RewardsTable } from "@/components/RewardsTable";
-import Loading from "@/components/ui/loading";
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog";
 import { BulkDeleteResultDialog } from "@/components/BulkDeleteResultDialog";
 
@@ -33,17 +32,22 @@ interface TeamMember {
   email: string;
 }
 
+// Memoized constants - defined outside component to prevent re-creation on each render
+const EMPTY_ARRAY: TeamMember[] = [];
+
 export default function RewardsPage() {
   const router = useRouter();
   const [state, dispatch] = useRewardsState();
 
   // Data state
   const [rewards, setRewards] = useState<RewardWithId[]>([]);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(EMPTY_ARRAY);
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   const refreshRelTime = useRelativeTime(lastUpdated);
+  const isPageLoading = loading || isFetching;
 
   // Debounce search to reduce re-renders (300ms delay)
   const debouncedSearch = useDebounce(state.filters.search, 300);
@@ -81,6 +85,7 @@ export default function RewardsPage() {
   const fetchRewards = useCallback(async () => {
     try {
       setLoading(true);
+      setIsFetching(true);
       const params = new URLSearchParams();
 
       // Only add non-default filter values to reduce API payload
@@ -140,6 +145,7 @@ export default function RewardsPage() {
       toast.error("Failed to fetch rewards");
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
   }, [
     state.filters.paymentStatus,
@@ -152,24 +158,45 @@ export default function RewardsPage() {
 
   // Fetch rewards on mount and when filters change
   useEffect(() => {
-    fetchRewards();
+    let isMounted = true;
+    const timeoutIds: NodeJS.Timeout[] = [];
+
+    const fetchIfMounted = async () => {
+      if (isMounted) {
+        await fetchRewards();
+      }
+    };
+
+    fetchIfMounted();
 
     // Check for search result ID from navbar (for deep linking)
     const params = new URLSearchParams(window.location.search);
     const searchId = params.get("id");
-    if (searchId) {
+    if (searchId && isMounted) {
       dispatch({ type: "OPEN_EDIT_MODAL", payload: searchId });
 
       // Scroll to the row after rewards are loaded
-      setTimeout(() => {
+      const scrollTimeout = setTimeout(() => {
         const element = document.getElementById(`reward-${searchId}`);
-        if (element) {
+        if (element && isMounted) {
           element.scrollIntoView({ behavior: "smooth", block: "center" });
           element.classList.add("bg-primary/10");
-          setTimeout(() => element.classList.remove("bg-primary/10"), 2000);
+          const highlightTimeout = setTimeout(() => {
+            if (isMounted) {
+              element.classList.remove("bg-primary/10");
+            }
+          }, 2000);
+          timeoutIds.push(highlightTimeout);
         }
       }, 500);
+      timeoutIds.push(scrollTimeout);
     }
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      isMounted = false;
+      timeoutIds.forEach(clearTimeout);
+    };
   }, [fetchRewards, dispatch]);
 
   // Handler functions
@@ -476,20 +503,20 @@ export default function RewardsPage() {
             <Button
               variant="outline"
               onClick={fetchRewards}
-              disabled={loading}
+              disabled={isPageLoading}
               title="Refresh data"
               className="gap-2"
             >
               Refresh
               <IconRefresh2
                 width={2}
-                className={cn("h-3.5 w-3.5", loading && "animate-spin")}
+                className={cn("h-3.5 w-3.5", isPageLoading && "animate-spin")}
               />
             </Button>
             <Button
               onClick={() => router.push("/rewards/bulk-update")}
               variant="outline"
-              disabled={loading}
+              disabled={isPageLoading}
               title="Bulk Update"
               className="gap-2"
             >
@@ -498,9 +525,9 @@ export default function RewardsPage() {
             </Button>
             <Button
               onClick={() => router.push("/rewards/register")}
-              disabled={loading}
+              disabled={isPageLoading}
               title="Register New Installation"
-              className="gap-2"
+              className="gap-2 pl-2"
             >
               <IconAdd width={2} className="h-3.5 w-3.5" />
               Add Installation
@@ -522,14 +549,14 @@ export default function RewardsPage() {
         teamMembers={teamMembers}
         hasResults={filtered.length > 0}
         downloadingReport={state.downloadingReport}
-        loading={loading}
+        loading={isPageLoading}
       />
 
       {/* Rewards Table */}
       <RewardsTable
         rewards={paginatedRewards}
         totalRewards={filtered.length}
-        loading={loading}
+        loading={isPageLoading}
         visibleColumns={state.visibleColumns}
         selectedRewards={state.selectedRewards}
         currentPage={state.currentPage}

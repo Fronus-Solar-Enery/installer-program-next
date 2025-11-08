@@ -378,15 +378,15 @@ export default function InstallerEditModal({
       if (trainingCenter === initialTrainingCenter) {
         // Training center changed back to original, restore original installer code
         setInstallerCode(originalInstallerCode);
-        console.log(
-          "Training center restored to original, restoring original installer code"
-        );
+        // console.log(
+        //   "Training center restored to original, restoring original installer code"
+        // );
       } else if (trainingCenter !== initialTrainingCenter) {
         // Training center changed to something different, clear code to trigger regeneration
         setInstallerCode("");
-        console.log(
-          "Training center changed, clearing code to trigger regeneration"
-        );
+        // console.log(
+        //   "Training center changed, clearing code to trigger regeneration"
+        // );
       }
     }
   }, [
