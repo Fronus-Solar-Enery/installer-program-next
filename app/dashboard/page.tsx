@@ -47,6 +47,7 @@ import {
   IconArrowRightUp,
   IconCheck,
   IconCity,
+  IconClose,
   IconCopy,
   IconDiagramUp,
   IconGift,
@@ -67,6 +68,13 @@ import { formatNumber } from "@/lib/formatNumber";
 import { useClipboard } from "@/hooks/useCopyToClipboard";
 import Link from "next/link";
 import { CopyButton } from "@/components/CopyButton";
+import Modal from "@/components/Modal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Stats {
   totalInstallers: number;
@@ -1170,7 +1178,7 @@ export default function DashboardPage() {
                 description={`Installation count by product type in ${timeLabels[timePeriod]}`}
                 Icon={IconChart}
               />
-              <CardContent>
+              <CardContent className="w-full">
                 {productData.length > 0 ? (
                   <>
                     <ChartContainer
@@ -1193,14 +1201,12 @@ export default function DashboardPage() {
                           tickMargin={10}
                           axisLine={false}
                           tickFormatter={(value) => value.slice(0, 3)}
-                          hide
+                          // hide
                         />
-                        <XAxis dataKey="installations" type="number" hide />
+                        <XAxis dataKey="installations" type="number" />
                         <ChartTooltip
                           cursor={false}
-                          content={
-                            <ChartTooltipContent indicator="line" hideLabel />
-                          }
+                          content={<ChartTooltipContent indicator="line" />}
                         />
                         <Bar
                           dataKey="installations"
@@ -1211,14 +1217,14 @@ export default function DashboardPage() {
                             dataKey="model"
                             position="insideLeft"
                             offset={14}
-                            className="fill-primary-foreground font-semibold"
+                            className="fill-primary-foreground font-semibold whitespace-nowrap"
                             fontSize={12}
                           />
                           <LabelList
                             dataKey="installations"
                             position="right"
                             offset={8}
-                            className="fill-foreground"
+                            className="fill-foreground "
                             fontSize={12}
                           />
                         </Bar>
@@ -1270,7 +1276,7 @@ export default function DashboardPage() {
                 description={`Top 5 cities by product installations in ${timeLabels[timePeriod]}`}
                 Icon={IconCity}
               />
-              <CardContent>
+              <CardContent className="w-full">
                 {cityData.length > 0 ? (
                   <ChartContainer
                     config={chartConfig}
@@ -1292,14 +1298,12 @@ export default function DashboardPage() {
                         tickMargin={10}
                         axisLine={false}
                         tickFormatter={(value) => value.slice(0, 3)}
-                        hide
+                        // hide
                       />
-                      <XAxis dataKey="installations" type="number" hide />
+                      <XAxis dataKey="installations" type="number" />
                       <ChartTooltip
                         cursor={false}
-                        content={
-                          <ChartTooltipContent indicator="line" hideLabel />
-                        }
+                        content={<ChartTooltipContent indicator="line" />}
                       />
                       <Bar
                         dataKey="installations"
@@ -1310,7 +1314,7 @@ export default function DashboardPage() {
                           dataKey="city"
                           position="insideLeft"
                           offset={14}
-                          className="fill-primary-foreground font-semibold"
+                          className="fill-primary-foreground font-semibold whitespace-nowrap"
                           fontSize={12}
                         />
                         <LabelList
@@ -1688,94 +1692,87 @@ export default function DashboardPage() {
 
       {/* Training Center Installers Modal */}
       {modalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={() => setModalOpen(false)}
-        >
-          <div
-            className="bg-background rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+        <Dialog open={modalOpen} onOpenChange={() => setModalOpen(false)}>
+          <DialogContent
+            className="p-0 overflow-y-auto overflow-x-hidden max-h-[calc(80vh-140px)] gap-0 bg-background/80"
+            hideClose
           >
-            <div className="p-6 border-b border-border">
+            <DialogHeader className="p-4 border-b border-border">
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold">{selectedCenter}</h2>
-                  <p className="text-sm text-muted-foreground mt-1">
+                <DialogTitle className="text-2xl font-bold">
+                  {selectedCenter}
+                  <p className="text-sm text-muted-foreground">
                     Active installers in selected period
                   </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                </DialogTitle>
+                <IconClose
+                  className="size-6 cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
                   onClick={() => setModalOpen(false)}
-                >
-                  ✕
-                </Button>
+                />
               </div>
-            </div>
-            <div className="p-6 overflow-y-auto max-h-[calc(80vh-140px)]">
-              <div className="space-y-3">
-                {centerInstallers.length > 0 ? (
-                  centerInstallers.map((installer, index) => (
-                    <div
-                      key={installer.installerCode}
-                      className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                    >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold bg-primary/10 text-primary">
-                        {index + 1}
+            </DialogHeader>
+            <div className="space-y-3 p-4">
+              {centerInstallers.length > 0 ? (
+                centerInstallers.map((installer, index) => (
+                  <Link
+                    href={`/installers/${installer.installerCode}`}
+                    key={installer.installerCode}
+                    className="flex items-center gap-4 p-4 squircle rounded-2xl bg-muted/40 hover:bg-muted/70 transition-colors"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold bg-primary/10 text-primary leading-none">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-base truncate">
+                        {installer.installerName}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-base truncate">
-                          {installer.installerName}
-                        </div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-2">
-                          <span className="truncate">
-                            {installer.installerCode}
-                          </span>
-                          <span>•</span>
-                          <span className="truncate">{installer.city}</span>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 text-right">
-                        <div>
-                          <div className="text-xs text-muted-foreground">
-                            Products
-                          </div>
-                          <div className="font-bold text-lg text-primary">
-                            {installer.totalProducts}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground">
-                            Reward
-                          </div>
-                          <div className="font-bold text-sm text-green-600 dark:text-green-500">
-                            Rs. {installer.rewardAmount.toLocaleString()}
-                          </div>
-                        </div>
-                        {installer.referralRewardAmount > 0 && (
-                          <div className="col-span-2">
-                            <div className="text-xs text-muted-foreground">
-                              Referral Reward
-                            </div>
-                            <div className="font-semibold text-sm text-purple-600 dark:text-purple-500">
-                              Rs.{" "}
-                              {installer.referralRewardAmount.toLocaleString()}
-                            </div>
-                          </div>
-                        )}
+                      <div className="text-xs text-muted-foreground flex items-center gap-2">
+                        <span className="truncate">
+                          {installer.installerCode}
+                        </span>
+                        <span>•</span>
+                        <span className="truncate">{installer.city}</span>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Loading installers...
-                  </div>
-                )}
-              </div>
+                    <div className="grid grid-cols-2 gap-4 text-right">
+                      <div>
+                        <div className="text-xs text-muted-foreground">
+                          Products
+                        </div>
+                        <div className="font-bold text-primary">
+                          {installer.totalProducts}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">
+                          Reward
+                        </div>
+                        <div className="font-bold text-green-600 dark:text-green-500">
+                          Rs. {installer.rewardAmount.toLocaleString()}
+                        </div>
+                      </div>
+                      {installer.referralRewardAmount > 0 && (
+                        <div className="col-span-2">
+                          <div className="text-xs text-muted-foreground">
+                            Referral Reward
+                          </div>
+                          <div className="font-semibold text-sm text-purple-600 dark:text-purple-500">
+                            Rs.{" "}
+                            {installer.referralRewardAmount.toLocaleString()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Loading installers...
+                </div>
+              )}
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

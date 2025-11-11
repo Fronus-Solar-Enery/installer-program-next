@@ -73,7 +73,7 @@ export function SearchableSelect({
           id={id}
           disabled={disabled}
           className={cn(
-            "w-full justify-between h-11 rounded-xl border-border bg-background hover:bg-background px-3",
+            "w-full justify-between h-11 rounded-xl border-border bg-muted/40 hover:bg-muted dark:bg-background dark:hover:bg-muted/40 px-3",
             !value && "text-muted-foreground",
             className
           )}

@@ -1005,6 +1005,7 @@ export default function RewardEditModal({
                             return date > today || date < oneMonthAgo;
                           }}
                           defaultMonth={new Date()}
+                          startMonth={new Date(2022, 0, 1)}
                         />
                       </PopoverContent>
                     </Popover>

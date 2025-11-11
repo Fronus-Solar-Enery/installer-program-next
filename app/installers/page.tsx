@@ -1,5 +1,12 @@
 "use client";
-import { useEffect, useState, useMemo, useCallback, memo } from "react";
+import {
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+  memo,
+  Activity,
+} from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { LazyInstallerEditModal } from "@/components/installers/LazyModals";
@@ -110,6 +117,7 @@ import {
   SearchableSelectGroup,
 } from "@/components/ui/searchable-select";
 import { CITIES, CITY_TO_PROVINCE, PROVINCES } from "@/lib/constants";
+import IconExcel from "@/components/icons/Excel";
 
 // Memoized constants - defined outside component to prevent re-creation on each render
 const SORT_FIELD_OPTIONS = [
@@ -893,11 +901,10 @@ export default function InstallersPage() {
       {/* Statistics Cards - Optimized Component */}
       <StatisticsCards statistics={statistics} />
 
-      <Card className="dark:bg-transparent">
-        <CardHeader className="flex-row items-center justify-between w-full bg-muted/70 border-b border-border">
+      <Card className="bg-transparent">
+        <CardHeader className="flex-row items-center justify-between w-full bg-muted dark:bg-muted/50 border-b border-border">
           <CardTitle className="text-lg font-semibold">
             Installers Database
-            {/* <div /> */}
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>Last Updated:</span>
               <span>{loading ? <Loading /> : refreshRelTime}</span>
@@ -948,8 +955,8 @@ export default function InstallersPage() {
                     className={cn(
                       "hidden sm:flex gap-2 rounded-xl py-1.5 px-2 h-max",
                       filters.dateRange === "custom"
-                        ? "text-primary"
-                        : "text-zinc-400"
+                        ? "text-primary bg-muted"
+                        : "text-muted-foreground"
                     )}
                     disabled={loading}
                   >
@@ -957,71 +964,85 @@ export default function InstallersPage() {
                   </Button>
                 </PopoverTrigger>
 
-                <PopoverContent className="w-auto p-0" align="end">
-                  <div className="space-y-4">
-                    <div className="space-y-2 p-4">
-                      <h4 className="font-medium text-sm">Select Date Range</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Select a custom date range for filtering installers
-                      </p>
+                <PopoverContent
+                  className="w-full max-w-lg p-0 bg-card dark:bg-background overflow-hidden shadow-2xl"
+                  align="end"
+                >
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center justify-between p-4 border-b border-border w-full">
+                      <div>
+                        <h4 className="font-medium text-sm">
+                          Select Date Range
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          Custom date range for filtering installers
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          className="rounded-xl"
+                          variant="outline"
+                          onClick={() => {
+                            setDateRange(undefined);
+                            setFilters((prev) => ({
+                              ...prev,
+                              dateRange: "all",
+                              customStartDate: "",
+                              customEndDate: "",
+                            }));
+                            setIsCustomDateOpen(false);
+                          }}
+                        >
+                          Clear
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="rounded-xl"
+                          onClick={() => {
+                            if (dateRange?.from && dateRange?.to) {
+                              // Convert dates to local date strings (YYYY-MM-DD)
+                              const fromDate = new Date(
+                                dateRange.from.getTime() -
+                                  dateRange.from.getTimezoneOffset() * 60000
+                              );
+                              const toDate = new Date(
+                                dateRange.to.getTime() -
+                                  dateRange.to.getTimezoneOffset() * 60000
+                              );
+
+                              setFilters((prev) => ({
+                                ...prev,
+                                dateRange: "custom",
+                                customStartDate: fromDate
+                                  .toISOString()
+                                  .split("T")[0],
+                                customEndDate: toDate
+                                  .toISOString()
+                                  .split("T")[0],
+                              }));
+                              setIsCustomDateOpen(false);
+                            }
+                          }}
+                          disabled={!dateRange?.from || !dateRange?.to}
+                        >
+                          Apply
+                        </Button>
+                      </div>
                     </div>
                     <CalendarComponent
                       mode="range"
                       selected={dateRange}
                       onSelect={setDateRange}
                       numberOfMonths={2}
+                      startMonth={new Date(2023, 0, 1)}
                       disabled={(date) =>
-                        date > new Date() || date < new Date("1900-01-01")
+                        date > new Date() || date < new Date("2023-01-01")
                       }
+                      excludeDisabled
+                      captionLayout="dropdown"
                     />
-                    <div className="flex gap-2 pt-2 border-t border-border p-4">
-                      <Button
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => {
-                          if (dateRange?.from && dateRange?.to) {
-                            // Convert dates to local date strings (YYYY-MM-DD)
-                            const fromDate = new Date(
-                              dateRange.from.getTime() -
-                                dateRange.from.getTimezoneOffset() * 60000
-                            );
-                            const toDate = new Date(
-                              dateRange.to.getTime() -
-                                dateRange.to.getTimezoneOffset() * 60000
-                            );
-
-                            setFilters((prev) => ({
-                              ...prev,
-                              dateRange: "custom",
-                              customStartDate: fromDate
-                                .toISOString()
-                                .split("T")[0],
-                              customEndDate: toDate.toISOString().split("T")[0],
-                            }));
-                            setIsCustomDateOpen(false);
-                          }
-                        }}
-                        disabled={!dateRange?.from || !dateRange?.to}
-                      >
-                        Apply
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setDateRange(undefined);
-                          setFilters((prev) => ({
-                            ...prev,
-                            dateRange: "all",
-                            customStartDate: "",
-                            customEndDate: "",
-                          }));
-                          setIsCustomDateOpen(false);
-                        }}
-                      >
-                        Clear
-                      </Button>
-                    </div>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -1031,7 +1052,8 @@ export default function InstallersPage() {
               onClick={() => fetchInstallers()}
               disabled={loading}
               title="Refresh data"
-              className="gap-2"
+              size="sm"
+              className="gap-2 rounded-2xl"
             >
               Refresh
               <IconRefresh2
@@ -1039,13 +1061,53 @@ export default function InstallersPage() {
                 className={cn("h-3.5 w-3.5", loading && "animate-spin")}
               />
             </Button>
+
+            <Dropdown>
+              <TooltipProvider>
+                <Tooltip>
+                  <DropdownTrigger asChild>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="icon" disabled={loading}>
+                        <IconLayer />
+                      </Button>
+                    </TooltipTrigger>
+                  </DropdownTrigger>
+                  <TooltipContent side="top">Export</TooltipContent>
+
+                  <DropdownContent className="min-w-32 p-2">
+                    <div className="px-2 pb-2 text-sm text-muted-foreground">
+                      Export Data
+                    </div>
+                    <ScrollArea className="max-h-40">
+                      <div className="space-y-1 w-full">
+                        {[
+                          { value: "Excel", Icon: IconExcel },
+                          { value: "PDF", Icon: IconExcel },
+                          { value: "Print", Icon: IconExcel },
+                        ].map(({ value, Icon }, index) => (
+                          <Button
+                            key={index}
+                            variant="outline"
+                            className="w-full flex flex-start gap-2 px-3 py-2 whitespace-nowrap"
+                          >
+                            <Icon />
+                            <span className="text-sm">{value}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </DropdownContent>
+                </Tooltip>
+              </TooltipProvider>
+            </Dropdown>
             <Button
               variant="outline"
               onClick={handleDownloadReport}
               disabled={
                 filteredInstallers.length === 0 || downloadingReport || loading
               }
-              className="gap-2"
+              size="sm"
+              className="gap-2 rounded-2xl"
             >
               {downloadingReport ? (
                 <>
@@ -1060,10 +1122,10 @@ export default function InstallersPage() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-0!">
+        <CardContent className="p-0! light:bg-muted/50">
           {/* TABLE */}
           <div>
-            <div className="flex justify-between p-4 bg-muted/30">
+            <div className="flex justify-between p-4 dark:bg-muted/30">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <p className="text-sm leading-none">Filters Applied:</p>
@@ -1299,7 +1361,7 @@ export default function InstallersPage() {
 
                       <DropdownContent className="w-54 p-2 pr-0.5">
                         <div className="px-2 pb-2 text-sm text-muted-foreground">
-                          Columns Visibility{" "}
+                          Columns Visibility
                         </div>
                         <ScrollArea className="h-72 pr-2 rounded-xl">
                           <div className="space-y-1 w-[98%] bg-background p-1">
@@ -1308,12 +1370,13 @@ export default function InstallersPage() {
                                 <Label
                                   key={key}
                                   className={cn(
-                                    "flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-accent transition-colors whitespace-nowrap",
-                                    value && "bg-accent"
+                                    "flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-card transition-colors whitespace-nowrap text-muted-foreground",
+                                    value && "bg-card text-primary"
                                   )}
                                 >
                                   <Checkbox
                                     checked={value}
+                                    className="border border-primary/20"
                                     onCheckedChange={() => toggleColumn(key)}
                                     aria-label={`Toggle ${key
                                       .replace(/([A-Z])/g, " $1")
@@ -1335,147 +1398,145 @@ export default function InstallersPage() {
             </div>
 
             {/* FILTERS */}
-            {showFilters && (
-              <>
-                <CardContent className="p-4 flex items-center gap-2">
-                  {/* CITIES FILTER */}
-                  <div className="space-y-2 w-full">
-                    <span className="text-sm px-2">City</span>
+            <Activity mode={showFilters ? "visible" : "hidden"}>
+              <CardContent className="p-4 flex items-center gap-2 ">
+                {/* CITIES FILTER */}
+                <div className="space-y-2 w-full">
+                  <span className="text-sm px-2">City</span>
 
-                    <SearchableSelect
-                      value={filters.city || "all"}
-                      id={"city-select-installer-filter"}
-                      onValueChange={(value) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          city: value === "all" ? "" : value,
-                        }))
-                      }
-                      groups={cityGroups}
-                      placeholder={filters.city || "All Cities"}
-                      searchPlaceholder={"Search city ..."}
-                      emptyMessage={"No results found."}
-                      disabled={loading}
-                      className={cn("rounded-2xl")}
-                    />
-                  </div>
-                  {/* PROVINCES FILTER */}
-                  <div className="space-y-2 w-full">
-                    <span className="text-sm px-2">Province</span>
-                    <Select
-                      value={filters.province || "all"}
-                      onValueChange={(value) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          province: value === "all" ? "" : value,
-                        }))
-                      }
-                      disabled={loading}
-                    >
-                      <SelectTrigger className="bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
-                        <SelectValue placeholder="All provinces" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All provinces</SelectItem>
-                        {uniqueValues.provinces.map((province) => (
-                          <SelectItem key={province} value={province}>
-                            {province}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <SearchableSelect
+                    value={filters.city || "all"}
+                    id={"city-select-installer-filter"}
+                    onValueChange={(value) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        city: value === "all" ? "" : value,
+                      }))
+                    }
+                    groups={cityGroups}
+                    placeholder={filters.city || "All Cities"}
+                    searchPlaceholder={"Search city ..."}
+                    emptyMessage={"No results found."}
+                    disabled={loading}
+                    className="rounded-2xl"
+                  />
+                </div>
+                {/* PROVINCES FILTER */}
+                <div className="space-y-2 w-full">
+                  <span className="text-sm px-2">Province</span>
+                  <Select
+                    value={filters.province || "all"}
+                    onValueChange={(value) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        province: value === "all" ? "" : value,
+                      }))
+                    }
+                    disabled={loading}
+                  >
+                    <SelectTrigger className="bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
+                      <SelectValue placeholder="All provinces" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All provinces</SelectItem>
+                      {uniqueValues.provinces.map((province) => (
+                        <SelectItem key={province} value={province}>
+                          {province}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  {/* TRAINING CENTERS FILTER */}
-                  <div className="space-y-2 w-full">
-                    <span className="text-sm px-2">Training Center</span>
-                    <Select
-                      value={filters.trainingCenter || "all"}
-                      onValueChange={(value) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          trainingCenter: value === "all" ? "" : value,
-                        }))
-                      }
-                      disabled={loading}
-                    >
-                      <SelectTrigger className="bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
-                        <SelectValue placeholder="All centers" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All centers</SelectItem>
-                        {uniqueValues.trainingCenters.map((center) => (
-                          <SelectItem key={center} value={center}>
-                            {center}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                {/* TRAINING CENTERS FILTER */}
+                <div className="space-y-2 w-full">
+                  <span className="text-sm px-2">Training Center</span>
+                  <Select
+                    value={filters.trainingCenter || "all"}
+                    onValueChange={(value) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        trainingCenter: value === "all" ? "" : value,
+                      }))
+                    }
+                    disabled={loading}
+                  >
+                    <SelectTrigger className="bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
+                      <SelectValue placeholder="All centers" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All centers</SelectItem>
+                      {uniqueValues.trainingCenters.map((center) => (
+                        <SelectItem key={center} value={center}>
+                          {center}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                  {/* CERTIFICATION FILTER */}
-                  <div className="space-y-2 w-full">
-                    <span className="text-sm px-2">Certification</span>
-                    <Select
-                      value={filters.certified || "all"}
-                      onValueChange={(value) =>
-                        setFilters((prev) => ({
-                          ...prev,
-                          certified: value === "all" ? "" : value,
-                        }))
-                      }
-                      disabled={loading}
-                    >
-                      <SelectTrigger className="bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
-                        <SelectValue placeholder="All statuses" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All statuses</SelectItem>
-                        <SelectItem value="true">Certified</SelectItem>
-                        <SelectItem value="false">Not Certified</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <span className="text-sm px-2">Reset Filters</span>
-                    {/* FILTER CLEAR BUTTON */}
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setFilters({
-                          city: "",
-                          province: "",
-                          trainingCenter: "",
-                          certified: "",
-                          dateRange: "all",
-                          customStartDate: "",
-                          customEndDate: "",
-                        });
-                        setSortField("createdAt");
-                        setSortDirection("desc");
-                      }}
-                      disabled={
-                        (!filters.city &&
-                          !filters.province &&
-                          !filters.trainingCenter &&
-                          !filters.certified &&
-                          sortField === "createdAt" &&
-                          sortDirection === "desc" &&
-                          filters.dateRange === "all") ||
-                        loading
-                      }
-                      className="min-w-fit rounded-3xl gap-1.5 pl-2"
-                    >
-                      <IconClose />
-                      Reset All
-                    </Button>
-                  </div>
-                </CardContent>
-              </>
-            )}
+                {/* CERTIFICATION FILTER */}
+                <div className="space-y-2 w-full">
+                  <span className="text-sm px-2">Certification</span>
+                  <Select
+                    value={filters.certified || "all"}
+                    onValueChange={(value) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        certified: value === "all" ? "" : value,
+                      }))
+                    }
+                    disabled={loading}
+                  >
+                    <SelectTrigger className="bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All statuses</SelectItem>
+                      <SelectItem value="true">Certified</SelectItem>
+                      <SelectItem value="false">Not Certified</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <span className="text-sm px-2">Reset Filters</span>
+                  {/* FILTER CLEAR BUTTON */}
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setFilters({
+                        city: "",
+                        province: "",
+                        trainingCenter: "",
+                        certified: "",
+                        dateRange: "all",
+                        customStartDate: "",
+                        customEndDate: "",
+                      });
+                      setSortField("createdAt");
+                      setSortDirection("desc");
+                    }}
+                    disabled={
+                      (!filters.city &&
+                        !filters.province &&
+                        !filters.trainingCenter &&
+                        !filters.certified &&
+                        sortField === "createdAt" &&
+                        sortDirection === "desc" &&
+                        filters.dateRange === "all") ||
+                      loading
+                    }
+                    className="min-w-fit rounded-3xl gap-1.5 pl-2"
+                  >
+                    <IconClose />
+                    Reset All
+                  </Button>
+                </div>
+              </CardContent>
+            </Activity>
             <Table>
-              <TableHeader className="bg-muted/30">
-                <TableRow className="hover:bg-muted/50">
+              <TableHeader>
+                <TableRow className="light:bg-muted light:hover:bg-muted dark:bg-muted/50">
                   <TableHead className="text-center w-12">
                     <Checkbox
                       checked={
@@ -1483,6 +1544,12 @@ export default function InstallersPage() {
                         paginatedInstallers.every((i) =>
                           selectedInstallers.has(i._id)
                         )
+                          ? true
+                          : paginatedInstallers.some((i) =>
+                              selectedInstallers.has(i._id)
+                            )
+                          ? "indeterminate"
+                          : false
                       }
                       onCheckedChange={toggleSelectAll}
                       aria-label="Select all installers on this page"
@@ -1618,7 +1685,7 @@ export default function InstallersPage() {
             </Table>
           </div>
         </CardContent>
-        <CardFooter className="flex items-center justify-between p-4 relative bg-muted/30 text-xs text-muted-foreground">
+        <CardFooter className="flex items-center justify-between p-4 relative bg-muted dark:bg-muted/50 text-xs text-muted-foreground">
           {/* PAGINATION */}
 
           <div className="text-sm text-muted-foreground inline-flex items-center gap-1">

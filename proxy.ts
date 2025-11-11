@@ -1,20 +1,22 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   // Public paths that don't require authentication
   const publicPaths = [
-    '/auth/signin',
-    '/auth/error',
-    '/_next',
-    '/api/auth',
-    '/favicon.ico',
-    '/',
+    "/auth/signin",
+    "/auth/error",
+    "/_next",
+    "/api/auth",
+    "/favicon.ico",
+    "/",
   ];
 
-  const isPublicPath = publicPaths.some((publicPath) => path.startsWith(publicPath));
+  const isPublicPath = publicPaths.some((publicPath) =>
+    path.startsWith(publicPath)
+  );
 
   // Allow public paths
   if (isPublicPath) {
@@ -22,12 +24,14 @@ export function middleware(request: NextRequest) {
   }
 
   // Check for session token (simple check)
-  const token = request.cookies.get('authjs.session-token') || request.cookies.get('__Secure-authjs.session-token');
+  const token =
+    request.cookies.get("authjs.session-token") ||
+    request.cookies.get("__Secure-authjs.session-token");
 
   // Redirect to signin if not authenticated
   if (!token) {
-    const url = new URL('/auth/signin', request.url);
-    url.searchParams.set('callbackUrl', path);
+    const url = new URL("/auth/signin", request.url);
+    url.searchParams.set("callbackUrl", path);
     return NextResponse.redirect(url);
   }
 
@@ -46,6 +50,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public folder
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

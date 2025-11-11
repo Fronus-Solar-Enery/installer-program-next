@@ -121,7 +121,7 @@ export default function TopNavbar() {
                   size="small"
                   className="w-8 h-8 bg-card dark:bg-background"
                 />
-                <span className="hidden sm:inline-block text-sm font-medium">
+                <span className="hidden sm:inline-block text-sm font-medium leading-none">
                   {session?.user?.name || "User"}
                 </span>
                 <IconArrowUpDown className="h-5 w-5 text-muted-foreground" />

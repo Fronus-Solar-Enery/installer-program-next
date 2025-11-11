@@ -65,6 +65,7 @@ import {
   IconSortFromTopToBottom,
   IconSortFromBottomToTop,
   IconSetting4,
+  IconCheck,
 } from "@/components/icons";
 import { TableSkeleton } from "@/components/TableSkeleton";
 import { EmptyState } from "@/components/EmptyState";
@@ -241,7 +242,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
 
     return (
       <>
-        <CardContent className="p-0!">
+        <CardContent className="p-0! light:bg-muted/50">
           {/* Filters Display Section */}
           <div className="flex justify-between p-4 bg-muted/30">
             <div className="space-y-2">
@@ -493,13 +494,16 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                         Columns Visibility
                         {/* Toggle All Checkbox */}
                         <Checkbox
-                          checked={Object.values(visibleColumns).every(Boolean)}
-                          indeterminate={
-                            Object.values(visibleColumns).some(Boolean) &&
-                            !Object.values(visibleColumns).every(Boolean)
+                          checked={
+                            Object.values(visibleColumns).every(Boolean)
+                              ? true
+                              : Object.values(visibleColumns).some(Boolean)
+                              ? "indeterminate"
+                              : false
                           }
                           onCheckedChange={(checked) => {
-                            const isChecked = Boolean(checked);
+                            // Convert Radix `CheckedState` ("indeterminate" | boolean) to boolean
+                            const isChecked = checked === true;
 
                             if (isChecked) {
                               // ✅ Turn ON all columns
@@ -515,14 +519,11 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                               // 🔄 Restore default columns instead of unchecking all
                               const defaultColumns: Partial<ColumnVisibility> =
                                 {
-                                  // installerCode: true,
                                   installer: true,
                                   serialNumber: true,
                                   productModel: true,
-                                  // cityOfInstallation: true,
                                   rewardAmount: true,
                                   paymentStatus: true,
-                                  // paymentMethod: true,
                                   sendingDate: true,
                                 };
 
@@ -585,7 +586,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
 
           {/* FILTERS */}
           <Activity mode={showFilters ? "visible" : "hidden"}>
-            <CardContent className="p-4 flex items-center gap-2">
+            <CardContent className="p-4 flex items-center gap-2 ">
               {/* Payment Status Filter */}
               <div className="space-y-2 w-full">
                 <span className="text-sm px-2">Payment Status</span>
@@ -734,8 +735,8 @@ export const RewardsTable = React.memo<RewardsTableProps>(
           </Activity>
           {/* REWARDS DATATABLE */}
           <Table>
-            <TableHeader className="bg-muted/30">
-              <TableRow className="hover:bg-muted/50">
+            <TableHeader>
+              <TableRow className="light:bg-muted light:hover:bg-muted dark:bg-muted/50">
                 <TableHead className="text-center w-12">
                   <Checkbox
                     checked={allSelected}
@@ -893,7 +894,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
             </TableBody>
           </Table>
         </CardContent>
-        <CardFooter className="flex items-center justify-between p-4 relative bg-muted/30 text-xs text-muted-foreground">
+        <CardFooter className="flex items-center justify-between p-4 relative bg-muted dark:bg-muted/50 text-xs text-muted-foreground">
           {/* Pagination Controls */}
           <div className="text-sm text-muted-foreground inline-flex items-center gap-1">
             Show

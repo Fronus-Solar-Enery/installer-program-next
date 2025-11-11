@@ -1423,7 +1423,8 @@ export default function InstallerEditModal({
           <AlertDialogFooter className="mt-4">
             <AlertDialogAction
               onClick={confirmClose}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full"
+              className="w-full"
+              variant="destructive"
             >
               Discard Changes
             </AlertDialogAction>

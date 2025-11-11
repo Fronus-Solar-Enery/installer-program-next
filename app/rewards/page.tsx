@@ -616,8 +616,8 @@ export default function RewardsPage() {
       <RewardsStatisticsCards statistics={statistics} />
 
       {/* Date Range Filter Card */}
-      <Card className="dark:bg-transparent">
-        <CardHeader className="flex-row items-center justify-between w-full bg-muted/70 border-b border-border">
+      <Card className="bg-transparent">
+        <CardHeader className="flex-row items-center justify-between w-full bg-muted dark:bg-muted/50 border-b border-border">
           <CardTitle className="text-lg font-semibold">
             Rewards Database
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -673,8 +673,8 @@ export default function RewardsPage() {
                     className={cn(
                       "hidden sm:flex gap-2 rounded-xl py-1.5 px-2 h-max",
                       state.filters.dateRange === "custom"
-                        ? "text-primary"
-                        : "text-zinc-400"
+                        ? "text-primary bg-muted"
+                        : "text-muted-foreground"
                     )}
                     disabled={isPageLoading}
                   >
@@ -682,77 +682,89 @@ export default function RewardsPage() {
                   </Button>
                 </PopoverTrigger>
 
-                <PopoverContent className="w-auto p-0" align="end">
-                  <div className="space-y-4">
-                    <div className="space-y-2 p-4">
-                      <h4 className="font-medium text-sm">Select Date Range</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Select a custom date range for filtering rewards
-                      </p>
+                <PopoverContent
+                  className="w-full max-w-lg p-0 bg-card dark:bg-background overflow-hidden shadow-2xl"
+                  align="end"
+                >
+                  <div className="flex flex-col items-center">
+                    <div className="flex items-center justify-between p-4 border-b border-border w-full">
+                      <div>
+                        <h4 className="font-medium text-sm">
+                          Select Date Range
+                        </h4>
+                        <p className="text-xs text-muted-foreground">
+                          Custom date range for filtering rewards
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          className="rounded-xl"
+                          variant="outline"
+                          onClick={() => {
+                            setDateRange(undefined);
+                            dispatch({
+                              type: "SET_FILTERS",
+                              payload: {
+                                dateRange: "all",
+                                customStartDate: "",
+                                customEndDate: "",
+                              },
+                            });
+                            setIsCustomDateOpen(false);
+                          }}
+                        >
+                          Clear
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="rounded-xl"
+                          onClick={() => {
+                            if (dateRange?.from && dateRange?.to) {
+                              // Convert dates to local date strings (YYYY-MM-DD)
+                              const fromDate = new Date(
+                                dateRange.from.getTime() -
+                                  dateRange.from.getTimezoneOffset() * 60000
+                              );
+                              const toDate = new Date(
+                                dateRange.to.getTime() -
+                                  dateRange.to.getTimezoneOffset() * 60000
+                              );
+
+                              dispatch({
+                                type: "SET_FILTERS",
+                                payload: {
+                                  dateRange: "custom",
+                                  customStartDate: fromDate
+                                    .toISOString()
+                                    .split("T")[0],
+                                  customEndDate: toDate
+                                    .toISOString()
+                                    .split("T")[0],
+                                },
+                              });
+                              setIsCustomDateOpen(false);
+                            }
+                          }}
+                          disabled={!dateRange?.from || !dateRange?.to}
+                        >
+                          Apply
+                        </Button>
+                      </div>
                     </div>
                     <CalendarComponent
                       mode="range"
                       selected={dateRange}
                       onSelect={setDateRange}
                       numberOfMonths={2}
+                      startMonth={new Date(2023, 0, 1)}
                       disabled={(date) =>
-                        date > new Date() || date < new Date("1900-01-01")
+                        date > new Date() || date < new Date("2022-01-01")
                       }
+                      excludeDisabled
+                      captionLayout="dropdown"
                     />
-                    <div className="flex gap-2 pt-2 border-t border-border p-4">
-                      <Button
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => {
-                          if (dateRange?.from && dateRange?.to) {
-                            // Convert dates to local date strings (YYYY-MM-DD)
-                            const fromDate = new Date(
-                              dateRange.from.getTime() -
-                                dateRange.from.getTimezoneOffset() * 60000
-                            );
-                            const toDate = new Date(
-                              dateRange.to.getTime() -
-                                dateRange.to.getTimezoneOffset() * 60000
-                            );
-
-                            dispatch({
-                              type: "SET_FILTERS",
-                              payload: {
-                                dateRange: "custom",
-                                customStartDate: fromDate
-                                  .toISOString()
-                                  .split("T")[0],
-                                customEndDate: toDate
-                                  .toISOString()
-                                  .split("T")[0],
-                              },
-                            });
-                            setIsCustomDateOpen(false);
-                          }
-                        }}
-                        disabled={!dateRange?.from || !dateRange?.to}
-                      >
-                        Apply
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setDateRange(undefined);
-                          dispatch({
-                            type: "SET_FILTERS",
-                            payload: {
-                              dateRange: "all",
-                              customStartDate: "",
-                              customEndDate: "",
-                            },
-                          });
-                          setIsCustomDateOpen(false);
-                        }}
-                      >
-                        Clear
-                      </Button>
-                    </div>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -762,13 +774,11 @@ export default function RewardsPage() {
               onClick={fetchRewards}
               disabled={isPageLoading}
               title="Refresh data"
-              className="gap-2"
+              size="sm"
+              className="gap-2 rounded-2xl"
             >
               Refresh
-              <IconRefresh2
-                width={2}
-                className={cn("h-3.5 w-3.5", isPageLoading && "animate-spin")}
-              />
+              <IconRefresh2 width={2} className="size-3.5!" />
             </Button>
             <Button
               variant="outline"
@@ -778,7 +788,8 @@ export default function RewardsPage() {
                 state.downloadingReport ||
                 isPageLoading
               }
-              className="gap-2"
+              size="sm"
+              className="gap-2 rounded-2xl"
             >
               {state.downloadingReport ? (
                 <>
@@ -787,7 +798,7 @@ export default function RewardsPage() {
               ) : (
                 <>
                   Export
-                  <IconSquareShareLine width={2} />
+                  <IconSquareShareLine width={2} className="size-3.5!" />
                 </>
               )}
             </Button>
