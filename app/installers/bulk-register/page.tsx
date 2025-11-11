@@ -196,7 +196,7 @@ export default function BulkUploadInstallersPage() {
       )}`;
     }
 
-    return cnic; // Return original if not 13 digits
+    return cnic;
   };
 
   const formatPhoneNumber = (phone: string): string => {

@@ -37,7 +37,7 @@ export default function PageHeader({
         <div>
           <h1
             className={cn(
-              "text-2xl font-medium tracking-wide text-foreground font-clash",
+              "text-2xl font-medium tracking-wide text-foreground leading-none",
               titleClassName
             )}
           >
@@ -51,7 +51,7 @@ export default function PageHeader({
         </div>
       </div>
       {action && (
-        <div className="flex space-x-2 items-center justify-end flex-shrink-0 w-full flex-wrap md:flex-nowrap md:w-auto">
+        <div className="flex space-x-2 items-center justify-end shrink-0 w-full flex-wrap md:flex-nowrap md:w-auto">
           {action}
         </div>
       )}

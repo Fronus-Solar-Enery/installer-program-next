@@ -1567,16 +1567,16 @@ export default function InstallersPage() {
                     />
                   </>
                 ) : filteredInstallers.length === 0 ? (
-                  <TableRow className="p-4">
+                  <TableRow className="p-4 hover:bg-transparent">
                     <TableCell
                       colSpan={activeColumnsLength + 2}
                       className="w-full place-items-center p-0"
                     >
                       <EmptyState
-                        title="No Forms Created"
-                        description="You can create a new template to add in your pages."
+                        title="Not Found Installers"
+                        description="You can register a new Installer by clicking below button."
                         icons={[IconActivity]}
-                        className="w-full border-none rounded-none"
+                        className="w-full"
                         action={{
                           label: (
                             <div className="flex items-center gap-2">
@@ -1634,7 +1634,7 @@ export default function InstallersPage() {
               <SelectTrigger className="h-6 w-max gap-1 px-1 pl-2 rounded-md">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="!p-0">
+              <SelectContent className="p-0!">
                 <SelectItem className="h-6" value="10">
                   10
                 </SelectItem>
@@ -1692,7 +1692,8 @@ export default function InstallersPage() {
             </div>
           </div>
           <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
-            Showing {startIndex + 1}-{rowsPerPage + startIndex} of{" "}
+            Showing {startIndex > 0 && "0"}
+            {startIndex + 1}-{rowsPerPage + startIndex} of{" "}
             {filteredInstallers.length} results
             {filteredInstallers.length !== installers.length && (
               <span className="ml-1">

@@ -948,6 +948,7 @@ export default function RewardEditModal({
                       onChange={setReferrerTransactionId}
                       placeholder="e.g., TXN789012"
                       hint="Transaction ID for referrer payment"
+                      required={paymentStatus === RewardStatus.PAID}
                     />
                   )}
 
@@ -994,8 +995,16 @@ export default function RewardEditModal({
                               setOpenSendingDate(false);
                             }
                           }}
-                          // className="squircle rounded-2xl overflow-hidden"
                           captionLayout="dropdown"
+                          disabled={(date) => {
+                            const today = new Date();
+                            today.setHours(23, 59, 59, 999);
+                            const oneMonthAgo = new Date();
+                            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+                            oneMonthAgo.setHours(0, 0, 0, 0);
+                            return date > today || date < oneMonthAgo;
+                          }}
+                          defaultMonth={new Date()}
                         />
                       </PopoverContent>
                     </Popover>

@@ -1,5 +1,6 @@
 import mongoose, { Schema, Model, Types } from 'mongoose';
 import { RewardStatus } from '@/types/rewards';
+import { PRODUCT_MODELS } from '@/lib/constants';
 
 // Re-export for backward compatibility
 export { RewardStatus };
@@ -81,8 +82,8 @@ const InstallerRewardSchema = new Schema<IInstallerReward>(
     },
     inverterSerialNumber: {
       type: String,
-      required: [true, 'Inverter serial number is required'],
       trim: true,
+      default: '',
     },
     installationDate: {
       type: Date,
@@ -138,6 +139,38 @@ const InstallerRewardSchema = new Schema<IInstallerReward>(
     timestamps: true,
   }
 );
+
+// Custom validation for inverter serial number
+InstallerRewardSchema.pre('save', function (next) {
+  const product = PRODUCT_MODELS.find((p) => p.value === this.productModel);
+
+  if (product?.requiresInverter) {
+    if (!this.inverterSerialNumber || this.inverterSerialNumber.trim() === '') {
+      return next(new Error('Inverter serial number is required for this product'));
+    }
+  }
+
+  next();
+});
+
+// Validation for updates
+InstallerRewardSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
+  const update = this.getUpdate() as any;
+  const productModel = update.productModel || update.$set?.productModel;
+
+  if (productModel) {
+    const product = PRODUCT_MODELS.find((p) => p.value === productModel);
+    const inverterSerial = update.inverterSerialNumber || update.$set?.inverterSerialNumber;
+
+    if (product?.requiresInverter) {
+      if (!inverterSerial || (typeof inverterSerial === 'string' && inverterSerial.trim() === '')) {
+        return next(new Error('Inverter serial number is required for this product'));
+      }
+    }
+  }
+
+  next();
+});
 
 // Indexes for better query performance
 // Note: serialNumber already has a unique index, no need to add it again

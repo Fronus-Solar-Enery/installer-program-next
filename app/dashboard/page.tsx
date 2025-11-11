@@ -14,14 +14,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Users,
-  Package,
-  DollarSign,
-  Target,
-  ArrowUpRight,
-  RefreshCw,
-} from "lucide-react";
+import { Users, Package, DollarSign, Target, ArrowUpRight } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -1279,59 +1272,57 @@ export default function DashboardPage() {
               />
               <CardContent>
                 {cityData.length > 0 ? (
-                  <>
-                    <ChartContainer
-                      config={chartConfig}
-                      className="min-h-[250px] max-h-[400px] w-full"
+                  <ChartContainer
+                    config={chartConfig}
+                    className="min-h-[250px] max-h-[400px] w-full"
+                  >
+                    <BarChart
+                      accessibilityLayer
+                      data={cityData}
+                      layout="vertical"
+                      margin={{
+                        right: 16,
+                      }}
                     >
-                      <BarChart
-                        accessibilityLayer
-                        data={cityData}
-                        layout="vertical"
-                        margin={{
-                          right: 16,
-                        }}
+                      <CartesianGrid horizontal={false} />
+                      <YAxis
+                        dataKey="city"
+                        type="category"
+                        tickLine={false}
+                        tickMargin={10}
+                        axisLine={false}
+                        tickFormatter={(value) => value.slice(0, 3)}
+                        hide
+                      />
+                      <XAxis dataKey="installations" type="number" hide />
+                      <ChartTooltip
+                        cursor={false}
+                        content={
+                          <ChartTooltipContent indicator="line" hideLabel />
+                        }
+                      />
+                      <Bar
+                        dataKey="installations"
+                        radius={16}
+                        className="fill-primary"
                       >
-                        <CartesianGrid horizontal={false} />
-                        <YAxis
+                        <LabelList
                           dataKey="city"
-                          type="category"
-                          tickLine={false}
-                          tickMargin={10}
-                          axisLine={false}
-                          tickFormatter={(value) => value.slice(0, 3)}
-                          hide
+                          position="insideLeft"
+                          offset={14}
+                          className="fill-primary-foreground font-semibold"
+                          fontSize={12}
                         />
-                        <XAxis dataKey="installations" type="number" hide />
-                        <ChartTooltip
-                          cursor={false}
-                          content={
-                            <ChartTooltipContent indicator="line" hideLabel />
-                          }
-                        />
-                        <Bar
+                        <LabelList
                           dataKey="installations"
-                          radius={16}
-                          className="fill-primary"
-                        >
-                          <LabelList
-                            dataKey="city"
-                            position="insideLeft"
-                            offset={14}
-                            className="fill-primary-foreground font-semibold"
-                            fontSize={12}
-                          />
-                          <LabelList
-                            dataKey="installations"
-                            position="right"
-                            offset={8}
-                            className="fill-foreground"
-                            fontSize={12}
-                          />
-                        </Bar>
-                      </BarChart>
-                    </ChartContainer>
-                  </>
+                          position="right"
+                          offset={8}
+                          className="fill-foreground"
+                          fontSize={12}
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ChartContainer>
                 ) : (
                   <div className="h-[280px] flex items-center justify-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">

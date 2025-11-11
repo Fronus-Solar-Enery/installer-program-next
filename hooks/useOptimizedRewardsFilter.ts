@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo } from 'react';
+import { useMemo } from "react";
 
 export interface RewardWithId {
   _id: string;
-  serialNumber: string;
   installerCode: string;
+  serialNumber: string;
   productModel: string;
   cityOfInstallation: string;
   rewardAmount: number;
@@ -12,6 +12,7 @@ export interface RewardWithId {
   paymentMethod?: string;
   transactionId?: string;
   referrerTransactionId?: string;
+  referrerRewardAmount?: number;
   sendingDate?: string;
   inverterSerialNumber?: string;
   serialNumberStatus?: string;
@@ -44,6 +45,9 @@ export interface RewardsFilters {
   productModel: string;
   teamMember: string;
   search: string;
+  dateRange: "all" | "today" | "week" | "month" | "year" | "custom";
+  customStartDate: string;
+  customEndDate: string;
 }
 
 export interface SortConfig {
@@ -90,6 +94,56 @@ export function useOptimizedRewardsFilter({
   return useMemo(() => {
     const searchLower = filters.search.toLowerCase().trim();
 
+    // Calculate date range boundaries
+    let dateRangeStart: Date | null = null;
+    let dateRangeEnd: Date | null = null;
+
+    if (filters.dateRange && filters.dateRange !== "all") {
+      const now = new Date();
+      const todayStart = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+      );
+
+      switch (filters.dateRange) {
+        case "today":
+          dateRangeStart = todayStart;
+          dateRangeEnd = new Date(
+            todayStart.getTime() + 24 * 60 * 60 * 1000 - 1
+          );
+          break;
+        case "week":
+          dateRangeStart = new Date(
+            todayStart.getTime() - 7 * 24 * 60 * 60 * 1000
+          );
+          dateRangeEnd = now;
+          break;
+        case "month":
+          dateRangeStart = new Date(
+            todayStart.getTime() - 30 * 24 * 60 * 60 * 1000
+          );
+          dateRangeEnd = now;
+          break;
+        case "year":
+          dateRangeStart = new Date(
+            todayStart.getTime() - 365 * 24 * 60 * 60 * 1000
+          );
+          dateRangeEnd = now;
+          break;
+        case "custom":
+          if (filters.customStartDate) {
+            dateRangeStart = new Date(filters.customStartDate);
+          }
+          if (filters.customEndDate) {
+            dateRangeEnd = new Date(filters.customEndDate);
+            // Set to end of day
+            dateRangeEnd.setHours(23, 59, 59, 999);
+          }
+          break;
+      }
+    }
+
     // Single-pass processing - collect statistics and unique values
     const uniquePaymentMethods = new Set<string>();
     const uniqueSerialNumberStatuses = new Set<string>();
@@ -107,7 +161,8 @@ export function useOptimizedRewardsFilter({
     const filtered = rewards.filter((reward) => {
       // Collect unique values from ALL rewards (not just filtered)
       if (reward.paymentMethod) uniquePaymentMethods.add(reward.paymentMethod);
-      if (reward.serialNumberStatus) uniqueSerialNumberStatuses.add(reward.serialNumberStatus);
+      if (reward.serialNumberStatus)
+        uniqueSerialNumberStatuses.add(reward.serialNumberStatus);
       if (reward.productModel) uniqueProductModels.add(reward.productModel);
       if (reward.installer?._id) uniqueInstallers.add(reward.installer._id);
 
@@ -129,7 +184,9 @@ export function useOptimizedRewardsFilter({
           reward.serialNumber?.toLowerCase().includes(searchLower) ||
           reward.transactionId?.toLowerCase().includes(searchLower) ||
           reward.referrerTransactionId?.toLowerCase().includes(searchLower) ||
-          reward.installer?.installerCode?.toLowerCase().includes(searchLower) ||
+          reward.installer?.installerCode
+            ?.toLowerCase()
+            .includes(searchLower) ||
           reward.installer?.fullName?.toLowerCase().includes(searchLower) ||
           reward.installer?.cnic?.includes(filters.search) ||
           reward.installer?.phoneNumber?.includes(filters.search) ||
@@ -152,7 +209,8 @@ export function useOptimizedRewardsFilter({
       }
 
       if (filters.serialNumberStatus && filters.serialNumberStatus !== "all") {
-        if (reward.serialNumberStatus !== filters.serialNumberStatus) return false;
+        if (reward.serialNumberStatus !== filters.serialNumberStatus)
+          return false;
       }
 
       if (filters.productModel && filters.productModel !== "all") {
@@ -161,6 +219,13 @@ export function useOptimizedRewardsFilter({
 
       if (filters.teamMember && filters.teamMember !== "all") {
         if (reward.registeredBy?._id !== filters.teamMember) return false;
+      }
+
+      // Apply date range filter
+      if (dateRangeStart || dateRangeEnd) {
+        const rewardDate = new Date(reward.createdAt);
+        if (dateRangeStart && rewardDate < dateRangeStart) return false;
+        if (dateRangeEnd && rewardDate > dateRangeEnd) return false;
       }
 
       return true;

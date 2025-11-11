@@ -1,17 +1,58 @@
 "use client";
 
 import * as React from "react";
-import {
-  ChevronDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-} from "lucide-react";
 import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { IconAltArrowLeft, IconAltArrowRight } from "../icons";
 import IconAltArrowDown from "../icons/AltArrowDown";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./select";
+
+function CustomDropdown({
+  value,
+  onChange,
+  options,
+  ...props
+}: React.SelectHTMLAttributes<HTMLSelectElement> & {
+  options?: Array<{
+    value: string | number;
+    label: string;
+    disabled?: boolean;
+  }>;
+}) {
+  const handleChange = (newValue: string) => {
+    const event = {
+      target: { value: newValue },
+    } as React.ChangeEvent<HTMLSelectElement>;
+    onChange?.(event);
+  };
+
+  return (
+    <Select value={String(value)} onValueChange={handleChange}>
+      <SelectTrigger className="h-8 w-auto text-sm pr-1.5">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options?.map((option) => (
+          <SelectItem
+            key={option.value}
+            value={String(option.value)}
+            disabled={option.disabled}
+          >
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 function Calendar({
   className,
@@ -31,7 +72,7 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
-        "bg-background group/calendar p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
+        "bg-background group/calendar p-3 [--cell-size:--spacing(8)] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
         String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className
@@ -153,6 +194,7 @@ function Calendar({
             <IconAltArrowDown className={cn("size-4", className)} {...props} />
           );
         },
+        Dropdown: CustomDropdown,
         DayButton: CalendarDayButton,
         WeekNumber: ({ children, ...props }) => {
           return (

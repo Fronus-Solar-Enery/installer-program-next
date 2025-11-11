@@ -12,6 +12,8 @@ import {
   IconReward,
   IconRefresh2,
   IconLayer,
+  IconSquareShareLine,
+  IconClockCircle,
 } from "@/components/icons";
 import { useRelativeTime } from "@/lib/getRelativeTime";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -21,10 +23,19 @@ import {
   type RewardWithId,
 } from "@/hooks/useOptimizedRewardsFilter";
 import { RewardsStatisticsCards } from "@/components/RewardsStatisticsCards";
-import { RewardsFiltersSection } from "@/components/RewardsFiltersSection";
 import { RewardsTable } from "@/components/RewardsTable";
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog";
 import { BulkDeleteResultDialog } from "@/components/BulkDeleteResultDialog";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import type { DateRange } from "react-day-picker";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import Loading from "@/components/ui/loading";
 
 interface TeamMember {
   _id: string;
@@ -45,9 +56,36 @@ export default function RewardsPage() {
   const [loading, setLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  // Date range state
+  const [isCustomDateOpen, setIsCustomDateOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const refreshRelTime = useRelativeTime(lastUpdated);
   const isPageLoading = loading || isFetching;
+
+  // Sync dateRange with filters when popover opens
+  useEffect(() => {
+    if (
+      isCustomDateOpen &&
+      state.filters.customStartDate &&
+      state.filters.customEndDate
+    ) {
+      setDateRange({
+        from: new Date(state.filters.customStartDate),
+        to: new Date(state.filters.customEndDate),
+      });
+    } else if (!isCustomDateOpen) {
+      // Reset when popover closes
+      if (state.filters.dateRange !== "custom") {
+        setDateRange(undefined);
+      }
+    }
+  }, [
+    isCustomDateOpen,
+    state.filters.customStartDate,
+    state.filters.customEndDate,
+    state.filters.dateRange,
+  ]);
 
   // Debounce search to reduce re-renders (300ms delay)
   const debouncedSearch = useDebounce(state.filters.search, 300);
@@ -80,6 +118,11 @@ export default function RewardsPage() {
     const endIndex = startIndex + state.itemsPerPage;
     return filtered.slice(startIndex, endIndex);
   }, [filtered, state.currentPage, state.itemsPerPage]);
+
+  // Reset to first page when filters or search change
+  useEffect(() => {
+    dispatch({ type: "RESET_TO_PAGE_ONE" });
+  }, [state.filters, dispatch]);
 
   // Fetch rewards from API
   const fetchRewards = useCallback(async () => {
@@ -117,6 +160,8 @@ export default function RewardsPage() {
         params.append("registeredBy", state.filters.teamMember);
       }
 
+      // Fetch all rewards for client-side filtering and pagination
+      params.append("limit", "10000");
       const response = await fetch(`/api/rewards?${params.toString()}`);
       const data = await response.json();
 
@@ -246,6 +291,9 @@ export default function RewardsPage() {
         | "sendingDate"
         | "inverterSerialNumber"
         | "registeredBy"
+        | "referrerName"
+        | "referrerTransactionId"
+        | "referrerReward"
     ) => {
       dispatch({ type: "TOGGLE_COLUMN", payload: column });
     },
@@ -488,6 +536,47 @@ export default function RewardsPage() {
     [dispatch]
   );
 
+  const handleClearFilter = useCallback(
+    (key: string) => {
+      if (key === "dateRange") {
+        dispatch({
+          type: "SET_FILTERS",
+          payload: {
+            dateRange: "all",
+            customStartDate: "",
+            customEndDate: "",
+          },
+        });
+        return;
+      }
+
+      let value = "";
+      if (key === "paymentStatus") {
+        value = "ALL";
+      } else if (key === "sendingDate") {
+        value = "";
+      } else {
+        value = "all";
+      }
+
+      dispatch({
+        type: "SET_FILTER",
+        payload: {
+          key: key as
+            | "paymentStatus"
+            | "sendingDate"
+            | "paymentMethod"
+            | "serialNumberStatus"
+            | "productModel"
+            | "teamMember"
+            | "search",
+          value,
+        },
+      });
+    },
+    [dispatch]
+  );
+
   return (
     <div className="flex-1 overflow-auto space-y-4">
       <PageHeader
@@ -500,19 +589,6 @@ export default function RewardsPage() {
         }
         action={
           <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={fetchRewards}
-              disabled={isPageLoading}
-              title="Refresh data"
-              className="gap-2"
-            >
-              Refresh
-              <IconRefresh2
-                width={2}
-                className={cn("h-3.5 w-3.5", isPageLoading && "animate-spin")}
-              />
-            </Button>
             <Button
               onClick={() => router.push("/rewards/bulk-update")}
               variant="outline"
@@ -539,82 +615,255 @@ export default function RewardsPage() {
       {/* Statistics Cards */}
       <RewardsStatisticsCards statistics={statistics} />
 
-      {/* Filters Section */}
-      <RewardsFiltersSection
-        filters={state.filters}
-        onFilterChange={handleFilterChange}
-        onClearFilters={handleClearFilters}
-        onDownloadReport={handleDownloadReport}
-        uniqueValues={uniqueValues}
-        teamMembers={teamMembers}
-        hasResults={filtered.length > 0}
-        downloadingReport={state.downloadingReport}
-        loading={isPageLoading}
-      />
+      {/* Date Range Filter Card */}
+      <Card className="dark:bg-transparent">
+        <CardHeader className="flex-row items-center justify-between w-full bg-muted/70 border-b border-border">
+          <CardTitle className="text-lg font-semibold">
+            Rewards Database
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Last Updated:</span>
+              <span>{isPageLoading ? <Loading /> : refreshRelTime}</span>
+            </div>
+          </CardTitle>
 
-      {/* Rewards Table */}
-      <RewardsTable
-        rewards={paginatedRewards}
-        totalRewards={filtered.length}
-        loading={isPageLoading}
-        visibleColumns={state.visibleColumns}
-        selectedRewards={state.selectedRewards}
-        currentPage={state.currentPage}
-        itemsPerPage={state.itemsPerPage}
-        sortField={state.sortField}
-        sortDirection={state.sortDirection}
-        bulkDeleting={state.bulkDeleting}
-        lastUpdatedText={refreshRelTime}
-        onToggleColumn={handleToggleColumn}
-        onToggleSort={handleToggleSort}
-        onToggleSelection={handleToggleSelection}
-        onToggleSelectAll={handleToggleSelectAll}
-        onEditClick={handleEditClick}
-        onDeleteClick={handleDeleteClick}
-        onBulkDelete={handleBulkDelete}
-        onPageChange={handlePageChange}
-        onItemsPerPageChange={handleItemsPerPageChange}
-      />
+          <div className="flex items-center gap-2">
+            {/* DATE RANGE FILTER */}
+            <ToggleGroup
+              type="single"
+              value={state.filters.dateRange}
+              onValueChange={(value) => {
+                if (!value) return;
+                dispatch({
+                  type: "SET_FILTERS",
+                  payload: {
+                    dateRange: value as typeof state.filters.dateRange,
+                    customStartDate:
+                      value !== "custom" ? "" : state.filters.customStartDate,
+                    customEndDate:
+                      value !== "custom" ? "" : state.filters.customEndDate,
+                  },
+                });
+              }}
+              className={cn("h-9 bg-background", isPageLoading && "opacity-50")}
+              disabled={isPageLoading}
+            >
+              <ToggleGroupItem className="h-max p-2" value="all">
+                ALL
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-max p-2" value="today">
+                1D
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-max p-2" value="week">
+                1W
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-max p-2" value="month">
+                1M
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-max p-2" value="year">
+                1Y
+              </ToggleGroupItem>
 
-      {/* Edit Modal */}
-      <RewardEditModal
-        open={state.editModalOpen}
-        onOpenChange={handleCloseEditModal}
-        rewardId={state.selectedRewardId}
-        onSuccess={fetchRewards}
-      />
+              <Popover
+                open={isCustomDateOpen}
+                onOpenChange={setIsCustomDateOpen}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "hidden sm:flex gap-2 rounded-xl py-1.5 px-2 h-max",
+                      state.filters.dateRange === "custom"
+                        ? "text-primary"
+                        : "text-zinc-400"
+                    )}
+                    disabled={isPageLoading}
+                  >
+                    <IconClockCircle className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
 
-      {/* Delete Confirmation Dialog */}
-      <DeleteConfirmationDialog
-        open={state.deleteDialogState.open}
-        status={state.deleteDialogState.status}
-        itemName={state.deleteDialogState.rewardSerialNumber}
-        message={state.deleteDialogState.message}
-        entityType="reward"
-        warningMessage="The reward will be permanently removed from the database."
-        onConfirm={() => {
-          if (
-            state.deleteDialogState.rewardId &&
-            state.deleteDialogState.rewardSerialNumber
-          ) {
-            handleDelete(
-              state.deleteDialogState.rewardId,
+                <PopoverContent className="w-auto p-0" align="end">
+                  <div className="space-y-4">
+                    <div className="space-y-2 p-4">
+                      <h4 className="font-medium text-sm">Select Date Range</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Select a custom date range for filtering rewards
+                      </p>
+                    </div>
+                    <CalendarComponent
+                      mode="range"
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={2}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date("1900-01-01")
+                      }
+                    />
+                    <div className="flex gap-2 pt-2 border-t border-border p-4">
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          if (dateRange?.from && dateRange?.to) {
+                            // Convert dates to local date strings (YYYY-MM-DD)
+                            const fromDate = new Date(
+                              dateRange.from.getTime() -
+                                dateRange.from.getTimezoneOffset() * 60000
+                            );
+                            const toDate = new Date(
+                              dateRange.to.getTime() -
+                                dateRange.to.getTimezoneOffset() * 60000
+                            );
+
+                            dispatch({
+                              type: "SET_FILTERS",
+                              payload: {
+                                dateRange: "custom",
+                                customStartDate: fromDate
+                                  .toISOString()
+                                  .split("T")[0],
+                                customEndDate: toDate
+                                  .toISOString()
+                                  .split("T")[0],
+                              },
+                            });
+                            setIsCustomDateOpen(false);
+                          }
+                        }}
+                        disabled={!dateRange?.from || !dateRange?.to}
+                      >
+                        Apply
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setDateRange(undefined);
+                          dispatch({
+                            type: "SET_FILTERS",
+                            payload: {
+                              dateRange: "all",
+                              customStartDate: "",
+                              customEndDate: "",
+                            },
+                          });
+                          setIsCustomDateOpen(false);
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </ToggleGroup>
+            <Button
+              variant="outline"
+              onClick={fetchRewards}
+              disabled={isPageLoading}
+              title="Refresh data"
+              className="gap-2"
+            >
+              Refresh
+              <IconRefresh2
+                width={2}
+                className={cn("h-3.5 w-3.5", isPageLoading && "animate-spin")}
+              />
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleDownloadReport}
+              disabled={
+                filtered.length === 0 ||
+                state.downloadingReport ||
+                isPageLoading
+              }
+              className="gap-2"
+            >
+              {state.downloadingReport ? (
+                <>
+                  Downloading <Loading />
+                </>
+              ) : (
+                <>
+                  Export
+                  <IconSquareShareLine width={2} />
+                </>
+              )}
+            </Button>
+          </div>
+        </CardHeader>
+
+        {/* Rewards Table */}
+        <RewardsTable
+          rewards={paginatedRewards}
+          totalRewards={filtered.length}
+          totalUnfilteredRewards={rewards.length}
+          loading={isPageLoading}
+          visibleColumns={state.visibleColumns}
+          selectedRewards={state.selectedRewards}
+          currentPage={state.currentPage}
+          itemsPerPage={state.itemsPerPage}
+          sortField={state.sortField}
+          sortDirection={state.sortDirection}
+          bulkDeleting={state.bulkDeleting}
+          lastUpdatedText={refreshRelTime}
+          filters={state.filters}
+          teamMembers={teamMembers}
+          uniqueValues={uniqueValues}
+          onToggleColumn={handleToggleColumn}
+          onToggleSort={handleToggleSort}
+          onToggleSelection={handleToggleSelection}
+          onToggleSelectAll={handleToggleSelectAll}
+          onEditClick={handleEditClick}
+          onDeleteClick={handleDeleteClick}
+          onBulkDelete={handleBulkDelete}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+          onClearFilter={handleClearFilter}
+          onFilterChange={handleFilterChange}
+          onClearAllFilters={handleClearFilters}
+        />
+
+        {/* Edit Modal */}
+        <RewardEditModal
+          open={state.editModalOpen}
+          onOpenChange={handleCloseEditModal}
+          rewardId={state.selectedRewardId}
+          onSuccess={fetchRewards}
+        />
+
+        {/* Delete Confirmation Dialog */}
+        <DeleteConfirmationDialog
+          open={state.deleteDialogState.open}
+          status={state.deleteDialogState.status}
+          itemName={state.deleteDialogState.rewardSerialNumber}
+          message={state.deleteDialogState.message}
+          entityType="reward"
+          warningMessage="The reward will be permanently removed from the database."
+          onConfirm={() => {
+            if (
+              state.deleteDialogState.rewardId &&
               state.deleteDialogState.rewardSerialNumber
-            );
-          }
-        }}
-        onClose={() => dispatch({ type: "RESET_DELETE_DIALOG" })}
-      />
-
-      {/* Bulk Delete Result Dialog */}
-      <BulkDeleteResultDialog
-        open={state.bulkDeleteResultState.open}
-        successCount={state.bulkDeleteResultState.successCount}
-        failCount={state.bulkDeleteResultState.failCount}
-        failures={state.bulkDeleteResultState.failures}
-        entityType="reward"
-        onClose={() => dispatch({ type: "RESET_BULK_DELETE_RESULT" })}
-      />
+            ) {
+              handleDelete(
+                state.deleteDialogState.rewardId,
+                state.deleteDialogState.rewardSerialNumber
+              );
+            }
+          }}
+          onClose={() => dispatch({ type: "RESET_DELETE_DIALOG" })}
+        />
+        {/* Bulk Delete Result Dialog */}
+        <BulkDeleteResultDialog
+          open={state.bulkDeleteResultState.open}
+          successCount={state.bulkDeleteResultState.successCount}
+          failCount={state.bulkDeleteResultState.failCount}
+          failures={state.bulkDeleteResultState.failures}
+          entityType="reward"
+          onClose={() => dispatch({ type: "RESET_BULK_DELETE_RESULT" })}
+        />
+      </Card>
     </div>
   );
 }

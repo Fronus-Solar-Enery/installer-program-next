@@ -13,6 +13,9 @@ export interface ColumnVisibility {
   sendingDate: boolean;
   inverterSerialNumber: boolean;
   registeredBy: boolean;
+  referrerName: boolean;
+  referrerTransactionId: boolean;
+  referrerReward: boolean;
 }
 
 export interface Filters {
@@ -23,6 +26,9 @@ export interface Filters {
   productModel: string;
   teamMember: string;
   search: string;
+  dateRange: "all" | "today" | "week" | "month" | "year" | "custom";
+  customStartDate: string;
+  customEndDate: string;
 }
 
 export interface RewardsState {
@@ -88,9 +94,15 @@ export type RewardsAction =
   | { type: "TOGGLE_REWARD_SELECTION"; payload: string }
   | { type: "OPEN_EDIT_MODAL"; payload: string }
   | { type: "CLOSE_EDIT_MODAL" }
-  | { type: "SET_DELETE_DIALOG_STATE"; payload: Partial<RewardsState["deleteDialogState"]> }
+  | {
+      type: "SET_DELETE_DIALOG_STATE";
+      payload: Partial<RewardsState["deleteDialogState"]>;
+    }
   | { type: "RESET_DELETE_DIALOG" }
-  | { type: "SET_BULK_DELETE_RESULT_STATE"; payload: Partial<RewardsState["bulkDeleteResultState"]> }
+  | {
+      type: "SET_BULK_DELETE_RESULT_STATE";
+      payload: Partial<RewardsState["bulkDeleteResultState"]>;
+    }
   | { type: "RESET_BULK_DELETE_RESULT" }
   | { type: "SET_BULK_DELETING"; payload: boolean }
   | { type: "SET_DELETING_ID"; payload: string | null }
@@ -105,6 +117,9 @@ const initialFilters: Filters = {
   productModel: "all",
   teamMember: "all",
   search: "",
+  dateRange: "all",
+  customStartDate: "",
+  customEndDate: "",
 };
 
 const initialColumnVisibility: ColumnVisibility = {
@@ -120,6 +135,9 @@ const initialColumnVisibility: ColumnVisibility = {
   sendingDate: false,
   inverterSerialNumber: false,
   registeredBy: false,
+  referrerName: false,
+  referrerTransactionId: false,
+  referrerReward: false,
 };
 
 export const initialState: RewardsState = {
@@ -188,11 +206,22 @@ function rewardsReducer(
 
     case "TOGGLE_SORT":
       if (state.sortField === action.payload) {
-        return {
-          ...state,
-          sortDirection: state.sortDirection === "asc" ? "desc" : "asc",
-        };
+        // Clicking the same field: cycle through asc -> desc -> reset to default
+        if (state.sortDirection === "asc") {
+          return {
+            ...state,
+            sortDirection: "desc",
+          };
+        } else {
+          // Reset to default sort (createdAt desc)
+          return {
+            ...state,
+            sortField: "createdAt",
+            sortDirection: "desc",
+          };
+        }
       } else {
+        // Clicking a new field: start with ascending
         return {
           ...state,
           sortField: action.payload,

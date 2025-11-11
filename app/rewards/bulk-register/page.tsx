@@ -448,16 +448,27 @@ export default function BulkCreateRewardsPage() {
             row["Payment Method"]?.toString().trim() || "";
           const rawProductModel = row["Product Model"]?.toString().trim() || "";
           const rawBankName = row["Bank Name"]?.toString().trim() || "";
+          const normalizedProductModel = normalizeProductModel(rawProductModel);
+
+          // Check if product requires inverter (same logic as register page)
+          const productConfig = PRODUCT_MODELS.find(
+            (pm) => pm.value === normalizedProductModel
+          );
+          const requiresInverter = productConfig?.requiresInverter || false;
+
+          const rawInverterSerial = row["Inverter Serial Number"]?.toString().trim() || "";
+
           const reward = {
             timestamp: parseTimestamp(row["Timestamp"]?.toString() || ""),
             teamMemberEmail: row["Team Member Email"]?.toString().trim() || "",
             installerName: row["Installer Name"]?.toString().trim() || "",
             installerCode:
               row["Installer Code"]?.toString().trim().toUpperCase() || "",
-            productModel: normalizeProductModel(rawProductModel),
+            productModel: normalizedProductModel,
             serialNumber: row["Serial Number"]?.toString().trim() || "",
-            inverterSerialNumber:
-              row["Inverter Serial Number"]?.toString().trim() || undefined,
+            inverterSerialNumber: requiresInverter
+              ? (rawInverterSerial || undefined)
+              : "N/A",
             serialNumberStatus:
               row["Serial Number Status"]?.toString().trim() || "",
             cityOfInstallation:
@@ -668,6 +679,17 @@ export default function BulkCreateRewardsPage() {
     const validRewards = preview.filter((p) => p.isValid);
     const totalRecords = validRewards.length;
 
+    console.log(`Total records in preview: ${preview.length}`);
+    console.log(`Valid records to upload: ${validRewards.length}`);
+    console.log(`Invalid records: ${invalidRows.length}`);
+
+    if (totalRecords === 0) {
+      toast.error("No valid records to upload.");
+      return;
+    }
+
+    toast.info(`Uploading ${totalRecords} valid record(s)...`);
+
     // Initialize progress modal
     setShowProgressModal(true);
     setProcessedRecords(0);
@@ -740,9 +762,14 @@ export default function BulkCreateRewardsPage() {
       let totalFailed = 0;
       const allErrors: string[] = [];
 
+      console.log(`Starting bulk upload of ${totalRecords} rewards in ${Math.ceil(totalRecords / CHUNK_SIZE)} chunks`);
+
       for (let i = 0; i < validRewards.length; i += CHUNK_SIZE) {
         const chunk = validRewards.slice(i, i + CHUNK_SIZE);
         const currentBatch = Math.min(i + CHUNK_SIZE, validRewards.length);
+        const chunkNumber = Math.floor(i / CHUNK_SIZE) + 1;
+
+        console.log(`Processing chunk ${chunkNumber}: rewards ${i + 1} to ${currentBatch}`);
 
         try {
           const response = await fetch("/api/rewards/bulk-register", {
@@ -753,21 +780,35 @@ export default function BulkCreateRewardsPage() {
 
           const data = await response.json();
 
+          console.log(`Chunk ${chunkNumber} response:`, {
+            ok: response.ok,
+            success: data.data?.success,
+            failed: data.data?.failed,
+            errors: data.data?.errors?.length || 0
+          });
+
           if (response.ok) {
-            totalSuccess += data.data?.success || 0;
-            totalFailed += data.data?.failed || 0;
+            const chunkSuccess = data.data?.success || 0;
+            const chunkFailed = data.data?.failed || 0;
+
+            totalSuccess += chunkSuccess;
+            totalFailed += chunkFailed;
+
+            console.log(`Chunk ${chunkNumber}: ${chunkSuccess} succeeded, ${chunkFailed} failed. Total: ${totalSuccess}/${currentBatch}`);
 
             if (data.data?.errors && data.data.errors.length > 0) {
               allErrors.push(...data.data.errors);
             }
           } else {
+            console.error(`Chunk ${chunkNumber} failed with error:`, data.error);
             totalFailed += chunk.length;
-            allErrors.push(data.error || "Chunk registration failed");
+            allErrors.push(`Chunk ${chunkNumber}: ${data.error || "Chunk registration failed"}`);
           }
         } catch (err) {
+          console.error(`Chunk ${chunkNumber} exception:`, err);
           totalFailed += chunk.length;
           allErrors.push(
-            `Chunk ${i / CHUNK_SIZE + 1} failed: ${
+            `Chunk ${chunkNumber} failed: ${
               err instanceof Error ? err.message : "Unknown error"
             }`
           );
@@ -796,6 +837,8 @@ export default function BulkCreateRewardsPage() {
         // Small delay between chunks to allow UI updates
         await new Promise((resolve) => requestAnimationFrame(resolve));
       }
+
+      console.log(`Upload complete. Total processed: ${validRewards.length}, Success: ${totalSuccess}, Failed: ${totalFailed}`);
 
       // Step 2: Complete registration
       setUploadSteps((prev) =>

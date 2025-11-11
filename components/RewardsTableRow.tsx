@@ -54,6 +54,17 @@ export const RewardsTableRow = React.memo<RewardsTableRowProps>(
             aria-label={`Select ${reward.serialNumber}`}
           />
         </TableCell>
+        {visibleColumns.installerCode && (
+          <TableCell>
+            <div className="flex items-center">
+              {reward.installerCode}
+              <CopyButton text={reward.installerCode} label="Installer Code" />
+            </div>
+          </TableCell>
+        )}
+        {visibleColumns.installer && (
+          <TableCell>{reward.installer?.fullName || "N/A"}</TableCell>
+        )}
         {visibleColumns.serialNumber && (
           <TableCell className="font-medium">
             <div
@@ -61,26 +72,9 @@ export const RewardsTableRow = React.memo<RewardsTableRowProps>(
               onClick={handleRowClick}
             >
               {reward.serialNumber}
-              <CopyButton
-                text={reward.serialNumber}
-                label="Serial Number"
-              />
+              <CopyButton text={reward.serialNumber} label="Serial Number" />
             </div>
           </TableCell>
-        )}
-        {visibleColumns.installerCode && (
-          <TableCell>
-            <div className="flex items-center">
-              {reward.installerCode}
-              <CopyButton
-                text={reward.installerCode}
-                label="Installer Code"
-              />
-            </div>
-          </TableCell>
-        )}
-        {visibleColumns.installer && (
-          <TableCell>{reward.installer?.fullName || "N/A"}</TableCell>
         )}
         {visibleColumns.productModel && (
           <TableCell>{reward.productModel}</TableCell>
@@ -89,9 +83,7 @@ export const RewardsTableRow = React.memo<RewardsTableRowProps>(
           <TableCell>{reward.cityOfInstallation}</TableCell>
         )}
         {visibleColumns.rewardAmount && (
-          <TableCell>
-            Rs. {reward.rewardAmount.toLocaleString()}
-          </TableCell>
+          <TableCell>Rs. {reward.rewardAmount.toLocaleString()}</TableCell>
         )}
         {visibleColumns.paymentStatus && (
           <TableCell>
@@ -140,6 +132,33 @@ export const RewardsTableRow = React.memo<RewardsTableRowProps>(
         )}
         {visibleColumns.registeredBy && (
           <TableCell>{reward.registeredBy?.name || "N/A"}</TableCell>
+        )}
+        {visibleColumns.referrerName && (
+          <TableCell>{reward.referrer?.fullName || "N/A"}</TableCell>
+        )}
+        {visibleColumns.referrerTransactionId && (
+          <TableCell>
+            <div className="flex items-center">
+              {reward.referrerTransactionId ? (
+                <>
+                  {reward.referrerTransactionId}
+                  <CopyButton
+                    text={reward.referrerTransactionId}
+                    label="Referrer Transaction ID"
+                  />
+                </>
+              ) : (
+                "N/A"
+              )}
+            </div>
+          </TableCell>
+        )}
+        {visibleColumns.referrerReward && (
+          <TableCell>
+            {reward.referrerRewardAmount
+              ? `Rs. ${reward.referrerRewardAmount.toLocaleString()}`
+              : "N/A"}
+          </TableCell>
         )}
         <TableCell>
           <div className="flex items-center gap-2">

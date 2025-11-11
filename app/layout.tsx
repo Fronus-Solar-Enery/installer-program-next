@@ -1,18 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Saira } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { ThemeProvider } from "@/components/theme-provider";
 import AppLayout from "@/app/layout/AppLayout";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const saira = Saira({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-saira",
+  display: "swap",
 });
 
 const siteUrl = process.env.NEXTAUTH_URL || "https://ipms.fronus.com";
@@ -33,7 +29,8 @@ export const metadata: Metadata = {
     default: "Installer Program Management System - Fronus Solar Energy",
     template: "%s | IPMS - Fronus Solar",
   },
-  description: "Comprehensive installer program management system for Fronus Solar Energy. Track rewards, manage installers, integrate with Google Contacts, and monitor certification status.",
+  description:
+    "Comprehensive installer program management system for Fronus Solar Energy. Track rewards, manage installers, integrate with Google Contacts, and monitor certification status.",
   applicationName: "IPMS",
   keywords: [
     "installer management",
@@ -45,7 +42,7 @@ export const metadata: Metadata = {
     "certification tracking",
     "google contacts integration",
     "payment management",
-    "installer rewards"
+    "installer rewards",
   ],
   authors: [{ name: "Fronus Solar Energy", url: siteUrl }],
   creator: "Fronus Solar Energy",
@@ -65,8 +62,16 @@ export const metadata: Metadata = {
       { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
     other: [
-      { url: "/web-app-manifest-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/web-app-manifest-512x512.png", sizes: "512x512", type: "image/png" },
+      {
+        url: "/web-app-manifest-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/web-app-manifest-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
     ],
   },
   appleWebApp: {
@@ -80,7 +85,8 @@ export const metadata: Metadata = {
     url: siteUrl,
     siteName: "Installer Program Management System",
     title: "IPMS - Installer Program Management System",
-    description: "Comprehensive installer program management system for Fronus Solar Energy with rewards tracking and Google Contacts integration",
+    description:
+      "Comprehensive installer program management system for Fronus Solar Energy with rewards tracking and Google Contacts integration",
     images: [
       {
         url: "/web-app-manifest-512x512.png",
@@ -93,7 +99,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "IPMS - Installer Program Management System",
-    description: "Comprehensive installer program management system for Fronus Solar Energy",
+    description:
+      "Comprehensive installer program management system for Fronus Solar Energy",
     images: ["/web-app-manifest-512x512.png"],
     creator: "@fronussolar",
   },
@@ -114,9 +121,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${saira.variable} antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
