@@ -72,6 +72,7 @@ import Modal from "@/components/Modal";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -1201,7 +1202,7 @@ export default function DashboardPage() {
                           tickMargin={10}
                           axisLine={false}
                           tickFormatter={(value) => value.slice(0, 3)}
-                          // hide
+                          hide
                         />
                         <XAxis dataKey="installations" type="number" />
                         <ChartTooltip
@@ -1298,7 +1299,7 @@ export default function DashboardPage() {
                         tickMargin={10}
                         axisLine={false}
                         tickFormatter={(value) => value.slice(0, 3)}
-                        // hide
+                        hide
                       />
                       <XAxis dataKey="installations" type="number" />
                       <ChartTooltip
@@ -1699,12 +1700,14 @@ export default function DashboardPage() {
           >
             <DialogHeader className="p-4 border-b border-border">
               <div className="flex items-center justify-between">
-                <DialogTitle className="text-2xl font-bold">
-                  {selectedCenter}
-                  <p className="text-sm text-muted-foreground">
+                <div>
+                  <DialogTitle className="text-2xl font-bold">
+                    {selectedCenter}
+                  </DialogTitle>
+                  <DialogDescription>
                     Active installers in selected period
-                  </p>
-                </DialogTitle>
+                  </DialogDescription>
+                </div>
                 <IconClose
                   className="size-6 cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
                   onClick={() => setModalOpen(false)}

@@ -3,10 +3,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { TeamRole } from "@/types/roles";
-import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FC, useMemo, useCallback, memo, useRef, forwardRef } from "react";
+import {
+  FC,
+  useMemo,
+  useCallback,
+  memo,
+  useRef,
+  forwardRef,
+  useEffect,
+  useState,
+} from "react";
 import IconDashboard from "@/components/icons/Dashboard";
 import IconUsersGroupRounded from "@/components/icons/UsersGroupRounded";
 import IconSettings from "@/components/icons/Settings";
@@ -22,18 +30,36 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordian";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { IconAltArrowLeft, IconInstaller } from "@/components/icons";
 
 // Types
-export interface NavItem {
+export interface SubNavItem {
   title: string;
   href: string;
+  show?: boolean | ((role?: TeamRole) => boolean);
+}
+
+export interface NavItem {
+  title: string;
+  href?: string;
   Icon: FC<IconProps>;
   show?: boolean | ((role?: TeamRole) => boolean);
   badge?: string | number;
+  subItems?: SubNavItem[];
 }
 
 export interface SidebarBranding {
@@ -65,15 +91,52 @@ const DEFAULT_NAV_ITEMS: NavItem[] = [
   },
   {
     title: "Installers",
-    href: "/installers",
     Icon: IconInstaller,
     show: true,
+    subItems: [
+      {
+        title: "Installers List",
+        href: "/installers",
+        show: true,
+      },
+      {
+        title: "Register",
+        href: "/installers/register",
+        show: true,
+      },
+      {
+        title: "Bulk Register",
+        href: "/installers/bulk-register",
+        show: true,
+      },
+    ],
   },
   {
     title: "Rewards",
-    href: "/rewards",
     Icon: IconGift,
     show: true,
+    subItems: [
+      {
+        title: "Rewards List",
+        href: "/rewards",
+        show: true,
+      },
+      {
+        title: "Register",
+        href: "/rewards/register",
+        show: true,
+      },
+      {
+        title: "Bulk Register",
+        href: "/rewards/bulk-register",
+        show: true,
+      },
+      {
+        title: "Bulk Update",
+        href: "/rewards/bulk-update",
+        show: true,
+      },
+    ],
   },
   {
     title: "Reports",
@@ -128,10 +191,28 @@ function Sidebar({
     [user, session?.user]
   );
 
+  // State to manage accordion open/close
+  const [openAccordion, setOpenAccordion] = useState<string>("");
+
+  // Close accordion when sidebar collapses
+  useEffect(() => {
+    if (collapsed) {
+      setOpenAccordion("");
+    }
+  }, [collapsed]);
+
   // Memoize active path checker
   const isActive = useCallback(
     (path: string) => {
       return pathname === path || pathname?.startsWith(path + "/");
+    },
+    [pathname]
+  );
+
+  // Exact match for sub-items to avoid false positives
+  const isExactActive = useCallback(
+    (path: string) => {
+      return pathname === path;
     },
     [pathname]
   );
@@ -161,6 +242,8 @@ function Sidebar({
   const handleToggle = useCallback(() => {
     onCollapsedChange?.(!collapsed);
   }, [collapsed, onCollapsedChange]);
+
+  const [hideArrow, setHideArrow] = useState(false);
 
   useGSAP(() => {
     const sidebar = sideBarRef.current;
@@ -420,6 +503,14 @@ function Sidebar({
     return () => ctx.revert();
   }, [collapsed]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setHideArrow(collapsed);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [collapsed]);
+
   return (
     <div
       ref={sideBarRef}
@@ -436,7 +527,7 @@ function Sidebar({
           <ProgramLogo
             ref={logoRef}
             className={cn(
-              "transition-[width] duration-300 ease-fluid shrink-0 !m-0 !h-max w-24",
+              "transition-[width] duration-300 ease-fluid shrink-0 m-0! w-24",
               collapsed ? "w-14" : "w-24"
             )}
           />
@@ -447,7 +538,7 @@ function Sidebar({
             <Button
               variant="outline"
               size="icon"
-              className="h-6 w-6 rounded-full border border-border bg-background active:!translate-y-0 shadow-sm"
+              className="h-6 w-6 rounded-full border border-border bg-background active:translate-y-0! shadow-sm"
               onClick={handleToggle}
             >
               <IconAltArrowLeft
@@ -462,7 +553,11 @@ function Sidebar({
       </div>
 
       {/* Navigation */}
-      <div className={cn("flex flex-col gap-1 px-3 py-4")}>
+      <div
+        className={cn(
+          "flex flex-col gap-1 px-3 py-4 overflow-y-auto overflow-x-hidden"
+        )}
+      >
         {sectionLabel && (
           <div className="mb-2 px-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -471,18 +566,156 @@ function Sidebar({
           </div>
         )}
 
-        {visibleNavItems.map((item) => (
-          <NavItem
-            ref={navItemRef}
-            key={item.href}
-            to={item.href}
-            Icon={item.Icon}
-            label={item.title}
-            badge={item.badge}
-            isExpanded={!collapsed}
-            isActive={isActive(item.href)}
-          />
-        ))}
+        <Accordion
+          type="single"
+          collapsible
+          className="w-full space-y-1"
+          value={openAccordion}
+          onValueChange={setOpenAccordion}
+        >
+          {visibleNavItems.map((item) => {
+            if (item.subItems && item.subItems.length > 0) {
+              // Filter visible sub-items
+              const visibleSubItems = item.subItems.filter((subItem) => {
+                const userRole = currentUser?.role as TeamRole | undefined;
+                if (subItem.show === undefined || subItem.show === true)
+                  return true;
+                if (subItem.show === false) return false;
+                if (typeof subItem.show === "function")
+                  return subItem.show(userRole);
+                return subItem.show;
+              });
+
+              const isAnySubItemActive = visibleSubItems.some((subItem) =>
+                isExactActive(subItem.href)
+              );
+
+              // Render accordion item with popover for collapsed state
+              return (
+                <AccordionItem
+                  key={item.title}
+                  value={item.title}
+                  className="border-none"
+                >
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <AccordionTrigger
+                        hideArrow={hideArrow}
+                        className={cn(
+                          "navitem-link flex items-center gap-2 px-3 py-3 rounded-2xl transition-all duration-200 hover:no-underline w-full",
+                          collapsed ? "squircle-icon" : "squircle",
+                          isAnySubItemActive
+                            ? "bg-sidebar-primary text-primary font-medium"
+                            : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground"
+                        )}
+                      >
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className="flex items-center justify-center transition-all">
+                            <item.Icon
+                              className={cn("navitem-icon shrink-0 w-5 h-5")}
+                              fill={isAnySubItemActive}
+                              duotone
+                            />
+                          </div>
+                          <span
+                            className={cn(
+                              "text-sm transition-all whitespace-nowrap navlink-title",
+                              isAnySubItemActive
+                                ? "font-semibold"
+                                : "font-medium"
+                            )}
+                          >
+                            {item.title}
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                    </PopoverTrigger>
+                    {collapsed && (
+                      <PopoverContent
+                        side="right"
+                        align="start"
+                        className="w-40 p-1 rounded-2xl"
+                      >
+                        <div className="p-2 pb-1 pt-1 text-xs text-muted-foreground">
+                          {item.title}
+                        </div>
+                        <div className="space-y-1 relative">
+                          {visibleSubItems.map((subItem) => (
+                            <div
+                              key={subItem.href}
+                              className={cn(
+                                "before-wrapper relative before:left-2 after:left-2",
+                                isExactActive(subItem.href)
+                                  ? "before:w-2"
+                                  : "before:w-4 hover:before:w-2"
+                              )}
+                            >
+                              <Link
+                                key={subItem.href}
+                                href={subItem.href}
+                                className={cn(
+                                  "before-content relative mt-1 ml-5 px-3 py-2 rounded-2xl text-sm transition-all duration-200 squircle flex items-center z-10",
+                                  isExactActive(subItem.href)
+                                    ? "bg-sidebar-primary text-primary"
+                                    : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground"
+                                )}
+                              >
+                                {subItem.title}
+                              </Link>
+                            </div>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    )}
+                  </Popover>
+                  {!collapsed && (
+                    <AccordionContent className="pb-0 pt-1 relative">
+                      <div className="relative pl-6">
+                        {visibleSubItems.map((subItem) => (
+                          <div
+                            key={subItem.href}
+                            className={cn(
+                              "before-wrapper relative",
+                              isExactActive(subItem.href)
+                                ? "before:w-2"
+                                : "before:w-4 hover:before:w-2"
+                            )}
+                          >
+                            <Link
+                              href={subItem.href}
+                              className={cn(
+                                "before-content relative mt-1 ml-1 px-3 py-2 rounded-2xl text-sm transition-all duration-200 squircle flex items-center z-10",
+                                isExactActive(subItem.href)
+                                  ? "bg-sidebar-primary text-primary"
+                                  : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground"
+                              )}
+                            >
+                              {subItem.title}
+                            </Link>
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  )}
+                </AccordionItem>
+              );
+            }
+
+            // Render regular nav item (outside accordion)
+            return (
+              <NavItem
+                ref={navItemRef}
+                key={item.href!}
+                to={item.href!}
+                Icon={item.Icon}
+                label={item.title}
+                badge={item.badge}
+                isExpanded={!collapsed}
+                isActive={isActive(item.href!)}
+              />
+            );
+          })}
+        </Accordion>
       </div>
 
       {/* User Profile */}
@@ -501,7 +734,7 @@ function Sidebar({
             <Badge
               variant="outline"
               className={cn(
-                "profile-badge px-2.5 py-1 text-[10px] border-none rounded-md font-semibold !bg-background relative",
+                "profile-badge px-2.5 py-1 text-[10px] border-none rounded-md font-semibold bg-background! relative",
                 // collapsed && "hidden",
                 currentUser?.role === "ADMIN"
                   ? "dark:bg-zinc-950/40 dark:text-rose-400"
@@ -557,7 +790,7 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
           <span
             className={cn(
               "text-sm transition-all whitespace-nowrap",
-              isActive ? "font-semibold translate-x-0.5" : "font-medium"
+              isActive ? "translate-x-0.5" : ""
             )}
           >
             {label}

@@ -5,12 +5,13 @@ const IconAltArrowDown: FC<IconProps> = ({
   fill = false,
   duotone = false,
   width = "1.5",
+  opacity = "0.4",
 }) => {
   return (
     <>
       {!fill ? (
         <svg
-          className={className}
+          className={`size-4 ${className}`}
           width="24"
           height="24"
           viewBox="0 0 24 24"
@@ -27,7 +28,7 @@ const IconAltArrowDown: FC<IconProps> = ({
         </svg>
       ) : duotone ? (
         <svg
-          className={className}
+          className={`size-4 ${className}`}
           width="24"
           height="24"
           viewBox="0 0 24 24"
@@ -39,14 +40,14 @@ const IconAltArrowDown: FC<IconProps> = ({
             fill="currentColor"
           />
           <path
-            opacity={duotone ? "0.5" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M11.2929 8H5.5703C5.04189 8 4.79869 8.79094 5.1999 9.20467L7.60648 11.6864L11.2929 8Z"
             fill="currentColor"
           />
         </svg>
       ) : (
         <svg
-          className={className}
+          className={`size-4 ${className}`}
           width="24"
           height="24"
           viewBox="0 0 24 24"

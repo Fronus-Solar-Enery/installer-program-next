@@ -27,7 +27,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -95,9 +94,7 @@ import { CopyButton } from "@/components/CopyButton";
 import Link from "next/link";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
-import IconDocumentFilter from "@/components/icons/DocumentFilter";
 import { Label } from "@/components/ui/label";
-import IconRestart from "@/components/icons/Restart";
 import IconSortVertical from "@/components/icons/SortVertical";
 
 // Optimization imports
@@ -116,8 +113,9 @@ import {
   SearchableSelect,
   SearchableSelectGroup,
 } from "@/components/ui/searchable-select";
-import { CITIES, CITY_TO_PROVINCE, PROVINCES } from "@/lib/constants";
+import { CITY_TO_PROVINCE, PROVINCES } from "@/lib/constants";
 import IconExcel from "@/components/icons/Excel";
+import IconPdf from "@/components/icons/Pdf";
 
 // Memoized constants - defined outside component to prevent re-creation on each render
 const SORT_FIELD_OPTIONS = [
@@ -1074,7 +1072,7 @@ export default function InstallersPage() {
                   </DropdownTrigger>
                   <TooltipContent side="top">Export</TooltipContent>
 
-                  <DropdownContent className="min-w-32 p-2">
+                  <DropdownContent className="min-w-28 p-2">
                     <div className="px-2 pb-2 text-sm text-muted-foreground">
                       Export Data
                     </div>
@@ -1082,13 +1080,14 @@ export default function InstallersPage() {
                       <div className="space-y-1 w-full">
                         {[
                           { value: "Excel", Icon: IconExcel },
-                          { value: "PDF", Icon: IconExcel },
+                          { value: "PDF", Icon: IconPdf },
                           { value: "Print", Icon: IconExcel },
                         ].map(({ value, Icon }, index) => (
                           <Button
                             key={index}
+                            size="sm"
                             variant="outline"
-                            className="w-full flex flex-start gap-2 px-3 py-2 whitespace-nowrap"
+                            className="w-full flex justify-start gap-2 px-3 py-2 whitespace-nowrap rounded-xl"
                           >
                             <Icon />
                             <span className="text-sm">{value}</span>

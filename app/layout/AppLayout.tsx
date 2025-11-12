@@ -128,7 +128,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {/* Page Content */}
           <main className="flex-1 overflow-y-auto p-4">
             <div className="container mx-auto">
-              <div className="flex h-14 items-center px-6 bg-card squircle rounded-2xl border border-border mb-4">
+              <div className="flex h-9 items-center px-6 bg-card squircle-icon rounded-xl border border-border mb-4">
                 <BreadcrumbWithOverrides crumbs={breadcrumbItems} />
               </div>
               {children}
