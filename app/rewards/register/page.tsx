@@ -29,6 +29,7 @@ import {
   IconAltArrowLeft,
   IconAltArrowRight,
   IconQRCode,
+  IconLayer,
 } from "@/components/icons";
 import { ReviewStep } from "./ReviewStep";
 import { RegistrationModal } from "./RegistrationModal";
@@ -36,6 +37,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { HyperText } from "@/components/ui/hypertext";
 import { ReviewItem } from "./ReviewItem";
+import PageHeader from "@/components/PageHeader";
 
 interface ValidationError {
   path?: string[];
@@ -498,9 +500,27 @@ export default function NewRewardPage() {
   );
 
   return (
-    <div className="p-6">
-      <div className="max-w-4xl mx-auto">
-        <Card>
+    <>
+      <PageHeader
+        title="Register Product"
+        Icon={IconReward}
+        description="Register a new product for Rewards to the Installer Program"
+        action={
+          <Button
+            onClick={() => router.push("/rewards/bulk-register")}
+            variant="outline"
+            disabled={loading}
+            title="Bulk Register"
+            className="gap-2"
+          >
+            Bulk Register
+            <IconLayer width={2} />
+          </Button>
+        }
+      />
+
+      <Card className="mt-4">
+        <div className="max-w-4xl mx-auto">
           {/* Progress Steps */}
           <div className="flex justify-between items-center my-8">
             {steps.map((s, i) => (
@@ -561,9 +581,7 @@ export default function NewRewardPage() {
                         </div>
 
                         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                          {installerValidating && (
-                            <Loading />
-                          )}
+                          {installerValidating && <Loading />}
                           {!installerValidating && installerData && (
                             <HyperText className="tracking-widest leading-none text-xs uppercase text-success-text pointer-events-none select-none">
                               Valid
@@ -708,9 +726,7 @@ export default function NewRewardPage() {
                           </div>
 
                           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                            {serialValidating && (
-                              <Loading />
-                            )}
+                            {serialValidating && <Loading />}
                             {!serialValidating && serialValid && (
                               <HyperText className="tracking-widest leading-none text-xs uppercase text-success-text pointer-events-none select-none">
                                 Valid
@@ -924,27 +940,27 @@ export default function NewRewardPage() {
               )}
             </CardFooter>
           </CardContent>
-        </Card>
 
-        {/* Registration Modal */}
-        {registrationStatus !== "idle" && (
-          <RegistrationModal
-            open={true}
-            onOpenChange={(open) => {
-              if (!open) {
-                setRegistrationStatus("idle");
-              }
-            }}
-            status={registrationStatus}
-            serialNumber={registeredReward?.serialNumber}
-            installerCode={registeredReward?.installerCode}
-            rewardAmount={registeredReward?.rewardAmount}
-            errorMessage={registrationError}
-            onRedirect={handleRedirectAfterRegistration}
-            onViewReward={handleViewReward}
-          />
-        )}
-      </div>
-    </div>
+          {/* Registration Modal */}
+          {registrationStatus !== "idle" && (
+            <RegistrationModal
+              open={true}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setRegistrationStatus("idle");
+                }
+              }}
+              status={registrationStatus}
+              serialNumber={registeredReward?.serialNumber}
+              installerCode={registeredReward?.installerCode}
+              rewardAmount={registeredReward?.rewardAmount}
+              errorMessage={registrationError}
+              onRedirect={handleRedirectAfterRegistration}
+              onViewReward={handleViewReward}
+            />
+          )}
+        </div>
+      </Card>
+    </>
   );
 }

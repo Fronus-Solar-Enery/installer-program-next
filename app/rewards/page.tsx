@@ -133,10 +133,10 @@ export default function RewardsPage() {
 
       // Only add non-default filter values to reduce API payload
       if (
-        state.filters.paymentStatus &&
-        state.filters.paymentStatus !== "ALL"
+        state.filters.rewardStatus &&
+        state.filters.rewardStatus !== "ALL"
       ) {
-        params.append("paymentStatus", state.filters.paymentStatus);
+        params.append("rewardStatus", state.filters.rewardStatus);
       }
       if (state.filters.sendingDate) {
         params.append("sendingDate", state.filters.sendingDate);
@@ -193,7 +193,7 @@ export default function RewardsPage() {
       setIsFetching(false);
     }
   }, [
-    state.filters.paymentStatus,
+    state.filters.rewardStatus,
     state.filters.sendingDate,
     state.filters.paymentMethod,
     state.filters.serialNumberStatus,
@@ -251,7 +251,7 @@ export default function RewardsPage() {
         type: "SET_FILTER",
         payload: {
           key: key as
-            | "paymentStatus"
+            | "rewardStatus"
             | "sendingDate"
             | "paymentMethod"
             | "serialNumberStatus"
@@ -285,7 +285,7 @@ export default function RewardsPage() {
         | "productModel"
         | "cityOfInstallation"
         | "rewardAmount"
-        | "paymentStatus"
+        | "rewardStatus"
         | "paymentMethod"
         | "transactionId"
         | "sendingDate"
@@ -469,9 +469,9 @@ export default function RewardsPage() {
       toast.loading("Generating report...");
 
       const queryParams = new URLSearchParams({
-        paymentStatus:
-          state.filters.paymentStatus !== "ALL"
-            ? state.filters.paymentStatus
+        rewardStatus:
+          state.filters.rewardStatus !== "ALL"
+            ? state.filters.rewardStatus
             : "",
         sendingDate: state.filters.sendingDate || "",
         paymentMethod:
@@ -551,7 +551,7 @@ export default function RewardsPage() {
       }
 
       let value = "";
-      if (key === "paymentStatus") {
+      if (key === "rewardStatus") {
         value = "ALL";
       } else if (key === "sendingDate") {
         value = "";
@@ -563,7 +563,7 @@ export default function RewardsPage() {
         type: "SET_FILTER",
         payload: {
           key: key as
-            | "paymentStatus"
+            | "rewardStatus"
             | "sendingDate"
             | "paymentMethod"
             | "serialNumberStatus"

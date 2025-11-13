@@ -53,7 +53,7 @@ interface RewardData {
   rewardAmount: number;
   productModel: string;
   inverterSerialNumber?: string;
-  paymentStatus: string;
+  rewardStatus: string;
   transactionId?: string;
   referrerTransactionId?: string;
   sendingDate?: string;
@@ -110,7 +110,7 @@ export default function RewardEditModal({
   });
   const [productModel, setProductModel] = useState("");
   const [inverterSerialNumber, setInverterSerialNumber] = useState("");
-  const [paymentStatus, setRewardStatus] = useState<RewardStatus>(
+  const [rewardStatus, setRewardStatus] = useState<RewardStatus>(
     RewardStatus.PENDING
   );
   const [transactionId, setTransactionId] = useState("");
@@ -176,7 +176,7 @@ export default function RewardEditModal({
   );
 
   // Memoize payment status options
-  const paymentStatusOptions = useMemo(
+  const rewardStatusOptions = useMemo(
     () => [
       { value: RewardStatus.PENDING, label: "Pending" },
       { value: RewardStatus.PAID, label: "Paid" },
@@ -211,7 +211,7 @@ export default function RewardEditModal({
         serialNumber: r.serialNumber || "",
         productModel: r.productModel || "",
         inverterSerialNumber: r.inverterSerialNumber || "",
-        paymentStatus: r.paymentStatus,
+        rewardStatus: r.rewardStatus,
         transactionId: r.transactionId || "",
         referrerTransactionId: r.referrerTransactionId || "",
         sendingDate: defaultSendingDate,
@@ -224,7 +224,7 @@ export default function RewardEditModal({
       setOriginalSerialNumber(r.serialNumber || ""); // Store original value
       setProductModel(r.productModel || "");
       setInverterSerialNumber(r.inverterSerialNumber || "");
-      setRewardStatus(r.paymentStatus);
+      setRewardStatus(r.rewardStatus);
       setTransactionId(r.transactionId || "");
       setReferrerTransactionId(r.referrerTransactionId || "");
       setSendingDate(defaultSendingDate);
@@ -252,7 +252,7 @@ export default function RewardEditModal({
       serialNumber,
       productModel,
       inverterSerialNumber,
-      paymentStatus,
+      rewardStatus,
       transactionId,
       referrerTransactionId,
       sendingDate,
@@ -271,7 +271,7 @@ export default function RewardEditModal({
     serialNumber,
     productModel,
     inverterSerialNumber,
-    paymentStatus,
+    rewardStatus,
     transactionId,
     referrerTransactionId,
     sendingDate,
@@ -427,14 +427,14 @@ export default function RewardEditModal({
   const isStep2Valid = useMemo(() => {
     // If status is PAID, transaction ID is required
     const isTransactionIdValid =
-      paymentStatus !== RewardStatus.PAID || transactionId.trim() !== "";
+      rewardStatus !== RewardStatus.PAID || transactionId.trim() !== "";
 
     return (
-      paymentStatus &&
-      (paymentStatus === RewardStatus.PENDING || paymentMethod !== "") &&
+      rewardStatus &&
+      (rewardStatus === RewardStatus.PENDING || paymentMethod !== "") &&
       isTransactionIdValid
     );
-  }, [paymentStatus, paymentMethod, transactionId]);
+  }, [rewardStatus, paymentMethod, transactionId]);
 
   // Navigation handlers
   const handleNext = useCallback(() => {
@@ -446,10 +446,10 @@ export default function RewardEditModal({
       return;
     }
     if (currentStep === 2 && !isStep2Valid) {
-      if (paymentStatus === RewardStatus.PAID && transactionId.trim() === "") {
+      if (rewardStatus === RewardStatus.PAID && transactionId.trim() === "") {
         toast.error("Transaction ID is required when reward status is PAID");
       } else {
-        toast.error("Please select payment status and method");
+        toast.error("Please select reward status and method");
       }
       return;
     }
@@ -459,7 +459,7 @@ export default function RewardEditModal({
     isStep1Valid,
     isStep2Valid,
     isBatteryProduct,
-    paymentStatus,
+    rewardStatus,
     transactionId,
   ]);
 
@@ -478,7 +478,7 @@ export default function RewardEditModal({
           serialNumber,
           productModel,
           inverterSerialNumber,
-          paymentStatus,
+          rewardStatus,
           transactionId: transactionId || undefined,
           referrerTransactionId: reward?.referrer
             ? referrerTransactionId || undefined
@@ -903,12 +903,12 @@ export default function RewardEditModal({
                     type="select"
                     label="Reward Status"
                     id="rewardStatus"
-                    value={paymentStatus}
+                    value={rewardStatus}
                     onChange={(value) => setRewardStatus(value as RewardStatus)}
                     placeholder="Select status"
-                    hint="Current payment status"
+                    hint="Current reward status"
                     icon={IconReward}
-                    options={paymentStatusOptions}
+                    options={rewardStatusOptions}
                     required
                   />
 
@@ -932,11 +932,11 @@ export default function RewardEditModal({
                     onChange={setTransactionId}
                     placeholder="e.g., TXN123456"
                     hint={
-                      paymentStatus === RewardStatus.PAID
+                      rewardStatus === RewardStatus.PAID
                         ? "Required when reward status is PAID"
                         : "Transaction ID for installer payment"
                     }
-                    required={paymentStatus === RewardStatus.PAID}
+                    required={rewardStatus === RewardStatus.PAID}
                   />
 
                   {!!reward?.referrer && (
@@ -948,7 +948,7 @@ export default function RewardEditModal({
                       onChange={setReferrerTransactionId}
                       placeholder="e.g., TXN789012"
                       hint="Transaction ID for referrer payment"
-                      required={paymentStatus === RewardStatus.PAID}
+                      required={rewardStatus === RewardStatus.PAID}
                     />
                   )}
 
@@ -1125,12 +1125,12 @@ export default function RewardEditModal({
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div>
                         <span className="text-muted-foreground">
-                          Payment Status:
+                          Reward Status:
                         </span>
                         <p className="font-medium">
                           {
-                            paymentStatusOptions.find(
-                              (o) => o.value === paymentStatus
+                            rewardStatusOptions.find(
+                              (o) => o.value === rewardStatus
                             )?.label
                           }
                         </p>

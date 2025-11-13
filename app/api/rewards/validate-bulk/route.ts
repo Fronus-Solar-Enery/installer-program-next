@@ -7,7 +7,7 @@ interface RewardUpdate {
   serialNumber: string;
   transactionId: string;
   referrerTransactionId?: string;
-  paymentStatus: string;
+  rewardStatus: string;
   sendingDate?: string;
   paymentMethod?: string;
   issues: string[];
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
 
         // Validate referrer transaction ID requirement
         if (rewardsWithReferrer.has(serialUpper)) {
-          if (reward.paymentStatus === 'PAID' && !reward.referrerTransactionId) {
+          if (reward.rewardStatus === 'PAID' && !reward.referrerTransactionId) {
             newIssues.push(
               'Referrer transaction ID is required (this reward has a referrer)'
             );
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Validate transaction ID is present for PAID status
-        if (reward.paymentStatus === 'PAID') {
+        if (reward.rewardStatus === 'PAID') {
           if (!reward.transactionId || reward.transactionId.length < 3) {
             newIssues.push('Transaction ID is required for PAID status');
           }

@@ -11,7 +11,7 @@ const IconMinus: FC<IconProps> = ({
     <>
       {!fill ? (
         <svg
-          className={className}
+          className={`size-4 ${className}`}
           width="24"
           height="24"
           viewBox="0 0 24 24"
@@ -30,7 +30,7 @@ const IconMinus: FC<IconProps> = ({
         </svg>
       ) : duotone ? (
         <svg
-          className={className}
+          className={`size-4 ${className}`}
           width="24"
           height="24"
           viewBox="0 0 24 24"
@@ -53,7 +53,7 @@ const IconMinus: FC<IconProps> = ({
         </svg>
       ) : (
         <svg
-          className={className}
+          className={`size-4 ${className}`}
           width="24"
           height="24"
           viewBox="0 0 24 24"

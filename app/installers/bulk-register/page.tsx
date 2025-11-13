@@ -1,7 +1,8 @@
 "use client";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -85,6 +86,13 @@ export default function BulkUploadInstallersPage() {
   const [fileReading, setFileReading] = useState(false);
   const [fileReadProgress, setFileReadProgress] = useState(0);
   const [terminateDialogOpen, setTerminateDialogOpen] = useState(false);
+
+  // Abort controller for canceling operations
+  const [abortController, setAbortController] =
+    useState<AbortController | null>(null);
+
+  // Virtual scrolling ref for large datasets
+  const parentRef = useRef<HTMLDivElement>(null);
 
   type TemplateRow = {
     "Installer Code": string;
@@ -175,7 +183,7 @@ export default function BulkUploadInstallersPage() {
 
     generationPromise
       .catch((err) => {
-        // optional console logging for debugging; keep UI errors handled by toast 
+        // optional console logging for debugging; keep UI errors handled by toast
         console.error("downloadTemplate error:", err);
       })
       .finally(() => {
@@ -409,14 +417,34 @@ export default function BulkUploadInstallersPage() {
           setFileReadProgress(90);
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          // Process data in chunks to avoid blocking
+          // Process data in optimized chunks to avoid blocking (increased from 50 to 200)
           const parsedInstallers: InstallerUpload[] = [];
-          const chunkSize = 50;
+          const chunkSize = 200; // Optimized for better performance
+
+          // Use requestIdleCallback for even smoother processing (fallback to requestAnimationFrame)
+          const scheduleWork = (callback: () => void): Promise<void> => {
+            return new Promise((resolve) => {
+              if ("requestIdleCallback" in window) {
+                requestIdleCallback(() => {
+                  callback();
+                  resolve();
+                });
+              } else {
+                requestAnimationFrame(() => {
+                  callback();
+                  resolve();
+                });
+              }
+            });
+          };
 
           for (let i = 0; i < jsonData.length; i += chunkSize) {
             const chunk = jsonData.slice(i, i + chunkSize);
             const chunkProgress = 90 + Math.round((i / jsonData.length) * 8);
-            setFileReadProgress(chunkProgress);
+
+            await scheduleWork(() => {
+              setFileReadProgress(chunkProgress);
+            });
 
             // Process chunk
             const processedChunk = chunk.map((row) => {
@@ -486,8 +514,8 @@ export default function BulkUploadInstallersPage() {
 
             parsedInstallers.push(...processedChunk);
 
-            // Allow UI to update between chunks
-            await new Promise((resolve) => requestAnimationFrame(resolve));
+            // Allow UI to update between chunks using idle callback for better performance
+            await scheduleWork(() => {});
           }
 
           setFileReadProgress(98);
@@ -758,45 +786,93 @@ export default function BulkUploadInstallersPage() {
         )
       );
 
-      // Process in chunks for real-time progress
-      const CHUNK_SIZE = 10; // Process 10 installers at a time
+      // Process in optimized chunks for real-time progress
+      const CHUNK_SIZE = 50; // Increased from 10 to 50 for better performance
       let totalSuccess = 0;
       let totalFailed = 0;
       let totalGoogleContacts = 0;
       const allErrors: string[] = [];
+      const failedChunks: { chunk: typeof validInstallers; error: string }[] =
+        [];
+
+      // Create abort controller for cancellation
+      const controller = new AbortController();
+      setAbortController(controller);
 
       for (let i = 0; i < validInstallers.length; i += CHUNK_SIZE) {
+        // Check if operation was cancelled
+        if (controller.signal.aborted) {
+          toast.info("Upload cancelled by user");
+          break;
+        }
+
         const chunk = validInstallers.slice(i, i + CHUNK_SIZE);
         const currentBatch = Math.min(i + CHUNK_SIZE, validInstallers.length);
+        let retryCount = 0;
+        const maxRetries = 2;
 
-        try {
-          const response = await fetch("/api/installers/bulk-register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ installers: chunk }),
-          });
+        // Retry logic for failed chunks
+        while (retryCount <= maxRetries) {
+          try {
+            const response = await fetch("/api/installers/bulk-register", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ installers: chunk }),
+              signal: controller.signal,
+            });
 
-          const data = await response.json();
+            const data = await response.json();
 
-          if (response.ok) {
-            totalSuccess += data.data.success || 0;
-            totalFailed += data.data.failed || 0;
-            totalGoogleContacts += data.data.googleContactsCreated || 0;
+            if (response.ok) {
+              totalSuccess += data.data.success || 0;
+              totalFailed += data.data.failed || 0;
+              totalGoogleContacts += data.data.googleContactsCreated || 0;
 
-            if (data.data.errors && data.data.errors.length > 0) {
-              allErrors.push(...data.data.errors);
+              if (data.data.errors && data.data.errors.length > 0) {
+                allErrors.push(...data.data.errors);
+              }
+              break; // Success, exit retry loop
+            } else {
+              if (retryCount === maxRetries) {
+                totalFailed += chunk.length;
+                allErrors.push(
+                  data.error ||
+                    `Chunk ${
+                      i / CHUNK_SIZE + 1
+                    } failed after ${maxRetries} retries`
+                );
+                failedChunks.push({
+                  chunk,
+                  error: data.error || "Unknown error",
+                });
+              } else {
+                // Wait before retry (exponential backoff)
+                await new Promise((resolve) =>
+                  setTimeout(resolve, 1000 * (retryCount + 1))
+                );
+                retryCount++;
+              }
             }
-          } else {
-            totalFailed += chunk.length;
-            allErrors.push(data.error || "Chunk upload failed");
+          } catch (err) {
+            if (err instanceof Error && err.name === "AbortError") {
+              toast.info("Upload cancelled by user");
+              break;
+            }
+
+            if (retryCount === maxRetries) {
+              totalFailed += chunk.length;
+              const errorMsg = `Chunk ${i / CHUNK_SIZE + 1} failed: ${
+                err instanceof Error ? err.message : "Unknown error"
+              }`;
+              allErrors.push(errorMsg);
+              failedChunks.push({ chunk, error: errorMsg });
+            } else {
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * (retryCount + 1))
+              );
+              retryCount++;
+            }
           }
-        } catch (err) {
-          totalFailed += chunk.length;
-          allErrors.push(
-            `Chunk ${i / CHUNK_SIZE + 1} failed: ${
-              err instanceof Error ? err.message : "Unknown error"
-            }`
-          );
         }
 
         // Update progress in real-time
@@ -935,6 +1011,14 @@ export default function BulkUploadInstallersPage() {
       setError("Failed to upload installers: " + errorMessage);
     } finally {
       setLoading(false);
+      setAbortController(null);
+    }
+  };
+
+  const handleCancelUpload = () => {
+    if (abortController) {
+      abortController.abort();
+      toast.info("Cancelling upload...");
     }
   };
 
@@ -946,6 +1030,14 @@ export default function BulkUploadInstallersPage() {
     () => preview.filter((p) => !p.isValid).length,
     [preview]
   );
+
+  // Virtual scrolling for large datasets (performance optimization)
+  const rowVirtualizer = useVirtualizer({
+    count: preview.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 60, // Estimated row height in pixels
+    overscan: 10, // Number of items to render outside of visible area
+  });
 
   return (
     <div className="flex-1 overflow-auto space-y-4">
@@ -1181,26 +1273,37 @@ export default function BulkUploadInstallersPage() {
 
         {preview.length > 0 && (
           <div className="flex gap-2">
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={
-                loading || invalidCount > 0 || validating || fileReading
-              }
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4 mr-2" />
-              )}
-              {loading
-                ? "Uploading..."
-                : validating
-                ? "Validating..."
-                : fileReading
-                ? "Reading file..."
-                : `Upload ${validCount} Valid Record(s)`}
-            </Button>
+            {loading && abortController ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleCancelUpload}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Cancel Upload
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={
+                  loading || invalidCount > 0 || validating || fileReading
+                }
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4 mr-2" />
+                )}
+                {loading
+                  ? "Uploading..."
+                  : validating
+                  ? "Validating..."
+                  : fileReading
+                  ? "Reading file..."
+                  : `Upload ${validCount} Valid Record(s)`}
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -1213,96 +1316,159 @@ export default function BulkUploadInstallersPage() {
           </div>
         )}
       </div>
-      {/* Preview Table */}
+      {/* Preview Table with Virtual Scrolling */}
       {preview.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Preview Data ({preview.length} records)</CardTitle>
+            <CardTitle>
+              Preview Data ({preview.length} records)
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                - Using virtual scrolling for optimal performance
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Installer Code</TableHead>
-                    <TableHead>Full Name</TableHead>
-                    <TableHead>CNIC</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>City</TableHead>
-                    <TableHead>Province</TableHead>
-                    <TableHead>Bank</TableHead>
-                    <TableHead>Issues</TableHead>
-                    <TableHead className="w-12">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {preview.map((installer, index) => (
-                    <TableRow
-                      key={index}
-                      className={!installer.isValid ? "bg-destructive/10" : ""}
-                    >
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        {installer.isValid ? (
-                          <Badge variant="default" className="bg-green-600">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Valid
-                          </Badge>
-                        ) : (
-                          <Badge variant="destructive">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Invalid
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {installer.installerCode}
-                      </TableCell>
-                      <TableCell>{installer.fullName}</TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {installer.cnic}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {installer.phoneNumber}
-                      </TableCell>
-                      <TableCell>{installer.city}</TableCell>
-                      <TableCell>{installer.province}</TableCell>
-                      <TableCell>{installer.bankName}</TableCell>
-                      <TableCell>
-                        {installer.issues.length > 0 ? (
-                          <div className="space-y-1">
-                            {installer.issues.map((issue, i) => (
-                              <div
-                                key={i}
-                                className="text-xs text-destructive flex items-start gap-1"
-                              >
-                                <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                                <span>{issue}</span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            No issues
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteRow(index)}
-                          title="Delete row"
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="border border-border rounded-lg overflow-hidden">
+              {/* Table Header - Fixed */}
+              <div className="bg-muted/50 border-b border-border sticky top-0 z-10">
+                <div className="flex min-w-max">
+                  <div className="w-16 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    #
+                  </div>
+                  <div className="w-28 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Status
+                  </div>
+                  <div className="w-36 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Installer Code
+                  </div>
+                  <div className="w-48 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Full Name
+                  </div>
+                  <div className="w-40 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    CNIC
+                  </div>
+                  <div className="w-36 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Phone
+                  </div>
+                  <div className="w-32 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    City
+                  </div>
+                  <div className="w-32 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Province
+                  </div>
+                  <div className="w-36 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Bank
+                  </div>
+                  <div className="flex-1 min-w-80 px-4 py-3 text-sm font-medium">
+                    Issues
+                  </div>
+                  <div className="w-20 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Action
+                  </div>
+                </div>
+              </div>
+
+              {/* Virtual Scrolling Container */}
+              <div
+                ref={parentRef}
+                className="overflow-auto"
+                style={{ height: "600px" }}
+              >
+                <div
+                  style={{
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    width: "100%",
+                    position: "relative",
+                  }}
+                >
+                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const installer = preview[virtualRow.index];
+                    return (
+                      <div
+                        key={virtualRow.index}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: `${virtualRow.size}px`,
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                        className={`flex min-w-max border-b border-border ${
+                          !installer.isValid ? "bg-destructive/10" : ""
+                        }`}
+                      >
+                        <div className="w-16 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                          {virtualRow.index + 1}
+                        </div>
+                        <div className="w-28 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                          {installer.isValid ? (
+                            <Badge variant="default" className="bg-green-600">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Valid
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Invalid
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="w-36 px-4 py-3 text-sm font-mono flex-shrink-0 flex items-center">
+                          {installer.installerCode}
+                        </div>
+                        <div className="w-48 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                          {installer.fullName}
+                        </div>
+                        <div className="w-40 px-4 py-3 text-sm font-mono flex-shrink-0 flex items-center">
+                          {installer.cnic}
+                        </div>
+                        <div className="w-36 px-4 py-3 text-sm font-mono flex-shrink-0 flex items-center">
+                          {installer.phoneNumber}
+                        </div>
+                        <div className="w-32 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                          {installer.city}
+                        </div>
+                        <div className="w-32 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                          {installer.province}
+                        </div>
+                        <div className="w-36 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                          {installer.bankName}
+                        </div>
+                        <div className="flex-1 min-w-80 px-4 py-3 text-sm flex items-center">
+                          {installer.issues.length > 0 ? (
+                            <div className="space-y-1">
+                              {installer.issues.map((issue, i) => (
+                                <div
+                                  key={i}
+                                  className="text-xs text-destructive flex items-start gap-1"
+                                >
+                                  <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                  <span>{issue}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              No issues
+                            </span>
+                          )}
+                        </div>
+                        <div className="w-20 px-4 py-3 text-sm flex-shrink-0 flex items-center justify-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteRow(virtualRow.index)}
+                            title="Delete row"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -1361,19 +1527,25 @@ export default function BulkUploadInstallersPage() {
           <AlertDialogFooter className="mt-4">
             <AlertDialogAction
               onClick={terminateInvalidRecords}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              variant="destructive"
+              className="squircle-icon rounded-full"
             >
               <IconTrashBin2 className="mr-2" /> Just Terminate
             </AlertDialogAction>
             <Button
               variant="outline"
               onClick={downloadAndTerminateInvalid}
-              className="rounded-full"
+              className="squircle-icon rounded-full"
             >
               <IconDownloadMinimalistic className="mr-2" />
               Download & Terminate
             </Button>
-            <AlertDialogCancel className="w-full">Cancel</AlertDialogCancel>
+            <AlertDialogCancel
+              className="squircle-icon rounded-full"
+              variant="ghost"
+            >
+              Cancel
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

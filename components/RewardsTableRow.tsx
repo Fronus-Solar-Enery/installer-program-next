@@ -85,18 +85,18 @@ export const RewardsTableRow = React.memo<RewardsTableRowProps>(
         {visibleColumns.rewardAmount && (
           <TableCell>Rs. {reward.rewardAmount.toLocaleString()}</TableCell>
         )}
-        {visibleColumns.paymentStatus && (
+        {visibleColumns.rewardStatus && (
           <TableCell>
             <Badge
               variant={
-                reward.paymentStatus === "PAID"
+                reward.rewardStatus === "PAID"
                   ? "default"
-                  : reward.paymentStatus === "PENDING"
+                  : reward.rewardStatus === "PENDING"
                   ? "secondary"
                   : "destructive"
               }
             >
-              {reward.paymentStatus}
+              {reward.rewardStatus}
             </Badge>
           </TableCell>
         )}

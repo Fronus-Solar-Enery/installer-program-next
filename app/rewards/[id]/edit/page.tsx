@@ -30,7 +30,7 @@ export default function EditRewardPage() {
     serialNumber?: string;
     productModel?: string;
     inverterSerialNumber?: string;
-    paymentStatus?: RewardStatus;
+    rewardStatus?: RewardStatus;
     transactionId?: string;
     referrerTransactionId?: string;
     sendingDate?: string;
@@ -45,7 +45,7 @@ export default function EditRewardPage() {
   const [serialNumber, setSerialNumber] = useState('');
   const [productModel, setProductModel] = useState('');
   const [inverterSerialNumber, setInverterSerialNumber] = useState('');
-  const [paymentStatus, setRewardStatus] = useState<RewardStatus>(RewardStatus.PENDING);
+  const [rewardStatus, setRewardStatus] = useState<RewardStatus>(RewardStatus.PENDING);
   const [transactionId, setTransactionId] = useState('');
   const [referrerTransactionId, setReferrerTransactionId] = useState('');
   const [sendingDate, setSendingDate] = useState('');
@@ -66,7 +66,7 @@ export default function EditRewardPage() {
       setSerialNumber(data.data.serialNumber || '');
       setProductModel(data.data.productModel || '');
       setInverterSerialNumber(data.data.inverterSerialNumber || '');
-      setRewardStatus(data.data.paymentStatus);
+      setRewardStatus(data.data.rewardStatus);
       setTransactionId(data.data.transactionId || '');
       setReferrerTransactionId(data.data.referrerTransactionId || '');
       setSendingDate(data.data.sendingDate ? new Date(data.data.sendingDate).toISOString().split('T')[0] : '');
@@ -114,7 +114,7 @@ export default function EditRewardPage() {
           serialNumber,
           productModel,
           inverterSerialNumber,
-          paymentStatus,
+          rewardStatus,
           transactionId: transactionId || undefined,
           referrerTransactionId: reward?.referrer ? (referrerTransactionId || undefined) : undefined,
           sendingDate: sendingDate || undefined,
@@ -278,12 +278,12 @@ export default function EditRewardPage() {
               />
             </div>
 
-            {/* Payment Status */}
+            {/* Reward Status */}
             <div className="space-y-2">
               <Label htmlFor="payment-status">
-                Payment Status <span className="text-destructive">*</span>
+                Reward Status <span className="text-destructive">*</span>
               </Label>
-              <Select value={paymentStatus} onValueChange={(value) => setRewardStatus(value as RewardStatus)} required>
+              <Select value={rewardStatus} onValueChange={(value) => setRewardStatus(value as RewardStatus)} required>
                 <SelectTrigger id="payment-status">
                   <SelectValue />
                 </SelectTrigger>

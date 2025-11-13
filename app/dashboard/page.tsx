@@ -161,7 +161,7 @@ interface DashboardReward extends ItemWithDate {
   _id: string;
   rewardAmount: number;
   referrerRewardAmount?: number;
-  paymentStatus: "PENDING" | "PAID" | "FAILED";
+  rewardStatus: "PENDING" | "PAID" | "FAILED";
   productModel: string;
   cityOfInstallation: string;
   createdAt: string;
@@ -388,13 +388,13 @@ export default function DashboardPage() {
           acc.totalAmount += rewardAmount;
           acc.referrerRewardsTotal += referrerAmount;
 
-          if (reward.paymentStatus === "PENDING") {
+          if (reward.rewardStatus === "PENDING") {
             acc.pendingAmount += rewardAmount;
             acc.referrerRewardsPending += referrerAmount;
-          } else if (reward.paymentStatus === "PAID") {
+          } else if (reward.rewardStatus === "PAID") {
             acc.paidAmount += rewardAmount;
             acc.referrerRewardsPaid += referrerAmount;
-          } else if (reward.paymentStatus === "FAILED") {
+          } else if (reward.rewardStatus === "FAILED") {
             acc.failedAmount += rewardAmount;
           }
 

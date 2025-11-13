@@ -65,22 +65,16 @@ import { TableSkeleton } from "@/components/TableSkeleton";
 import {
   IconActivity,
   IconAdd,
-  IconCheck,
-  IconCity,
-  IconClock,
   IconClockCircle,
   IconClose,
   IconEdit2,
   IconInstaller,
-  IconInstallerCode,
   IconRefresh2,
-  IconSearchNormal,
   IconSetting4,
   IconSortFromBottomToTop,
   IconSortFromTopToBottom,
   IconSquareArrowRightUp,
   IconSquareShareLine,
-  IconTrainingCenter,
 } from "@/components/icons";
 import IconTrashBin2 from "@/components/icons/TrashBin2";
 import { EmptyState } from "@/components/EmptyState";
@@ -102,7 +96,6 @@ import { useInstallers, type InstallerWithId } from "@/hooks/useInstallers";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useOptimizedInstallerFilter } from "@/hooks/useOptimizedInstallerFilter";
 import { StatisticsCards } from "@/components/installers/StatisticsCards";
-import IconSort from "@/components/icons/Sort";
 import {
   Tooltip,
   TooltipContent,
@@ -116,40 +109,6 @@ import {
 import { CITY_TO_PROVINCE, PROVINCES } from "@/lib/constants";
 import IconExcel from "@/components/icons/Excel";
 import IconPdf from "@/components/icons/Pdf";
-
-// Memoized constants - defined outside component to prevent re-creation on each render
-const SORT_FIELD_OPTIONS = [
-  {
-    label: "Installer Code",
-    field: "installerCode" as keyof InstallerWithId,
-    icon: IconInstallerCode,
-  },
-  {
-    label: "Name",
-    field: "fullName" as keyof InstallerWithId,
-    icon: IconInstaller,
-  },
-  {
-    label: "Date Joined",
-    field: "createdAt" as keyof InstallerWithId,
-    icon: IconClock,
-  },
-  {
-    label: "Training Center",
-    field: "trainingCenter" as keyof InstallerWithId,
-    icon: IconTrainingCenter,
-  },
-  {
-    label: "City",
-    field: "city" as keyof InstallerWithId,
-    icon: IconCity,
-  },
-  {
-    label: "Province",
-    field: "province" as keyof InstallerWithId,
-    icon: IconCity,
-  },
-] as const;
 
 // Memoized table row component to prevent unnecessary re-renders
 interface InstallerTableRowProps {

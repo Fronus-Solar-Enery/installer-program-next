@@ -38,7 +38,7 @@ export default function RewardDetailsPage() {
     referrerCode?: string;
     cityOfInstallation?: string;
     installationDate?: string;
-    paymentStatus: string;
+    rewardStatus: string;
     rewardAmount?: number;
     referrerRewardAmount?: number;
     transactionId?: string;
@@ -143,14 +143,14 @@ export default function RewardDetailsPage() {
             {reward.productModel}
             <Badge
               variant={
-                reward.paymentStatus === "PAID"
+                reward.rewardStatus === "PAID"
                   ? "success"
-                  : reward.paymentStatus === "PENDING"
+                  : reward.rewardStatus === "PENDING"
                   ? "warning"
                   : "destructive"
               }
             >
-              {reward.paymentStatus}
+              {reward.rewardStatus}
             </Badge>
           </div>
         }

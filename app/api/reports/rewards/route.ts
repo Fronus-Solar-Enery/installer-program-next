@@ -26,7 +26,7 @@ interface ExcelRewardData {
   'Product Model': string;
   'City of Installation': string;
   'Reward Amount': number;
-  'Payment Status': string;
+  'Reward Status': string;
   'Transaction ID': string;
   'Bank Name': string;
   'Account Number': string;
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'json';
-    const paymentStatus = searchParams.get('paymentStatus');
+    const rewardStatus = searchParams.get('rewardStatus');
     const productModel = searchParams.get('productModel');
     const city = searchParams.get('city');
     const startDate = searchParams.get('startDate');
@@ -70,8 +70,8 @@ export async function GET(request: NextRequest) {
 
     const query: FilterQuery<IInstallerReward> = {};
 
-    if (paymentStatus && paymentStatus !== 'all') {
-      query.paymentStatus = paymentStatus;
+    if (rewardStatus && rewardStatus !== 'all') {
+      query.rewardStatus = rewardStatus;
     }
 
     if (productModel) {
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
           'Product Model': populatedReward.productModel,
           'City of Installation': populatedReward.cityOfInstallation,
           'Reward Amount': populatedReward.rewardAmount,
-          'Payment Status': populatedReward.paymentStatus,
+          'Reward Status': populatedReward.rewardStatus,
           'Transaction ID': populatedReward.transactionId || 'N/A',
           'Bank Name': populatedReward.bankName,
           'Account Number': populatedReward.accountNumber,
@@ -148,22 +148,22 @@ export async function GET(request: NextRequest) {
           totalRewards: { $sum: 1 },
           totalAmount: { $sum: '$rewardAmount' },
           pendingCount: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'PENDING'] }, 1, 0] },
+            $sum: { $cond: [{ $eq: ['$rewardStatus', 'PENDING'] }, 1, 0] },
           },
           paidCount: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'PAID'] }, 1, 0] },
+            $sum: { $cond: [{ $eq: ['$rewardStatus', 'PAID'] }, 1, 0] },
           },
           failedCount: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'FAILED'] }, 1, 0] },
+            $sum: { $cond: [{ $eq: ['$rewardStatus', 'FAILED'] }, 1, 0] },
           },
           pendingAmount: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'PENDING'] }, '$rewardAmount', 0] },
+            $sum: { $cond: [{ $eq: ['$rewardStatus', 'PENDING'] }, '$rewardAmount', 0] },
           },
           paidAmount: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'PAID'] }, '$rewardAmount', 0] },
+            $sum: { $cond: [{ $eq: ['$rewardStatus', 'PAID'] }, '$rewardAmount', 0] },
           },
           failedAmount: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'FAILED'] }, '$rewardAmount', 0] },
+            $sum: { $cond: [{ $eq: ['$rewardStatus', 'FAILED'] }, '$rewardAmount', 0] },
           },
         },
       },

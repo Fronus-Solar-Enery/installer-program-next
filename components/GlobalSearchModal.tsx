@@ -48,7 +48,7 @@ interface RewardResult {
   serialNumber: string;
   productModel: string;
   rewardAmount: number;
-  paymentStatus: string;
+  rewardStatus: string;
   transactionId?: string;
   referrerTransactionId?: string;
   cityOfInstallation: string;
@@ -601,15 +601,15 @@ export default function GlobalSearchModal({
 
           <Badge
             variant={
-              reward.paymentStatus === "PAID"
+              reward.rewardStatus === "PAID"
                 ? "default"
-                : reward.paymentStatus === "PENDING"
+                : reward.rewardStatus === "PENDING"
                 ? "warning"
                 : "destructive"
             }
             className="text-[10px] tracking-widest font-semibold"
           >
-            {reward.paymentStatus}
+            {reward.rewardStatus}
           </Badge>
         </Card>
       );

@@ -1,6 +1,7 @@
-import mongoose, { Schema, Model, Types } from 'mongoose';
-import { RewardStatus } from '@/types/rewards';
-import { PRODUCT_MODELS } from '@/lib/constants';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import mongoose, { Schema, Model, Types } from "mongoose";
+import { RewardStatus } from "@/types/rewards";
+import { PRODUCT_MODELS } from "@/lib/constants";
 
 // Re-export for backward compatibility
 export { RewardStatus };
@@ -21,7 +22,7 @@ export interface IInstallerReward {
   bankName: string;
   accountNumber: string;
   accountTitle: string;
-  paymentStatus: RewardStatus;
+  rewardStatus: RewardStatus;
   transactionId?: string;
   rewardAmount: number;
   referrerTransactionId?: string;
@@ -36,17 +37,17 @@ const InstallerRewardSchema = new Schema<IInstallerReward>(
   {
     registeredBy: {
       type: Schema.Types.ObjectId,
-      ref: 'TeamMember',
-      required: [true, 'Registered by is required'],
+      ref: "TeamMember",
+      required: [true, "Registered by is required"],
     },
     installer: {
       type: Schema.Types.ObjectId,
-      ref: 'Installer',
-      required: [true, 'Installer is required'],
+      ref: "Installer",
+      required: [true, "Installer is required"],
     },
     installerCode: {
       type: String,
-      required: [true, 'Installer code is required'],
+      required: [true, "Installer code is required"],
       trim: true,
       uppercase: true,
     },
@@ -57,53 +58,53 @@ const InstallerRewardSchema = new Schema<IInstallerReward>(
     },
     referrer: {
       type: Schema.Types.ObjectId,
-      ref: 'Installer',
+      ref: "Installer",
     },
     cityOfInstallation: {
       type: String,
-      required: [true, 'City of installation is required'],
+      required: [true, "City of installation is required"],
       trim: true,
     },
     productModel: {
       type: String,
-      required: [true, 'Product model is required'],
+      required: [true, "Product model is required"],
       trim: true,
     },
     serialNumber: {
       type: String,
-      required: [true, 'Serial number is required'],
+      required: [true, "Serial number is required"],
       unique: true,
       trim: true,
     },
     serialNumberStatus: {
       type: String,
-      required: [true, 'Serial number status is required'],
+      required: [true, "Serial number status is required"],
       trim: true,
     },
     inverterSerialNumber: {
       type: String,
       trim: true,
-      default: '',
+      default: "",
     },
     installationDate: {
       type: Date,
     },
     bankName: {
       type: String,
-      required: [true, 'Bank name is required'],
+      required: [true, "Bank name is required"],
       trim: true,
     },
     accountNumber: {
       type: String,
-      required: [true, 'Account number is required'],
+      required: [true, "Account number is required"],
       trim: true,
     },
     accountTitle: {
       type: String,
-      required: [true, 'Account title is required'],
+      required: [true, "Account title is required"],
       trim: true,
     },
-    paymentStatus: {
+    rewardStatus: {
       type: String,
       enum: Object.values(RewardStatus),
       default: RewardStatus.PENDING,
@@ -115,7 +116,7 @@ const InstallerRewardSchema = new Schema<IInstallerReward>(
     },
     rewardAmount: {
       type: Number,
-      required: [true, 'Reward amount is required'],
+      required: [true, "Reward amount is required"],
       min: 0,
     },
     referrerTransactionId: {
@@ -141,12 +142,14 @@ const InstallerRewardSchema = new Schema<IInstallerReward>(
 );
 
 // Custom validation for inverter serial number
-InstallerRewardSchema.pre('save', function (next) {
+InstallerRewardSchema.pre("save", function (next) {
   const product = PRODUCT_MODELS.find((p) => p.value === this.productModel);
 
   if (product?.requiresInverter) {
-    if (!this.inverterSerialNumber || this.inverterSerialNumber.trim() === '') {
-      return next(new Error('Inverter serial number is required for this product'));
+    if (!this.inverterSerialNumber || this.inverterSerialNumber.trim() === "") {
+      return next(
+        new Error("Inverter serial number is required for this product")
+      );
     }
   }
 
@@ -154,30 +157,39 @@ InstallerRewardSchema.pre('save', function (next) {
 });
 
 // Validation for updates
-InstallerRewardSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
-  const update = this.getUpdate() as any;
-  const productModel = update.productModel || update.$set?.productModel;
+InstallerRewardSchema.pre(
+  ["findOneAndUpdate", "updateOne", "updateMany"],
+  function (next) {
+    const update = this.getUpdate() as any;
+    const productModel = update.productModel || update.$set?.productModel;
 
-  if (productModel) {
-    const product = PRODUCT_MODELS.find((p) => p.value === productModel);
-    const inverterSerial = update.inverterSerialNumber || update.$set?.inverterSerialNumber;
+    if (productModel) {
+      const product = PRODUCT_MODELS.find((p) => p.value === productModel);
+      const inverterSerial =
+        update.inverterSerialNumber || update.$set?.inverterSerialNumber;
 
-    if (product?.requiresInverter) {
-      if (!inverterSerial || (typeof inverterSerial === 'string' && inverterSerial.trim() === '')) {
-        return next(new Error('Inverter serial number is required for this product'));
+      if (product?.requiresInverter) {
+        if (
+          !inverterSerial ||
+          (typeof inverterSerial === "string" && inverterSerial.trim() === "")
+        ) {
+          return next(
+            new Error("Inverter serial number is required for this product")
+          );
+        }
       }
     }
-  }
 
-  next();
-});
+    next();
+  }
+);
 
 // Indexes for better query performance
 // Note: serialNumber already has a unique index, no need to add it again
 InstallerRewardSchema.index({ installer: 1 });
 InstallerRewardSchema.index({ installerCode: 1 });
 InstallerRewardSchema.index({ referrer: 1 });
-InstallerRewardSchema.index({ paymentStatus: 1 });
+InstallerRewardSchema.index({ rewardStatus: 1 });
 InstallerRewardSchema.index({ cityOfInstallation: 1 });
 InstallerRewardSchema.index({ productModel: 1 });
 InstallerRewardSchema.index({ sendingDate: 1 });
@@ -185,11 +197,11 @@ InstallerRewardSchema.index({ registeredBy: 1 });
 InstallerRewardSchema.index({ createdAt: 1 });
 
 // Compound indexes for common queries
-InstallerRewardSchema.index({ installer: 1, paymentStatus: 1 });
-InstallerRewardSchema.index({ paymentStatus: 1, sendingDate: 1 });
+InstallerRewardSchema.index({ installer: 1, rewardStatus: 1 });
+InstallerRewardSchema.index({ rewardStatus: 1, sendingDate: 1 });
 
 const InstallerReward: Model<IInstallerReward> =
   mongoose.models.InstallerReward ||
-  mongoose.model<IInstallerReward>('InstallerReward', InstallerRewardSchema);
+  mongoose.model<IInstallerReward>("InstallerReward", InstallerRewardSchema);
 
 export default InstallerReward;

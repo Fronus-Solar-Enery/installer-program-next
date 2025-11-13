@@ -124,7 +124,7 @@ interface Product {
   cityOfInstallation?: string;
   installationDate?: string;
   rewardAmount: number;
-  paymentStatus: string;
+  rewardStatus: string;
   transactionId?: string;
   createdAt: string;
 }
@@ -1095,21 +1095,21 @@ export default function InstallerDetailsPage() {
                         <TableCell>
                           <Badge
                             variant={
-                              product.paymentStatus === "PAID"
+                              product.rewardStatus === "PAID"
                                 ? "default"
-                                : product.paymentStatus === "PENDING"
+                                : product.rewardStatus === "PENDING"
                                 ? "secondary"
                                 : "destructive"
                             }
                             className={
-                              product.paymentStatus === "PAID"
+                              product.rewardStatus === "PAID"
                                 ? "bg-green-600"
-                                : product.paymentStatus === "PENDING"
+                                : product.rewardStatus === "PENDING"
                                 ? "bg-yellow-600"
                                 : ""
                             }
                           >
-                            {product.paymentStatus}
+                            {product.rewardStatus}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">

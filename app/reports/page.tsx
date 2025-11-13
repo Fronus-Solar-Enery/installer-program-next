@@ -28,6 +28,7 @@ export default function ReportsPage() {
     setLoading(true);
     try {
       const response = await fetch(`/api/reports/${type}?format=excel`);
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -143,9 +144,9 @@ export default function ReportsPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="payment-status">Payment Status</Label>
+              <Label htmlFor="reward-status">Reward Status</Label>
               <Select>
-                <SelectTrigger id="payment-status">
+                <SelectTrigger id="reward-status">
                   <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent>

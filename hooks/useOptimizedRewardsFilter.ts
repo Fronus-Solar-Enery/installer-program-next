@@ -8,7 +8,7 @@ export interface RewardWithId {
   productModel: string;
   cityOfInstallation: string;
   rewardAmount: number;
-  paymentStatus: string;
+  rewardStatus: string;
   paymentMethod?: string;
   transactionId?: string;
   referrerTransactionId?: string;
@@ -38,7 +38,7 @@ export interface RewardWithId {
 }
 
 export interface RewardsFilters {
-  paymentStatus: string;
+  rewardStatus: string;
   sendingDate: string;
   paymentMethod: string;
   serialNumberStatus: string;
@@ -168,13 +168,13 @@ export function useOptimizedRewardsFilter({
 
       // Accumulate total statistics
       totalAmount += reward.rewardAmount || 0;
-      if (reward.paymentStatus === "PAID") {
+      if (reward.rewardStatus === "PAID") {
         paidAmount += reward.rewardAmount || 0;
         paidCount++;
-      } else if (reward.paymentStatus === "PENDING") {
+      } else if (reward.rewardStatus === "PENDING") {
         pendingAmount += reward.rewardAmount || 0;
         pendingCount++;
-      } else if (reward.paymentStatus === "FAILED") {
+      } else if (reward.rewardStatus === "FAILED") {
         failedCount++;
       }
 
@@ -196,8 +196,8 @@ export function useOptimizedRewardsFilter({
       }
 
       // Apply filters
-      if (filters.paymentStatus && filters.paymentStatus !== "ALL") {
-        if (reward.paymentStatus !== filters.paymentStatus) return false;
+      if (filters.rewardStatus && filters.rewardStatus !== "ALL") {
+        if (reward.rewardStatus !== filters.rewardStatus) return false;
       }
 
       if (filters.sendingDate) {

@@ -91,7 +91,7 @@ export const registerRewardSchema = z.object({
   inverterSerialNumber: z.string().min(1, "Inverter serial number is required"),
   installationDate: z.string().optional(),
   rewardAmount: z.number().min(0, "Reward amount must be positive"),
-  paymentStatus: z.enum(RewardStatus).default(RewardStatus.PENDING),
+  rewardStatus: z.enum(RewardStatus).default(RewardStatus.PENDING),
   transactionId: z.string().optional(),
   sendingDate: z.string().or(z.date()).optional(),
   paymentMethod: z.string().optional(),
@@ -113,7 +113,7 @@ export const updateRewardSchema = z.object({
     .min(1, "Inverter serial number is required")
     .optional(),
   rewardAmount: z.number().min(0, "Reward amount must be positive").optional(),
-  paymentStatus: z.enum(RewardStatus).optional(),
+  rewardStatus: z.enum(RewardStatus).optional(),
   transactionId: z.string().optional(),
   referrerTransactionId: z.string().optional(),
   referrerRewardAmount: z.number().min(0).optional(),

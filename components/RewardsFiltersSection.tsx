@@ -56,9 +56,9 @@ export const RewardsFiltersSection = React.memo<RewardsFiltersSectionProps>(
       [onFilterChange]
     );
 
-    const handlePaymentStatusChange = useCallback(
+    const handleRewardStatusChange = useCallback(
       (value: string) => {
-        onFilterChange("paymentStatus", value);
+        onFilterChange("rewardStatus", value);
       },
       [onFilterChange]
     );
@@ -145,14 +145,14 @@ export const RewardsFiltersSection = React.memo<RewardsFiltersSectionProps>(
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Payment Status Filter */}
+            {/* Reward Status Filter */}
             <div className="space-y-2">
-              <Label htmlFor="payment-status">Payment Status</Label>
+              <Label htmlFor="reward-status">Reward Status</Label>
               <Select
-                value={filters.paymentStatus}
-                onValueChange={handlePaymentStatusChange}
+                value={filters.rewardStatus}
+                onValueChange={handleRewardStatusChange}
               >
-                <SelectTrigger id="payment-status">
+                <SelectTrigger id="reward-status">
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>

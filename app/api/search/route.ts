@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
         path: 'installer',
         select: 'installerCode fullName cnic phoneNumber whatsappNumber city',
       })
-      .select('serialNumber productModel rewardAmount paymentStatus transactionId referrerTransactionId cityOfInstallation createdAt')
+      .select('serialNumber productModel rewardAmount rewardStatus transactionId referrerTransactionId cityOfInstallation createdAt')
       .limit(10)
       .lean();
 
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
           path: 'installer',
           select: 'installerCode fullName cnic phoneNumber whatsappNumber city',
         })
-        .select('serialNumber productModel rewardAmount paymentStatus transactionId referrerTransactionId cityOfInstallation createdAt')
+        .select('serialNumber productModel rewardAmount rewardStatus transactionId referrerTransactionId cityOfInstallation createdAt')
         .limit(10)
         .lean();
 

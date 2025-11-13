@@ -103,7 +103,7 @@ interface RewardsTableProps {
   lastUpdatedText: string;
   filters?: {
     search?: string;
-    paymentStatus?: string;
+    rewardStatus?: string;
     sendingDate?: string;
     paymentMethod?: string;
     serialNumberStatus?: string;
@@ -267,7 +267,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                     {sortField === "productModel" && "Product Model"}
                     {sortField === "cityOfInstallation" && "City"}
                     {sortField === "rewardAmount" && "Amount"}
-                    {sortField === "paymentStatus" && "Status"}
+                    {sortField === "rewardStatus" && "Status"}
                     {sortField === "sendingDate" && "Sending Date"}
                     {sortField === "referrerRewardAmount" && "Referrer Reward"}
                     {sortField === "createdAt" && "Date"}
@@ -322,18 +322,18 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   </div>
                 )}
 
-                {/* Payment Status Filter */}
-                {filters?.paymentStatus && filters.paymentStatus !== "ALL" && (
+                {/* Reward Status Filter */}
+                {filters?.rewardStatus && filters.rewardStatus !== "ALL" && (
                   <div className="text-xs flex items-center gap-1 text-muted-foreground">
-                    Payment Status:
+                    Reward Status:
                     <Badge
                       variant="outline"
                       className="gap-1 [&>svg]:pointer-events-auto h-5.5"
                     >
-                      {filters.paymentStatus}
+                      {filters.rewardStatus}
                       <IconClose
                         className="size-4! cursor-pointer"
-                        onClick={() => onClearFilter?.("paymentStatus")}
+                        onClick={() => onClearFilter?.("rewardStatus")}
                       />
                     </Badge>
                   </div>
@@ -523,7 +523,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                                   serialNumber: true,
                                   productModel: true,
                                   rewardAmount: true,
-                                  paymentStatus: true,
+                                  rewardStatus: true,
                                   sendingDate: true,
                                 };
 
@@ -587,13 +587,13 @@ export const RewardsTable = React.memo<RewardsTableProps>(
           {/* FILTERS */}
           <Activity mode={showFilters ? "visible" : "hidden"}>
             <CardContent className="p-4 flex items-center gap-2 ">
-              {/* Payment Status Filter */}
+              {/* Reward Status Filter */}
               <div className="space-y-2 w-full">
-                <span className="text-sm px-2">Payment Status</span>
+                <span className="text-sm px-2">Reward Status</span>
                 <Select
-                  value={filters?.paymentStatus || "ALL"}
+                  value={filters?.rewardStatus || "ALL"}
                   onValueChange={(value) =>
-                    onFilterChange?.("paymentStatus", value)
+                    onFilterChange?.("rewardStatus", value)
                   }
                   disabled={loading}
                 >
@@ -715,7 +715,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   variant="outline"
                   onClick={onClearAllFilters}
                   disabled={
-                    (filters?.paymentStatus === "ALL" &&
+                    (filters?.rewardStatus === "ALL" &&
                       filters?.paymentMethod === "all" &&
                       filters?.serialNumberStatus === "all" &&
                       filters?.productModel === "all" &&
@@ -792,12 +792,12 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                     Amount {getSortIcon("rewardAmount")}
                   </TableHead>
                 )}
-                {visibleColumns.paymentStatus && (
+                {visibleColumns.rewardStatus && (
                   <TableHead
                     className="cursor-pointer font-semibold"
-                    onClick={() => onToggleSort("paymentStatus")}
+                    onClick={() => onToggleSort("rewardStatus")}
                   >
-                    Status {getSortIcon("paymentStatus")}
+                    Status {getSortIcon("rewardStatus")}
                   </TableHead>
                 )}
                 {visibleColumns.paymentMethod && (

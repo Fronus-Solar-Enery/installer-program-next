@@ -37,18 +37,20 @@ import {
 import PageHeader from "@/components/PageHeader";
 import { PAYMENT_METHOD } from "@/lib/constants";
 import { FileDropzone } from "@/components/ui/drop-zone";
-import { IconLayer, IconTrashBin2 } from "@/components/icons";
+import { IconLayer, IconReward, IconTrashBin2 } from "@/components/icons";
 import IconExcel from "@/components/icons/Excel";
 import { toast } from "sonner";
 import BulkUploadProgressModal, {
   UploadStep,
 } from "@/components/BulkUploadProgressModal";
+import Loading from "@/components/ui/loading";
+import IconDownloadMinimalistic from "@/components/icons/DownloadMinimalistic";
 
 interface RewardUpdate {
   serialNumber: string;
   transactionId: string;
   referrerTransactionId?: string;
-  paymentStatus: string;
+  rewardStatus: string;
   sendingDate?: string;
   paymentMethod?: string;
   issues: string[];
@@ -65,6 +67,8 @@ export default function BulkUploadRewardsPage() {
   const [preview, setPreview] = useState<RewardUpdate[]>([]);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const [downloadingInvalid, setDownloadingInvalid] = useState(false);
+  const [downloadingPaymentFormat, setDownloadingPaymentFormat] =
+    useState(false);
   const [fileReading, setFileReading] = useState(false);
   const [fileReadProgress, setFileReadProgress] = useState(0);
   const [terminateDialogOpen, setTerminateDialogOpen] = useState(false);
@@ -103,6 +107,33 @@ export default function BulkUploadRewardsPage() {
       XLSX.writeFile(wb, "rewards_bulk_update_template.xlsx");
     } finally {
       setTimeout(() => setDownloadingTemplate(false), 500);
+    }
+  };
+
+  const downloadPaymentFormat = async () => {
+    setDownloadingPaymentFormat(true);
+    try {
+      const response = await fetch("/api/reports/payment-format?format=excel");
+
+      if (!response.ok) {
+        throw new Error("Failed to download payment format report");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `payment_format_${Date.now()}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Payment format downloaded successfully");
+    } catch (error) {
+      console.error("Failed to download payment format:", error);
+      toast.error("Failed to download payment format report");
+    } finally {
+      setTimeout(() => setDownloadingPaymentFormat(false), 500);
     }
   };
 
@@ -151,11 +182,11 @@ export default function BulkUploadRewardsPage() {
         issues.push("Installer transaction ID is required");
       }
 
-      if (!reward.paymentStatus) {
+      if (!reward.rewardStatus) {
         issues.push("Payment status is required");
-      } else if (!validateRewardStatus(reward.paymentStatus)) {
+      } else if (!validateRewardStatus(reward.rewardStatus)) {
         issues.push(
-          `Invalid payment status "${reward.paymentStatus}" (must be: PAID, PENDING, or FAILED)`
+          `Invalid reward status "${reward.rewardStatus}" (must be: PAID, PENDING, or FAILED)`
         );
       }
 
@@ -277,7 +308,7 @@ export default function BulkUploadRewardsPage() {
               serialNumber,
               transactionId,
               referrerTransactionId,
-              paymentStatus: "PAID", // Temporary, will be overwritten
+              rewardStatus: "PAID", // Temporary, will be overwritten
               sendingDate: rawSendingDate || defaultSendingDate,
               paymentMethod: normalizePaymentMethod(rawPaymentMethod),
             };
@@ -285,23 +316,23 @@ export default function BulkUploadRewardsPage() {
             const issues = validateReward(tempReward);
 
             // Determine payment status based on validation and transaction ID
-            let paymentStatus: string;
+            let rewardStatus: string;
             if (issues.length > 0) {
               // If there are validation errors, mark as FAILED
-              paymentStatus = "FAILED";
+              rewardStatus = "FAILED";
             } else if (transactionId) {
               // If validation passes and transaction ID is provided, mark as PAID
-              paymentStatus = "PAID";
+              rewardStatus = "PAID";
             } else {
               // If validation passes but no transaction ID, mark as PENDING
-              paymentStatus = "PENDING";
+              rewardStatus = "PENDING";
             }
 
             const reward = {
               serialNumber,
               transactionId,
               referrerTransactionId,
-              paymentStatus,
+              rewardStatus,
               sendingDate: rawSendingDate || defaultSendingDate,
               paymentMethod: normalizePaymentMethod(rawPaymentMethod),
             };
@@ -380,22 +411,22 @@ export default function BulkUploadRewardsPage() {
         // Update payment status based on the validation results from backend
         const updatedRewards = data.data.validatedRewards.map(
           (reward: RewardUpdate) => {
-            let paymentStatus: string;
+            let rewardStatus: string;
 
             if (reward.issues && reward.issues.length > 0) {
               // If there are validation errors (including from backend), mark as FAILED
-              paymentStatus = "FAILED";
+              rewardStatus = "FAILED";
             } else if (reward.transactionId) {
               // If validation passes and transaction ID is provided, mark as PAID
-              paymentStatus = "PAID";
+              rewardStatus = "PAID";
             } else {
               // If validation passes but no transaction ID, mark as PENDING
-              paymentStatus = "PENDING";
+              rewardStatus = "PENDING";
             }
 
             return {
               ...reward,
-              paymentStatus,
+              rewardStatus,
               isValid: !reward.issues || reward.issues.length === 0,
             };
           }
@@ -591,7 +622,7 @@ export default function BulkUploadRewardsPage() {
           serialNumber: reward.serialNumber,
           transactionId: reward.transactionId,
           referrerTransactionId: reward.referrerTransactionId,
-          paymentStatus: reward.paymentStatus,
+          rewardStatus: reward.rewardStatus,
           sendingDate: reward.sendingDate,
           paymentMethod: reward.paymentMethod,
         }));
@@ -779,18 +810,32 @@ export default function BulkUploadRewardsPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 4. Click &quot;Update All Valid Records&quot; to finalize
               </p>
-              <Button
-                onClick={downloadTemplate}
-                variant="outline"
-                disabled={downloadingTemplate}
-              >
-                {downloadingTemplate ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4 mr-2" />
-                )}
-                {downloadingTemplate ? "Downloading..." : "Download Template"}
-              </Button>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  onClick={downloadTemplate}
+                  variant="outline"
+                  disabled={downloadingTemplate}
+                  className="gap-2"
+                >
+                  {downloadingTemplate ? (
+                    <Loading />
+                  ) : (
+                    <IconDownloadMinimalistic />
+                  )}
+                  {downloadingTemplate ? "Downloading..." : "Download Template"}
+                </Button>
+                <Button
+                  onClick={downloadPaymentFormat}
+                  variant="outline"
+                  className="gap-2"
+                  disabled={downloadingPaymentFormat}
+                >
+                  {downloadingPaymentFormat ? <Loading /> : <IconReward />}
+                  {downloadingPaymentFormat
+                    ? "Downloading..."
+                    : "Payment Format"}
+                </Button>
+              </div>
             </div>
 
             {/* <div className="pt-4 border-t border-border">
@@ -921,7 +966,7 @@ export default function BulkUploadRewardsPage() {
 
         {fileReading && (
           <Alert>
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loading />
             <AlertDescription>
               Reading and parsing Excel file...
             </AlertDescription>
@@ -930,7 +975,7 @@ export default function BulkUploadRewardsPage() {
 
         {validating && (
           <Alert>
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loading />
             <AlertDescription>Validating against database...</AlertDescription>
           </Alert>
         )}
@@ -1025,7 +1070,7 @@ export default function BulkUploadRewardsPage() {
                     <TableHead>Serial Number</TableHead>
                     <TableHead>Transaction ID</TableHead>
                     <TableHead>Ref. Transaction</TableHead>
-                    <TableHead>Payment Status</TableHead>
+                    <TableHead>Reward Status</TableHead>
                     <TableHead>Method</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Issues</TableHead>
@@ -1064,14 +1109,14 @@ export default function BulkUploadRewardsPage() {
                       <TableCell>
                         <Badge
                           variant={
-                            reward.paymentStatus === "PAID"
+                            reward.rewardStatus === "PAID"
                               ? "default"
-                              : reward.paymentStatus === "FAILED"
+                              : reward.rewardStatus === "FAILED"
                               ? "destructive"
                               : "secondary"
                           }
                         >
-                          {reward.paymentStatus}
+                          {reward.rewardStatus}
                         </Badge>
                       </TableCell>
                       <TableCell>{reward.paymentMethod || "-"}</TableCell>

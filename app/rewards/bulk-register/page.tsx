@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -64,7 +65,7 @@ interface RewardCreate {
   bankName: string;
   accountNumber: string;
   accountTitle: string;
-  paymentStatus: string;
+  rewardStatus: string;
   transactionId?: string;
   rewardAmount: string;
   referrerRewardAmount?: string;
@@ -114,7 +115,7 @@ export default function BulkCreateRewardsPage() {
           "Bank Name": "Habib Bank Ltd",
           "Account Number": "1234567890",
           "Account Title": "John Doe",
-          "Payment Status": "PENDING",
+          "Reward Status": "PENDING",
           "Transaction ID": "TXN123456 (optional)",
           "Reward Amount": "6500",
           "Referrer Reward Amount": "1000 (required if installer has referrer)",
@@ -340,12 +341,12 @@ export default function BulkCreateRewardsPage() {
       issues.push("Account title is required");
     }
 
-    // Payment status validation
-    if (!reward.paymentStatus) {
-      issues.push("Payment status is required");
-    } else if (!validateRewardStatus(reward.paymentStatus)) {
+    // Reward status validation
+    if (!reward.rewardStatus) {
+      issues.push("Reward status is required");
+    } else if (!validateRewardStatus(reward.rewardStatus)) {
       issues.push(
-        `Invalid payment status "${reward.paymentStatus}" (must be: PAID, PENDING, or FAILED)`
+        `Invalid reward status "${reward.rewardStatus}" (must be: PAID, PENDING, or FAILED)`
       );
     }
 
@@ -476,8 +477,8 @@ export default function BulkCreateRewardsPage() {
             bankName: normalizeBankName(rawBankName),
             accountNumber: row["Account Number"]?.toString().trim() || "",
             accountTitle: row["Account Title"]?.toString().trim() || "",
-            paymentStatus:
-              row["Payment Status"]?.toString().toUpperCase().trim() ||
+            rewardStatus:
+              row["Reward Status"]?.toString().toUpperCase().trim() ||
               "PENDING",
             transactionId:
               row["Transaction ID"]?.toString().trim() || undefined,
@@ -628,7 +629,7 @@ export default function BulkCreateRewardsPage() {
         "Bank Name": record.bankName,
         "Account Number": record.accountNumber,
         "Account Title": record.accountTitle,
-        "Payment Status": record.paymentStatus,
+        "Reward Status": record.rewardStatus,
         "Transaction ID": record.transactionId || "",
         "Reward Amount": record.rewardAmount,
         "Referrer Reward Amount": record.referrerRewardAmount || "",
@@ -1318,14 +1319,14 @@ export default function BulkCreateRewardsPage() {
                       <TableCell>
                         <Badge
                           variant={
-                            reward.paymentStatus === "PAID"
+                            reward.rewardStatus === "PAID"
                               ? "default"
-                              : reward.paymentStatus === "FAILED"
+                              : reward.rewardStatus === "FAILED"
                               ? "destructive"
                               : "secondary"
                           }
                         >
-                          {reward.paymentStatus}
+                          {reward.rewardStatus}
                         </Badge>
                       </TableCell>
                       <TableCell>

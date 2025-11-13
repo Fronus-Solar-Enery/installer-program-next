@@ -16,7 +16,7 @@ interface RewardDataInput {
   bankName: string;
   accountNumber: string;
   accountTitle: string;
-  paymentStatus: string;
+  rewardStatus: string;
   rewardAmount: string | number;
   paymentMethod: string;
   cityOfInstallation?: string;
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
           'bankName',
           'accountNumber',
           'accountTitle',
-          'paymentStatus',
+          'rewardStatus',
           'rewardAmount',
           'paymentMethod',
         ];
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
           bankName: rewardData.bankName,
           accountNumber: rewardData.accountNumber,
           accountTitle: rewardData.accountTitle,
-          paymentStatus: rewardData.paymentStatus,
+          rewardStatus: rewardData.rewardStatus,
           transactionId: rewardData.transactionId || undefined,
           rewardAmount: rewardAmount,
           referrerRewardAmount: referrerRewardAmount || 0,

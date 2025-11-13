@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
-    const paymentStatus = searchParams.get("paymentStatus");
+    const rewardStatus = searchParams.get("rewardStatus");
     const productModel = searchParams.get("productModel");
     const city = searchParams.get("city");
     const registeredBy = searchParams.get("registeredBy");
@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
 
     const query: FilterQuery<IInstallerReward> = {};
 
-    if (paymentStatus && paymentStatus !== "all") {
-      query.paymentStatus = paymentStatus;
+    if (rewardStatus && rewardStatus !== "all") {
+      query.rewardStatus = rewardStatus;
     }
 
     if (productModel) {
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
       { $match: query },
       {
         $group: {
-          _id: "$paymentStatus",
+          _id: "$rewardStatus",
           count: { $sum: 1 },
           totalAmount: { $sum: "$rewardAmount" },
         },

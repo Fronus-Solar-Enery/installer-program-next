@@ -13,7 +13,7 @@ interface RewardInput {
   referrerCode?: string;
   referrerRewardAmount?: string | number;
   referrerTransactionId?: string;
-  paymentStatus?: string;
+  rewardStatus?: string;
   issues?: string[];
   isValid?: boolean;
 }

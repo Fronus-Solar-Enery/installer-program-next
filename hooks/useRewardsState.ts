@@ -7,7 +7,7 @@ export interface ColumnVisibility {
   productModel: boolean;
   cityOfInstallation: boolean;
   rewardAmount: boolean;
-  paymentStatus: boolean;
+  rewardStatus: boolean;
   paymentMethod: boolean;
   transactionId: boolean;
   sendingDate: boolean;
@@ -19,7 +19,7 @@ export interface ColumnVisibility {
 }
 
 export interface Filters {
-  paymentStatus: string;
+  rewardStatus: string;
   sendingDate: string;
   paymentMethod: string;
   serialNumberStatus: string;
@@ -110,7 +110,7 @@ export type RewardsAction =
   | { type: "RESET_TO_PAGE_ONE" };
 
 const initialFilters: Filters = {
-  paymentStatus: "ALL",
+  rewardStatus: "ALL",
   sendingDate: "",
   paymentMethod: "all",
   serialNumberStatus: "all",
@@ -129,7 +129,7 @@ const initialColumnVisibility: ColumnVisibility = {
   productModel: true,
   cityOfInstallation: false,
   rewardAmount: true,
-  paymentStatus: true,
+  rewardStatus: true,
   paymentMethod: false,
   transactionId: false,
   sendingDate: false,

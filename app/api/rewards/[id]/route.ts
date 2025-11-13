@@ -95,7 +95,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     // Track changes for activity log
     const changes = getChanges(reward.toObject() as unknown as Record<string, unknown>, validatedData);
-    const oldRewardStatus = reward.paymentStatus;
+    const oldRewardStatus = reward.rewardStatus;
 
     // Update reward
     Object.assign(reward, validatedData);
@@ -124,8 +124,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       userAgent: request.headers.get('user-agent') || undefined,
     });
 
-    // Check if payment status changed to PAID
-    if (oldRewardStatus !== RewardStatus.PAID && validatedData.paymentStatus === RewardStatus.PAID) {
+    // Check if reward status changed to PAID
+    if (oldRewardStatus !== RewardStatus.PAID && validatedData.rewardStatus === RewardStatus.PAID) {
       // Send WhatsApp notification (non-blocking)
       sendRewardPaymentMessage(
         {

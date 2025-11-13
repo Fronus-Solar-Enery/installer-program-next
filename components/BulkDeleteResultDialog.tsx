@@ -41,7 +41,7 @@ export function BulkDeleteResultDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onClose}>
-      <AlertDialogContent className="rounded-4xl max-w-xl">
+      <AlertDialogContent className="rounded-4xl max-w-xs">
         <AlertDialogHeader className="flex flex-col items-center">
           {failCount === 0 ? (
             <>

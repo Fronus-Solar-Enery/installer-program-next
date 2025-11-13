@@ -1,17 +1,24 @@
-import { NextRequest } from 'next/server';
-import { auth } from '@/lib/auth';
-import dbConnect from '@/lib/mongodb';
-import Installer from '@/models/Installer';
-import InstallerReward from '@/models/InstallerReward';
-import { updateInstallerSchema } from '@/lib/validation';
-import { ApiResponse, handleApiError } from '@/lib/apiResponse';
-import mongoose from 'mongoose';
-import { TeamRole } from '@/models/TeamMember';
-import { createGoogleContact, updateGoogleContact, deleteGoogleContact } from '@/lib/googleContacts';
-import { ZodError } from 'zod';
+import { NextRequest } from "next/server";
+import { auth } from "@/lib/auth";
+import dbConnect from "@/lib/mongodb";
+import Installer from "@/models/Installer";
+import InstallerReward from "@/models/InstallerReward";
+import { updateInstallerSchema } from "@/lib/validation";
+import { ApiResponse, handleApiError } from "@/lib/apiResponse";
+import mongoose from "mongoose";
+import { TeamRole } from "@/models/TeamMember";
+import {
+  createGoogleContact,
+  updateGoogleContact,
+  deleteGoogleContact,
+} from "@/lib/googleContacts";
+import { ZodError } from "zod";
 
 // GET single installer with stats
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await auth();
 
@@ -28,36 +35,50 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (mongoose.Types.ObjectId.isValid(id) && id.length === 24) {
       // Try finding by MongoDB ID first
       installer = await Installer.findById(id)
-        .populate('registeredBy', 'name email role')
-        .populate('referrer', 'installerCode fullName');
+        .populate("registeredBy", "name email role")
+        .populate("referrer", "installerCode fullName");
     }
 
     // If not found by ID or not a valid ObjectId, try installer code
     if (!installer) {
       installer = await Installer.findOne({ installerCode: id })
-        .populate('registeredBy', 'name email role')
-        .populate('referrer', 'installerCode fullName');
+        .populate("registeredBy", "name email role")
+        .populate("referrer", "installerCode fullName");
     }
 
     if (!installer) {
-      return ApiResponse.notFound('Installer not found');
+      return ApiResponse.notFound("Installer not found");
     }
 
     // Get reward statistics
-    const [totalRewards, pendingRewards, paidRewards, failedRewards] = await Promise.all([
-      InstallerReward.countDocuments({ installer: installer._id }),
-      InstallerReward.countDocuments({ installer: installer._id, paymentStatus: 'PENDING' }),
-      InstallerReward.countDocuments({ installer: installer._id, paymentStatus: 'PAID' }),
-      InstallerReward.countDocuments({ installer: installer._id, paymentStatus: 'FAILED' }),
-    ]);
+    const [totalRewards, pendingRewards, paidRewards, failedRewards] =
+      await Promise.all([
+        InstallerReward.countDocuments({ installer: installer._id }),
+        InstallerReward.countDocuments({
+          installer: installer._id,
+          rewardStatus: "PENDING",
+        }),
+        InstallerReward.countDocuments({
+          installer: installer._id,
+          rewardStatus: "PAID",
+        }),
+        InstallerReward.countDocuments({
+          installer: installer._id,
+          rewardStatus: "FAILED",
+        }),
+      ]);
 
     // Get reward amounts
     const rewardAmounts = await InstallerReward.aggregate([
-      { $match: { installer: new mongoose.Types.ObjectId(installer._id.toString()) } },
+      {
+        $match: {
+          installer: new mongoose.Types.ObjectId(installer._id.toString()),
+        },
+      },
       {
         $group: {
-          _id: '$paymentStatus',
-          total: { $sum: '$rewardAmount' },
+          _id: "$rewardStatus",
+          total: { $sum: "$rewardAmount" },
         },
       },
     ]);
@@ -93,7 +114,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 // PUT - Update installer
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await auth();
 
@@ -119,20 +143,30 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     if (!installer) {
-      return ApiResponse.notFound('Installer not found');
+      return ApiResponse.notFound("Installer not found");
     }
 
     // Validate referrer code if being updated
-    if (validatedData.referrerCode && validatedData.referrerCode !== installer.referrerCode) {
-      const referrer = await Installer.findOne({ installerCode: validatedData.referrerCode });
+    if (
+      validatedData.referrerCode &&
+      validatedData.referrerCode !== installer.referrerCode
+    ) {
+      const referrer = await Installer.findOne({
+        installerCode: validatedData.referrerCode,
+      });
       if (!referrer) {
-        return ApiResponse.error('Invalid referrer code', 400);
+        return ApiResponse.error("Invalid referrer code", 400);
       }
 
       // Check if referrer has already referred 5 installers
-      const referralCount = await Installer.countDocuments({ referrer: referrer._id });
+      const referralCount = await Installer.countDocuments({
+        referrer: referrer._id,
+      });
       if (referralCount >= 5) {
-        return ApiResponse.error('Referrer has already referred maximum (5) installers', 400);
+        return ApiResponse.error(
+          "Referrer has already referred maximum (5) installers",
+          400
+        );
       }
     }
 
@@ -157,9 +191,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           cnic: installer.cnic,
           trainingCenter: installer.trainingCenter,
         });
-        console.log('✓ Google contact updated successfully');
+        console.log("✓ Google contact updated successfully");
       } catch (error) {
-        console.error('Failed to update Google contact:', error);
+        console.error("Failed to update Google contact:", error);
       }
     } else {
       // Create Google Contact if it doesn't exist
@@ -181,28 +215,36 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         if (googleContactId) {
           installer.googleContactId = googleContactId;
           await installer.save();
-          console.log('✓ Google contact created:', googleContactId);
+          console.log("✓ Google contact created:", googleContactId);
         }
       } catch (error) {
-        console.error('Failed to create Google contact:', error);
+        console.error("Failed to create Google contact:", error);
       }
     }
 
     const updatedInstaller = await Installer.findById(installer._id)
-      .populate('registeredBy', 'name email role')
-      .populate('referrer', 'installerCode fullName');
+      .populate("registeredBy", "name email role")
+      .populate("referrer", "installerCode fullName");
 
-    return ApiResponse.success(updatedInstaller, 'Installer updated successfully');
+    return ApiResponse.success(
+      updatedInstaller,
+      "Installer updated successfully"
+    );
   } catch (error: unknown) {
     if (error instanceof ZodError) {
-      return ApiResponse.validationError(error.issues as Array<{ path?: PropertyKey[]; message: string }>);
+      return ApiResponse.validationError(
+        error.issues as Array<{ path?: PropertyKey[]; message: string }>
+      );
     }
     return handleApiError(error);
   }
 }
 
 // DELETE installer (ADMIN/MANAGER only)
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const session = await auth();
 
@@ -211,8 +253,13 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     // Only ADMIN and MANAGER can delete
-    if (session.user.role !== TeamRole.ADMIN && session.user.role !== TeamRole.MANAGER) {
-      return ApiResponse.forbidden('Only admins and managers can delete installers');
+    if (
+      session.user.role !== TeamRole.ADMIN &&
+      session.user.role !== TeamRole.MANAGER
+    ) {
+      return ApiResponse.forbidden(
+        "Only admins and managers can delete installers"
+      );
     }
 
     await dbConnect();
@@ -230,14 +277,16 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     if (!installer) {
-      return ApiResponse.notFound('Installer not found');
+      return ApiResponse.notFound("Installer not found");
     }
 
     // Check if installer has any rewards
-    const rewardCount = await InstallerReward.countDocuments({ installer: installer._id });
+    const rewardCount = await InstallerReward.countDocuments({
+      installer: installer._id,
+    });
     if (rewardCount > 0) {
       return ApiResponse.error(
-        'Cannot delete installer with existing rewards. Please delete rewards first.',
+        "Cannot delete installer with existing rewards. Please delete rewards first.",
         400
       );
     }
@@ -245,23 +294,34 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     // Delete Google Contact (using global authentication)
     if (installer.googleContactId) {
       try {
-        console.log(`Attempting to delete Google contact: ${installer.googleContactId} for installer: ${installer.installerCode}`);
+        console.log(
+          `Attempting to delete Google contact: ${installer.googleContactId} for installer: ${installer.installerCode}`
+        );
         const deleted = await deleteGoogleContact(installer.googleContactId);
         if (deleted) {
-          console.log(`Successfully deleted Google contact for installer: ${installer.installerCode}`);
+          console.log(
+            `Successfully deleted Google contact for installer: ${installer.installerCode}`
+          );
         } else {
-          console.warn(`Failed to delete Google contact for installer: ${installer.installerCode}`);
+          console.warn(
+            `Failed to delete Google contact for installer: ${installer.installerCode}`
+          );
         }
       } catch (error) {
-        console.error(`Error deleting Google contact for installer ${installer.installerCode}:`, error);
+        console.error(
+          `Error deleting Google contact for installer ${installer.installerCode}:`,
+          error
+        );
       }
     } else {
-      console.log(`No Google contact ID found for installer: ${installer.installerCode}`);
+      console.log(
+        `No Google contact ID found for installer: ${installer.installerCode}`
+      );
     }
 
     await installer.deleteOne();
 
-    return ApiResponse.success(null, 'Installer deleted successfully');
+    return ApiResponse.success(null, "Installer deleted successfully");
   } catch (error) {
     return handleApiError(error);
   }

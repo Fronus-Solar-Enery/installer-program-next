@@ -8,7 +8,7 @@ interface RewardUpdateInput {
   serialNumber: string;
   transactionId: string;
   referrerTransactionId?: string;
-  paymentStatus: string;
+  rewardStatus: string;
   sendingDate?: string;
   paymentMethod?: string;
   isValid?: boolean;
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
         // Build update object
         const updateData: Record<string, unknown> = {
           transactionId: rewardUpdate.transactionId,
-          paymentStatus: rewardUpdate.paymentStatus,
+          rewardStatus: rewardUpdate.rewardStatus,
         };
 
         // Add optional fields if provided
@@ -111,13 +111,13 @@ export async function POST(req: NextRequest) {
         // Log activity
         await Activity.create({
           type: 'REWARD_UPDATED',
-          description: `Updated reward payment status to ${rewardUpdate.paymentStatus} for serial ${rewardUpdate.serialNumber} via bulk upload`,
+          description: `Updated reward status to ${rewardUpdate.rewardStatus} for serial ${rewardUpdate.serialNumber} via bulk upload`,
           performedBy: session.user.id,
           targetType: 'InstallerReward',
           targetId: reward._id,
           metadata: {
             serialNumber: rewardUpdate.serialNumber,
-            paymentStatus: rewardUpdate.paymentStatus,
+            rewardStatus: rewardUpdate.rewardStatus,
             transactionId: rewardUpdate.transactionId,
             method: 'bulk_update',
           },
