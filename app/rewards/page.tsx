@@ -132,10 +132,7 @@ export default function RewardsPage() {
       const params = new URLSearchParams();
 
       // Only add non-default filter values to reduce API payload
-      if (
-        state.filters.rewardStatus &&
-        state.filters.rewardStatus !== "ALL"
-      ) {
+      if (state.filters.rewardStatus && state.filters.rewardStatus !== "ALL") {
         params.append("rewardStatus", state.filters.rewardStatus);
       }
       if (state.filters.sendingDate) {
@@ -578,303 +575,309 @@ export default function RewardsPage() {
   );
 
   return (
-    <div className="flex-1 overflow-auto space-y-4">
-      <PageHeader
-        title="Rewards & Installations"
-        Icon={IconReward}
-        description={
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage product installations and reward distributions
-          </p>
-        }
-        action={
-          <div className="flex gap-3">
-            <Button
-              onClick={() => router.push("/rewards/bulk-update")}
-              variant="outline"
-              disabled={isPageLoading}
-              title="Bulk Update"
-              className="gap-2"
-            >
-              Bulk Update
-              <IconLayer width={2} className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              onClick={() => router.push("/rewards/register")}
-              disabled={isPageLoading}
-              title="Register New Installation"
-              className="gap-2 pl-2"
-            >
-              <IconAdd width={2} className="h-3.5 w-3.5" />
-              Add Installation
-            </Button>
-          </div>
-        }
-      />
-
-      {/* Statistics Cards */}
-      <RewardsStatisticsCards statistics={statistics} />
-
-      {/* Date Range Filter Card */}
-      <Card className="bg-transparent">
-        <CardHeader className="flex-row items-center justify-between w-full bg-muted dark:bg-muted/50 border-b border-border">
-          <CardTitle className="text-lg font-semibold">
-            Rewards Database
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Last Updated:</span>
-              <span>{isPageLoading ? <Loading /> : refreshRelTime}</span>
-            </div>
-          </CardTitle>
-
-          <div className="flex items-center gap-2">
-            {/* DATE RANGE FILTER */}
-            <ToggleGroup
-              type="single"
-              value={state.filters.dateRange}
-              onValueChange={(value) => {
-                if (!value) return;
-                dispatch({
-                  type: "SET_FILTERS",
-                  payload: {
-                    dateRange: value as typeof state.filters.dateRange,
-                    customStartDate:
-                      value !== "custom" ? "" : state.filters.customStartDate,
-                    customEndDate:
-                      value !== "custom" ? "" : state.filters.customEndDate,
-                  },
-                });
-              }}
-              className={cn("h-9 bg-background", isPageLoading && "opacity-50")}
-              disabled={isPageLoading}
-            >
-              <ToggleGroupItem className="h-max p-2" value="all">
-                ALL
-              </ToggleGroupItem>
-              <ToggleGroupItem className="h-max p-2" value="today">
-                1D
-              </ToggleGroupItem>
-              <ToggleGroupItem className="h-max p-2" value="week">
-                1W
-              </ToggleGroupItem>
-              <ToggleGroupItem className="h-max p-2" value="month">
-                1M
-              </ToggleGroupItem>
-              <ToggleGroupItem className="h-max p-2" value="year">
-                1Y
-              </ToggleGroupItem>
-
-              <Popover
-                open={isCustomDateOpen}
-                onOpenChange={setIsCustomDateOpen}
+    <>
+      <div className="flex-1 overflow-auto space-y-4">
+        <PageHeader
+          title="Rewards & Installations"
+          Icon={IconReward}
+          description={
+            <p className="mt-1 text-sm text-muted-foreground">
+              Manage product installations and reward distributions
+            </p>
+          }
+          action={
+            <div className="flex gap-3">
+              <Button
+                onClick={() => router.push("/rewards/bulk-update")}
+                variant="outline"
+                disabled={isPageLoading}
+                title="Bulk Update"
+                className="gap-2"
               >
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      "hidden sm:flex gap-2 rounded-xl py-1.5 px-2 h-max",
-                      state.filters.dateRange === "custom"
-                        ? "text-primary bg-muted"
-                        : "text-muted-foreground"
-                    )}
-                    disabled={isPageLoading}
-                  >
-                    <IconClockCircle className="h-4 w-4" />
-                  </Button>
-                </PopoverTrigger>
+                Bulk Update
+                <IconLayer width={2} className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                onClick={() => router.push("/rewards/register")}
+                disabled={isPageLoading}
+                title="Register New Installation"
+                className="gap-2 pl-2"
+              >
+                <IconAdd width={2} className="h-3.5 w-3.5" />
+                Add Installation
+              </Button>
+            </div>
+          }
+        />
 
-                <PopoverContent
-                  className="w-full max-w-lg p-0 bg-card dark:bg-background overflow-hidden shadow-2xl"
-                  align="end"
+        {/* Statistics Cards */}
+        <RewardsStatisticsCards statistics={statistics} />
+
+        {/* Date Range Filter Card */}
+        <Card className="bg-transparent">
+          <CardHeader className="flex-row items-center justify-between w-full bg-muted dark:bg-muted/50 border-b border-border">
+            <CardTitle className="text-lg font-semibold">
+              Rewards Database
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Last Updated:</span>
+                <span>{isPageLoading ? <Loading /> : refreshRelTime}</span>
+              </div>
+            </CardTitle>
+
+            <div className="flex items-center gap-2">
+              {/* DATE RANGE FILTER */}
+              <ToggleGroup
+                type="single"
+                value={state.filters.dateRange}
+                onValueChange={(value) => {
+                  if (!value) return;
+                  dispatch({
+                    type: "SET_FILTERS",
+                    payload: {
+                      dateRange: value as typeof state.filters.dateRange,
+                      customStartDate:
+                        value !== "custom" ? "" : state.filters.customStartDate,
+                      customEndDate:
+                        value !== "custom" ? "" : state.filters.customEndDate,
+                    },
+                  });
+                }}
+                className={cn(
+                  "h-9 bg-background",
+                  isPageLoading && "opacity-50"
+                )}
+                disabled={isPageLoading}
+              >
+                <ToggleGroupItem className="h-max p-2" value="all">
+                  ALL
+                </ToggleGroupItem>
+                <ToggleGroupItem className="h-max p-2" value="today">
+                  1D
+                </ToggleGroupItem>
+                <ToggleGroupItem className="h-max p-2" value="week">
+                  1W
+                </ToggleGroupItem>
+                <ToggleGroupItem className="h-max p-2" value="month">
+                  1M
+                </ToggleGroupItem>
+                <ToggleGroupItem className="h-max p-2" value="year">
+                  1Y
+                </ToggleGroupItem>
+
+                <Popover
+                  open={isCustomDateOpen}
+                  onOpenChange={setIsCustomDateOpen}
                 >
-                  <div className="flex flex-col items-center">
-                    <div className="flex items-center justify-between p-4 border-b border-border w-full">
-                      <div>
-                        <h4 className="font-medium text-sm">
-                          Select Date Range
-                        </h4>
-                        <p className="text-xs text-muted-foreground">
-                          Custom date range for filtering rewards
-                        </p>
-                      </div>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "hidden sm:flex gap-2 rounded-xl py-1.5 px-2 h-max",
+                        state.filters.dateRange === "custom"
+                          ? "text-primary bg-muted"
+                          : "text-muted-foreground"
+                      )}
+                      disabled={isPageLoading}
+                    >
+                      <IconClockCircle className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
 
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          className="rounded-xl"
-                          variant="outline"
-                          onClick={() => {
-                            setDateRange(undefined);
-                            dispatch({
-                              type: "SET_FILTERS",
-                              payload: {
-                                dateRange: "all",
-                                customStartDate: "",
-                                customEndDate: "",
-                              },
-                            });
-                            setIsCustomDateOpen(false);
-                          }}
-                        >
-                          Clear
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="rounded-xl"
-                          onClick={() => {
-                            if (dateRange?.from && dateRange?.to) {
-                              // Convert dates to local date strings (YYYY-MM-DD)
-                              const fromDate = new Date(
-                                dateRange.from.getTime() -
-                                  dateRange.from.getTimezoneOffset() * 60000
-                              );
-                              const toDate = new Date(
-                                dateRange.to.getTime() -
-                                  dateRange.to.getTimezoneOffset() * 60000
-                              );
+                  <PopoverContent
+                    className="w-full max-w-lg p-0 bg-card dark:bg-background overflow-hidden shadow-2xl"
+                    align="end"
+                  >
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center justify-between p-4 border-b border-border w-full">
+                        <div>
+                          <h4 className="font-medium text-sm">
+                            Select Date Range
+                          </h4>
+                          <p className="text-xs text-muted-foreground">
+                            Custom date range for filtering rewards
+                          </p>
+                        </div>
 
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            className="rounded-xl"
+                            variant="outline"
+                            onClick={() => {
+                              setDateRange(undefined);
                               dispatch({
                                 type: "SET_FILTERS",
                                 payload: {
-                                  dateRange: "custom",
-                                  customStartDate: fromDate
-                                    .toISOString()
-                                    .split("T")[0],
-                                  customEndDate: toDate
-                                    .toISOString()
-                                    .split("T")[0],
+                                  dateRange: "all",
+                                  customStartDate: "",
+                                  customEndDate: "",
                                 },
                               });
                               setIsCustomDateOpen(false);
-                            }
-                          }}
-                          disabled={!dateRange?.from || !dateRange?.to}
-                        >
-                          Apply
-                        </Button>
+                            }}
+                          >
+                            Clear
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="rounded-xl"
+                            onClick={() => {
+                              if (dateRange?.from && dateRange?.to) {
+                                // Convert dates to local date strings (YYYY-MM-DD)
+                                const fromDate = new Date(
+                                  dateRange.from.getTime() -
+                                    dateRange.from.getTimezoneOffset() * 60000
+                                );
+                                const toDate = new Date(
+                                  dateRange.to.getTime() -
+                                    dateRange.to.getTimezoneOffset() * 60000
+                                );
+
+                                dispatch({
+                                  type: "SET_FILTERS",
+                                  payload: {
+                                    dateRange: "custom",
+                                    customStartDate: fromDate
+                                      .toISOString()
+                                      .split("T")[0],
+                                    customEndDate: toDate
+                                      .toISOString()
+                                      .split("T")[0],
+                                  },
+                                });
+                                setIsCustomDateOpen(false);
+                              }
+                            }}
+                            disabled={!dateRange?.from || !dateRange?.to}
+                          >
+                            Apply
+                          </Button>
+                        </div>
                       </div>
+                      <CalendarComponent
+                        mode="range"
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
+                        startMonth={new Date(2023, 0, 1)}
+                        disabled={(date) =>
+                          date > new Date() || date < new Date("2022-01-01")
+                        }
+                        excludeDisabled
+                        captionLayout="dropdown"
+                      />
                     </div>
-                    <CalendarComponent
-                      mode="range"
-                      selected={dateRange}
-                      onSelect={setDateRange}
-                      numberOfMonths={2}
-                      startMonth={new Date(2023, 0, 1)}
-                      disabled={(date) =>
-                        date > new Date() || date < new Date("2022-01-01")
-                      }
-                      excludeDisabled
-                      captionLayout="dropdown"
-                    />
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </ToggleGroup>
-            <Button
-              variant="outline"
-              onClick={fetchRewards}
-              disabled={isPageLoading}
-              title="Refresh data"
-              size="sm"
-              className="gap-2 rounded-2xl"
-            >
-              Refresh
-              <IconRefresh2 width={2} className="size-3.5!" />
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleDownloadReport}
-              disabled={
-                filtered.length === 0 ||
-                state.downloadingReport ||
-                isPageLoading
-              }
-              size="sm"
-              className="gap-2 rounded-2xl"
-            >
-              {state.downloadingReport ? (
-                <>
-                  Downloading <Loading />
-                </>
-              ) : (
-                <>
-                  Export
-                  <IconSquareShareLine width={2} className="size-3.5!" />
-                </>
-              )}
-            </Button>
-          </div>
-        </CardHeader>
+                  </PopoverContent>
+                </Popover>
+              </ToggleGroup>
+              <Button
+                variant="outline"
+                onClick={fetchRewards}
+                disabled={isPageLoading}
+                title="Refresh data"
+                size="sm"
+                className="gap-2 rounded-2xl"
+              >
+                Refresh
+                <IconRefresh2 width={2} className="size-3.5!" />
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleDownloadReport}
+                disabled={
+                  filtered.length === 0 ||
+                  state.downloadingReport ||
+                  isPageLoading
+                }
+                size="sm"
+                className="gap-2 rounded-2xl"
+              >
+                {state.downloadingReport ? (
+                  <>
+                    Downloading <Loading />
+                  </>
+                ) : (
+                  <>
+                    Export
+                    <IconSquareShareLine width={2} className="size-3.5!" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardHeader>
 
-        {/* Rewards Table */}
-        <RewardsTable
-          rewards={paginatedRewards}
-          totalRewards={filtered.length}
-          totalUnfilteredRewards={rewards.length}
-          loading={isPageLoading}
-          visibleColumns={state.visibleColumns}
-          selectedRewards={state.selectedRewards}
-          currentPage={state.currentPage}
-          itemsPerPage={state.itemsPerPage}
-          sortField={state.sortField}
-          sortDirection={state.sortDirection}
-          bulkDeleting={state.bulkDeleting}
-          lastUpdatedText={refreshRelTime}
-          filters={state.filters}
-          teamMembers={teamMembers}
-          uniqueValues={uniqueValues}
-          onToggleColumn={handleToggleColumn}
-          onToggleSort={handleToggleSort}
-          onToggleSelection={handleToggleSelection}
-          onToggleSelectAll={handleToggleSelectAll}
-          onEditClick={handleEditClick}
-          onDeleteClick={handleDeleteClick}
-          onBulkDelete={handleBulkDelete}
-          onPageChange={handlePageChange}
-          onItemsPerPageChange={handleItemsPerPageChange}
-          onClearFilter={handleClearFilter}
-          onFilterChange={handleFilterChange}
-          onClearAllFilters={handleClearFilters}
-        />
+          {/* Rewards Table */}
+          <RewardsTable
+            rewards={paginatedRewards}
+            totalRewards={filtered.length}
+            totalUnfilteredRewards={rewards.length}
+            loading={isPageLoading}
+            visibleColumns={state.visibleColumns}
+            selectedRewards={state.selectedRewards}
+            currentPage={state.currentPage}
+            itemsPerPage={state.itemsPerPage}
+            sortField={state.sortField}
+            sortDirection={state.sortDirection}
+            bulkDeleting={state.bulkDeleting}
+            lastUpdatedText={refreshRelTime}
+            filters={state.filters}
+            teamMembers={teamMembers}
+            uniqueValues={uniqueValues}
+            onToggleColumn={handleToggleColumn}
+            onToggleSort={handleToggleSort}
+            onToggleSelection={handleToggleSelection}
+            onToggleSelectAll={handleToggleSelectAll}
+            onEditClick={handleEditClick}
+            onDeleteClick={handleDeleteClick}
+            onBulkDelete={handleBulkDelete}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+            onClearFilter={handleClearFilter}
+            onFilterChange={handleFilterChange}
+            onClearAllFilters={handleClearFilters}
+          />
 
-        {/* Edit Modal */}
-        <RewardEditModal
-          open={state.editModalOpen}
-          onOpenChange={handleCloseEditModal}
-          rewardId={state.selectedRewardId}
-          onSuccess={fetchRewards}
-        />
+          {/* Edit Modal */}
+          <RewardEditModal
+            open={state.editModalOpen}
+            onOpenChange={handleCloseEditModal}
+            rewardId={state.selectedRewardId}
+            onSuccess={fetchRewards}
+          />
 
-        {/* Delete Confirmation Dialog */}
-        <DeleteConfirmationDialog
-          open={state.deleteDialogState.open}
-          status={state.deleteDialogState.status}
-          itemName={state.deleteDialogState.rewardSerialNumber}
-          message={state.deleteDialogState.message}
-          entityType="reward"
-          warningMessage="The reward will be permanently removed from the database."
-          onConfirm={() => {
-            if (
-              state.deleteDialogState.rewardId &&
-              state.deleteDialogState.rewardSerialNumber
-            ) {
-              handleDelete(
-                state.deleteDialogState.rewardId,
+          {/* Delete Confirmation Dialog */}
+          <DeleteConfirmationDialog
+            open={state.deleteDialogState.open}
+            status={state.deleteDialogState.status}
+            itemName={state.deleteDialogState.rewardSerialNumber}
+            message={state.deleteDialogState.message}
+            entityType="reward"
+            warningMessage="The reward will be permanently removed from the database."
+            onConfirm={() => {
+              if (
+                state.deleteDialogState.rewardId &&
                 state.deleteDialogState.rewardSerialNumber
-              );
-            }
-          }}
-          onClose={() => dispatch({ type: "RESET_DELETE_DIALOG" })}
-        />
-        {/* Bulk Delete Result Dialog */}
-        <BulkDeleteResultDialog
-          open={state.bulkDeleteResultState.open}
-          successCount={state.bulkDeleteResultState.successCount}
-          failCount={state.bulkDeleteResultState.failCount}
-          failures={state.bulkDeleteResultState.failures}
-          entityType="reward"
-          onClose={() => dispatch({ type: "RESET_BULK_DELETE_RESULT" })}
-        />
-      </Card>
-    </div>
+              ) {
+                handleDelete(
+                  state.deleteDialogState.rewardId,
+                  state.deleteDialogState.rewardSerialNumber
+                );
+              }
+            }}
+            onClose={() => dispatch({ type: "RESET_DELETE_DIALOG" })}
+          />
+        </Card>
+      </div>
+
+      {/* Bulk Delete Result Dialog */}
+      <BulkDeleteResultDialog
+        open={state.bulkDeleteResultState.open}
+        successCount={state.bulkDeleteResultState.successCount}
+        failCount={state.bulkDeleteResultState.failCount}
+        failures={state.bulkDeleteResultState.failures}
+        entityType="reward"
+        onClose={() => dispatch({ type: "RESET_BULK_DELETE_RESULT" })}
+      />
+    </>
   );
 }

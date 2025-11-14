@@ -1552,6 +1552,8 @@ export default function BulkUploadInstallersPage() {
 
       {/* Progress Modal */}
       <BulkUploadProgressModal
+        title="Installers Bulk Register"
+        description="Installers Bulk Registeration in process"
         isOpen={showProgressModal}
         steps={uploadSteps}
         totalRecords={preview.filter((p) => p.isValid).length}

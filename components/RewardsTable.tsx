@@ -1,5 +1,6 @@
-import React, { Activity, useCallback, useMemo, useState } from "react";
+import React, { Activity, useCallback, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Loader2,
@@ -7,9 +8,6 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,6 +52,7 @@ import Dropdown, {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { CopyButton } from "@/components/CopyButton";
 import {
   IconEdit2,
   IconTrashBin2,
@@ -67,7 +66,6 @@ import {
   IconSetting4,
   IconCheck,
 } from "@/components/icons";
-import { TableSkeleton } from "@/components/TableSkeleton";
 import { EmptyState } from "@/components/EmptyState";
 import Loading from "@/components/ui/loading";
 import { RewardsTableRow } from "./RewardsTableRow";
@@ -166,6 +164,17 @@ export const RewardsTable = React.memo<RewardsTableProps>(
     const router = useRouter();
     const [showFilters, setShowFilters] = useState(false);
 
+    // Virtual scrolling ref for large datasets
+    const parentRef = useRef<HTMLDivElement>(null);
+
+    // Virtual scrolling setup
+    const rowVirtualizer = useVirtualizer({
+      count: rewards.length,
+      getScrollElement: () => parentRef.current,
+      estimateSize: () => 65, // Estimated row height in pixels
+      overscan: 5, // Number of items to render outside of visible area
+    });
+
     // Get team member name by ID
     const getTeamMemberName = useCallback(
       (teamMemberId: string) => {
@@ -180,39 +189,22 @@ export const RewardsTable = React.memo<RewardsTableProps>(
       [visibleColumns]
     );
 
-    const totalPages = useMemo(
-      () => Math.ceil(totalRewards / itemsPerPage),
-      [totalRewards, itemsPerPage]
-    );
-
     const allSelected = useMemo(
       () =>
         rewards.length > 0 && rewards.every((r) => selectedRewards.has(r._id)),
       [rewards, selectedRewards]
     );
 
-    const getSortIcon = useCallback(
-      (field: string) => {
-        if (sortField !== field) {
-          return (
-            <IconSortVertical className="size-4 ml-1 inline text-muted-foreground/50" />
-          );
-        }
-        return sortDirection === "asc" ? (
-          <IconSortVertical
-            duotone
-            className="size-4 ml-1 inline text-primary"
-          />
-        ) : (
-          <IconSortVertical
-            duotone
-            className="size-4 ml-1 inline rotate-180 text-primary"
-          />
-        );
-      },
-      [sortField, sortDirection]
+    // Pagination calculations
+    const totalPages = useMemo(
+      () => Math.ceil(totalRewards / itemsPerPage),
+      [totalRewards, itemsPerPage]
     );
 
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+
+    // Pagination handlers
     const handleItemsPerPageChange = useCallback(
       (value: string) => {
         onItemsPerPageChange(Number(value));
@@ -236,9 +228,27 @@ export const RewardsTable = React.memo<RewardsTableProps>(
       onPageChange(totalPages);
     }, [onPageChange, totalPages]);
 
-    // Pagination calculations
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
+    const getSortIcon = useCallback(
+      (field: string) => {
+        if (sortField !== field) {
+          return (
+            <IconSortVertical className="size-4 ml-1 inline text-muted-foreground/50" />
+          );
+        }
+        return sortDirection === "asc" ? (
+          <IconSortVertical
+            duotone
+            className="size-4 ml-1 inline text-primary"
+          />
+        ) : (
+          <IconSortVertical
+            duotone
+            className="size-4 ml-1 inline rotate-180 text-primary"
+          />
+        );
+      },
+      [sortField, sortDirection]
+    );
 
     return (
       <>
@@ -430,6 +440,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                 <Select
                   value={String(itemsPerPage)}
                   onValueChange={handleItemsPerPageChange}
+                  disabled={loading}
                 >
                   <SelectTrigger className="h-6 w-max gap-1 px-1 pl-2 rounded-md">
                     <SelectValue />
@@ -733,166 +744,442 @@ export const RewardsTable = React.memo<RewardsTableProps>(
               </div>
             </CardContent>
           </Activity>
-          {/* REWARDS DATATABLE */}
-          <Table>
-            <TableHeader>
-              <TableRow className="light:bg-muted light:hover:bg-muted dark:bg-muted/50">
-                <TableHead className="text-center w-12">
+          {/* REWARDS DATATABLE with Virtual Scrolling */}
+          <div className="overflow-hidden">
+            {/* Table Header - Fixed */}
+            <div className="bg-muted/50 border-b border-border sticky top-0 z-10">
+              <div className="flex w-full">
+                <div className="w-12 px-4 py-3 text-sm font-semibold flex items-center justify-center flex-shrink-0">
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={onToggleSelectAll}
                     aria-label="Select all rewards on this page"
                   />
-                </TableHead>
+                </div>
                 {visibleColumns.installerCode && (
-                  <TableHead
-                    className="cursor-pointer font-semibold"
+                  <div
+                    className="flex-1 min-w-[140px] px-4 py-3 text-sm font-semibold cursor-pointer"
                     onClick={() => onToggleSort("installerCode")}
                   >
                     Installer Code {getSortIcon("installerCode")}
-                  </TableHead>
+                  </div>
                 )}
                 {visibleColumns.installer && (
-                  <TableHead
-                    className="cursor-pointer font-semibold"
+                  <div
+                    className="flex-1 min-w-[160px] px-4 py-3 text-sm font-semibold cursor-pointer"
                     onClick={() => onToggleSort("installer")}
                   >
                     Installer Name {getSortIcon("installer")}
-                  </TableHead>
+                  </div>
                 )}
                 {visibleColumns.serialNumber && (
-                  <TableHead
-                    className="cursor-pointer font-semibold"
+                  <div
+                    className="flex-1 min-w-[140px] px-4 py-3 text-sm font-semibold cursor-pointer"
                     onClick={() => onToggleSort("serialNumber")}
                   >
                     Serial Number {getSortIcon("serialNumber")}
-                  </TableHead>
+                  </div>
                 )}
                 {visibleColumns.productModel && (
-                  <TableHead
-                    className="cursor-pointer font-semibold"
+                  <div
+                    className="flex-1 min-w-[180px] px-4 py-3 text-sm font-semibold cursor-pointer"
                     onClick={() => onToggleSort("productModel")}
                   >
                     Product Model {getSortIcon("productModel")}
-                  </TableHead>
+                  </div>
                 )}
                 {visibleColumns.cityOfInstallation && (
-                  <TableHead
-                    className="cursor-pointer font-semibold"
+                  <div
+                    className="flex-1 min-w-[120px] px-4 py-3 text-sm font-semibold cursor-pointer"
                     onClick={() => onToggleSort("cityOfInstallation")}
                   >
                     City {getSortIcon("cityOfInstallation")}
-                  </TableHead>
+                  </div>
                 )}
                 {visibleColumns.rewardAmount && (
-                  <TableHead
-                    className="cursor-pointer font-semibold"
+                  <div
+                    className="flex-1 min-w-[110px] px-4 py-3 text-sm font-semibold cursor-pointer"
                     onClick={() => onToggleSort("rewardAmount")}
                   >
                     Amount {getSortIcon("rewardAmount")}
-                  </TableHead>
+                  </div>
                 )}
                 {visibleColumns.rewardStatus && (
-                  <TableHead
-                    className="cursor-pointer font-semibold"
+                  <div
+                    className="flex-1 min-w-[110px] px-4 py-3 text-sm font-semibold cursor-pointer"
                     onClick={() => onToggleSort("rewardStatus")}
                   >
                     Status {getSortIcon("rewardStatus")}
-                  </TableHead>
+                  </div>
                 )}
                 {visibleColumns.paymentMethod && (
-                  <TableHead className="font-semibold">
+                  <div className="flex-1 min-w-[120px] px-4 py-3 text-sm font-semibold">
                     Payment Method
-                  </TableHead>
+                  </div>
                 )}
                 {visibleColumns.transactionId && (
-                  <TableHead className="font-semibold">
+                  <div className="flex-1 min-w-[140px] px-4 py-3 text-sm font-semibold">
                     Transaction ID
-                  </TableHead>
+                  </div>
                 )}
                 {visibleColumns.sendingDate && (
-                  <TableHead
-                    className="cursor-pointer font-semibold"
+                  <div
+                    className="flex-1 min-w-[130px] px-4 py-3 text-sm font-semibold cursor-pointer"
                     onClick={() => onToggleSort("sendingDate")}
                   >
                     Sending Date {getSortIcon("sendingDate")}
-                  </TableHead>
+                  </div>
                 )}
                 {visibleColumns.inverterSerialNumber && (
-                  <TableHead className="font-semibold">
+                  <div className="flex-1 min-w-[140px] px-4 py-3 text-sm font-semibold">
                     Inverter Serial
-                  </TableHead>
+                  </div>
                 )}
                 {visibleColumns.registeredBy && (
-                  <TableHead className="font-semibold">Registered By</TableHead>
+                  <div className="flex-1 min-w-[150px] px-4 py-3 text-sm font-semibold">
+                    Registered By
+                  </div>
                 )}
                 {visibleColumns.referrerName && (
-                  <TableHead className="font-semibold">Referrer Name</TableHead>
+                  <div className="flex-1 min-w-[130px] px-4 py-3 text-sm font-semibold">
+                    Referrer Name
+                  </div>
                 )}
                 {visibleColumns.referrerTransactionId && (
-                  <TableHead className="font-semibold">
+                  <div className="flex-1 min-w-[160px] px-4 py-3 text-sm font-semibold">
                     Referrer Transaction ID
-                  </TableHead>
+                  </div>
                 )}
                 {visibleColumns.referrerReward && (
-                  <TableHead
-                    className="cursor-pointer font-semibold"
+                  <div
+                    className="flex-1 min-w-[120px] px-4 py-3 text-sm font-semibold cursor-pointer"
                     onClick={() => onToggleSort("referrerRewardAmount")}
                   >
                     Referrer Reward {getSortIcon("referrerRewardAmount")}
-                  </TableHead>
+                  </div>
                 )}
-                <TableHead className="font-semibold">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableSkeleton
-                  rows={itemsPerPage}
-                  actionIcons={[IconEdit2, IconTrashBin2]}
-                  excludeLastColumn={true}
-                  isCheck={false}
-                />
-              ) : totalRewards === 0 ? (
-                <TableRow className="p-4 hover:bg-transparent">
-                  <TableCell
-                    colSpan={activeColumnsLength + 3}
-                    className="w-full place-items-center p-0"
+                <div className="w-32 px-4 py-3 text-sm font-semibold flex-shrink-0">
+                  Actions
+                </div>
+              </div>
+            </div>
+
+            {/* Virtual Scrolling Container */}
+            {loading ? (
+              <div className="overflow-hidden" style={{ height: "650px" }}>
+                {Array.from({ length: 10 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="flex w-full border-b border-border animate-pulse"
+                    style={{ height: "65px" }}
                   >
-                    <EmptyState
-                      title="No Products Registered"
-                      description="You can register a new product to add in rewards."
-                      icons={[IconActivity]}
-                      className="w-full border-none rounded-none"
-                      action={{
-                        label: (
-                          <div className="flex items-center gap-2">
-                            Register Product
-                            <IconAdd />
+                    <div className="w-12 px-4 py-3 flex items-center justify-center flex-shrink-0">
+                      <div className="h-4 w-4 bg-muted rounded" />
+                    </div>
+                    {visibleColumns.installerCode && (
+                      <div className="flex-1 min-w-[140px] px-4 py-3 flex items-center">
+                        <div className="h-4 bg-muted rounded w-3/4" />
+                      </div>
+                    )}
+                    {visibleColumns.installer && (
+                      <div className="flex-1 min-w-[160px] px-4 py-3 flex items-center">
+                        <div className="h-4 bg-muted rounded w-2/3" />
+                      </div>
+                    )}
+                    {visibleColumns.serialNumber && (
+                      <div className="flex-1 min-w-[140px] px-4 py-3 flex items-center">
+                        <div className="h-4 bg-muted rounded w-3/4" />
+                      </div>
+                    )}
+                    {visibleColumns.productModel && (
+                      <div className="flex-1 min-w-[180px] px-4 py-3 flex items-center">
+                        <div className="h-4 bg-muted rounded w-4/5" />
+                      </div>
+                    )}
+                    {visibleColumns.cityOfInstallation && (
+                      <div className="flex-1 min-w-[120px] px-4 py-3 flex items-center">
+                        <div className="h-4 bg-muted rounded w-3/5" />
+                      </div>
+                    )}
+                    {visibleColumns.rewardAmount && (
+                      <div className="flex-1 min-w-[110px] px-4 py-3 flex items-center">
+                        <div className="h-4 bg-muted rounded w-1/2" />
+                      </div>
+                    )}
+                    {visibleColumns.rewardStatus && (
+                      <div className="flex-1 min-w-[110px] px-4 py-3 flex items-center">
+                        <div className="h-5 bg-muted rounded-full w-16" />
+                      </div>
+                    )}
+                    {visibleColumns.paymentMethod && (
+                      <div className="flex-1 min-w-[120px] px-4 py-3 flex items-center">
+                        <div className="h-4 bg-muted rounded w-3/5" />
+                      </div>
+                    )}
+                    {visibleColumns.transactionId && (
+                      <div className="flex-1 min-w-[140px] px-4 py-3 flex items-center">
+                        <div className="h-4 bg-muted rounded w-4/5" />
+                      </div>
+                    )}
+                    {visibleColumns.sendingDate && (
+                      <div className="flex-1 min-w-[130px] px-4 py-3 flex items-center">
+                        <div className="h-4 bg-muted rounded w-3/5" />
+                      </div>
+                    )}
+                    {visibleColumns.inverterSerialNumber && (
+                      <div className="flex-1 min-w-[140px] px-4 py-3 flex items-center">
+                        <div className="h-4 bg-muted rounded w-3/4" />
+                      </div>
+                    )}
+                    {visibleColumns.registeredBy && (
+                      <div className="flex-1 min-w-[150px] px-4 py-3 flex items-center">
+                        <div className="h-4 bg-muted rounded w-2/3" />
+                      </div>
+                    )}
+                    {visibleColumns.referrerName && (
+                      <div className="flex-1 min-w-[130px] px-4 py-3 flex items-center">
+                        <div className="h-4 bg-muted rounded w-2/3" />
+                      </div>
+                    )}
+                    {visibleColumns.referrerTransactionId && (
+                      <div className="flex-1 min-w-[160px] px-4 py-3 flex items-center">
+                        <div className="h-4 bg-muted rounded w-4/5" />
+                      </div>
+                    )}
+                    {visibleColumns.referrerReward && (
+                      <div className="flex-1 min-w-[120px] px-4 py-3 flex items-center">
+                        <div className="h-4 bg-muted rounded w-1/2" />
+                      </div>
+                    )}
+                    <div className="w-32 px-4 py-3 flex items-center gap-2 flex-shrink-0">
+                      <div className="h-8 w-8 bg-muted rounded" />
+                      <div className="h-8 w-8 bg-muted rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : totalRewards === 0 ? (
+              <Table>
+                <TableBody>
+                  <TableRow className="p-4 hover:bg-transparent">
+                    <TableCell
+                      colSpan={activeColumnsLength + 3}
+                      className="w-full place-items-center p-0"
+                    >
+                      <EmptyState
+                        title="No Products Registered"
+                        description="You can register a new product to add in rewards."
+                        icons={[IconActivity]}
+                        className="w-full border-none rounded-none"
+                        action={{
+                          label: (
+                            <div className="flex items-center gap-2">
+                              Register Product
+                              <IconAdd />
+                            </div>
+                          ),
+                          onClick: () => router.push("/rewards/register"),
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            ) : (
+              <div
+                ref={parentRef}
+                className="overflow-auto"
+                style={{ height: "650px" }}
+              >
+                <div
+                  style={{
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    width: "100%",
+                    position: "relative",
+                  }}
+                >
+                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const reward = rewards[virtualRow.index];
+                    const isSelected = selectedRewards.has(reward._id);
+
+                    return (
+                      <div
+                        key={virtualRow.key}
+                        id={`reward-${reward._id}`}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: `${virtualRow.size}px`,
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                        className="flex w-full border-b border-border transition-colors hover:bg-muted/50"
+                      >
+                        <div className="w-12 px-4 py-3 text-sm flex items-center justify-center flex-shrink-0">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() =>
+                              onToggleSelection(reward._id)
+                            }
+                            aria-label={`Select ${reward.serialNumber}`}
+                          />
+                        </div>
+                        {visibleColumns.installerCode && (
+                          <div className="flex-1 min-w-[140px] px-4 py-3 text-sm flex items-center">
+                            <div className="flex items-center">
+                              {reward.installerCode}
+                              <CopyButton
+                                text={reward.installerCode}
+                                label="Installer Code"
+                              />
+                            </div>
                           </div>
-                        ),
-                        onClick: () => router.push("/rewards/register"),
-                      }}
-                    />
-                  </TableCell>
-                </TableRow>
-              ) : (
-                <>
-                  {rewards.map((reward) => (
-                    <RewardsTableRow
-                      key={reward._id}
-                      reward={reward}
-                      visibleColumns={visibleColumns}
-                      isSelected={selectedRewards.has(reward._id)}
-                      onToggleSelection={onToggleSelection}
-                      onEditClick={onEditClick}
-                      onDeleteClick={onDeleteClick}
-                    />
-                  ))}
-                </>
-              )}
-            </TableBody>
-          </Table>
+                        )}
+                        {visibleColumns.installer && (
+                          <div className="flex-1 min-w-[160px] px-4 py-3 text-sm flex items-center">
+                            {reward.installer?.fullName || "N/A"}
+                          </div>
+                        )}
+                        {visibleColumns.serialNumber && (
+                          <div className="flex-1 min-w-[140px] px-4 py-3 text-sm flex items-center">
+                            <div
+                              className="flex items-center cursor-pointer font-medium"
+                              onClick={() =>
+                                router.push(`/rewards/${reward._id}`)
+                              }
+                            >
+                              {reward.serialNumber}
+                              <CopyButton
+                                text={reward.serialNumber}
+                                label="Serial Number"
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {visibleColumns.productModel && (
+                          <div className="flex-1 min-w-[180px] px-4 py-3 text-sm flex items-center">
+                            {reward.productModel}
+                          </div>
+                        )}
+                        {visibleColumns.cityOfInstallation && (
+                          <div className="flex-1 min-w-[120px] px-4 py-3 text-sm flex items-center">
+                            {reward.cityOfInstallation}
+                          </div>
+                        )}
+                        {visibleColumns.rewardAmount && (
+                          <div className="flex-1 min-w-[110px] px-4 py-3 text-sm flex items-center">
+                            Rs. {reward.rewardAmount.toLocaleString()}
+                          </div>
+                        )}
+                        {visibleColumns.rewardStatus && (
+                          <div className="flex-1 min-w-[110px] px-4 py-3 text-sm flex items-center">
+                            <Badge
+                              variant={
+                                reward.rewardStatus === "PAID"
+                                  ? "default"
+                                  : reward.rewardStatus === "PENDING"
+                                  ? "secondary"
+                                  : "destructive"
+                              }
+                            >
+                              {reward.rewardStatus}
+                            </Badge>
+                          </div>
+                        )}
+                        {visibleColumns.paymentMethod && (
+                          <div className="flex-1 min-w-[120px] px-4 py-3 text-sm flex items-center">
+                            {reward.paymentMethod || "N/A"}
+                          </div>
+                        )}
+                        {visibleColumns.transactionId && (
+                          <div className="flex-1 min-w-[140px] px-4 py-3 text-sm flex items-center">
+                            {reward.transactionId ? (
+                              <div className="flex items-center">
+                                {reward.transactionId}
+                                <CopyButton
+                                  text={reward.transactionId}
+                                  label="Transaction ID"
+                                />
+                              </div>
+                            ) : (
+                              "N/A"
+                            )}
+                          </div>
+                        )}
+                        {visibleColumns.sendingDate && (
+                          <div className="flex-1 min-w-[130px] px-4 py-3 text-sm flex items-center">
+                            {reward.sendingDate
+                              ? new Date(
+                                  reward.sendingDate
+                                ).toLocaleDateString()
+                              : "N/A"}
+                          </div>
+                        )}
+                        {visibleColumns.inverterSerialNumber && (
+                          <div className="flex-1 min-w-[140px] px-4 py-3 text-sm flex items-center">
+                            {reward.inverterSerialNumber || "N/A"}
+                          </div>
+                        )}
+                        {visibleColumns.registeredBy && (
+                          <div className="flex-1 min-w-[150px] px-4 py-3 text-sm flex items-center">
+                            {reward.registeredBy?.name || "N/A"}
+                          </div>
+                        )}
+                        {visibleColumns.referrerName && (
+                          <div className="flex-1 min-w-[130px] px-4 py-3 text-sm flex items-center">
+                            {reward.referrer?.fullName || "N/A"}
+                          </div>
+                        )}
+                        {visibleColumns.referrerTransactionId && (
+                          <div className="flex-1 min-w-[160px] px-4 py-3 text-sm flex items-center">
+                            {reward.referrerTransactionId ? (
+                              <div className="flex items-center">
+                                {reward.referrerTransactionId}
+                                <CopyButton
+                                  text={reward.referrerTransactionId}
+                                  label="Referrer Transaction ID"
+                                />
+                              </div>
+                            ) : (
+                              "N/A"
+                            )}
+                          </div>
+                        )}
+                        {visibleColumns.referrerReward && (
+                          <div className="flex-1 min-w-[120px] px-4 py-3 text-sm flex items-center">
+                            {reward.referrerRewardAmount
+                              ? `Rs. ${reward.referrerRewardAmount.toLocaleString()}`
+                              : "N/A"}
+                          </div>
+                        )}
+                        <div className="w-32 px-4 py-3 text-sm flex items-center gap-2 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onEditClick(reward._id)}
+                            title="Edit"
+                          >
+                            <IconEdit2 />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              onDeleteClick(reward._id, reward.serialNumber)
+                            }
+                            title="Delete"
+                          >
+                            <IconTrashBin2 className="text-destructive-text" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
         <CardFooter className="flex items-center justify-between p-4 relative bg-muted dark:bg-muted/50 text-xs text-muted-foreground">
           {/* Pagination Controls */}
@@ -901,6 +1188,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
             <Select
               value={String(itemsPerPage)}
               onValueChange={handleItemsPerPageChange}
+              disabled={loading}
             >
               <SelectTrigger className="h-6 w-max gap-1 px-1 pl-2 rounded-md">
                 <SelectValue />
@@ -976,94 +1264,93 @@ export const RewardsTable = React.memo<RewardsTableProps>(
               </span>
             )}
           </div>
-
-          <div className="absolute pb-4 inset-0 w-full h-full flex items-center justify-center pointer-events-none">
-            {selectedRewards.size > 0 && (
-              <AnimatePresence>
-                <motion.div
-                  initial={{
-                    opacity: 0,
-                    y: 5,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    y: 0,
-                  }}
-                  exit={{ opacity: 0, y: 5 }}
-                  className={cn(
-                    "border border-border rounded-2xl p-2 flex items-center gap-2 relative bg-background/40 backdrop-blur-xs pointer-events-auto"
-                  )}
-                >
-                  <div className="px-4 py-3 bg-background rounded-xl flex items-center justify-center leading-none select-none">
-                    Selected: {selectedRewards.size}
-                  </div>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="destructive"
-                        size={"icon"}
+        </CardFooter>
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-20 flex items-center justify-center pointer-events-none">
+          {selectedRewards.size > 0 && (
+            <AnimatePresence>
+              <motion.div
+                initial={{
+                  opacity: 0,
+                  y: 5,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                exit={{ opacity: 0, y: 5 }}
+                className={cn(
+                  "border border-border rounded-2xl p-2 flex items-center gap-2 relative bg-background/40 backdrop-blur-xs pointer-events-auto"
+                )}
+              >
+                <div className="px-4 py-3 bg-background rounded-xl flex items-center justify-center leading-none select-none">
+                  Selected: {selectedRewards.size}
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size={"icon"}
+                      disabled={bulkDeleting}
+                      className="gap-1"
+                    >
+                      {bulkDeleting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <IconTrashBin2 width={2} />
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="rounded-4xl">
+                    <AlertDialogHeader className="flex flex-col items-center">
+                      <IconTrashBin2
+                        className="size-32 text-destructive-text"
+                        fill
+                        opacity={"0.2"}
+                        duotone={true}
+                      />
+                      <AlertDialogTitle>
+                        Delete {selectedRewards.size} Reward
+                        {selectedRewards.size > 1 ? "s" : ""}?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="w-19/20 flex flex-col items-center text-balance">
+                        This will permanently delete the selected rewards.
+                        <span className="mt-6 flex gap-2 text-destructive-text">
+                          <IconInfoCircle className="size-8" />
+                          <span>
+                            This action cannot be undone. <br />
+                            The rewards will be permanently removed from the
+                            database.
+                          </span>
+                        </span>
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-4">
+                      <AlertDialogAction
+                        onClick={onBulkDelete}
                         disabled={bulkDeleting}
-                        className="gap-1"
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full rounded-full"
                       >
                         {bulkDeleting ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Deleting...
+                          </>
                         ) : (
-                          <IconTrashBin2 width={2} />
+                          `Delete ${selectedRewards.size} Reward${
+                            selectedRewards.size > 1 ? "s" : ""
+                          }`
                         )}
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="rounded-4xl">
-                      <AlertDialogHeader className="flex flex-col items-center">
-                        <IconTrashBin2
-                          className="size-32 text-destructive-text"
-                          fill
-                          opacity={"0.2"}
-                          duotone={true}
-                        />
-                        <AlertDialogTitle>
-                          Delete {selectedRewards.size} Reward
-                          {selectedRewards.size > 1 ? "s" : ""}?
-                        </AlertDialogTitle>
-                        <AlertDialogDescription className="w-19/20 flex flex-col items-center text-balance">
-                          This will permanently delete the selected rewards.
-                          <span className="mt-6 flex gap-2 text-destructive-text">
-                            <IconInfoCircle className="size-8" />
-                            <span>
-                              This action cannot be undone. <br />
-                              The rewards will be permanently removed from the
-                              database.
-                            </span>
-                          </span>
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter className="mt-4">
-                        <AlertDialogAction
-                          onClick={onBulkDelete}
-                          disabled={bulkDeleting}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full rounded-full"
-                        >
-                          {bulkDeleting ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Deleting...
-                            </>
-                          ) : (
-                            `Delete ${selectedRewards.size} Reward${
-                              selectedRewards.size > 1 ? "s" : ""
-                            }`
-                          )}
-                        </AlertDialogAction>
-                        <AlertDialogCancel className="w-full">
-                          Cancel
-                        </AlertDialogCancel>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </motion.div>
-              </AnimatePresence>
-            )}
-          </div>
-        </CardFooter>
+                      </AlertDialogAction>
+                      <AlertDialogCancel className="w-full">
+                        Cancel
+                      </AlertDialogCancel>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </motion.div>
+            </AnimatePresence>
+          )}
+        </div>
       </>
     );
   }

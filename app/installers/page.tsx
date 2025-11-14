@@ -6,7 +6,9 @@ import {
   useCallback,
   memo,
   Activity,
+  useRef,
 } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { LazyInstallerEditModal } from "@/components/installers/LazyModals";
@@ -61,7 +63,6 @@ import IconLayer from "@/components/icons/Layer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useRelativeTime } from "@/lib/getRelativeTime";
-import { TableSkeleton } from "@/components/TableSkeleton";
 import {
   IconActivity,
   IconAdd,
@@ -720,6 +721,17 @@ export default function InstallersPage() {
   // Get paginated data (filteredInstallers is already sorted)
   const paginatedInstallers = filteredInstallers.slice(startIndex, endIndex);
 
+  // Virtual scrolling ref for large datasets
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  // Virtual scrolling setup
+  const rowVirtualizer = useVirtualizer({
+    count: paginatedInstallers.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 65, // Estimated row height in pixels
+    overscan: 5, // Number of items to render outside of visible area
+  });
+
   // Use React Query's dataUpdatedAt for last update time
   const refreshRelTime = useRelativeTime(new Date(dataUpdatedAt));
 
@@ -1080,7 +1092,7 @@ export default function InstallersPage() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-0! light:bg-muted/50">
+        <CardContent className="p-0! light:bg-muted/50 relative">
           {/* TABLE */}
           <div>
             <div className="flex justify-between p-4 dark:bg-muted/30">
@@ -1492,10 +1504,12 @@ export default function InstallersPage() {
                 </div>
               </CardContent>
             </Activity>
-            <Table>
-              <TableHeader>
-                <TableRow className="light:bg-muted light:hover:bg-muted dark:bg-muted/50">
-                  <TableHead className="text-center w-12">
+            {/* Table with Virtual Scrolling */}
+            <div className="overflow-hidden">
+              {/* Table Header - Fixed */}
+              <div className="bg-muted/50 border-b border-border sticky top-0 z-10">
+                <div className="flex w-full">
+                  <div className="w-12 px-4 py-3 text-sm font-semibold flex items-center justify-center shrink-0">
                     <Checkbox
                       checked={
                         paginatedInstallers.length > 0 &&
@@ -1512,135 +1526,377 @@ export default function InstallersPage() {
                       onCheckedChange={toggleSelectAll}
                       aria-label="Select all installers on this page"
                     />
-                  </TableHead>
+                  </div>
                   {visibleColumns.installerCode && (
-                    <TableHead
-                      className="cursor-pointer font-semibold"
+                    <div
+                      className="flex-1 min-w-[140px] px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
                       onClick={() => handleSort("installerCode")}
                     >
                       Installer Code {getSortIcon("installerCode")}
-                    </TableHead>
+                    </div>
                   )}
                   {visibleColumns.fullName && (
-                    <TableHead
-                      className="cursor-pointer font-semibold"
+                    <div
+                      className="flex-1 min-w-40 px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
                       onClick={() => handleSort("fullName")}
                     >
                       Name {getSortIcon("fullName")}
-                    </TableHead>
+                    </div>
                   )}
                   {visibleColumns.cnic && (
-                    <TableHead
-                      className="cursor-pointer font-semibold"
+                    <div
+                      className="flex-1 min-w-[140px] px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
                       onClick={() => handleSort("cnic")}
                     >
                       CNIC {getSortIcon("cnic")}
-                    </TableHead>
+                    </div>
                   )}
                   {visibleColumns.phoneNumber && (
-                    <TableHead className="font-semibold">Phone</TableHead>
+                    <div className="flex-1 min-w-[140px] px-4 py-3 text-sm font-semibold whitespace-nowrap">
+                      Phone
+                    </div>
                   )}
                   {visibleColumns.city && (
-                    <TableHead
-                      className="cursor-pointer font-semibold"
+                    <div
+                      className="flex-1 min-w-[120px] px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
                       onClick={() => handleSort("city")}
                     >
                       City {getSortIcon("city")}
-                    </TableHead>
+                    </div>
                   )}
                   {visibleColumns.province && (
-                    <TableHead className="cursor-pointer font-semibold">
+                    <div
+                      className="flex-1 min-w-[120px] px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
+                      onClick={() => handleSort("province")}
+                    >
                       Province {getSortIcon("province")}
-                    </TableHead>
+                    </div>
                   )}
                   {visibleColumns.trainingCenter && (
-                    <TableHead
-                      className="cursor-pointer font-semibold"
+                    <div
+                      className="flex-1 min-w-40 px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
                       onClick={() => handleSort("trainingCenter")}
                     >
                       Training Center {getSortIcon("trainingCenter")}
-                    </TableHead>
+                    </div>
                   )}
                   {visibleColumns.companyName && (
-                    <TableHead className="font-semibold">Company</TableHead>
+                    <div className="flex-1 min-w-40 px-4 py-3 text-sm font-semibold whitespace-nowrap">
+                      Company
+                    </div>
                   )}
                   {visibleColumns.certified && (
-                    <TableHead
-                      className="cursor-pointer font-semibold"
+                    <div
+                      className="flex-1 min-w-[100px] px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
                       onClick={() => handleSort("certified")}
                     >
                       Certified {getSortIcon("certified")}
-                    </TableHead>
+                    </div>
                   )}
                   {visibleColumns.bankName && (
-                    <TableHead className="font-semibold">Bank</TableHead>
+                    <div className="flex-1 min-w-40 px-4 py-3 text-sm font-semibold whitespace-nowrap">
+                      Bank
+                    </div>
                   )}
                   {visibleColumns.accountNumber && (
-                    <TableHead className="font-semibold">Account</TableHead>
+                    <div className="flex-1 min-w-[140px] px-4 py-3 text-sm font-semibold whitespace-nowrap">
+                      Account
+                    </div>
                   )}
-                  <TableHead className="font-semibold">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+                  <div className="w-32 px-4 py-3 text-sm font-semibold shrink-0 whitespace-nowrap">
+                    Actions
+                  </div>
+                </div>
+              </div>
 
-              <TableBody>
-                {loading ? (
-                  <>
-                    <TableSkeleton
-                      rows={rowsPerPage}
-                      actionIcons={[IconEdit2, IconTrashBin2]}
-                      excludeLastColumn={true}
-                    />
-                  </>
-                ) : filteredInstallers.length === 0 ? (
-                  <TableRow className="p-4 hover:bg-transparent">
-                    <TableCell
-                      colSpan={activeColumnsLength + 2}
-                      className="w-full place-items-center p-0"
+              {/* Virtual Scrolling Container */}
+              {loading ? (
+                <div className="overflow-hidden" style={{ height: "650px" }}>
+                  {Array.from({ length: 10 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="flex w-full border-b border-border animate-pulse"
+                      style={{ height: "65px" }}
                     >
-                      <EmptyState
-                        title="Not Found Installers"
-                        description="You can register a new Installer by clicking below button."
-                        icons={[IconActivity]}
-                        className="w-full"
-                        action={{
-                          label: (
-                            <div className="flex items-center gap-2">
-                              Register Installer
-                              <IconAdd />
+                      <div className="w-12 px-4 py-3 flex items-center justify-center shrink-0">
+                        <div className="h-4 w-4 bg-muted rounded-sm" />
+                      </div>
+                      {visibleColumns.installerCode && (
+                        <div className="flex-1 min-w-[140px] px-4 py-3 flex items-center">
+                          <div className="h-4 bg-muted rounded w-3/4" />
+                        </div>
+                      )}
+                      {visibleColumns.fullName && (
+                        <div className="flex-1 min-w-40 px-4 py-3 flex items-center">
+                          <div className="h-4 bg-muted rounded w-2/3" />
+                        </div>
+                      )}
+                      {visibleColumns.cnic && (
+                        <div className="flex-1 min-w-[140px] px-4 py-3 flex items-center">
+                          <div className="h-4 bg-muted rounded w-3/4" />
+                        </div>
+                      )}
+                      {visibleColumns.phoneNumber && (
+                        <div className="flex-1 min-w-[140px] px-4 py-3 flex items-center">
+                          <div className="h-4 bg-muted rounded w-3/5" />
+                        </div>
+                      )}
+                      {visibleColumns.city && (
+                        <div className="flex-1 min-w-[120px] px-4 py-3 flex items-center">
+                          <div className="h-4 bg-muted rounded w-1/2" />
+                        </div>
+                      )}
+                      {visibleColumns.province && (
+                        <div className="flex-1 min-w-[120px] px-4 py-3 flex items-center">
+                          <div className="h-4 bg-muted rounded w-2/3" />
+                        </div>
+                      )}
+                      {visibleColumns.trainingCenter && (
+                        <div className="flex-1 min-w-40 px-4 py-3 flex items-center">
+                          <div className="h-4 bg-muted rounded w-4/5" />
+                        </div>
+                      )}
+                      {visibleColumns.companyName && (
+                        <div className="flex-1 min-w-40 px-4 py-3 flex items-center">
+                          <div className="h-4 bg-muted rounded w-3/4" />
+                        </div>
+                      )}
+                      {visibleColumns.certified && (
+                        <div className="flex-1 min-w-[100px] px-4 py-3 flex items-center">
+                          <div className="h-5 bg-muted rounded-full w-12" />
+                        </div>
+                      )}
+                      {visibleColumns.bankName && (
+                        <div className="flex-1 min-w-40 px-4 py-3 flex items-center">
+                          <div className="h-4 bg-muted rounded w-3/5" />
+                        </div>
+                      )}
+                      {visibleColumns.accountNumber && (
+                        <div className="flex-1 min-w-[140px] px-4 py-3 flex items-center">
+                          <div className="h-4 bg-muted rounded w-2/3" />
+                        </div>
+                      )}
+                      <div className="w-32 px-4 py-3 flex items-center gap-4 shrink-0">
+                        <IconEdit2 className="size-5 text-muted-foreground/50" />
+                        <IconTrashBin2 className="size-5 text-muted-foreground/50" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : filteredInstallers.length === 0 ? (
+                <Table>
+                  <TableBody>
+                    <TableRow className="p-4 hover:bg-transparent">
+                      <TableCell
+                        colSpan={activeColumnsLength + 2}
+                        className="w-full place-items-center p-0"
+                      >
+                        <EmptyState
+                          title="Not Found Installers"
+                          description="You can register a new Installer by clicking below button."
+                          icons={[IconActivity]}
+                          className="w-full"
+                          action={{
+                            label: (
+                              <div className="flex items-center gap-2">
+                                Register Installer
+                                <IconAdd />
+                              </div>
+                            ),
+                            onClick: () => router.push("/installers/register"),
+                          }}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              ) : (
+                <div
+                  ref={parentRef}
+                  className="overflow-auto"
+                  style={{ height: "650px" }}
+                >
+                  <div
+                    style={{
+                      height: `${rowVirtualizer.getTotalSize()}px`,
+                      width: "100%",
+                      position: "relative",
+                    }}
+                  >
+                    {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                      const installer = paginatedInstallers[virtualRow.index];
+                      const isSelected = selectedInstallers.has(installer._id);
+
+                      return (
+                        <div
+                          key={virtualRow.key}
+                          id={`installer-${installer._id}`}
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: `${virtualRow.size}px`,
+                            transform: `translateY(${virtualRow.start}px)`,
+                          }}
+                          className="flex w-full border-b border-border transition-colors hover:bg-muted/30"
+                        >
+                          <div className="w-12 px-4 py-3 text-sm flex items-center justify-center shrink-0">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() =>
+                                toggleSelection(installer._id)
+                              }
+                              aria-label={`Select ${installer.fullName}`}
+                            />
+                          </div>
+                          {visibleColumns.installerCode && (
+                            <div className="flex-1 min-w-[140px] px-4 py-3 text-sm flex items-center">
+                              <div className="font-mono flex items-center relative group">
+                                <Link
+                                  className=""
+                                  href={`/installers/${installer.installerCode}`}
+                                >
+                                  {installer.installerCode}
+                                </Link>
+                                <CopyButton
+                                  text={installer.installerCode}
+                                  label="Installer Code"
+                                />
+                                <div className="absolute bg-muted-foreground inset-x-0 bottom-0 h-0.5 w-0 left-0 group-hover:w-9/12 transition-all " />
+                              </div>
                             </div>
-                          ),
-                          onClick: () => router.push("/installers/register"),
-                        }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedInstallers.map((installer: InstallerWithId) => (
-                    <InstallerTableRow
-                      key={installer._id}
-                      installer={installer}
-                      isSelected={selectedInstallers.has(installer._id)}
-                      visibleColumns={visibleColumns}
-                      isAdmin={isAdmin}
-                      deletingId={deletingId}
-                      onToggleSelection={toggleSelection}
-                      onEdit={(id) => {
-                        setSelectedInstallerId(id);
-                        setEditModalOpen(true);
-                      }}
-                      onDelete={(id, name) => {
-                        setDeleteDialogState({
-                          open: true,
-                          status: "confirm",
-                          installerId: id,
-                          installerName: name,
-                        });
-                      }}
-                    />
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                          )}
+                          {visibleColumns.fullName && (
+                            <div className="flex-1 min-w-40 px-4 py-3 text-sm flex items-center">
+                              {installer.fullName}
+                            </div>
+                          )}
+                          {visibleColumns.cnic && (
+                            <div className="flex-1 min-w-[140px] px-4 py-3 text-sm text-muted-foreground flex items-center">
+                              {installer.cnic}
+                            </div>
+                          )}
+                          {visibleColumns.phoneNumber && (
+                            <div className="flex-1 min-w-[140px] px-4 py-3 text-sm text-muted-foreground flex items-center">
+                              {installer.phoneNumber}
+                            </div>
+                          )}
+                          {visibleColumns.city && (
+                            <div className="flex-1 min-w-[120px] px-4 py-3 text-sm text-muted-foreground flex items-center">
+                              {installer.city}
+                            </div>
+                          )}
+                          {visibleColumns.province && (
+                            <div className="flex-1 min-w-[120px] px-4 py-3 text-sm text-muted-foreground flex items-center">
+                              {installer.province}
+                            </div>
+                          )}
+                          {visibleColumns.trainingCenter && (
+                            <div className="flex-1 min-w-40 px-4 py-3 text-sm text-muted-foreground flex items-center">
+                              {installer.trainingCenter}
+                            </div>
+                          )}
+                          {visibleColumns.companyName && (
+                            <div className="flex-1 min-w-40 px-4 py-3 text-sm text-muted-foreground flex items-center">
+                              {installer.companyName}
+                            </div>
+                          )}
+                          {visibleColumns.certified && (
+                            <div className="flex-1 min-w-[100px] px-4 py-3 text-sm flex items-center">
+                              <Badge
+                                variant={
+                                  installer.certified ? "default" : "secondary"
+                                }
+                              >
+                                {installer.certified ? "Yes" : "No"}
+                              </Badge>
+                            </div>
+                          )}
+                          {visibleColumns.bankName && (
+                            <div className="flex-1 min-w-40 px-4 py-3 text-sm text-muted-foreground flex items-center">
+                              {installer.bankName}
+                            </div>
+                          )}
+                          {visibleColumns.accountNumber && (
+                            <div className="flex-1 min-w-[140px] px-4 py-3 text-sm text-muted-foreground flex items-center">
+                              {installer.accountNumber}
+                            </div>
+                          )}
+                          <div className="w-32 px-4 py-3 text-sm flex items-center gap-4 shrink-0">
+                            <button
+                              onClick={() => {
+                                setSelectedInstallerId(installer._id);
+                                setEditModalOpen(true);
+                              }}
+                              className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                              title="Edit"
+                            >
+                              <IconEdit2 className="size-5" />
+                            </button>
+                            <button
+                              title="Delete"
+                              disabled={
+                                !isAdmin || deletingId === installer._id
+                              }
+                              className="text-destructive-text hover:text-destructive-text-hover transition-colors cursor-pointer"
+                              onClick={() =>
+                                setDeleteDialogState({
+                                  open: true,
+                                  status: "confirm",
+                                  installerId: installer._id,
+                                  installerName: installer.fullName,
+                                })
+                              }
+                            >
+                              <IconTrashBin2 className="size-5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-4 flex items-center justify-center pointer-events-none">
+            {selectedInstallers.size > 0 && (
+              <AnimatePresence>
+                <motion.div
+                  initial={{
+                    opacity: 0,
+                    y: 5,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                  }}
+                  exit={{ opacity: 0, y: 5 }}
+                  className={cn(
+                    "border border-border rounded-2xl p-2 flex items-center gap-2 relative bg-background/40 backdrop-blur-sm pointer-events-auto"
+                  )}
+                >
+                  <div className="px-4 py-3 rounded-xl flex items-center justify-center leading-none select-none">
+                    Selected: {selectedInstallers.size}
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size={"icon"}
+                    disabled={bulkDeleting || !isAdmin}
+                    className="gap-1"
+                    onClick={() => setBulkDeleteDialogOpen(true)}
+                  >
+                    {bulkDeleting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <IconTrashBin2 width={2} />
+                    )}
+                  </Button>
+                </motion.div>
+              </AnimatePresence>
+            )}
           </div>
         </CardContent>
         <CardFooter className="flex items-center justify-between p-4 relative bg-muted dark:bg-muted/50 text-xs text-muted-foreground">
@@ -1724,43 +1980,6 @@ export default function InstallersPage() {
               <span className="ml-1">
                 (filtered from {installers.length} total)
               </span>
-            )}
-          </div>
-          <div className="absolute pb-4 inset-0 w-full h-full flex items-center justify-center pointer-events-none">
-            {selectedInstallers.size > 0 && (
-              <AnimatePresence>
-                <motion.div
-                  initial={{
-                    opacity: 0,
-                    y: 5,
-                  }}
-                  animate={{
-                    opacity: 1,
-                    y: 0,
-                  }}
-                  exit={{ opacity: 0, y: 5 }}
-                  className={cn(
-                    "border border-border rounded-2xl p-2 flex items-center gap-2 relative bg-background/40 backdrop-blur-xs pointer-events-auto"
-                  )}
-                >
-                  <div className="px-4 py-3 bg-background rounded-xl flex items-center justify-center leading-none select-none">
-                    Selected: {selectedInstallers.size}
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size={"icon"}
-                    disabled={bulkDeleting || !isAdmin}
-                    className="gap-1"
-                    onClick={() => setBulkDeleteDialogOpen(true)}
-                  >
-                    {bulkDeleting ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <IconTrashBin2 width={2} />
-                    )}
-                  </Button>
-                </motion.div>
-              </AnimatePresence>
             )}
           </div>
         </CardFooter>

@@ -95,120 +95,214 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Process each installer
+    // Pre-fetch all existing referrers at once for performance
+    const referrerCodes = validInstallers
+      .map((i: BulkInstallerData) => i.referrerCode)
+      .filter((code): code is string => !!code);
+
+    const uniqueReferrerCodes = [...new Set(referrerCodes)];
+    const referrers = await Installer.find(
+      { installerCode: { $in: uniqueReferrerCodes } },
+      { installerCode: 1, _id: 1 }
+    ).lean();
+
+    const referrerMap = new Map(
+      referrers.map((r) => [r.installerCode, r._id.toString()])
+    );
+
+    // Prepare installer documents for batch insert
+    const installersToInsert = [];
+    const installerValidationErrors: { code: string; error: string }[] = [];
+
     for (const installerData of validInstallers) {
-      try {
-        // Validate required fields one more time
-        if (!installerData.phoneNumber || !installerData.whatsappNumber ||
-            !installerData.address || !installerData.city || !installerData.province ||
-            !installerData.trainingCenter || !installerData.bankName ||
-            !installerData.accountNumber || !installerData.accountTitle) {
-          results.errors.push(`Installer ${installerData.installerCode}: Missing required fields`);
-          results.failed++;
+      // Validate required fields one more time
+      if (!installerData.phoneNumber || !installerData.whatsappNumber ||
+          !installerData.address || !installerData.city || !installerData.province ||
+          !installerData.trainingCenter || !installerData.bankName ||
+          !installerData.accountNumber || !installerData.accountTitle) {
+        installerValidationErrors.push({
+          code: installerData.installerCode || 'unknown',
+          error: 'Missing required fields'
+        });
+        continue;
+      }
+
+      // Handle referrer if provided
+      let referrerId = null;
+      if (installerData.referrerCode) {
+        referrerId = referrerMap.get(installerData.referrerCode);
+        if (!referrerId) {
+          installerValidationErrors.push({
+            code: installerData.installerCode || 'unknown',
+            error: `Referrer code not found: ${installerData.referrerCode}`
+          });
           continue;
         }
+      }
 
-        // Handle referrer if provided
-        let referrerId = null;
-        if (installerData.referrerCode) {
-          const referrer = await Installer.findOne({
-            installerCode: installerData.referrerCode
-          });
+      // Prepare installer document
+      installersToInsert.push({
+        installerCode: installerData.installerCode,
+        fullName: installerData.fullName,
+        referrerCode: installerData.referrerCode,
+        referrer: referrerId,
+        cnic: installerData.cnic,
+        phoneNumber: installerData.phoneNumber,
+        whatsappNumber: installerData.whatsappNumber,
+        address: installerData.address,
+        city: installerData.city,
+        province: installerData.province,
+        trainingCenter: installerData.trainingCenter,
+        companyName: installerData.companyName,
+        bankName: installerData.bankName,
+        accountNumber: installerData.accountNumber,
+        accountTitle: installerData.accountTitle,
+        certified: installerData.certified || false,
+        registeredBy: session.user.id,
+      });
+    }
 
-          if (!referrer) {
-            results.errors.push(`Referrer code not found for ${installerData.installerCode}: ${installerData.referrerCode}`);
-            results.failed++;
-            continue;
-          }
-          referrerId = referrer._id;
-        }
+    // Add validation errors to results
+    installerValidationErrors.forEach(({ code, error }) => {
+      results.errors.push(`Installer ${code}: ${error}`);
+      results.failed++;
+    });
 
-        // Create installer
-        const newInstaller = await Installer.create({
-          installerCode: installerData.installerCode,
-          fullName: installerData.fullName,
-          referrerCode: installerData.referrerCode,
-          referrer: referrerId,
-          cnic: installerData.cnic,
-          phoneNumber: installerData.phoneNumber,
-          whatsappNumber: installerData.whatsappNumber,
-          address: installerData.address,
-          city: installerData.city,
-          province: installerData.province,
-          trainingCenter: installerData.trainingCenter,
-          companyName: installerData.companyName,
-          bankName: installerData.bankName,
-          accountNumber: installerData.accountNumber,
-          accountTitle: installerData.accountTitle,
-          certified: installerData.certified || false,
-          registeredBy: session.user.id,
+    // Batch insert installers (ordered: false to continue on duplicates)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let insertedInstallers: any[] = [];
+    if (installersToInsert.length > 0) {
+      try {
+        // Without rawResult, insertMany returns the inserted documents directly
+        insertedInstallers = await Installer.insertMany(installersToInsert, {
+          ordered: false,
+        }) as any[];
+
+        results.success += insertedInstallers.length;
+        insertedInstallers.forEach((installer) => {
+          results.successfulCodes.push(installer.installerCode);
         });
-
-        // Log activity
-        await Activity.create({
-          type: 'INSTALLER_REGISTERED',
-          description: `Registered installer ${newInstaller.fullName} (${newInstaller.installerCode}) via bulk upload`,
-          performedBy: session.user.id,
-          targetType: 'Installer',
-          targetId: newInstaller._id,
-          metadata: {
-            code: newInstaller.installerCode,
-            name: newInstaller.fullName,
-            cnic: newInstaller.cnic,
-            city: newInstaller.city,
-            method: 'bulk_upload',
-          },
-        });
-
-        results.success++;
-        results.successfulCodes.push(newInstaller.installerCode);
-
-        // Try to create Google Contact (using global authentication)
-        try {
-          const googleContactId = await createGoogleContact({
-            fullName: newInstaller.fullName,
-            phoneNumber: newInstaller.phoneNumber,
-            whatsappNumber: newInstaller.whatsappNumber,
-            address: newInstaller.address,
-            city: newInstaller.city,
-            province: newInstaller.province,
-            companyName: newInstaller.companyName,
-            installerCode: newInstaller.installerCode,
-            referrerCode: newInstaller.referrerCode,
-            cnic: newInstaller.cnic,
-            trainingCenter: newInstaller.trainingCenter,
-          });
-
-          // Save googleContactId to installer if created successfully
-          if (googleContactId) {
-            newInstaller.googleContactId = googleContactId;
-            await newInstaller.save();
-          }
-
-          results.googleContactsCreated++;
-        } catch (googleErr) {
-          console.error(`Failed to create Google contact for ${newInstaller.installerCode}:`, googleErr);
-          results.googleContactsFailed++;
-          // Don't fail the entire operation if Google contact creation fails
-        }
       } catch (err: unknown) {
-        results.failed++;
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Bulk insert error:', err);
 
-        // Provide more specific error messages
-        if (errorMessage.includes('duplicate key') || errorMessage.includes('E11000')) {
-          if (errorMessage.includes('installerCode')) {
-            results.errors.push(`Installer code "${installerData.installerCode}" already exists`);
-          } else if (errorMessage.includes('cnic')) {
-            results.errors.push(`CNIC "${installerData.cnic}" already exists`);
-          } else {
-            results.errors.push(`Duplicate entry for ${installerData.installerCode}`);
+        // Handle Mongoose bulk write errors
+        if (err && typeof err === 'object' && 'writeErrors' in err) {
+          // Get the successfully inserted documents from the error
+          // Mongoose returns the docs that were inserted before the error
+          const bulkError = err as any;
+
+          if (Array.isArray(bulkError.insertedDocs)) {
+            insertedInstallers = bulkError.insertedDocs;
+          } else if (bulkError.result && Array.isArray(bulkError.result.insertedDocs)) {
+            insertedInstallers = bulkError.result.insertedDocs;
           }
-        } else if (errorMessage.includes('validation failed')) {
-          results.errors.push(`Validation failed for ${installerData.installerCode}: ${errorMessage}`);
+
+          results.success += insertedInstallers.length;
+          insertedInstallers.forEach((installer) => {
+            results.successfulCodes.push(installer.installerCode);
+          });
+
+          // Process write errors
+          if (Array.isArray(bulkError.writeErrors)) {
+            bulkError.writeErrors.forEach((writeErr: any) => {
+              const failedDoc = writeErr.err?.op || writeErr.op;
+              const errorMessage = writeErr.err?.errmsg || writeErr.errmsg || 'Unknown error';
+              const errorCode = writeErr.err?.code || writeErr.code;
+
+              if (errorMessage.includes('duplicate key') || errorCode === 11000) {
+                if (errorMessage.includes('installerCode')) {
+                  results.errors.push(`Installer code "${failedDoc.installerCode}" already exists`);
+                } else if (errorMessage.includes('cnic')) {
+                  results.errors.push(`CNIC "${failedDoc.cnic}" already exists`);
+                } else {
+                  results.errors.push(`Duplicate entry for ${failedDoc.installerCode}`);
+                }
+              } else {
+                results.errors.push(`Failed to create ${failedDoc.installerCode}: ${errorMessage}`);
+              }
+              results.failed++;
+            });
+          }
         } else {
-          results.errors.push(`Failed to create ${installerData.installerCode}: ${errorMessage}`);
+          // Fallback for unexpected errors
+          const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+          results.errors.push(`Batch insert failed: ${errorMessage}`);
+          results.failed += installersToInsert.length;
         }
+      }
+    }
+
+    // Batch create activities for successfully inserted installers
+    if (insertedInstallers.length > 0) {
+      const activities = insertedInstallers.map((installer) => ({
+        type: 'INSTALLER_REGISTERED',
+        description: `Registered installer ${installer.fullName} (${installer.installerCode}) via bulk upload`,
+        performedBy: session.user.id,
+        targetType: 'Installer',
+        targetId: installer._id,
+        metadata: {
+          code: installer.installerCode,
+          name: installer.fullName,
+          cnic: installer.cnic,
+          city: installer.city,
+          method: 'bulk_upload',
+        },
+      }));
+
+      try {
+        await Activity.insertMany(activities, { ordered: false });
+      } catch (activityErr) {
+        console.error('Failed to create some activity logs:', activityErr);
+        // Don't fail the operation if activity logging fails
+      }
+    }
+
+    // Process Google Contacts for successfully inserted installers
+    // Keep sequential as it's an external API
+    for (const installer of insertedInstallers) {
+      try {
+        const googleContactId = await createGoogleContact({
+          fullName: installer.fullName,
+          phoneNumber: installer.phoneNumber,
+          whatsappNumber: installer.whatsappNumber,
+          address: installer.address,
+          city: installer.city,
+          province: installer.province,
+          companyName: installer.companyName,
+          installerCode: installer.installerCode,
+          referrerCode: installer.referrerCode,
+          cnic: installer.cnic,
+          trainingCenter: installer.trainingCenter,
+        });
+
+        // Batch update googleContactId later if needed
+        if (googleContactId) {
+          // Update in memory for potential batch update
+          installer.googleContactId = googleContactId;
+        }
+
+        results.googleContactsCreated++;
+      } catch (googleErr) {
+        console.error(`Failed to create Google contact for ${installer.installerCode}:`, googleErr);
+        results.googleContactsFailed++;
+        // Don't fail the entire operation if Google contact creation fails
+      }
+    }
+
+    // Batch update Google Contact IDs
+    const installersWithGoogleIds = insertedInstallers.filter(i => i.googleContactId);
+    if (installersWithGoogleIds.length > 0) {
+      try {
+        const bulkOps = installersWithGoogleIds.map(installer => ({
+          updateOne: {
+            filter: { _id: installer._id },
+            update: { $set: { googleContactId: installer.googleContactId } }
+          }
+        }));
+        await Installer.bulkWrite(bulkOps);
+      } catch (updateErr) {
+        console.error('Failed to update some Google Contact IDs:', updateErr);
+        // Don't fail the operation if Google ID update fails
       }
     }
 

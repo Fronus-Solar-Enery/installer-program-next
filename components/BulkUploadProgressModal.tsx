@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
 import { CheckCircle2, Loader2, XCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent } from "./ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "./ui/dialog";
 import { Button } from "./ui/button";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { IconClose } from "./icons";
 
 export interface UploadStep {
   id: string;
@@ -21,6 +27,8 @@ interface BulkUploadProgressModalProps {
   steps: UploadStep[];
   onClose?: () => void;
   totalRecords: number;
+  description?: string;
+  title?: string;
   processedRecords: number;
   successCount: number;
   failedCount: number;
@@ -57,34 +65,29 @@ export default function BulkUploadProgressModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent hideClose className="p-0">
+      <DialogContent hideClose className="p-0 gap-0">
+        <VisuallyHidden>
+          <DialogTitle></DialogTitle>
+          <DialogDescription></DialogDescription>
+        </VisuallyHidden>
+
         {/* Header */}
         <div className="p-6 border-b border-border">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold">
-                {allCompleted
-                  ? "Upload Complete!"
-                  : hasError
-                  ? "Upload Failed"
-                  : "Uploading Installers..."}
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                {allCompleted
-                  ? `Successfully processed ${totalRecords} record(s)`
-                  : hasError
-                  ? "An error occurred during upload"
-                  : `Processing ${totalRecords} record(s)...`}
-              </p>
-            </div>
-            {allCompleted && onClose && (
-              <button
-                onClick={onClose}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                ✕
-              </button>
-            )}
+          <div>
+            <h2 className="text-2xl font-bold">
+              {allCompleted
+                ? "Registeration Complete!"
+                : hasError
+                ? "Registeration Failed"
+                : "Registeration Installers..."}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {allCompleted
+                ? `Successfully processed ${totalRecords} record(s)`
+                : hasError
+                ? "An error occurred during Registeration"
+                : `Processing ${totalRecords} record(s)...`}
+            </p>
           </div>
         </div>
 
@@ -195,17 +198,16 @@ export default function BulkUploadProgressModal({
         </div>
 
         {/* Footer */}
-        {(allCompleted || hasError) && onClose && (
-          <div className="p-6 border-t border-border">
-            <Button
-              variant={allCompleted ? "secondary" : "destructive"}
-              onClick={onClose}
-              className={cn("w-full")}
-            >
-              {allCompleted ? "Done" : "Close"}
-            </Button>
-          </div>
-        )}
+        <div className="p-6 border-t border-border">
+          <Button
+            variant={"secondary"}
+            onClick={onClose}
+            className="w-full"
+            disabled={!allCompleted || hasError}
+          >
+            Close
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -19,14 +19,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   AlertCircle,
   CheckCircle2,
   Download,
@@ -96,6 +88,13 @@ export default function BulkCreateRewardsPage() {
   const [processedRecords, setProcessedRecords] = useState(0);
   const [successCount, setSuccessCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
+
+  // Abort controller for canceling operations
+  const [abortController, setAbortController] =
+    useState<AbortController | null>(null);
+
+  // Virtual scrolling ref for large datasets
+  const parentRef = useRef<HTMLDivElement>(null);
 
   const downloadTemplate = () => {
     setDownloadingTemplate(true);
@@ -444,63 +443,103 @@ export default function BulkCreateRewardsPage() {
         setFileReadProgress(90);
         await new Promise((resolve) => requestAnimationFrame(resolve));
 
-        const parsedRewards: RewardCreate[] = jsonData.map((row) => {
-          const rawPaymentMethod =
-            row["Payment Method"]?.toString().trim() || "";
-          const rawProductModel = row["Product Model"]?.toString().trim() || "";
-          const rawBankName = row["Bank Name"]?.toString().trim() || "";
-          const normalizedProductModel = normalizeProductModel(rawProductModel);
+        // Process data in optimized chunks to avoid blocking (increased from 50 to 200)
+        const parsedRewards: RewardCreate[] = [];
+        const chunkSize = 200; // Optimized for better performance
 
-          // Check if product requires inverter (same logic as register page)
-          const productConfig = PRODUCT_MODELS.find(
-            (pm) => pm.value === normalizedProductModel
-          );
-          const requiresInverter = productConfig?.requiresInverter || false;
+        // Use requestIdleCallback for even smoother processing (fallback to requestAnimationFrame)
+        const scheduleWork = (callback: () => void): Promise<void> => {
+          return new Promise((resolve) => {
+            if ("requestIdleCallback" in window) {
+              requestIdleCallback(() => {
+                callback();
+                resolve();
+              });
+            } else {
+              requestAnimationFrame(() => {
+                callback();
+                resolve();
+              });
+            }
+          });
+        };
 
-          const rawInverterSerial = row["Inverter Serial Number"]?.toString().trim() || "";
+        for (let i = 0; i < jsonData.length; i += chunkSize) {
+          const chunk = jsonData.slice(i, i + chunkSize);
+          const chunkProgress = 90 + Math.round((i / jsonData.length) * 8);
 
-          const reward = {
-            timestamp: parseTimestamp(row["Timestamp"]?.toString() || ""),
-            teamMemberEmail: row["Team Member Email"]?.toString().trim() || "",
-            installerName: row["Installer Name"]?.toString().trim() || "",
-            installerCode:
-              row["Installer Code"]?.toString().trim().toUpperCase() || "",
-            productModel: normalizedProductModel,
-            serialNumber: row["Serial Number"]?.toString().trim() || "",
-            inverterSerialNumber: requiresInverter
-              ? (rawInverterSerial || undefined)
-              : "N/A",
-            serialNumberStatus:
-              row["Serial Number Status"]?.toString().trim() || "",
-            cityOfInstallation:
-              row["City of Installation"]?.toString().trim() || "",
-            bankName: normalizeBankName(rawBankName),
-            accountNumber: row["Account Number"]?.toString().trim() || "",
-            accountTitle: row["Account Title"]?.toString().trim() || "",
-            rewardStatus:
-              row["Reward Status"]?.toString().toUpperCase().trim() ||
-              "PENDING",
-            transactionId:
-              row["Transaction ID"]?.toString().trim() || undefined,
-            rewardAmount: row["Reward Amount"]?.toString().trim() || "",
-            referrerRewardAmount:
-              row["Referrer Reward Amount"]?.toString().trim() || undefined,
-            referrerTransactionId:
-              row["Referrer Transaction ID"]?.toString().trim() || undefined,
-            sendingDate: parseSendingDate(
-              row["Sending Date"]?.toString() || ""
-            ),
-            paymentMethod: normalizePaymentMethod(rawPaymentMethod),
-          };
+          await scheduleWork(() => {
+            setFileReadProgress(chunkProgress);
+          });
 
-          const issues = validateReward(reward);
+          // Process chunk
+          const processedChunk = chunk.map((row) => {
+            const rawPaymentMethod =
+              row["Payment Method"]?.toString().trim() || "";
+            const rawProductModel =
+              row["Product Model"]?.toString().trim() || "";
+            const rawBankName = row["Bank Name"]?.toString().trim() || "";
+            const normalizedProductModel =
+              normalizeProductModel(rawProductModel);
 
-          return {
-            ...reward,
-            issues,
-            isValid: issues.length === 0,
-          };
-        });
+            // Check if product requires inverter (same logic as register page)
+            const productConfig = PRODUCT_MODELS.find(
+              (pm) => pm.value === normalizedProductModel
+            );
+            const requiresInverter = productConfig?.requiresInverter || false;
+
+            const rawInverterSerial =
+              row["Inverter Serial Number"]?.toString().trim() || "";
+
+            const reward = {
+              timestamp: parseTimestamp(row["Timestamp"]?.toString() || ""),
+              teamMemberEmail:
+                row["Team Member Email"]?.toString().trim() || "",
+              installerName: row["Installer Name"]?.toString().trim() || "",
+              installerCode:
+                row["Installer Code"]?.toString().trim().toUpperCase() || "",
+              productModel: normalizedProductModel,
+              serialNumber: row["Serial Number"]?.toString().trim() || "",
+              inverterSerialNumber: requiresInverter
+                ? rawInverterSerial || undefined
+                : "N/A",
+              serialNumberStatus:
+                row["Serial Number Status"]?.toString().trim() || "",
+              cityOfInstallation:
+                row["City of Installation"]?.toString().trim() || "",
+              bankName: normalizeBankName(rawBankName),
+              accountNumber: row["Account Number"]?.toString().trim() || "",
+              accountTitle: row["Account Title"]?.toString().trim() || "",
+              rewardStatus:
+                row["Reward Status"]?.toString().toUpperCase().trim() ||
+                "PENDING",
+              transactionId:
+                row["Transaction ID"]?.toString().trim() || undefined,
+              rewardAmount: row["Reward Amount"]?.toString().trim() || "",
+              referrerRewardAmount:
+                row["Referrer Reward Amount"]?.toString().trim() || undefined,
+              referrerTransactionId:
+                row["Referrer Transaction ID"]?.toString().trim() || undefined,
+              sendingDate: parseSendingDate(
+                row["Sending Date"]?.toString() || ""
+              ),
+              paymentMethod: normalizePaymentMethod(rawPaymentMethod),
+            };
+
+            const issues = validateReward(reward);
+
+            return {
+              ...reward,
+              issues,
+              isValid: issues.length === 0,
+            };
+          });
+
+          parsedRewards.push(...processedChunk);
+
+          // Allow UI to update between chunks using idle callback for better performance
+          await scheduleWork(() => {});
+        }
 
         setFileReadProgress(98);
         await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -757,62 +796,119 @@ export default function BulkCreateRewardsPage() {
         )
       );
 
-      // Process in chunks for real-time progress
-      const CHUNK_SIZE = 10; // Process 10 rewards at a time
+      // Process in optimized chunks for real-time progress
+      const CHUNK_SIZE = 50; // Increased from 10 to 50 for better performance
       let totalSuccess = 0;
       let totalFailed = 0;
       const allErrors: string[] = [];
+      const failedChunks: { chunk: typeof validRewards; error: string }[] = [];
 
-      console.log(`Starting bulk upload of ${totalRecords} rewards in ${Math.ceil(totalRecords / CHUNK_SIZE)} chunks`);
+      // Create abort controller for cancellation
+      const controller = new AbortController();
+      setAbortController(controller);
+
+      console.log(
+        `Starting bulk upload of ${totalRecords} rewards in ${Math.ceil(
+          totalRecords / CHUNK_SIZE
+        )} chunks`
+      );
 
       for (let i = 0; i < validRewards.length; i += CHUNK_SIZE) {
+        // Check if operation was cancelled
+        if (controller.signal.aborted) {
+          toast.info("Upload cancelled by user");
+          break;
+        }
+
         const chunk = validRewards.slice(i, i + CHUNK_SIZE);
         const currentBatch = Math.min(i + CHUNK_SIZE, validRewards.length);
         const chunkNumber = Math.floor(i / CHUNK_SIZE) + 1;
+        let retryCount = 0;
+        const maxRetries = 2;
 
-        console.log(`Processing chunk ${chunkNumber}: rewards ${i + 1} to ${currentBatch}`);
+        console.log(
+          `Processing chunk ${chunkNumber}: rewards ${i + 1} to ${currentBatch}`
+        );
 
-        try {
-          const response = await fetch("/api/rewards/bulk-register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ rewards: chunk }),
-          });
+        // Retry logic for failed chunks
+        while (retryCount <= maxRetries) {
+          try {
+            const response = await fetch("/api/rewards/bulk-register", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ rewards: chunk }),
+              signal: controller.signal,
+            });
 
-          const data = await response.json();
+            const data = await response.json();
 
-          console.log(`Chunk ${chunkNumber} response:`, {
-            ok: response.ok,
-            success: data.data?.success,
-            failed: data.data?.failed,
-            errors: data.data?.errors?.length || 0
-          });
+            console.log(`Chunk ${chunkNumber} response:`, {
+              ok: response.ok,
+              success: data.data?.success,
+              failed: data.data?.failed,
+              errors: data.data?.errors?.length || 0,
+            });
 
-          if (response.ok) {
-            const chunkSuccess = data.data?.success || 0;
-            const chunkFailed = data.data?.failed || 0;
+            if (response.ok) {
+              const chunkSuccess = data.data?.success || 0;
+              const chunkFailed = data.data?.failed || 0;
 
-            totalSuccess += chunkSuccess;
-            totalFailed += chunkFailed;
+              totalSuccess += chunkSuccess;
+              totalFailed += chunkFailed;
 
-            console.log(`Chunk ${chunkNumber}: ${chunkSuccess} succeeded, ${chunkFailed} failed. Total: ${totalSuccess}/${currentBatch}`);
+              console.log(
+                `Chunk ${chunkNumber}: ${chunkSuccess} succeeded, ${chunkFailed} failed. Total: ${totalSuccess}/${currentBatch}`
+              );
 
-            if (data.data?.errors && data.data.errors.length > 0) {
-              allErrors.push(...data.data.errors);
+              if (data.data?.errors && data.data.errors.length > 0) {
+                allErrors.push(...data.data.errors);
+              }
+              break; // Success, exit retry loop
+            } else {
+              if (retryCount === maxRetries) {
+                console.error(
+                  `Chunk ${chunkNumber} failed with error:`,
+                  data.error
+                );
+                totalFailed += chunk.length;
+                allErrors.push(
+                  `Chunk ${chunkNumber}: ${
+                    data.error || "Chunk registration failed"
+                  } after ${maxRetries} retries`
+                );
+                failedChunks.push({
+                  chunk,
+                  error: data.error || "Unknown error",
+                });
+              } else {
+                // Wait before retry (exponential backoff)
+                await new Promise((resolve) =>
+                  setTimeout(resolve, 1000 * (retryCount + 1))
+                );
+                retryCount++;
+              }
             }
-          } else {
-            console.error(`Chunk ${chunkNumber} failed with error:`, data.error);
-            totalFailed += chunk.length;
-            allErrors.push(`Chunk ${chunkNumber}: ${data.error || "Chunk registration failed"}`);
+          } catch (err) {
+            if (err instanceof Error && err.name === "AbortError") {
+              toast.info("Upload cancelled by user");
+              break;
+            }
+
+            if (retryCount === maxRetries) {
+              console.error(`Chunk ${chunkNumber} exception:`, err);
+              totalFailed += chunk.length;
+              const errorMsg = `Chunk ${chunkNumber} failed: ${
+                err instanceof Error ? err.message : "Unknown error"
+              }`;
+              allErrors.push(errorMsg);
+              failedChunks.push({ chunk, error: errorMsg });
+            } else {
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * (retryCount + 1))
+              );
+              retryCount++;
+            }
           }
-        } catch (err) {
-          console.error(`Chunk ${chunkNumber} exception:`, err);
-          totalFailed += chunk.length;
-          allErrors.push(
-            `Chunk ${chunkNumber} failed: ${
-              err instanceof Error ? err.message : "Unknown error"
-            }`
-          );
         }
 
         // Update progress in real-time
@@ -839,7 +935,9 @@ export default function BulkCreateRewardsPage() {
         await new Promise((resolve) => requestAnimationFrame(resolve));
       }
 
-      console.log(`Upload complete. Total processed: ${validRewards.length}, Success: ${totalSuccess}, Failed: ${totalFailed}`);
+      console.log(
+        `Upload complete. Total processed: ${validRewards.length}, Success: ${totalSuccess}, Failed: ${totalFailed}`
+      );
 
       // Step 2: Complete registration
       setUploadSteps((prev) =>
@@ -931,11 +1029,33 @@ export default function BulkCreateRewardsPage() {
       setError("Failed to create rewards: " + errorMessage);
     } finally {
       setLoading(false);
+      setAbortController(null);
     }
   };
 
-  const validCount = preview.filter((p) => p.isValid).length;
-  const invalidCount = preview.filter((p) => !p.isValid).length;
+  const handleCancelUpload = () => {
+    if (abortController) {
+      abortController.abort();
+      toast.info("Cancelling upload...");
+    }
+  };
+
+  const validCount = useMemo(
+    () => preview.filter((p) => p.isValid).length,
+    [preview]
+  );
+  const invalidCount = useMemo(
+    () => preview.filter((p) => !p.isValid).length,
+    [preview]
+  );
+
+  // Virtual scrolling for large datasets (performance optimization)
+  const rowVirtualizer = useVirtualizer({
+    count: preview.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 80, // Estimated row height in pixels (larger for rewards table)
+    overscan: 10, // Number of items to render outside of visible area
+  });
 
   return (
     <div className="flex-1 overflow-auto space-y-4">
@@ -1198,26 +1318,37 @@ export default function BulkCreateRewardsPage() {
 
         {preview.length > 0 && (
           <div className="flex gap-2">
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={
-                loading || invalidCount > 0 || validating || fileReading
-              }
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4 mr-2" />
-              )}
-              {loading
-                ? "Creating..."
-                : validating
-                ? "Validating..."
-                : fileReading
-                ? "Reading file..."
-                : `Create ${validCount} Valid Record(s)`}
-            </Button>
+            {loading && abortController ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleCancelUpload}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Cancel Upload
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={
+                  loading || invalidCount > 0 || validating || fileReading
+                }
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4 mr-2" />
+                )}
+                {loading
+                  ? "Creating..."
+                  : validating
+                  ? "Validating..."
+                  : fileReading
+                  ? "Reading file..."
+                  : `Create ${validCount} Valid Record(s)`}
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -1231,137 +1362,195 @@ export default function BulkCreateRewardsPage() {
         )}
       </div>
 
+      {/* Preview Table with Virtual Scrolling */}
       {preview.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Preview Data ({preview.length} records)</CardTitle>
+            <CardTitle>
+              Preview Data ({preview.length} records)
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                - Using virtual scrolling for optimal performance
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Timestamp</TableHead>
-                    <TableHead>Team Member</TableHead>
-                    <TableHead>Installer</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Serial #</TableHead>
-                    <TableHead>Bank</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead>Issues</TableHead>
-                    <TableHead className="w-12">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {preview.map((reward, index) => (
-                    <TableRow
-                      key={index}
-                      className={!reward.isValid ? "bg-destructive/10" : ""}
-                    >
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        {reward.isValid ? (
-                          <Badge variant="default" className="bg-green-600">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Valid
-                          </Badge>
-                        ) : (
-                          <Badge variant="destructive">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Invalid
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {reward.timestamp
-                          ? new Date(reward.timestamp).toLocaleString()
-                          : "-"}
-                      </TableCell>
-                      <TableCell
-                        className="text-sm max-w-[150px] truncate"
-                        title={reward.teamMemberEmail}
+            <div className="border border-border rounded-lg overflow-hidden">
+              {/* Table Header - Fixed */}
+              <div className="bg-muted/50 border-b border-border sticky top-0 z-10">
+                <div className="flex min-w-max">
+                  <div className="w-16 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    #
+                  </div>
+                  <div className="w-24 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Status
+                  </div>
+                  <div className="w-40 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Timestamp
+                  </div>
+                  <div className="w-48 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Team Member
+                  </div>
+                  <div className="w-48 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Installer
+                  </div>
+                  <div className="w-56 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Product
+                  </div>
+                  <div className="w-32 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Serial #
+                  </div>
+                  <div className="w-40 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Bank
+                  </div>
+                  <div className="w-24 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Amount
+                  </div>
+                  <div className="w-28 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Payment
+                  </div>
+                  <div className="flex-1 min-w-80 px-4 py-3 text-sm font-medium">
+                    Issues
+                  </div>
+                  <div className="w-20 px-4 py-3 text-sm font-medium flex-shrink-0">
+                    Action
+                  </div>
+                </div>
+              </div>
+
+              {/* Virtual Scrolling Container */}
+              <div
+                ref={parentRef}
+                className="overflow-auto"
+                style={{ height: "600px" }}
+              >
+                <div
+                  style={{
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    width: "100%",
+                    position: "relative",
+                  }}
+                >
+                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const reward = preview[virtualRow.index];
+                    return (
+                      <div
+                        key={virtualRow.index}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: `${virtualRow.size}px`,
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                        className={`flex min-w-max border-b border-border ${
+                          !reward.isValid ? "bg-destructive/10" : ""
+                        }`}
                       >
-                        {reward.teamMemberEmail}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <div>{reward.installerName}</div>
-                        <div className="font-mono text-xs text-muted-foreground">
-                          {reward.installerCode}
+                        <div className="w-16 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                          {virtualRow.index + 1}
                         </div>
-                        {reward.autoExtractedReferrer && (
-                          <div className="text-xs text-blue-600 mt-0.5 flex items-center gap-1">
-                            <CheckCircle2 className="h-3 w-3" />
-                            <span>Referrer: {reward.referrerCode}</span>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell
-                        className="text-sm max-w-[200px] truncate"
-                        title={reward.productModel}
-                      >
-                        {reward.productModel}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {reward.serialNumber}
-                      </TableCell>
-                      <TableCell
-                        className="text-sm max-w-[150px] truncate"
-                        title={reward.bankName}
-                      >
-                        {reward.bankName}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {reward.rewardAmount}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            reward.rewardStatus === "PAID"
-                              ? "default"
-                              : reward.rewardStatus === "FAILED"
-                              ? "destructive"
-                              : "secondary"
-                          }
+                        <div className="w-24 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                          {reward.isValid ? (
+                            <Badge variant="default" className="bg-green-600">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Valid
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Invalid
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="w-40 px-4 py-3 text-xs flex-shrink-0 flex items-center">
+                          {reward.timestamp
+                            ? new Date(reward.timestamp).toLocaleString()
+                            : "-"}
+                        </div>
+                        <div
+                          className="w-48 px-4 py-3 text-sm flex-shrink-0 flex items-center truncate"
+                          title={reward.teamMemberEmail}
                         >
-                          {reward.rewardStatus}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {reward.issues.length > 0 ? (
-                          <div className="space-y-1">
-                            {reward.issues.map((issue, i) => (
-                              <div
-                                key={i}
-                                className="text-xs text-destructive flex items-start gap-1"
-                              >
-                                <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                                <span>{issue}</span>
-                              </div>
-                            ))}
+                          {reward.teamMemberEmail}
+                        </div>
+                        <div className="w-48 px-4 py-3 text-sm flex-shrink-0 flex flex-col justify-center">
+                          <div>{reward.installerName}</div>
+                          <div className="font-mono text-xs text-muted-foreground">
+                            {reward.installerCode}
                           </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            No issues
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteRow(index)}
-                          title="Delete row"
+                          {reward.autoExtractedReferrer && (
+                            <div className="text-xs text-blue-600 mt-0.5 flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              <span>Referrer: {reward.referrerCode}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div
+                          className="w-56 px-4 py-3 text-sm flex-shrink-0 flex items-center truncate"
+                          title={reward.productModel}
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                          {reward.productModel}
+                        </div>
+                        <div className="w-32 px-4 py-3 text-sm font-mono flex-shrink-0 flex items-center">
+                          {reward.serialNumber}
+                        </div>
+                        <div
+                          className="w-40 px-4 py-3 text-sm flex-shrink-0 flex items-center truncate"
+                          title={reward.bankName}
+                        >
+                          {reward.bankName}
+                        </div>
+                        <div className="w-24 px-4 py-3 text-sm font-mono flex-shrink-0 flex items-center">
+                          {reward.rewardAmount}
+                        </div>
+                        <div className="w-28 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                          <Badge
+                            variant={
+                              reward.rewardStatus === "PAID"
+                                ? "default"
+                                : reward.rewardStatus === "FAILED"
+                                ? "destructive"
+                                : "secondary"
+                            }
+                          >
+                            {reward.rewardStatus}
+                          </Badge>
+                        </div>
+                        <div className="flex-1 min-w-80 px-4 py-3 text-sm flex items-center">
+                          {reward.issues.length > 0 ? (
+                            <div className="space-y-1">
+                              {reward.issues.map((issue, i) => (
+                                <div
+                                  key={i}
+                                  className="text-xs text-destructive flex items-start gap-1"
+                                >
+                                  <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                  <span>{issue}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              No issues
+                            </span>
+                          )}
+                        </div>
+                        <div className="w-20 px-4 py-3 text-sm flex-shrink-0 flex items-center justify-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteRow(virtualRow.index)}
+                            title="Delete row"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -1400,6 +1589,8 @@ export default function BulkCreateRewardsPage() {
 
       {/* Progress Modal */}
       <BulkUploadProgressModal
+        title="Rewards Bulk Register"
+        description="Rewards Bulk Registeration in process"
         isOpen={showProgressModal}
         steps={uploadSteps}
         totalRecords={preview.filter((p) => p.isValid).length}
