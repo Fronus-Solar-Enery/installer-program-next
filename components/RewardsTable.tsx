@@ -1,4 +1,4 @@
-import React, { Activity, useCallback, useMemo, useState, useRef } from "react";
+import React, { Activity, useCallback, useMemo, useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion, AnimatePresence } from "framer-motion";
@@ -166,6 +166,9 @@ export const RewardsTable = React.memo<RewardsTableProps>(
 
     // Virtual scrolling ref for large datasets
     const parentRef = useRef<HTMLDivElement>(null);
+    // Column width calculation refs
+    const measureRef = useRef<HTMLDivElement>(null);
+    const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
 
     // Virtual scrolling setup
     const rowVirtualizer = useVirtualizer({
@@ -174,6 +177,67 @@ export const RewardsTable = React.memo<RewardsTableProps>(
       estimateSize: () => 65, // Estimated row height in pixels
       overscan: 5, // Number of items to render outside of visible area
     });
+
+    // Calculate column widths based on content
+    useEffect(() => {
+      if (!measureRef.current || rewards.length === 0) return;
+
+      const measureElement = measureRef.current;
+      const columns: Record<string, number> = {};
+
+      // Get all visible column keys
+      const columnKeys = Object.keys(visibleColumns).filter(
+        (key) => visibleColumns[key as keyof typeof visibleColumns]
+      );
+
+      // Measure each column
+      columnKeys.forEach((columnKey) => {
+        const cells = measureElement.querySelectorAll(
+          `[data-column="${columnKey}"]`
+        );
+        let maxWidth = 0;
+
+        cells.forEach((cell) => {
+          const element = cell as HTMLElement;
+          // Get computed styles to account for padding
+          const computedStyle = window.getComputedStyle(element);
+          const paddingLeft = parseFloat(computedStyle.paddingLeft);
+          const paddingRight = parseFloat(computedStyle.paddingRight);
+
+          // Get content width (scrollWidth includes padding, so subtract it)
+          const contentWidth = element.scrollWidth - paddingLeft - paddingRight;
+
+          if (contentWidth > maxWidth) {
+            maxWidth = contentWidth;
+          }
+        });
+
+        columns[columnKey] = maxWidth;
+      });
+
+      // Only update if widths actually changed to prevent infinite loop
+      setColumnWidths((prev) => {
+        const hasChanged =
+          Object.keys(columns).some((key) => prev[key] !== columns[key]) ||
+          Object.keys(prev).length !== Object.keys(columns).length;
+
+        return hasChanged ? columns : prev;
+      });
+    }, [rewards, visibleColumns]);
+
+    // Helper function to get column styles with dynamic width
+    const getColumnStyle = (columnKey: string) => {
+      const calculatedWidth = columnWidths[columnKey];
+      if (!calculatedWidth) {
+        return { minWidth: undefined };
+      }
+      return {
+        minWidth: calculatedWidth,
+        flexBasis: calculatedWidth,
+        flexGrow: 1,
+        flexShrink: 0,
+      };
+    };
 
     // Get team member name by ID
     const getTeamMemberName = useCallback(
@@ -745,215 +809,318 @@ export const RewardsTable = React.memo<RewardsTableProps>(
             </CardContent>
           </Activity>
           {/* REWARDS DATATABLE with Virtual Scrolling */}
-          <div className="overflow-hidden">
-            {/* Table Header - Fixed */}
-            <div className="bg-muted/50 border-b border-border sticky top-0 z-10">
-              <div className="flex w-full">
-                <div className="w-12 px-4 py-3 text-sm font-semibold flex items-center justify-center flex-shrink-0">
-                  <Checkbox
-                    checked={allSelected}
-                    onCheckedChange={onToggleSelectAll}
-                    aria-label="Select all rewards on this page"
-                  />
-                </div>
-                {visibleColumns.installerCode && (
-                  <div
-                    className="flex-1 min-w-[140px] px-4 py-3 text-sm font-semibold cursor-pointer"
-                    onClick={() => onToggleSort("installerCode")}
-                  >
-                    Installer Code {getSortIcon("installerCode")}
+          <div className="overflow-auto" style={{ height: "715px" }} ref={parentRef}>
+            <div ref={measureRef} className="min-w-fit w-full">
+              {/* Sticky Header */}
+              <div className="sticky top-0 z-10">
+                <div className="flex w-full bg-muted/50 backdrop-blur-xl border-b border-border relative">
+                  <div className="w-12 px-4 py-3 text-sm font-semibold flex items-center justify-center shrink-0">
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={onToggleSelectAll}
+                      aria-label="Select all rewards on this page"
+                    />
                   </div>
-                )}
-                {visibleColumns.installer && (
-                  <div
-                    className="flex-1 min-w-[160px] px-4 py-3 text-sm font-semibold cursor-pointer"
-                    onClick={() => onToggleSort("installer")}
-                  >
-                    Installer Name {getSortIcon("installer")}
+                  {visibleColumns.installerCode && (
+                    <div
+                      data-column="installerCode"
+                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
+                      style={getColumnStyle("installerCode")}
+                      onClick={() => onToggleSort("installerCode")}
+                    >
+                      Installer Code {getSortIcon("installerCode")}
+                    </div>
+                  )}
+                  {visibleColumns.installer && (
+                    <div
+                      data-column="installer"
+                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
+                      style={getColumnStyle("installer")}
+                      onClick={() => onToggleSort("installer")}
+                    >
+                      Installer Name {getSortIcon("installer")}
+                    </div>
+                  )}
+                  {visibleColumns.serialNumber && (
+                    <div
+                      data-column="serialNumber"
+                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
+                      style={getColumnStyle("serialNumber")}
+                      onClick={() => onToggleSort("serialNumber")}
+                    >
+                      Serial Number {getSortIcon("serialNumber")}
+                    </div>
+                  )}
+                  {visibleColumns.productModel && (
+                    <div
+                      data-column="productModel"
+                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
+                      style={getColumnStyle("productModel")}
+                      onClick={() => onToggleSort("productModel")}
+                    >
+                      Product Model {getSortIcon("productModel")}
+                    </div>
+                  )}
+                  {visibleColumns.cityOfInstallation && (
+                    <div
+                      data-column="cityOfInstallation"
+                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
+                      style={getColumnStyle("cityOfInstallation")}
+                      onClick={() => onToggleSort("cityOfInstallation")}
+                    >
+                      City {getSortIcon("cityOfInstallation")}
+                    </div>
+                  )}
+                  {visibleColumns.rewardAmount && (
+                    <div
+                      data-column="rewardAmount"
+                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
+                      style={getColumnStyle("rewardAmount")}
+                      onClick={() => onToggleSort("rewardAmount")}
+                    >
+                      Amount {getSortIcon("rewardAmount")}
+                    </div>
+                  )}
+                  {visibleColumns.rewardStatus && (
+                    <div
+                      data-column="rewardStatus"
+                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
+                      style={getColumnStyle("rewardStatus")}
+                      onClick={() => onToggleSort("rewardStatus")}
+                    >
+                      Status {getSortIcon("rewardStatus")}
+                    </div>
+                  )}
+                  {visibleColumns.paymentMethod && (
+                    <div
+                      data-column="paymentMethod"
+                      className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
+                      style={getColumnStyle("paymentMethod")}
+                    >
+                      Payment Method
+                    </div>
+                  )}
+                  {visibleColumns.transactionId && (
+                    <div
+                      data-column="transactionId"
+                      className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
+                      style={getColumnStyle("transactionId")}
+                    >
+                      Transaction ID
+                    </div>
+                  )}
+                  {visibleColumns.sendingDate && (
+                    <div
+                      data-column="sendingDate"
+                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
+                      style={getColumnStyle("sendingDate")}
+                      onClick={() => onToggleSort("sendingDate")}
+                    >
+                      Sending Date {getSortIcon("sendingDate")}
+                    </div>
+                  )}
+                  {visibleColumns.inverterSerialNumber && (
+                    <div
+                      data-column="inverterSerialNumber"
+                      className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
+                      style={getColumnStyle("inverterSerialNumber")}
+                    >
+                      Inverter Serial
+                    </div>
+                  )}
+                  {visibleColumns.registeredBy && (
+                    <div
+                      data-column="registeredBy"
+                      className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
+                      style={getColumnStyle("registeredBy")}
+                    >
+                      Registered By
+                    </div>
+                  )}
+                  {visibleColumns.referrerName && (
+                    <div
+                      data-column="referrerName"
+                      className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
+                      style={getColumnStyle("referrerName")}
+                    >
+                      Referrer Name
+                    </div>
+                  )}
+                  {visibleColumns.referrerTransactionId && (
+                    <div
+                      data-column="referrerTransactionId"
+                      className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
+                      style={getColumnStyle("referrerTransactionId")}
+                    >
+                      Referrer Transaction ID
+                    </div>
+                  )}
+                  {visibleColumns.referrerReward && (
+                    <div
+                      data-column="referrerReward"
+                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
+                      style={getColumnStyle("referrerReward")}
+                      onClick={() => onToggleSort("referrerRewardAmount")}
+                    >
+                      Referrer Reward {getSortIcon("referrerRewardAmount")}
+                    </div>
+                  )}
+                  <div className="w-32 px-4 py-3 text-sm font-semibold shrink-0 whitespace-nowrap">
+                    Actions
                   </div>
-                )}
-                {visibleColumns.serialNumber && (
-                  <div
-                    className="flex-1 min-w-[140px] px-4 py-3 text-sm font-semibold cursor-pointer"
-                    onClick={() => onToggleSort("serialNumber")}
-                  >
-                    Serial Number {getSortIcon("serialNumber")}
-                  </div>
-                )}
-                {visibleColumns.productModel && (
-                  <div
-                    className="flex-1 min-w-[180px] px-4 py-3 text-sm font-semibold cursor-pointer"
-                    onClick={() => onToggleSort("productModel")}
-                  >
-                    Product Model {getSortIcon("productModel")}
-                  </div>
-                )}
-                {visibleColumns.cityOfInstallation && (
-                  <div
-                    className="flex-1 min-w-[120px] px-4 py-3 text-sm font-semibold cursor-pointer"
-                    onClick={() => onToggleSort("cityOfInstallation")}
-                  >
-                    City {getSortIcon("cityOfInstallation")}
-                  </div>
-                )}
-                {visibleColumns.rewardAmount && (
-                  <div
-                    className="flex-1 min-w-[110px] px-4 py-3 text-sm font-semibold cursor-pointer"
-                    onClick={() => onToggleSort("rewardAmount")}
-                  >
-                    Amount {getSortIcon("rewardAmount")}
-                  </div>
-                )}
-                {visibleColumns.rewardStatus && (
-                  <div
-                    className="flex-1 min-w-[110px] px-4 py-3 text-sm font-semibold cursor-pointer"
-                    onClick={() => onToggleSort("rewardStatus")}
-                  >
-                    Status {getSortIcon("rewardStatus")}
-                  </div>
-                )}
-                {visibleColumns.paymentMethod && (
-                  <div className="flex-1 min-w-[120px] px-4 py-3 text-sm font-semibold">
-                    Payment Method
-                  </div>
-                )}
-                {visibleColumns.transactionId && (
-                  <div className="flex-1 min-w-[140px] px-4 py-3 text-sm font-semibold">
-                    Transaction ID
-                  </div>
-                )}
-                {visibleColumns.sendingDate && (
-                  <div
-                    className="flex-1 min-w-[130px] px-4 py-3 text-sm font-semibold cursor-pointer"
-                    onClick={() => onToggleSort("sendingDate")}
-                  >
-                    Sending Date {getSortIcon("sendingDate")}
-                  </div>
-                )}
-                {visibleColumns.inverterSerialNumber && (
-                  <div className="flex-1 min-w-[140px] px-4 py-3 text-sm font-semibold">
-                    Inverter Serial
-                  </div>
-                )}
-                {visibleColumns.registeredBy && (
-                  <div className="flex-1 min-w-[150px] px-4 py-3 text-sm font-semibold">
-                    Registered By
-                  </div>
-                )}
-                {visibleColumns.referrerName && (
-                  <div className="flex-1 min-w-[130px] px-4 py-3 text-sm font-semibold">
-                    Referrer Name
-                  </div>
-                )}
-                {visibleColumns.referrerTransactionId && (
-                  <div className="flex-1 min-w-[160px] px-4 py-3 text-sm font-semibold">
-                    Referrer Transaction ID
-                  </div>
-                )}
-                {visibleColumns.referrerReward && (
-                  <div
-                    className="flex-1 min-w-[120px] px-4 py-3 text-sm font-semibold cursor-pointer"
-                    onClick={() => onToggleSort("referrerRewardAmount")}
-                  >
-                    Referrer Reward {getSortIcon("referrerRewardAmount")}
-                  </div>
-                )}
-                <div className="w-32 px-4 py-3 text-sm font-semibold flex-shrink-0">
-                  Actions
                 </div>
               </div>
-            </div>
 
             {/* Virtual Scrolling Container */}
             {loading ? (
-              <div className="overflow-hidden" style={{ height: "650px" }}>
+              <div style={{ height: "650px", position: "relative" }}>
                 {Array.from({ length: 10 }).map((_, index) => (
                   <div
                     key={index}
-                    className="flex w-full border-b border-border animate-pulse"
+                    className="flex w-full min-w-max border-b border-border"
                     style={{ height: "65px" }}
                   >
-                    <div className="w-12 px-4 py-3 flex items-center justify-center flex-shrink-0">
-                      <div className="h-4 w-4 bg-muted rounded" />
+                    <div className="w-12 px-4 py-3 flex items-center justify-center shrink-0">
+                      <div className="h-4 w-4 bg-muted rounded-sm animate-pulse" />
                     </div>
                     {visibleColumns.installerCode && (
-                      <div className="flex-1 min-w-[140px] px-4 py-3 flex items-center">
-                        <div className="h-4 bg-muted rounded w-3/4" />
+                      <div
+                        data-column="installerCode"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("installerCode")}
+                      >
+                        <div className="h-4 bg-muted rounded w-24 animate-pulse" />
                       </div>
                     )}
                     {visibleColumns.installer && (
-                      <div className="flex-1 min-w-[160px] px-4 py-3 flex items-center">
-                        <div className="h-4 bg-muted rounded w-2/3" />
+                      <div
+                        data-column="installer"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("installer")}
+                      >
+                        <div className="h-4 bg-muted rounded w-32 animate-pulse" />
                       </div>
                     )}
                     {visibleColumns.serialNumber && (
-                      <div className="flex-1 min-w-[140px] px-4 py-3 flex items-center">
-                        <div className="h-4 bg-muted rounded w-3/4" />
+                      <div
+                        data-column="serialNumber"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("serialNumber")}
+                      >
+                        <div className="h-4 bg-muted rounded w-28 animate-pulse" />
                       </div>
                     )}
                     {visibleColumns.productModel && (
-                      <div className="flex-1 min-w-[180px] px-4 py-3 flex items-center">
-                        <div className="h-4 bg-muted rounded w-4/5" />
+                      <div
+                        data-column="productModel"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("productModel")}
+                      >
+                        <div className="h-4 bg-muted rounded w-32 animate-pulse" />
                       </div>
                     )}
                     {visibleColumns.cityOfInstallation && (
-                      <div className="flex-1 min-w-[120px] px-4 py-3 flex items-center">
-                        <div className="h-4 bg-muted rounded w-3/5" />
+                      <div
+                        data-column="cityOfInstallation"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("cityOfInstallation")}
+                      >
+                        <div className="h-4 bg-muted rounded w-20 animate-pulse" />
                       </div>
                     )}
                     {visibleColumns.rewardAmount && (
-                      <div className="flex-1 min-w-[110px] px-4 py-3 flex items-center">
-                        <div className="h-4 bg-muted rounded w-1/2" />
+                      <div
+                        data-column="rewardAmount"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("rewardAmount")}
+                      >
+                        <div className="h-4 bg-muted rounded w-20 animate-pulse" />
                       </div>
                     )}
                     {visibleColumns.rewardStatus && (
-                      <div className="flex-1 min-w-[110px] px-4 py-3 flex items-center">
-                        <div className="h-5 bg-muted rounded-full w-16" />
+                      <div
+                        data-column="rewardStatus"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("rewardStatus")}
+                      >
+                        <div className="h-5 bg-muted rounded-full w-16 animate-pulse" />
                       </div>
                     )}
                     {visibleColumns.paymentMethod && (
-                      <div className="flex-1 min-w-[120px] px-4 py-3 flex items-center">
-                        <div className="h-4 bg-muted rounded w-3/5" />
+                      <div
+                        data-column="paymentMethod"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("paymentMethod")}
+                      >
+                        <div className="h-4 bg-muted rounded w-24 animate-pulse" />
                       </div>
                     )}
                     {visibleColumns.transactionId && (
-                      <div className="flex-1 min-w-[140px] px-4 py-3 flex items-center">
-                        <div className="h-4 bg-muted rounded w-4/5" />
+                      <div
+                        data-column="transactionId"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("transactionId")}
+                      >
+                        <div className="h-4 bg-muted rounded w-32 animate-pulse" />
                       </div>
                     )}
                     {visibleColumns.sendingDate && (
-                      <div className="flex-1 min-w-[130px] px-4 py-3 flex items-center">
-                        <div className="h-4 bg-muted rounded w-3/5" />
+                      <div
+                        data-column="sendingDate"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("sendingDate")}
+                      >
+                        <div className="h-4 bg-muted rounded w-24 animate-pulse" />
                       </div>
                     )}
                     {visibleColumns.inverterSerialNumber && (
-                      <div className="flex-1 min-w-[140px] px-4 py-3 flex items-center">
-                        <div className="h-4 bg-muted rounded w-3/4" />
+                      <div
+                        data-column="inverterSerialNumber"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("inverterSerialNumber")}
+                      >
+                        <div className="h-4 bg-muted rounded w-28 animate-pulse" />
                       </div>
                     )}
                     {visibleColumns.registeredBy && (
-                      <div className="flex-1 min-w-[150px] px-4 py-3 flex items-center">
-                        <div className="h-4 bg-muted rounded w-2/3" />
+                      <div
+                        data-column="registeredBy"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("registeredBy")}
+                      >
+                        <div className="h-4 bg-muted rounded w-28 animate-pulse" />
                       </div>
                     )}
                     {visibleColumns.referrerName && (
-                      <div className="flex-1 min-w-[130px] px-4 py-3 flex items-center">
-                        <div className="h-4 bg-muted rounded w-2/3" />
+                      <div
+                        data-column="referrerName"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("referrerName")}
+                      >
+                        <div className="h-4 bg-muted rounded w-24 animate-pulse" />
                       </div>
                     )}
                     {visibleColumns.referrerTransactionId && (
-                      <div className="flex-1 min-w-[160px] px-4 py-3 flex items-center">
-                        <div className="h-4 bg-muted rounded w-4/5" />
+                      <div
+                        data-column="referrerTransactionId"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("referrerTransactionId")}
+                      >
+                        <div className="h-4 bg-muted rounded w-32 animate-pulse" />
                       </div>
                     )}
                     {visibleColumns.referrerReward && (
-                      <div className="flex-1 min-w-[120px] px-4 py-3 flex items-center">
-                        <div className="h-4 bg-muted rounded w-1/2" />
+                      <div
+                        data-column="referrerReward"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("referrerReward")}
+                      >
+                        <div className="h-4 bg-muted rounded w-20 animate-pulse" />
                       </div>
                     )}
-                    <div className="w-32 px-4 py-3 flex items-center gap-2 flex-shrink-0">
-                      <div className="h-8 w-8 bg-muted rounded" />
-                      <div className="h-8 w-8 bg-muted rounded" />
+                    <div className="w-32 px-4 py-3 text-sm flex items-center gap-4 shrink-0">
+                      <div className="size-5 bg-muted rounded animate-pulse" />
+                      <div className="size-5 bg-muted rounded animate-pulse" />
                     </div>
                   </div>
                 ))}
@@ -987,198 +1154,251 @@ export const RewardsTable = React.memo<RewardsTableProps>(
               </Table>
             ) : (
               <div
-                ref={parentRef}
-                className="overflow-auto"
-                style={{ height: "650px" }}
+                style={{
+                  height: `${rowVirtualizer.getTotalSize()}px`,
+                  position: "relative",
+                }}
               >
-                <div
-                  style={{
-                    height: `${rowVirtualizer.getTotalSize()}px`,
-                    width: "100%",
-                    position: "relative",
-                  }}
-                >
-                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                    const reward = rewards[virtualRow.index];
-                    const isSelected = selectedRewards.has(reward._id);
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  const reward = rewards[virtualRow.index];
+                  const isSelected = selectedRewards.has(reward._id);
 
-                    return (
-                      <div
-                        key={virtualRow.key}
-                        id={`reward-${reward._id}`}
-                        style={{
-                          position: "absolute",
-                          top: 0,
-                          left: 0,
-                          width: "100%",
-                          height: `${virtualRow.size}px`,
-                          transform: `translateY(${virtualRow.start}px)`,
-                        }}
-                        className="flex w-full border-b border-border transition-colors hover:bg-muted/50"
-                      >
-                        <div className="w-12 px-4 py-3 text-sm flex items-center justify-center flex-shrink-0">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() =>
-                              onToggleSelection(reward._id)
-                            }
-                            aria-label={`Select ${reward.serialNumber}`}
-                          />
-                        </div>
-                        {visibleColumns.installerCode && (
-                          <div className="flex-1 min-w-[140px] px-4 py-3 text-sm flex items-center">
-                            <div className="flex items-center">
-                              {reward.installerCode}
-                              <CopyButton
-                                text={reward.installerCode}
-                                label="Installer Code"
-                              />
-                            </div>
-                          </div>
-                        )}
-                        {visibleColumns.installer && (
-                          <div className="flex-1 min-w-[160px] px-4 py-3 text-sm flex items-center">
-                            {reward.installer?.fullName || "N/A"}
-                          </div>
-                        )}
-                        {visibleColumns.serialNumber && (
-                          <div className="flex-1 min-w-[140px] px-4 py-3 text-sm flex items-center">
-                            <div
-                              className="flex items-center cursor-pointer font-medium"
-                              onClick={() =>
-                                router.push(`/rewards/${reward._id}`)
-                              }
-                            >
-                              {reward.serialNumber}
-                              <CopyButton
-                                text={reward.serialNumber}
-                                label="Serial Number"
-                              />
-                            </div>
-                          </div>
-                        )}
-                        {visibleColumns.productModel && (
-                          <div className="flex-1 min-w-[180px] px-4 py-3 text-sm flex items-center">
-                            {reward.productModel}
-                          </div>
-                        )}
-                        {visibleColumns.cityOfInstallation && (
-                          <div className="flex-1 min-w-[120px] px-4 py-3 text-sm flex items-center">
-                            {reward.cityOfInstallation}
-                          </div>
-                        )}
-                        {visibleColumns.rewardAmount && (
-                          <div className="flex-1 min-w-[110px] px-4 py-3 text-sm flex items-center">
-                            Rs. {reward.rewardAmount.toLocaleString()}
-                          </div>
-                        )}
-                        {visibleColumns.rewardStatus && (
-                          <div className="flex-1 min-w-[110px] px-4 py-3 text-sm flex items-center">
-                            <Badge
-                              variant={
-                                reward.rewardStatus === "PAID"
-                                  ? "default"
-                                  : reward.rewardStatus === "PENDING"
-                                  ? "secondary"
-                                  : "destructive"
-                              }
-                            >
-                              {reward.rewardStatus}
-                            </Badge>
-                          </div>
-                        )}
-                        {visibleColumns.paymentMethod && (
-                          <div className="flex-1 min-w-[120px] px-4 py-3 text-sm flex items-center">
-                            {reward.paymentMethod || "N/A"}
-                          </div>
-                        )}
-                        {visibleColumns.transactionId && (
-                          <div className="flex-1 min-w-[140px] px-4 py-3 text-sm flex items-center">
-                            {reward.transactionId ? (
-                              <div className="flex items-center">
-                                {reward.transactionId}
-                                <CopyButton
-                                  text={reward.transactionId}
-                                  label="Transaction ID"
-                                />
-                              </div>
-                            ) : (
-                              "N/A"
-                            )}
-                          </div>
-                        )}
-                        {visibleColumns.sendingDate && (
-                          <div className="flex-1 min-w-[130px] px-4 py-3 text-sm flex items-center">
-                            {reward.sendingDate
-                              ? new Date(
-                                  reward.sendingDate
-                                ).toLocaleDateString()
-                              : "N/A"}
-                          </div>
-                        )}
-                        {visibleColumns.inverterSerialNumber && (
-                          <div className="flex-1 min-w-[140px] px-4 py-3 text-sm flex items-center">
-                            {reward.inverterSerialNumber || "N/A"}
-                          </div>
-                        )}
-                        {visibleColumns.registeredBy && (
-                          <div className="flex-1 min-w-[150px] px-4 py-3 text-sm flex items-center">
-                            {reward.registeredBy?.name || "N/A"}
-                          </div>
-                        )}
-                        {visibleColumns.referrerName && (
-                          <div className="flex-1 min-w-[130px] px-4 py-3 text-sm flex items-center">
-                            {reward.referrer?.fullName || "N/A"}
-                          </div>
-                        )}
-                        {visibleColumns.referrerTransactionId && (
-                          <div className="flex-1 min-w-[160px] px-4 py-3 text-sm flex items-center">
-                            {reward.referrerTransactionId ? (
-                              <div className="flex items-center">
-                                {reward.referrerTransactionId}
-                                <CopyButton
-                                  text={reward.referrerTransactionId}
-                                  label="Referrer Transaction ID"
-                                />
-                              </div>
-                            ) : (
-                              "N/A"
-                            )}
-                          </div>
-                        )}
-                        {visibleColumns.referrerReward && (
-                          <div className="flex-1 min-w-[120px] px-4 py-3 text-sm flex items-center">
-                            {reward.referrerRewardAmount
-                              ? `Rs. ${reward.referrerRewardAmount.toLocaleString()}`
-                              : "N/A"}
-                          </div>
-                        )}
-                        <div className="w-32 px-4 py-3 text-sm flex items-center gap-2 flex-shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onEditClick(reward._id)}
-                            title="Edit"
-                          >
-                            <IconEdit2 />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              onDeleteClick(reward._id, reward.serialNumber)
-                            }
-                            title="Delete"
-                          >
-                            <IconTrashBin2 className="text-destructive-text" />
-                          </Button>
-                        </div>
+                  return (
+                    <div
+                      key={virtualRow.key}
+                      id={`reward-${reward._id}`}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        minWidth: "max-content",
+                        height: `${virtualRow.size}px`,
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                      className="flex w-full min-w-max border-b border-border transition-colors hover:bg-muted/30"
+                    >
+                      <div className="w-12 px-4 py-3 text-sm flex items-center justify-center shrink-0">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={() =>
+                            onToggleSelection(reward._id)
+                          }
+                          aria-label={`Select ${reward.serialNumber}`}
+                        />
                       </div>
-                    );
-                  })}
-                </div>
+                      {visibleColumns.installerCode && (
+                        <div
+                          data-column="installerCode"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("installerCode")}
+                        >
+                          <div className="flex items-center">
+                            {reward.installerCode}
+                            <CopyButton
+                              text={reward.installerCode}
+                              label="Installer Code"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {visibleColumns.installer && (
+                        <div
+                          data-column="installer"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("installer")}
+                        >
+                          {reward.installer?.fullName || "N/A"}
+                        </div>
+                      )}
+                      {visibleColumns.serialNumber && (
+                        <div
+                          data-column="serialNumber"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("serialNumber")}
+                        >
+                          <div
+                            className="flex items-center cursor-pointer font-medium"
+                            onClick={() =>
+                              router.push(`/rewards/${reward._id}`)
+                            }
+                          >
+                            {reward.serialNumber}
+                            <CopyButton
+                              text={reward.serialNumber}
+                              label="Serial Number"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {visibleColumns.productModel && (
+                        <div
+                          data-column="productModel"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("productModel")}
+                        >
+                          {reward.productModel}
+                        </div>
+                      )}
+                      {visibleColumns.cityOfInstallation && (
+                        <div
+                          data-column="cityOfInstallation"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("cityOfInstallation")}
+                        >
+                          {reward.cityOfInstallation}
+                        </div>
+                      )}
+                      {visibleColumns.rewardAmount && (
+                        <div
+                          data-column="rewardAmount"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("rewardAmount")}
+                        >
+                          Rs. {reward.rewardAmount.toLocaleString()}
+                        </div>
+                      )}
+                      {visibleColumns.rewardStatus && (
+                        <div
+                          data-column="rewardStatus"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("rewardStatus")}
+                        >
+                          <Badge
+                            variant={
+                              reward.rewardStatus === "PAID"
+                                ? "default"
+                                : reward.rewardStatus === "PENDING"
+                                ? "secondary"
+                                : "destructive"
+                            }
+                          >
+                            {reward.rewardStatus}
+                          </Badge>
+                        </div>
+                      )}
+                      {visibleColumns.paymentMethod && (
+                        <div
+                          data-column="paymentMethod"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("paymentMethod")}
+                        >
+                          {reward.paymentMethod || "N/A"}
+                        </div>
+                      )}
+                      {visibleColumns.transactionId && (
+                        <div
+                          data-column="transactionId"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("transactionId")}
+                        >
+                          {reward.transactionId ? (
+                            <div className="flex items-center">
+                              {reward.transactionId}
+                              <CopyButton
+                                text={reward.transactionId}
+                                label="Transaction ID"
+                              />
+                            </div>
+                          ) : (
+                            "N/A"
+                          )}
+                        </div>
+                      )}
+                      {visibleColumns.sendingDate && (
+                        <div
+                          data-column="sendingDate"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("sendingDate")}
+                        >
+                          {reward.sendingDate
+                            ? new Date(
+                                reward.sendingDate
+                              ).toLocaleDateString()
+                            : "N/A"}
+                        </div>
+                      )}
+                      {visibleColumns.inverterSerialNumber && (
+                        <div
+                          data-column="inverterSerialNumber"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("inverterSerialNumber")}
+                        >
+                          {reward.inverterSerialNumber || "N/A"}
+                        </div>
+                      )}
+                      {visibleColumns.registeredBy && (
+                        <div
+                          data-column="registeredBy"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("registeredBy")}
+                        >
+                          {reward.registeredBy?.name || "N/A"}
+                        </div>
+                      )}
+                      {visibleColumns.referrerName && (
+                        <div
+                          data-column="referrerName"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("referrerName")}
+                        >
+                          {reward.referrer?.fullName || "N/A"}
+                        </div>
+                      )}
+                      {visibleColumns.referrerTransactionId && (
+                        <div
+                          data-column="referrerTransactionId"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("referrerTransactionId")}
+                        >
+                          {reward.referrerTransactionId ? (
+                            <div className="flex items-center">
+                              {reward.referrerTransactionId}
+                              <CopyButton
+                                text={reward.referrerTransactionId}
+                                label="Referrer Transaction ID"
+                              />
+                            </div>
+                          ) : (
+                            "N/A"
+                          )}
+                        </div>
+                      )}
+                      {visibleColumns.referrerReward && (
+                        <div
+                          data-column="referrerReward"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("referrerReward")}
+                        >
+                          {reward.referrerRewardAmount
+                            ? `Rs. ${reward.referrerRewardAmount.toLocaleString()}`
+                            : "N/A"}
+                        </div>
+                      )}
+                      <div className="w-32 px-4 py-3 text-sm flex items-center gap-4 shrink-0">
+                        <button
+                          onClick={() => onEditClick(reward._id)}
+                          className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                          title="Edit"
+                        >
+                          <IconEdit2 className="size-5" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            onDeleteClick(reward._id, reward.serialNumber)
+                          }
+                          className="text-destructive-text hover:text-destructive-text-hover transition-colors cursor-pointer"
+                          title="Delete"
+                        >
+                          <IconTrashBin2 className="size-5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
+            </div>
           </div>
         </CardContent>
         <CardFooter className="flex items-center justify-between p-4 relative bg-muted dark:bg-muted/50 text-xs text-muted-foreground">

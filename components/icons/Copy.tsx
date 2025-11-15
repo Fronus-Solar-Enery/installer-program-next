@@ -6,12 +6,14 @@ const IconCopy: FC<IconProps> = ({
   duotone = false,
   width = "2",
   opacity = "0.4",
+  onClick,
 }) => {
   return (
     <>
       {!fill ? (
         <svg
           className={`size-4 ${className}`}
+          onClick={onClick}
           width="24"
           height="24"
           viewBox="0 0 24 24"
@@ -35,6 +37,7 @@ const IconCopy: FC<IconProps> = ({
       ) : duotone ? (
         <svg
           className={`size-4 ${className}`}
+          onClick={onClick}
           width="24"
           height="24"
           viewBox="0 0 24 24"
@@ -57,6 +60,7 @@ const IconCopy: FC<IconProps> = ({
         <svg
           className={`size-4 ${className}`}
           width="24"
+          onClick={onClick}
           height="24"
           viewBox="0 0 24 24"
           fill="none"

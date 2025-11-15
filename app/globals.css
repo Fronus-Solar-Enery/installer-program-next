@@ -201,10 +201,20 @@
     opacity: 0;
   }
 }
-/* 
+/*
 ::-webkit-scrollbar {
   display: none;
 } */
+
+/* Hide scrollbar for specific elements */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
 
 body {
   /* background: var(--background); */

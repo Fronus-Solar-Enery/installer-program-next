@@ -13,11 +13,11 @@ export const CopyButton = ({
   text?: string;
   label?: string;
   className?: string;
-  onClick?: MouseEventHandler<HTMLButtonElement>;
+  onClick?: MouseEventHandler<SVGSVGElement>;
 }) => {
   const { copyToClipboard, copied } = useClipboard();
 
-  const handleClick: MouseEventHandler<HTMLButtonElement> = (e) => {
+  const handleClick: MouseEventHandler<SVGSVGElement> = (e) => {
     // prevent parent Link navigation
     e.stopPropagation();
     e.preventDefault();
@@ -32,18 +32,17 @@ export const CopyButton = ({
   const isCopied = Boolean(text && copied === text);
 
   return (
-    <button
-      type="button"
-      className={cn("ml-2 h-6 w-6 cursor-pointer", className)}
-      onClick={handleClick}
-      title={label ? `Copy ${label}` : "Copy"}
-      aria-label={label ?? "Copy"}
-    >
+    <>
       {isCopied ? (
-        <IconCheck className="text-green-600 dark:text-green-500" />
+        <IconCheck
+          className={cn("ml-2 text-green-600 dark:text-green-500", className)}
+        />
       ) : (
-        <IconCopy />
+        <IconCopy
+          onClick={handleClick}
+          className={cn("ml-2 cursor-pointer", className)}
+        />
       )}
-    </button>
+    </>
   );
 };
