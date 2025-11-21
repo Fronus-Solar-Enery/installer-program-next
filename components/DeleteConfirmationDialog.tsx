@@ -31,7 +31,7 @@ interface DeleteConfirmationDialogProps {
   status: DeleteStatus;
   itemName?: string;
   message?: string;
-  entityType: "installer" | "reward";
+  entityType: "installer" | "reward" | "batch-job";
   warningMessage?: string;
   onConfirm: () => void;
   onClose: () => void;
@@ -47,7 +47,12 @@ export function DeleteConfirmationDialog({
   onConfirm,
   onClose,
 }: DeleteConfirmationDialogProps) {
-  const entityLabel = entityType === "installer" ? "Installer" : "Reward";
+  const entityLabel =
+    entityType === "installer"
+      ? "Installer"
+      : entityType === "reward"
+      ? "Reward"
+      : "Batch Job";
   const entityLabelLower = entityLabel.toLowerCase();
 
   return (
@@ -71,15 +76,14 @@ export function DeleteConfirmationDialog({
                 duotone={true}
               />
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription className="w-19/20 flex flex-col items-center text-balance">
+              <AlertDialogDescription className="w-19/20 flex flex-col text-center items-center text-balance">
                 This will permanently delete the {entityLabelLower}{" "}
                 <span className="flex items-center gap-2">
                   <strong className="whitespace-nowrap">{itemName}</strong>
                 </span>
-                <span className="mt-6 flex gap-2 text-destructive-text">
-                  <IconInfoCircle className="size-6" />
+                <span className="mt-6 flex gap-2 text-destructive-text text-left">
+                  <IconInfoCircle className="size-6 shrink-0" duotone />
                   <span>
-                    This action cannot be undone. <br />
                     {warningMessage ||
                       `${entityLabel} with rewards cannot be deleted.`}
                   </span>
@@ -91,7 +95,7 @@ export function DeleteConfirmationDialog({
           {status === "deleting" && (
             <>
               <div className="size-32 flex items-center justify-center">
-                <Loading className="size-16" />
+                <Loading className="size-24" />
               </div>
               <AlertDialogTitle>Deleting...</AlertDialogTitle>
               <AlertDialogDescription className="w-19/20 text-center text-balance">
@@ -131,7 +135,7 @@ export function DeleteConfirmationDialog({
                   <strong>{itemName}</strong>
                 </span>
                 <span className="mt-4 flex gap-2 text-destructive-text items-start justify-center">
-                  <IconInfoCircle className="mt-0.5 flex-shrink-0" />
+                  <IconInfoCircle className="mt-0.5 shrink-0" />
                   <span className="text-left">
                     <strong>Reason:</strong> {message}
                   </span>

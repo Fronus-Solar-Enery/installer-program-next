@@ -22,16 +22,6 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -50,6 +40,11 @@ import { useAdminGuard } from "@/hooks/useRoleGuard";
 import HoverCard from "@/components/HoverCard";
 import { useBatchJobs } from "@/contexts/BatchJobContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DeleteConfirmationDialog,
+  DeleteDialogState,
+  DeleteStatus,
+} from "@/components/DeleteConfirmationDialog";
 
 interface BatchJob {
   _id: string;
@@ -76,11 +71,23 @@ export default function BatchJobsPage() {
   const [selectedJob, setSelectedJob] = useState<BatchJob | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [cancellingJobId, setCancellingJobId] = useState<string | null>(null);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [retryingCodes, setRetryingCodes] = useState<Set<string>>(new Set());
+
+  // Cancel dialog state
+  const [cancelDialog, setCancelDialog] = useState<DeleteDialogState>({
+    open: false,
+    status: "confirm",
+    itemId: undefined,
+    itemName: undefined,
+  });
+
+  // Delete dialog state
+  const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState>({
+    open: false,
+    status: "confirm",
+    itemId: undefined,
+    itemName: undefined,
+  });
 
   const { isAuthorized } = useAdminGuard({
     autoRedirect: true,
@@ -138,27 +145,43 @@ export default function BatchJobsPage() {
     return () => clearInterval(cleanup);
   }, [jobs, retryingCodes]);
 
-  const handleCancelJob = async (jobId: string) => {
+  const handleCancelJob = async () => {
+    if (!cancelDialog.itemId) return;
+
+    setCancelDialog((prev) => ({ ...prev, status: "deleting" }));
+
     try {
-      const response = await fetch(`/api/batch-jobs?jobId=${jobId}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/batch-jobs?jobId=${cancelDialog.itemId}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.message || "Failed to cancel job");
       }
 
-      toast.success("Batch job cancelled successfully");
-      fetchJobs(); // Refresh the list
+      setCancelDialog((prev) => ({
+        ...prev,
+        status: "success",
+        message: "Batch job cancelled successfully",
+      }));
+
+      // Auto-close after 1.5s and refresh
+      setTimeout(() => {
+        setCancelDialog({ open: false, status: "confirm" });
+        fetchJobs();
+      }, 1500);
     } catch (error) {
       console.error("Error cancelling job:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to cancel job"
-      );
-    } finally {
-      setShowCancelDialog(false);
-      setCancellingJobId(null);
+      setCancelDialog((prev) => ({
+        ...prev,
+        status: "error",
+        message:
+          error instanceof Error ? error.message : "Failed to cancel job",
+      }));
     }
   };
 
@@ -174,10 +197,14 @@ export default function BatchJobsPage() {
     }
   };
 
-  const handleDeleteJob = async (jobId: string) => {
+  const handleDeleteJob = async () => {
+    if (!deleteDialog.itemId) return;
+
+    setDeleteDialog((prev) => ({ ...prev, status: "deleting" }));
+
     try {
       const response = await fetch(
-        `/api/batch-jobs?jobId=${jobId}&action=delete`,
+        `/api/batch-jobs?jobId=${deleteDialog.itemId}&action=delete`,
         {
           method: "DELETE",
         }
@@ -188,16 +215,25 @@ export default function BatchJobsPage() {
         throw new Error(data.message || "Failed to delete job");
       }
 
-      toast.success("Batch job deleted successfully");
-      fetchJobs(); // Refresh the list
+      setDeleteDialog((prev) => ({
+        ...prev,
+        status: "success",
+        message: "Batch job deleted successfully",
+      }));
+
+      // Auto-close after 1.5s and refresh
+      setTimeout(() => {
+        setDeleteDialog({ open: false, status: "confirm" });
+        fetchJobs();
+      }, 1500);
     } catch (error) {
       console.error("Error deleting job:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to delete job"
-      );
-    } finally {
-      setShowDeleteDialog(false);
-      setDeletingJobId(null);
+      setDeleteDialog((prev) => ({
+        ...prev,
+        status: "error",
+        message:
+          error instanceof Error ? error.message : "Failed to delete job",
+      }));
     }
   };
 
@@ -391,6 +427,7 @@ export default function BatchJobsPage() {
               <div className="w-full">
                 <div className="bg-muted/50">
                   <div className="flex items-center justify-between p-4">
+                    <div className="w-36">Job ID</div>
                     <div className="w-30">Type</div>
                     <div className="w-28">Status</div>
                     <div className="w-60">Progress</div>
@@ -410,6 +447,10 @@ export default function BatchJobsPage() {
                           key={i}
                           className="flex items-center justify-between h-12 border-b border-border px-4 py-2"
                         >
+                          {/* ID */}
+                          <div className="w-36 flex items-center">
+                            <Skeleton className="h-6 w-28" />
+                          </div>
                           {/* Type */}
                           <div className="w-30 flex items-center">
                             <Skeleton className="h-6 w-28" />
@@ -475,6 +516,14 @@ export default function BatchJobsPage() {
                           key={job._id}
                           className="flex items-center justify-between h-12 border-b border-border px-4 py-2 hover:bg-muted/30"
                         >
+                          <div className="w-36 flex items-center">
+                            <span
+                              className="font-mono text-xs truncate"
+                              title={job._id}
+                            >
+                              #{job._id.slice(-8)}
+                            </span>
+                          </div>
                           <div className="w-30 flex items-center">
                             {getTypeBadge(job.type)}
                           </div>
@@ -603,8 +652,12 @@ export default function BatchJobsPage() {
                                 ) && "opacity-50 select-none cursor-not-allowed"
                               )}
                               onClick={() => {
-                                setCancellingJobId(job._id);
-                                setShowCancelDialog(true);
+                                setCancelDialog({
+                                  open: true,
+                                  status: "confirm",
+                                  itemId: job._id,
+                                  itemName: `Job #${job._id.slice(-6)}`,
+                                });
                               }}
                               disabled={
                                 !(
@@ -627,8 +680,12 @@ export default function BatchJobsPage() {
                                 job.status === "processing"
                               }
                               onClick={() => {
-                                setDeletingJobId(job._id);
-                                setShowDeleteDialog(true);
+                                setDeleteDialog({
+                                  open: true,
+                                  status: "confirm",
+                                  itemId: job._id,
+                                  itemName: `Job #${job._id.slice(-6)}`,
+                                });
                               }}
                               title="Delete Job"
                             >
@@ -663,58 +720,29 @@ export default function BatchJobsPage() {
       </div>
 
       {/* Cancel Confirmation Dialog */}
-      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancel Batch Job?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to cancel this batch job? This action cannot
-              be undone. Any contacts that have already been processed will not
-              be affected.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>No, keep running</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
-              onClick={() => {
-                if (cancellingJobId) {
-                  handleCancelJob(cancellingJobId);
-                }
-              }}
-            >
-              Yes, cancel job
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteConfirmationDialog
+        open={cancelDialog.open}
+        status={cancelDialog.status}
+        itemName={cancelDialog.itemName}
+        message={cancelDialog.message}
+        entityType="batch-job"
+        warningMessage="Any contacts that have already been processed will not be affected."
+        onConfirm={handleCancelJob}
+        onClose={() => setCancelDialog({ open: false, status: "confirm" })}
+      />
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Batch Job?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to permanently delete this batch job? This
-              action cannot be undone and will remove all job data from the
-              database.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
-              onClick={() => {
-                if (deletingJobId) {
-                  handleDeleteJob(deletingJobId);
-                }
-              }}
-            >
-              Yes, delete job
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteConfirmationDialog
+        open={deleteDialog.open}
+        status={deleteDialog.status}
+        itemName={deleteDialog.itemName}
+        message={deleteDialog.message}
+        entityType="batch-job"
+        warningMessage="This action cannot be undone and will remove all job data from the database."
+        onConfirm={handleDeleteJob}
+        onClose={() => setDeleteDialog({ open: false, status: "confirm" })}
+      />
+
       {/* Job Details Dialog */}
       <Dialog
         open={!!selectedJob}
