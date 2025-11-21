@@ -29,6 +29,7 @@ export interface Filters {
   dateRange: "all" | "today" | "week" | "month" | "year" | "custom";
   customStartDate: string;
   customEndDate: string;
+  updatedAt: string;
 }
 
 export interface RewardsState {
@@ -65,9 +66,11 @@ export interface RewardsState {
   // Bulk delete state
   bulkDeleteResultState: {
     open: boolean;
+    status: "confirm" | "deleting" | "success" | "error";
     successCount: number;
     failCount: number;
     failures: Array<{ name: string; reason: string }>;
+    message?: string;
   };
 
   // UI state
@@ -120,6 +123,7 @@ const initialFilters: Filters = {
   dateRange: "all",
   customStartDate: "",
   customEndDate: "",
+  updatedAt: "",
 };
 
 const initialColumnVisibility: ColumnVisibility = {
@@ -156,6 +160,7 @@ export const initialState: RewardsState = {
   },
   bulkDeleteResultState: {
     open: false,
+    status: "confirm",
     successCount: 0,
     failCount: 0,
     failures: [],
@@ -195,6 +200,11 @@ function rewardsReducer(
         ...state,
         filters: initialFilters,
         currentPage: 1,
+        // Reset sort to default if it's on updatedAt
+        sortField:
+          state.sortField === "updatedAt" ? "createdAt" : state.sortField,
+        sortDirection:
+          state.sortField === "updatedAt" ? "desc" : state.sortDirection,
       };
 
     case "SET_SORT":
@@ -206,19 +216,28 @@ function rewardsReducer(
 
     case "TOGGLE_SORT":
       if (state.sortField === action.payload) {
-        // Clicking the same field: cycle through asc -> desc -> reset to default
-        if (state.sortDirection === "asc") {
+        // Clicking the same field
+        if (action.payload === "createdAt") {
+          // For date fields: only toggle between asc and desc (no reset)
           return {
             ...state,
-            sortDirection: "desc",
+            sortDirection: state.sortDirection === "asc" ? "desc" : "asc",
           };
         } else {
-          // Reset to default sort (createdAt desc)
-          return {
-            ...state,
-            sortField: "createdAt",
-            sortDirection: "desc",
-          };
+          // For other fields: cycle through asc -> desc -> reset to default
+          if (state.sortDirection === "asc") {
+            return {
+              ...state,
+              sortDirection: "desc",
+            };
+          } else {
+            // Reset to default sort (createdAt desc)
+            return {
+              ...state,
+              sortField: "createdAt",
+              sortDirection: "desc",
+            };
+          }
         }
       } else {
         // Clicking a new field: start with ascending
@@ -355,6 +374,7 @@ function rewardsReducer(
         ...state,
         bulkDeleteResultState: {
           open: false,
+          status: "confirm",
           successCount: 0,
           failCount: 0,
           failures: [],

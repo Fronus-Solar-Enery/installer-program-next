@@ -1366,52 +1366,47 @@ export default function BulkCreateRewardsPage() {
       {preview.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>
-              Preview Data ({preview.length} records)
-              <span className="text-sm font-normal text-muted-foreground ml-2">
-                - Using virtual scrolling for optimal performance
-              </span>
-            </CardTitle>
+            <CardTitle>Preview Data ({preview.length} records)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="border border-border rounded-lg overflow-hidden">
               {/* Table Header - Fixed */}
               <div className="bg-muted/50 border-b border-border sticky top-0 z-10">
                 <div className="flex min-w-max">
-                  <div className="w-16 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-16 px-4 py-3 text-sm font-medium shrink-0">
                     #
                   </div>
-                  <div className="w-24 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-24 px-4 py-3 text-sm font-medium shrink-0">
                     Status
                   </div>
-                  <div className="w-40 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-40 px-4 py-3 text-sm font-medium shrink-0">
                     Timestamp
                   </div>
-                  <div className="w-48 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-48 px-4 py-3 text-sm font-medium shrink-0">
                     Team Member
                   </div>
-                  <div className="w-48 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-48 px-4 py-3 text-sm font-medium shrink-0">
                     Installer
                   </div>
-                  <div className="w-56 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-56 px-4 py-3 text-sm font-medium shrink-0">
                     Product
                   </div>
-                  <div className="w-32 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-32 px-4 py-3 text-sm font-medium shrink-0">
                     Serial #
                   </div>
-                  <div className="w-40 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-40 px-4 py-3 text-sm font-medium shrink-0">
                     Bank
                   </div>
-                  <div className="w-24 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-24 px-4 py-3 text-sm font-medium shrink-0">
                     Amount
                   </div>
-                  <div className="w-28 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-28 px-4 py-3 text-sm font-medium shrink-0">
                     Payment
                   </div>
                   <div className="flex-1 min-w-80 px-4 py-3 text-sm font-medium">
                     Issues
                   </div>
-                  <div className="w-20 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-20 px-4 py-3 text-sm font-medium shrink-0">
                     Action
                   </div>
                 </div>
@@ -1447,10 +1442,10 @@ export default function BulkCreateRewardsPage() {
                           !reward.isValid ? "bg-destructive/10" : ""
                         }`}
                       >
-                        <div className="w-16 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                        <div className="w-16 px-4 py-3 text-sm shrink-0 flex items-center">
                           {virtualRow.index + 1}
                         </div>
-                        <div className="w-24 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                        <div className="w-24 px-4 py-3 text-sm shrink-0 flex items-center">
                           {reward.isValid ? (
                             <Badge variant="default" className="bg-green-600">
                               <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -1463,18 +1458,18 @@ export default function BulkCreateRewardsPage() {
                             </Badge>
                           )}
                         </div>
-                        <div className="w-40 px-4 py-3 text-xs flex-shrink-0 flex items-center">
+                        <div className="w-40 px-4 py-3 text-xs shrink-0 flex items-center">
                           {reward.timestamp
                             ? new Date(reward.timestamp).toLocaleString()
                             : "-"}
                         </div>
                         <div
-                          className="w-48 px-4 py-3 text-sm flex-shrink-0 flex items-center truncate"
+                          className="w-48 px-4 py-3 text-sm shrink-0 flex items-center truncate"
                           title={reward.teamMemberEmail}
                         >
                           {reward.teamMemberEmail}
                         </div>
-                        <div className="w-48 px-4 py-3 text-sm flex-shrink-0 flex flex-col justify-center">
+                        <div className="w-48 px-4 py-3 text-sm shrink-0 flex flex-col justify-center">
                           <div>{reward.installerName}</div>
                           <div className="font-mono text-xs text-muted-foreground">
                             {reward.installerCode}
@@ -1487,24 +1482,24 @@ export default function BulkCreateRewardsPage() {
                           )}
                         </div>
                         <div
-                          className="w-56 px-4 py-3 text-sm flex-shrink-0 flex items-center truncate"
+                          className="w-56 px-4 py-3 text-sm shrink-0 flex items-center truncate"
                           title={reward.productModel}
                         >
                           {reward.productModel}
                         </div>
-                        <div className="w-32 px-4 py-3 text-sm font-mono flex-shrink-0 flex items-center">
+                        <div className="w-32 px-4 py-3 text-sm font-mono shrink-0 flex items-center">
                           {reward.serialNumber}
                         </div>
                         <div
-                          className="w-40 px-4 py-3 text-sm flex-shrink-0 flex items-center truncate"
+                          className="w-40 px-4 py-3 text-sm shrink-0 flex items-center truncate"
                           title={reward.bankName}
                         >
                           {reward.bankName}
                         </div>
-                        <div className="w-24 px-4 py-3 text-sm font-mono flex-shrink-0 flex items-center">
+                        <div className="w-24 px-4 py-3 text-sm font-mono shrink-0 flex items-center">
                           {reward.rewardAmount}
                         </div>
-                        <div className="w-28 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                        <div className="w-28 px-4 py-3 text-sm shrink-0 flex items-center">
                           <Badge
                             variant={
                               reward.rewardStatus === "PAID"
@@ -1525,7 +1520,7 @@ export default function BulkCreateRewardsPage() {
                                   key={i}
                                   className="text-xs text-destructive flex items-start gap-1"
                                 >
-                                  <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                  <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
                                   <span>{issue}</span>
                                 </div>
                               ))}
@@ -1536,7 +1531,7 @@ export default function BulkCreateRewardsPage() {
                             </span>
                           )}
                         </div>
-                        <div className="w-20 px-4 py-3 text-sm flex-shrink-0 flex items-center justify-center">
+                        <div className="w-20 px-4 py-3 text-sm shrink-0 flex items-center justify-center">
                           <Button
                             variant="ghost"
                             size="icon"

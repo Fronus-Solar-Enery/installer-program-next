@@ -1,8 +1,10 @@
 "use client";
 import { useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useRoleGuard } from "@/hooks/useRoleGuard";
 import * as XLSX from "xlsx";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useBatchJobs } from "@/contexts/BatchJobContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -17,14 +19,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   AlertCircle,
   CheckCircle2,
@@ -67,6 +61,8 @@ interface InstallerUpload {
 
 export default function BulkUploadInstallersPage() {
   const router = useRouter();
+  const { isAuthorized, isAuthLoading } = useRoleGuard();
+  const { startJob } = useBatchJobs();
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
@@ -739,13 +735,6 @@ export default function BulkUploadInstallersPage() {
         progress: 0,
       },
       {
-        id: "google",
-        title: "Creating Google Contacts",
-        description: "Syncing installer data with Google Contacts",
-        status: "pending",
-        progress: 0,
-      },
-      {
         id: "activity",
         title: "Logging Activities",
         description: "Recording installation activities",
@@ -790,7 +779,7 @@ export default function BulkUploadInstallersPage() {
       const CHUNK_SIZE = 50; // Increased from 10 to 50 for better performance
       let totalSuccess = 0;
       let totalFailed = 0;
-      let totalGoogleContacts = 0;
+      const allInstallerIds: string[] = []; // Collect all installer IDs across chunks
       const allErrors: string[] = [];
       const failedChunks: { chunk: typeof validInstallers; error: string }[] =
         [];
@@ -807,9 +796,46 @@ export default function BulkUploadInstallersPage() {
         }
 
         const chunk = validInstallers.slice(i, i + CHUNK_SIZE);
-        const currentBatch = Math.min(i + CHUNK_SIZE, validInstallers.length);
+        const chunkStartIndex = i;
+        const chunkEndIndex = Math.min(i + CHUNK_SIZE, validInstallers.length);
         let retryCount = 0;
         const maxRetries = 2;
+
+        // Simulate granular progress within chunk during API call
+        const simulateChunkProgress = () => {
+          let currentInChunk = 0;
+          const progressInterval = setInterval(() => {
+            if (currentInChunk < chunk.length - 1) {
+              currentInChunk++;
+              const estimatedProcessed = chunkStartIndex + currentInChunk;
+              const estimatedProgress = Math.round(
+                (estimatedProcessed / totalRecords) * 100
+              );
+
+              setProcessedRecords(estimatedProcessed);
+              setUploadSteps((prev) =>
+                prev.map((step) =>
+                  step.id === "register"
+                    ? {
+                        ...step,
+                        status: "processing",
+                        progress: estimatedProgress,
+                        description: `Processing ${estimatedProcessed} of ${totalRecords} installer(s)`,
+                        details: `Registering item ${currentInChunk + 1}/${
+                          chunk.length
+                        } in current batch...`,
+                      }
+                    : step
+                )
+              );
+            }
+          }, 100); // Update every 100ms for smooth progress
+
+          return progressInterval;
+        };
+
+        // Start simulated progress
+        const progressInterval = simulateChunkProgress();
 
         // Retry logic for failed chunks
         while (retryCount <= maxRetries) {
@@ -823,10 +849,17 @@ export default function BulkUploadInstallersPage() {
 
             const data = await response.json();
 
+            // Clear simulated progress
+            clearInterval(progressInterval);
+
             if (response.ok) {
               totalSuccess += data.data.success || 0;
               totalFailed += data.data.failed || 0;
-              totalGoogleContacts += data.data.googleContactsCreated || 0;
+
+              // Collect installer IDs from this chunk
+              if (data.data.installerIds && data.data.installerIds.length > 0) {
+                allInstallerIds.push(...data.data.installerIds);
+              }
 
               if (data.data.errors && data.data.errors.length > 0) {
                 allErrors.push(...data.data.errors);
@@ -838,7 +871,7 @@ export default function BulkUploadInstallersPage() {
                 allErrors.push(
                   data.error ||
                     `Chunk ${
-                      i / CHUNK_SIZE + 1
+                      Math.floor(i / CHUNK_SIZE) + 1
                     } failed after ${maxRetries} retries`
                 );
                 failedChunks.push({
@@ -854,6 +887,8 @@ export default function BulkUploadInstallersPage() {
               }
             }
           } catch (err) {
+            clearInterval(progressInterval);
+
             if (err instanceof Error && err.name === "AbortError") {
               toast.info("Upload cancelled by user");
               break;
@@ -861,7 +896,9 @@ export default function BulkUploadInstallersPage() {
 
             if (retryCount === maxRetries) {
               totalFailed += chunk.length;
-              const errorMsg = `Chunk ${i / CHUNK_SIZE + 1} failed: ${
+              const errorMsg = `Chunk ${
+                Math.floor(i / CHUNK_SIZE) + 1
+              } failed: ${
                 err instanceof Error ? err.message : "Unknown error"
               }`;
               allErrors.push(errorMsg);
@@ -875,9 +912,9 @@ export default function BulkUploadInstallersPage() {
           }
         }
 
-        // Update progress in real-time
-        const progress = Math.round((currentBatch / totalRecords) * 100);
-        setProcessedRecords(currentBatch);
+        // Update progress with actual results
+        const actualProgress = Math.round((chunkEndIndex / totalRecords) * 100);
+        setProcessedRecords(chunkEndIndex);
         setSuccessCount(totalSuccess);
         setFailedCount(totalFailed);
 
@@ -887,8 +924,8 @@ export default function BulkUploadInstallersPage() {
               ? {
                   ...step,
                   status: "processing",
-                  progress: progress,
-                  description: `Processing ${currentBatch} of ${totalRecords} installer(s)`,
+                  progress: actualProgress,
+                  description: `Processing ${chunkEndIndex} of ${totalRecords} installer(s)`,
                   details: `Registered: ${totalSuccess} | Failed: ${totalFailed}`,
                 }
               : step
@@ -930,29 +967,7 @@ export default function BulkUploadInstallersPage() {
         return;
       }
 
-      // Step 3: Google Contacts (already created during registration)
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      setUploadSteps((prev) =>
-        prev.map((step) =>
-          step.id === "google" ? { ...step, status: "processing" } : step
-        )
-      );
-
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setUploadSteps((prev) =>
-        prev.map((step) =>
-          step.id === "google"
-            ? {
-                ...step,
-                status: "completed",
-                progress: 100,
-                details: `Created ${totalGoogleContacts} Google contacts`,
-              }
-            : step
-        )
-      );
-
-      // Step 4: Activity Logging (already done during registration)
+      // Step 3: Activity Logging (already done during registration)
       await new Promise((resolve) => setTimeout(resolve, 300));
       setUploadSteps((prev) =>
         prev.map((step) =>
@@ -974,7 +989,7 @@ export default function BulkUploadInstallersPage() {
         )
       );
 
-      // Step 5: Complete
+      // Step 4: Complete
       await new Promise((resolve) => setTimeout(resolve, 300));
       setUploadSteps((prev) =>
         prev.map((step) =>
@@ -983,7 +998,10 @@ export default function BulkUploadInstallersPage() {
                 ...step,
                 status: "completed",
                 progress: 100,
-                details: `Upload completed: ${totalSuccess} successful, ${totalFailed} failed`,
+                details:
+                  allInstallerIds.length > 0
+                    ? `${totalSuccess} installer(s) registered. Google Contacts creation starting in background...`
+                    : `Upload completed: ${totalSuccess} successful, ${totalFailed} failed`,
               }
             : {
                 ...step,
@@ -993,12 +1011,48 @@ export default function BulkUploadInstallersPage() {
       );
 
       setSuccess(`Successfully uploaded ${totalSuccess} installer(s)!`);
+      toast.success(`Successfully uploaded ${totalSuccess} installer(s)!`);
 
       if (totalFailed > 0) {
         setError(
           `${totalFailed} installer(s) failed. Check the logs for details.`
         );
       }
+
+      // Create and start background job for Google Contacts creation
+      if (allInstallerIds.length > 0) {
+        try {
+          // Create batch job with all installer IDs
+          const batchJobResponse = await fetch("/api/batch-jobs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "GOOGLE_CONTACTS_CREATE",
+              installerIds: allInstallerIds,
+            }),
+          });
+
+          if (!batchJobResponse.ok) {
+            throw new Error("Failed to create batch job");
+          }
+
+          const batchJobData = await batchJobResponse.json();
+          const batchJobId = batchJobData.data.jobId;
+
+          // Start the batch job in background
+          await startJob(batchJobId);
+        } catch (jobError) {
+          console.error("Failed to create/start batch job:", jobError);
+          toast.error("Failed to start Google Contacts creation");
+        }
+      }
+
+      // Close modal and redirect after short delay
+      setTimeout(() => {
+        setShowProgressModal(false);
+        // router.push("/installers");
+        window.location.href = "/installers";
+      }, 500); // 1.5 second delay to show completion message
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setUploadSteps((prev) =>
@@ -1039,13 +1093,42 @@ export default function BulkUploadInstallersPage() {
     overscan: 10, // Number of items to render outside of visible area
   });
 
+  // Check for admin role
+  if (isAuthLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null; // useAdminGuard handles redirect
+  }
+
+  // Check for admin role
+  if (isAuthLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null; // useAdminGuard handles redirect
+  }
+
   return (
     <div className="flex-1 overflow-auto space-y-4">
       <PageHeader
         title="Bulk Upload Installers"
         description="Upload multiple installers at once using an Excel file"
         action={
-          <Button variant="ghost" onClick={() => router.push("/installers")}>
+          <Button
+            variant="ghost"
+            onClick={() => (window.location.href = "/installers")}
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Installers
           </Button>
@@ -1175,10 +1258,10 @@ export default function BulkUploadInstallersPage() {
                       </div>
                       <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden shadow-inner">
                         <div
-                          className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-200 ease-out rounded-full relative overflow-hidden"
+                          className="h-full bg-linear-to-r from-primary to-primary/80 transition-all duration-200 ease-out rounded-full relative overflow-hidden"
                           style={{ width: `${fileReadProgress}%` }}
                         >
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
+                          <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent animate-pulse" />
                         </div>
                       </div>
                     </div>
@@ -1320,49 +1403,44 @@ export default function BulkUploadInstallersPage() {
       {preview.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>
-              Preview Data ({preview.length} records)
-              <span className="text-sm font-normal text-muted-foreground ml-2">
-                - Using virtual scrolling for optimal performance
-              </span>
-            </CardTitle>
+            <CardTitle>Preview Data ({preview.length} records)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="border border-border rounded-lg overflow-hidden">
               {/* Table Header - Fixed */}
               <div className="bg-muted/50 border-b border-border sticky top-0 z-10">
                 <div className="flex min-w-max">
-                  <div className="w-16 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-16 px-4 py-3 text-sm font-medium shrink-0">
                     #
                   </div>
-                  <div className="w-28 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-28 px-4 py-3 text-sm font-medium shrink-0">
                     Status
                   </div>
-                  <div className="w-36 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-36 px-4 py-3 text-sm font-medium shrink-0">
                     Installer Code
                   </div>
-                  <div className="w-48 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-48 px-4 py-3 text-sm font-medium shrink-0">
                     Full Name
                   </div>
-                  <div className="w-40 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-40 px-4 py-3 text-sm font-medium shrink-0">
                     CNIC
                   </div>
-                  <div className="w-36 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-36 px-4 py-3 text-sm font-medium shrink-0">
                     Phone
                   </div>
-                  <div className="w-32 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-32 px-4 py-3 text-sm font-medium shrink-0">
                     City
                   </div>
-                  <div className="w-32 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-32 px-4 py-3 text-sm font-medium shrink-0">
                     Province
                   </div>
-                  <div className="w-36 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-36 px-4 py-3 text-sm font-medium shrink-0">
                     Bank
                   </div>
                   <div className="flex-1 min-w-80 px-4 py-3 text-sm font-medium">
                     Issues
                   </div>
-                  <div className="w-20 px-4 py-3 text-sm font-medium flex-shrink-0">
+                  <div className="w-20 px-4 py-3 text-sm font-medium shrink-0">
                     Action
                   </div>
                 </div>
@@ -1398,10 +1476,10 @@ export default function BulkUploadInstallersPage() {
                           !installer.isValid ? "bg-destructive/10" : ""
                         }`}
                       >
-                        <div className="w-16 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                        <div className="w-16 px-4 py-3 text-sm shrink-0 flex items-center">
                           {virtualRow.index + 1}
                         </div>
-                        <div className="w-28 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                        <div className="w-28 px-4 py-3 text-sm shrink-0 flex items-center">
                           {installer.isValid ? (
                             <Badge variant="default" className="bg-green-600">
                               <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -1414,25 +1492,25 @@ export default function BulkUploadInstallersPage() {
                             </Badge>
                           )}
                         </div>
-                        <div className="w-36 px-4 py-3 text-sm font-mono flex-shrink-0 flex items-center">
+                        <div className="w-36 px-4 py-3 text-sm font-mono shrink-0 flex items-center">
                           {installer.installerCode}
                         </div>
-                        <div className="w-48 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                        <div className="w-48 px-4 py-3 text-sm shrink-0 flex items-center">
                           {installer.fullName}
                         </div>
-                        <div className="w-40 px-4 py-3 text-sm font-mono flex-shrink-0 flex items-center">
+                        <div className="w-40 px-4 py-3 text-sm font-mono shrink-0 flex items-center">
                           {installer.cnic}
                         </div>
-                        <div className="w-36 px-4 py-3 text-sm font-mono flex-shrink-0 flex items-center">
+                        <div className="w-36 px-4 py-3 text-sm font-mono shrink-0 flex items-center">
                           {installer.phoneNumber}
                         </div>
-                        <div className="w-32 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                        <div className="w-32 px-4 py-3 text-sm shrink-0 flex items-center">
                           {installer.city}
                         </div>
-                        <div className="w-32 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                        <div className="w-32 px-4 py-3 text-sm shrink-0 flex items-center">
                           {installer.province}
                         </div>
-                        <div className="w-36 px-4 py-3 text-sm flex-shrink-0 flex items-center">
+                        <div className="w-36 px-4 py-3 text-sm shrink-0 flex items-center">
                           {installer.bankName}
                         </div>
                         <div className="flex-1 min-w-80 px-4 py-3 text-sm flex items-center">
@@ -1443,7 +1521,7 @@ export default function BulkUploadInstallersPage() {
                                   key={i}
                                   className="text-xs text-destructive flex items-start gap-1"
                                 >
-                                  <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                  <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
                                   <span>{issue}</span>
                                 </div>
                               ))}
@@ -1454,7 +1532,7 @@ export default function BulkUploadInstallersPage() {
                             </span>
                           )}
                         </div>
-                        <div className="w-20 px-4 py-3 text-sm flex-shrink-0 flex items-center justify-center">
+                        <div className="w-20 px-4 py-3 text-sm shrink-0 flex items-center justify-center">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -1509,7 +1587,7 @@ export default function BulkUploadInstallersPage() {
         open={terminateDialogOpen}
         onOpenChange={setTerminateDialogOpen}
       >
-        <AlertDialogContent className="rounded-4xl !min-w-sm">
+        <AlertDialogContent className="rounded-4xl min-w-sm!">
           <AlertDialogHeader className="flex flex-col items-center">
             <IconTrashBin2
               className="size-32 text-destructive-text"
@@ -1563,7 +1641,7 @@ export default function BulkUploadInstallersPage() {
         onClose={() => {
           setShowProgressModal(false);
           if (success) {
-            setTimeout(() => router.push("/installers"), 500);
+            setTimeout(() => (window.location.href = "/installers"), 500);
           }
         }}
       />

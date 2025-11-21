@@ -1,4 +1,11 @@
-import React, { Activity, useCallback, useMemo, useState, useRef, useEffect } from "react";
+import React, {
+  Activity,
+  useCallback,
+  useMemo,
+  useState,
+  useRef,
+  useEffect,
+} from "react";
 import { useRouter } from "next/navigation";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion, AnimatePresence } from "framer-motion";
@@ -79,6 +86,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { InstallerAvatar } from "./UserAvatar";
+import Unavailable from "./ui/not-avaiable";
 
 interface TeamMember {
   _id: string;
@@ -98,6 +107,7 @@ interface RewardsTableProps {
   sortField: string;
   sortDirection: "asc" | "desc";
   bulkDeleting: boolean;
+  showFilters: boolean;
   lastUpdatedText: string;
   filters?: {
     search?: string;
@@ -110,6 +120,7 @@ interface RewardsTableProps {
     dateRange?: "all" | "today" | "week" | "month" | "year" | "custom";
     customStartDate?: string;
     customEndDate?: string;
+    updatedAt?: string;
   };
   teamMembers?: TeamMember[];
   uniqueValues?: {
@@ -124,6 +135,7 @@ interface RewardsTableProps {
   onEditClick: (id: string) => void;
   onDeleteClick: (id: string, serialNumber: string) => void;
   onBulkDelete: () => void;
+  onOpenBulkDeleteDialog: () => void;
   onPageChange: (page: number) => void;
   onItemsPerPageChange: (itemsPerPage: number) => void;
   onClearFilter?: (key: string) => void;
@@ -144,6 +156,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
     sortField,
     sortDirection,
     bulkDeleting,
+    showFilters,
     lastUpdatedText,
     filters,
     teamMembers,
@@ -155,6 +168,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
     onEditClick,
     onDeleteClick,
     onBulkDelete,
+    onOpenBulkDeleteDialog,
     onPageChange,
     onItemsPerPageChange,
     onClearFilter,
@@ -162,13 +176,14 @@ export const RewardsTable = React.memo<RewardsTableProps>(
     onClearAllFilters,
   }) => {
     const router = useRouter();
-    const [showFilters, setShowFilters] = useState(false);
 
     // Virtual scrolling ref for large datasets
     const parentRef = useRef<HTMLDivElement>(null);
     // Column width calculation refs
     const measureRef = useRef<HTMLDivElement>(null);
-    const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+    const [columnWidths, setColumnWidths] = useState<Record<string, number>>(
+      {}
+    );
 
     // Virtual scrolling setup
     const rowVirtualizer = useVirtualizer({
@@ -180,64 +195,51 @@ export const RewardsTable = React.memo<RewardsTableProps>(
 
     // Calculate column widths based on content
     useEffect(() => {
-      if (!measureRef.current || rewards.length === 0) return;
+      if (!measureRef.current || rewards.length === 0 || loading) return;
 
-      const measureElement = measureRef.current;
-      const columns: Record<string, number> = {};
+      const calculateColumnWidths = () => {
+        const container = measureRef.current;
+        if (!container) return;
 
-      // Get all visible column keys
-      const columnKeys = Object.keys(visibleColumns).filter(
-        (key) => visibleColumns[key as keyof typeof visibleColumns]
-      );
+        const newWidths: Record<string, number> = {};
 
-      // Measure each column
-      columnKeys.forEach((columnKey) => {
-        const cells = measureElement.querySelectorAll(
-          `[data-column="${columnKey}"]`
-        );
-        let maxWidth = 0;
+        // Get all columns with data-column attribute
+        const allColumns = container.querySelectorAll("[data-column]");
 
-        cells.forEach((cell) => {
-          const element = cell as HTMLElement;
-          // Get computed styles to account for padding
-          const computedStyle = window.getComputedStyle(element);
-          const paddingLeft = parseFloat(computedStyle.paddingLeft);
-          const paddingRight = parseFloat(computedStyle.paddingRight);
-
-          // Get content width (scrollWidth includes padding, so subtract it)
-          const contentWidth = element.scrollWidth - paddingLeft - paddingRight;
-
-          if (contentWidth > maxWidth) {
-            maxWidth = contentWidth;
+        // Group cells by column
+        const columnGroups: Record<string, HTMLElement[]> = {};
+        allColumns.forEach((cell) => {
+          const columnName = cell.getAttribute("data-column");
+          if (columnName) {
+            if (!columnGroups[columnName]) {
+              columnGroups[columnName] = [];
+            }
+            columnGroups[columnName].push(cell as HTMLElement);
           }
         });
 
-        columns[columnKey] = maxWidth;
-      });
+        // Calculate max width for each column
+        Object.entries(columnGroups).forEach(([columnName, cells]) => {
+          let maxWidth = 0;
+          cells.forEach((cell) => {
+            const width = cell.scrollWidth;
+            if (width > maxWidth) {
+              maxWidth = width;
+            }
+          });
+          newWidths[columnName] = maxWidth;
+        });
 
-      // Only update if widths actually changed to prevent infinite loop
-      setColumnWidths((prev) => {
-        const hasChanged =
-          Object.keys(columns).some((key) => prev[key] !== columns[key]) ||
-          Object.keys(prev).length !== Object.keys(columns).length;
-
-        return hasChanged ? columns : prev;
-      });
-    }, [rewards, visibleColumns]);
-
-    // Helper function to get column styles with dynamic width
-    const getColumnStyle = (columnKey: string) => {
-      const calculatedWidth = columnWidths[columnKey];
-      if (!calculatedWidth) {
-        return { minWidth: undefined };
-      }
-      return {
-        minWidth: calculatedWidth,
-        flexBasis: calculatedWidth,
-        flexGrow: 1,
-        flexShrink: 0,
+        setColumnWidths(newWidths);
       };
-    };
+
+      // Use requestAnimationFrame for better performance
+      const rafId = requestAnimationFrame(() => {
+        calculateColumnWidths();
+      });
+
+      return () => cancelAnimationFrame(rafId);
+    }, [rewards, loading]);
 
     // Get team member name by ID
     const getTeamMemberName = useCallback(
@@ -314,348 +316,223 @@ export const RewardsTable = React.memo<RewardsTableProps>(
       [sortField, sortDirection]
     );
 
+    // Helper function to get column style with memoized width
+    const getColumnStyle = useCallback(
+      (columnName: string) => ({
+        minWidth: columnWidths[columnName]
+          ? `${columnWidths[columnName]}px`
+          : undefined,
+      }),
+      [columnWidths]
+    );
+
     return (
       <>
         <CardContent className="p-0! light:bg-muted/50">
           {/* Filters Display Section */}
           <div className="flex justify-between p-4 bg-muted/30">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <p className="text-sm leading-none">Filters Applied:</p>
+            <div className="flex items-center gap-2 *:font-mono">
+              <p className="text-sm leading-none">Filters Applied:</p>
+              {/* Sort - Always Show */}
+              <div className="text-xs flex items-center gap-1 text-muted-foreground">
+                Sort:
+                <Badge
+                  variant="outline"
+                  className="gap-1 [&>svg]:pointer-events-auto h-5.5"
+                >
+                  {sortDirection === "asc" ? (
+                    <IconSortFromTopToBottom duotone />
+                  ) : (
+                    <IconSortFromBottomToTop duotone />
+                  )}
+                  {sortField === "serialNumber" && "Serial Number"}
+                  {sortField === "installerCode" && "Installer Code"}
+                  {sortField === "installer" && "Installer Name"}
+                  {sortField === "productModel" && "Product Model"}
+                  {sortField === "cityOfInstallation" && "City"}
+                  {sortField === "rewardAmount" && "Amount"}
+                  {sortField === "rewardStatus" && "Status"}
+                  {sortField === "sendingDate" && "Sending Date"}
+                  {sortField === "referrerRewardAmount" && "Referrer Reward"}
+                  {sortField === "createdAt" && "Registered"}
+                  {sortField === "updatedAt" && "Updated"}
+                  <IconClose
+                    className={cn(
+                      "size-4!",
+                      sortField === "createdAt" && sortDirection === "desc"
+                        ? "cursor-not-allowed opacity-50"
+                        : "cursor-pointer"
+                    )}
+                    onClick={() => {
+                      if (
+                        sortField !== "createdAt" ||
+                        sortDirection !== "desc"
+                      ) {
+                        onToggleSort("createdAt");
+                      }
+                    }}
+                  />
+                </Badge>
+              </div>
 
-                {/* Sort - Always Show */}
+              {/* Date Range - Always Show */}
+              {filters?.dateRange && (
                 <div className="text-xs flex items-center gap-1 text-muted-foreground">
-                  Sort:
+                  Date Range:
                   <Badge
                     variant="outline"
                     className="gap-1 [&>svg]:pointer-events-auto h-5.5"
                   >
-                    {sortDirection === "asc" ? (
-                      <IconSortFromTopToBottom duotone />
-                    ) : (
-                      <IconSortFromBottomToTop duotone />
-                    )}
-                    {sortField === "serialNumber" && "Serial Number"}
-                    {sortField === "installerCode" && "Installer Code"}
-                    {sortField === "installer" && "Installer Name"}
-                    {sortField === "productModel" && "Product Model"}
-                    {sortField === "cityOfInstallation" && "City"}
-                    {sortField === "rewardAmount" && "Amount"}
-                    {sortField === "rewardStatus" && "Status"}
-                    {sortField === "sendingDate" && "Sending Date"}
-                    {sortField === "referrerRewardAmount" && "Referrer Reward"}
-                    {sortField === "createdAt" && "Date"}
+                    {filters.dateRange === "all" && "All Time"}
+                    {filters.dateRange === "today" && "Today"}
+                    {filters.dateRange === "week" && "Last 7 days"}
+                    {filters.dateRange === "month" && "Last 30 days"}
+                    {filters.dateRange === "year" && "Last year"}
+                    {filters.dateRange === "custom" &&
+                      `${filters.customStartDate} to ${filters.customEndDate}`}
                     <IconClose
                       className={cn(
                         "size-4!",
-                        sortField === "createdAt" && sortDirection === "desc"
+                        filters.dateRange === "all"
                           ? "cursor-not-allowed opacity-50"
                           : "cursor-pointer"
                       )}
                       onClick={() => {
-                        if (
-                          sortField !== "createdAt" ||
-                          sortDirection !== "desc"
-                        ) {
-                          onToggleSort("createdAt");
+                        if (filters.dateRange !== "all") {
+                          onClearFilter?.("dateRange");
                         }
                       }}
                     />
                   </Badge>
                 </div>
+              )}
 
-                {/* Date Range - Always Show */}
-                {filters?.dateRange && (
+              {/* Reward Status Filter */}
+              {filters?.rewardStatus && filters.rewardStatus !== "ALL" && (
+                <div className="text-xs flex items-center gap-1 text-muted-foreground">
+                  Reward Status:
+                  <Badge
+                    variant="outline"
+                    className="gap-1 [&>svg]:pointer-events-auto h-5.5"
+                    id="filtersRewardStatus"
+                  >
+                    {filters.rewardStatus}
+                    <IconClose
+                      className="size-4! cursor-pointer"
+                      onClick={() => onClearFilter?.("rewardStatus")}
+                    />
+                  </Badge>
+                </div>
+              )}
+
+              {/* Payment Method Filter */}
+              {filters?.paymentMethod && filters.paymentMethod !== "all" && (
+                <div className="text-xs flex items-center gap-1 text-muted-foreground">
+                  Payment Method:
+                  <Badge
+                    variant="outline"
+                    className="gap-1 [&>svg]:pointer-events-auto h-5.5"
+                    id="filtersPaymentMethod"
+                  >
+                    {filters.paymentMethod}
+                    <IconClose
+                      className="size-4! cursor-pointer"
+                      onClick={() => onClearFilter?.("paymentMethod")}
+                    />
+                  </Badge>
+                </div>
+              )}
+
+              {/* Serial Number Status Filter */}
+              {filters?.serialNumberStatus &&
+                filters.serialNumberStatus !== "all" && (
                   <div className="text-xs flex items-center gap-1 text-muted-foreground">
-                    Date Range:
+                    Serial Status:
                     <Badge
                       variant="outline"
                       className="gap-1 [&>svg]:pointer-events-auto h-5.5"
+                      id="filtersSerialNumberStatus"
                     >
-                      {filters.dateRange === "all" && "All Time"}
-                      {filters.dateRange === "today" && "Today"}
-                      {filters.dateRange === "week" && "Last 7 days"}
-                      {filters.dateRange === "month" && "Last 30 days"}
-                      {filters.dateRange === "year" && "Last year"}
-                      {filters.dateRange === "custom" &&
-                        `${filters.customStartDate} to ${filters.customEndDate}`}
-                      <IconClose
-                        className={cn(
-                          "size-4!",
-                          filters.dateRange === "all"
-                            ? "cursor-not-allowed opacity-50"
-                            : "cursor-pointer"
-                        )}
-                        onClick={() => {
-                          if (filters.dateRange !== "all") {
-                            onClearFilter?.("dateRange");
-                          }
-                        }}
-                      />
-                    </Badge>
-                  </div>
-                )}
-
-                {/* Reward Status Filter */}
-                {filters?.rewardStatus && filters.rewardStatus !== "ALL" && (
-                  <div className="text-xs flex items-center gap-1 text-muted-foreground">
-                    Reward Status:
-                    <Badge
-                      variant="outline"
-                      className="gap-1 [&>svg]:pointer-events-auto h-5.5"
-                    >
-                      {filters.rewardStatus}
-                      <IconClose
-                        className="size-4! cursor-pointer"
-                        onClick={() => onClearFilter?.("rewardStatus")}
-                      />
-                    </Badge>
-                  </div>
-                )}
-
-                {/* Payment Method Filter */}
-                {filters?.paymentMethod && filters.paymentMethod !== "all" && (
-                  <div className="text-xs flex items-center gap-1 text-muted-foreground">
-                    Payment Method:
-                    <Badge
-                      variant="outline"
-                      className="gap-1 [&>svg]:pointer-events-auto h-5.5"
-                    >
-                      {filters.paymentMethod}
+                      {filters.serialNumberStatus}
                       <IconClose
                         className="size-4! cursor-pointer"
-                        onClick={() => onClearFilter?.("paymentMethod")}
+                        onClick={() => onClearFilter?.("serialNumberStatus")}
                       />
                     </Badge>
                   </div>
                 )}
 
-                {/* Serial Number Status Filter */}
-                {filters?.serialNumberStatus &&
-                  filters.serialNumberStatus !== "all" && (
-                    <div className="text-xs flex items-center gap-1 text-muted-foreground">
-                      Serial Status:
-                      <Badge
-                        variant="outline"
-                        className="gap-1 [&>svg]:pointer-events-auto h-5.5"
-                      >
-                        {filters.serialNumberStatus}
-                        <IconClose
-                          className="size-4! cursor-pointer"
-                          onClick={() => onClearFilter?.("serialNumberStatus")}
-                        />
-                      </Badge>
-                    </div>
-                  )}
+              {/* Product Model Filter */}
+              {filters?.productModel && filters.productModel !== "all" && (
+                <div className="text-xs flex items-center gap-1 text-muted-foreground">
+                  Product Model:
+                  <Badge
+                    variant="outline"
+                    className="gap-1 [&>svg]:pointer-events-auto h-5.5"
+                    id="filtersProductModel"
+                  >
+                    {filters.productModel}
+                    <IconClose
+                      className="size-4! cursor-pointer"
+                      onClick={() => onClearFilter?.("productModel")}
+                    />
+                  </Badge>
+                </div>
+              )}
 
-                {/* Product Model Filter */}
-                {filters?.productModel && filters.productModel !== "all" && (
-                  <div className="text-xs flex items-center gap-1 text-muted-foreground">
-                    Product Model:
-                    <Badge
-                      variant="outline"
-                      className="gap-1 [&>svg]:pointer-events-auto h-5.5"
-                    >
-                      {filters.productModel}
-                      <IconClose
-                        className="size-4! cursor-pointer"
-                        onClick={() => onClearFilter?.("productModel")}
-                      />
-                    </Badge>
-                  </div>
-                )}
+              {/* Team Member Filter */}
+              {filters?.teamMember && filters.teamMember !== "all" && (
+                <div className="text-xs flex items-center gap-1 text-muted-foreground">
+                  Registered By:
+                  <Badge
+                    variant="outline"
+                    className="gap-1 [&>svg]:pointer-events-auto h-5.5"
+                    id="filtersTeamMember"
+                  >
+                    {getTeamMemberName(filters.teamMember)}
+                    <IconClose
+                      className="size-4! cursor-pointer"
+                      onClick={() => onClearFilter?.("teamMember")}
+                    />
+                  </Badge>
+                </div>
+              )}
 
-                {/* Team Member Filter */}
-                {filters?.teamMember && filters.teamMember !== "all" && (
-                  <div className="text-xs flex items-center gap-1 text-muted-foreground">
-                    Registered By:
-                    <Badge
-                      variant="outline"
-                      className="gap-1 [&>svg]:pointer-events-auto h-5.5"
-                    >
-                      {getTeamMemberName(filters.teamMember)}
-                      <IconClose
-                        className="size-4! cursor-pointer"
-                        onClick={() => onClearFilter?.("teamMember")}
-                      />
-                    </Badge>
-                  </div>
-                )}
+              {/* Team Member Filter */}
+              {filters?.teamMember && filters.teamMember !== "all" && (
+                <div className="text-xs flex items-center gap-1 text-muted-foreground">
+                  Registered By:
+                  <Badge
+                    variant="outline"
+                    className="gap-1 [&>svg]:pointer-events-auto h-5.5"
+                    id="filtersTeamMember"
+                  >
+                    {getTeamMemberName(filters.teamMember)}
+                    <IconClose
+                      className="size-4! cursor-pointer"
+                      onClick={() => onClearFilter?.("teamMember")}
+                    />
+                  </Badge>
+                </div>
+              )}
 
-                {/* Sending Date Filter */}
-                {filters?.sendingDate && (
-                  <div className="text-xs flex items-center gap-1 text-muted-foreground">
-                    Sending Date:
-                    <Badge
-                      variant="outline"
-                      className="gap-1 [&>svg]:pointer-events-auto h-5.5"
-                    >
-                      {new Date(filters.sendingDate).toLocaleDateString()}
-                      <IconClose
-                        className="size-4! cursor-pointer"
-                        onClick={() => onClearFilter?.("sendingDate")}
-                      />
-                    </Badge>
-                  </div>
-                )}
-              </div>
-              <div className="text-sm text-muted-foreground inline-flex items-center gap-1">
-                Show
-                <Select
-                  value={String(itemsPerPage)}
-                  onValueChange={handleItemsPerPageChange}
-                  disabled={loading}
-                >
-                  <SelectTrigger className="h-6 w-max gap-1 px-1 pl-2 rounded-md">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="p-0!">
-                    <SelectItem className="h-6" value="10">
-                      10
-                    </SelectItem>
-                    <SelectItem className="h-6" value="25">
-                      25
-                    </SelectItem>
-                    <SelectItem className="h-6" value="50">
-                      50
-                    </SelectItem>
-                    <SelectItem className="h-6" value="100">
-                      100
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                rows per page
-              </div>
-            </div>
-            <div className="flex gap-1">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setShowFilters((prev) => !prev)}
-                      disabled={loading}
-                    >
-                      <IconSetting4 />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {showFilters ? "Hide" : "Show"} Filters
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              {/* COLUMN VISIBILITY */}
-              <Dropdown>
-                <TooltipProvider>
-                  <Tooltip>
-                    <DropdownTrigger asChild>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          disabled={loading}
-                        >
-                          <IconLayer />
-                        </Button>
-                      </TooltipTrigger>
-                    </DropdownTrigger>
-                    <TooltipContent side="top">
-                      Column Visibility
-                    </TooltipContent>
-
-                    <DropdownContent className="w-54 p-2 pr-0.5">
-                      <div className="flex items-center justify-between pl-2 pr-4 pb-2 text-sm text-muted-foreground">
-                        Columns Visibility
-                        {/* Toggle All Checkbox */}
-                        <Checkbox
-                          checked={
-                            Object.values(visibleColumns).every(Boolean)
-                              ? true
-                              : Object.values(visibleColumns).some(Boolean)
-                              ? "indeterminate"
-                              : false
-                          }
-                          onCheckedChange={(checked) => {
-                            // Convert Radix `CheckedState` ("indeterminate" | boolean) to boolean
-                            const isChecked = checked === true;
-
-                            if (isChecked) {
-                              // ✅ Turn ON all columns
-                              Object.entries(visibleColumns).forEach(
-                                ([key, value]) => {
-                                  if (!value)
-                                    onToggleColumn(
-                                      key as keyof ColumnVisibility
-                                    );
-                                }
-                              );
-                            } else {
-                              // 🔄 Restore default columns instead of unchecking all
-                              const defaultColumns: Partial<ColumnVisibility> =
-                                {
-                                  installer: true,
-                                  serialNumber: true,
-                                  productModel: true,
-                                  rewardAmount: true,
-                                  rewardStatus: true,
-                                  sendingDate: true,
-                                };
-
-                              Object.entries(visibleColumns).forEach(
-                                ([key, value]) => {
-                                  const shouldBeVisible =
-                                    key in defaultColumns
-                                      ? defaultColumns[
-                                          key as keyof ColumnVisibility
-                                        ]
-                                      : false;
-
-                                  if (value !== shouldBeVisible) {
-                                    onToggleColumn(
-                                      key as keyof ColumnVisibility
-                                    );
-                                  }
-                                }
-                              );
-                            }
-                          }}
-                        />
-                      </div>
-                      <ScrollArea className="h-72 pr-2 rounded-xl">
-                        <div className="space-y-1 w-[98%] bg-background p-1">
-                          {Object.entries(visibleColumns).map(
-                            ([key, value]) => (
-                              <Label
-                                key={key}
-                                className={cn(
-                                  "flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer hover:bg-accent transition-colors whitespace-nowrap",
-                                  value && "bg-accent"
-                                )}
-                              >
-                                <Checkbox
-                                  checked={value}
-                                  onCheckedChange={() =>
-                                    onToggleColumn(
-                                      key as keyof ColumnVisibility
-                                    )
-                                  }
-                                  aria-label={`Toggle ${key
-                                    .replace(/([A-Z])/g, " $1")
-                                    .trim()} column`}
-                                />
-                                <span className="capitalize text-sm">
-                                  {key.replace(/([A-Z])/g, " $1").trim()}
-                                </span>
-                              </Label>
-                            )
-                          )}
-                        </div>
-                      </ScrollArea>
-                    </DropdownContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </Dropdown>
+              {/* Sending Date Filter */}
+              {filters?.sendingDate && (
+                <div className="text-xs flex items-center gap-1 text-muted-foreground">
+                  Sending Date:
+                  <Badge
+                    variant="outline"
+                    className="gap-1 [&>svg]:pointer-events-auto h-5.5"
+                    id="filtersSendingDate"
+                  >
+                    {new Date(filters.sendingDate).toLocaleDateString()}
+                    <IconClose
+                      className="size-4! cursor-pointer"
+                      onClick={() => onClearFilter?.("sendingDate")}
+                    />
+                  </Badge>
+                </div>
+              )}
             </div>
           </div>
 
@@ -670,9 +547,10 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   onValueChange={(value) =>
                     onFilterChange?.("rewardStatus", value)
                   }
+                  name="rewardStatusSelect"
                   disabled={loading}
                 >
-                  <SelectTrigger className="bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
+                  <SelectTrigger className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -692,9 +570,10 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   onValueChange={(value) =>
                     onFilterChange?.("paymentMethod", value)
                   }
+                  name="paymentMethodSelect"
                   disabled={loading}
                 >
-                  <SelectTrigger className="bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
+                  <SelectTrigger className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
                     <SelectValue placeholder="All Methods" />
                   </SelectTrigger>
                   <SelectContent>
@@ -716,9 +595,10 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   onValueChange={(value) =>
                     onFilterChange?.("serialNumberStatus", value)
                   }
+                  name="serialNumberStatusSelect"
                   disabled={loading}
                 >
-                  <SelectTrigger className="bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
+                  <SelectTrigger className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -740,9 +620,10 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   onValueChange={(value) =>
                     onFilterChange?.("productModel", value)
                   }
+                  name="productModelSelect"
                   disabled={loading}
                 >
-                  <SelectTrigger className="bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
+                  <SelectTrigger className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
                     <SelectValue placeholder="All Models" />
                   </SelectTrigger>
                   <SelectContent>
@@ -764,9 +645,10 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   onValueChange={(value) =>
                     onFilterChange?.("teamMember", value)
                   }
+                  name="teamMemberSelect"
                   disabled={loading}
                 >
-                  <SelectTrigger className="bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
+                  <SelectTrigger className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
                     <SelectValue placeholder="All Team Members" />
                   </SelectTrigger>
                   <SelectContent>
@@ -788,6 +670,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                 {/* FILTER CLEAR BUTTON */}
                 <Button
                   variant="outline"
+                  size="sm"
                   onClick={onClearAllFilters}
                   disabled={
                     (filters?.rewardStatus === "ALL" &&
@@ -800,7 +683,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                       sortDirection === "desc") ||
                     loading
                   }
-                  className="min-w-fit rounded-3xl gap-1.5 pl-2"
+                  className="min-w-fit gap-1.5 pl-1"
                 >
                   <IconClose />
                   Reset All
@@ -809,595 +692,542 @@ export const RewardsTable = React.memo<RewardsTableProps>(
             </CardContent>
           </Activity>
           {/* REWARDS DATATABLE with Virtual Scrolling */}
-          <div className="overflow-auto" style={{ height: "715px" }} ref={parentRef}>
-            <div ref={measureRef} className="min-w-fit w-full">
+          <div
+            className="overflow-auto"
+            style={{ height: "715px" }}
+            ref={parentRef}
+          >
+            <div
+              ref={measureRef}
+              className={loading ? "w-full" : "min-w-fit w-full"}
+            >
               {/* Sticky Header */}
               <div className="sticky top-0 z-10">
-                <div className="flex w-full bg-muted/50 backdrop-blur-xl border-b border-border relative">
-                  <div className="w-12 px-4 py-3 text-sm font-semibold flex items-center justify-center shrink-0">
+                <div
+                  className={cn(
+                    "flex w-full bg-muted/50 text-muted-foreground backdrop-blur-xl border-b border-border relative font-mono",
+                    loading && "overflow-hidden",
+                    !loading && "min-w-max"
+                  )}
+                >
+                  <div className="w-12 px-4 py-3 text-sm font-medium flex items-center justify-center shrink-0">
                     <Checkbox
                       checked={allSelected}
                       onCheckedChange={onToggleSelectAll}
                       aria-label="Select all rewards on this page"
                     />
                   </div>
-                  {visibleColumns.installerCode && (
-                    <div
-                      data-column="installerCode"
-                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
-                      style={getColumnStyle("installerCode")}
-                      onClick={() => onToggleSort("installerCode")}
-                    >
-                      Installer Code {getSortIcon("installerCode")}
-                    </div>
-                  )}
-                  {visibleColumns.installer && (
-                    <div
-                      data-column="installer"
-                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
-                      style={getColumnStyle("installer")}
-                      onClick={() => onToggleSort("installer")}
-                    >
-                      Installer Name {getSortIcon("installer")}
-                    </div>
-                  )}
-                  {visibleColumns.serialNumber && (
-                    <div
-                      data-column="serialNumber"
-                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
-                      style={getColumnStyle("serialNumber")}
-                      onClick={() => onToggleSort("serialNumber")}
-                    >
-                      Serial Number {getSortIcon("serialNumber")}
-                    </div>
-                  )}
-                  {visibleColumns.productModel && (
-                    <div
-                      data-column="productModel"
-                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
-                      style={getColumnStyle("productModel")}
-                      onClick={() => onToggleSort("productModel")}
-                    >
-                      Product Model {getSortIcon("productModel")}
-                    </div>
-                  )}
-                  {visibleColumns.cityOfInstallation && (
-                    <div
-                      data-column="cityOfInstallation"
-                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
-                      style={getColumnStyle("cityOfInstallation")}
-                      onClick={() => onToggleSort("cityOfInstallation")}
-                    >
-                      City {getSortIcon("cityOfInstallation")}
-                    </div>
-                  )}
-                  {visibleColumns.rewardAmount && (
-                    <div
-                      data-column="rewardAmount"
-                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
-                      style={getColumnStyle("rewardAmount")}
-                      onClick={() => onToggleSort("rewardAmount")}
-                    >
-                      Amount {getSortIcon("rewardAmount")}
-                    </div>
-                  )}
-                  {visibleColumns.rewardStatus && (
-                    <div
-                      data-column="rewardStatus"
-                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
-                      style={getColumnStyle("rewardStatus")}
-                      onClick={() => onToggleSort("rewardStatus")}
-                    >
-                      Status {getSortIcon("rewardStatus")}
-                    </div>
-                  )}
-                  {visibleColumns.paymentMethod && (
-                    <div
-                      data-column="paymentMethod"
-                      className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
-                      style={getColumnStyle("paymentMethod")}
-                    >
-                      Payment Method
-                    </div>
-                  )}
-                  {visibleColumns.transactionId && (
-                    <div
-                      data-column="transactionId"
-                      className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
-                      style={getColumnStyle("transactionId")}
-                    >
-                      Transaction ID
-                    </div>
-                  )}
-                  {visibleColumns.sendingDate && (
-                    <div
-                      data-column="sendingDate"
-                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
-                      style={getColumnStyle("sendingDate")}
-                      onClick={() => onToggleSort("sendingDate")}
-                    >
-                      Sending Date {getSortIcon("sendingDate")}
-                    </div>
-                  )}
-                  {visibleColumns.inverterSerialNumber && (
-                    <div
-                      data-column="inverterSerialNumber"
-                      className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
-                      style={getColumnStyle("inverterSerialNumber")}
-                    >
-                      Inverter Serial
-                    </div>
-                  )}
-                  {visibleColumns.registeredBy && (
-                    <div
-                      data-column="registeredBy"
-                      className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
-                      style={getColumnStyle("registeredBy")}
-                    >
-                      Registered By
-                    </div>
-                  )}
-                  {visibleColumns.referrerName && (
-                    <div
-                      data-column="referrerName"
-                      className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
-                      style={getColumnStyle("referrerName")}
-                    >
-                      Referrer Name
-                    </div>
-                  )}
-                  {visibleColumns.referrerTransactionId && (
-                    <div
-                      data-column="referrerTransactionId"
-                      className="px-4 py-3 text-sm font-semibold whitespace-nowrap"
-                      style={getColumnStyle("referrerTransactionId")}
-                    >
-                      Referrer Transaction ID
-                    </div>
-                  )}
-                  {visibleColumns.referrerReward && (
-                    <div
-                      data-column="referrerReward"
-                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap"
-                      style={getColumnStyle("referrerReward")}
-                      onClick={() => onToggleSort("referrerRewardAmount")}
-                    >
-                      Referrer Reward {getSortIcon("referrerRewardAmount")}
-                    </div>
-                  )}
-                  <div className="w-32 px-4 py-3 text-sm font-semibold shrink-0 whitespace-nowrap">
+                  <div
+                    data-column="installer"
+                    className="px-4 py-3 text-sm font-medium cursor-pointer whitespace-nowrap select-none hover:text-foreground transition-colors"
+                    onClick={() => onToggleSort("installer")}
+                    style={getColumnStyle("installer")}
+                  >
+                    Installer{getSortIcon("installer")}
+                  </div>
+                  <div
+                    data-column="product"
+                    className="px-4 py-3 text-sm font-medium whitespace-nowrap select-none"
+                    style={getColumnStyle("product")}
+                  >
+                    Product
+                  </div>
+                  <div
+                    data-column="location"
+                    className="px-4 py-3 text-sm font-medium cursor-pointer whitespace-nowrap select-none transition-colors hover:text-foreground"
+                    onClick={() => onToggleSort("cityOfInstallation")}
+                    style={getColumnStyle("location")}
+                  >
+                    Location{getSortIcon("cityOfInstallation")}
+                  </div>
+                  <div
+                    data-column="installerReward"
+                    className="px-4 py-3 text-sm font-medium whitespace-nowrap select-none"
+                    style={getColumnStyle("installerReward")}
+                  >
+                    Reward
+                  </div>
+                  <div
+                    data-column="rewardStatus"
+                    className="px-4 py-3 text-sm font-medium cursor-pointer whitespace-nowrap select-none transition-colors hover:text-foreground"
+                    onClick={() => onToggleSort("rewardStatus")}
+                    style={getColumnStyle("rewardStatus")}
+                  >
+                    Status{getSortIcon("rewardStatus")}
+                  </div>
+                  <div
+                    data-column="payment"
+                    className="px-4 py-3 text-sm font-medium whitespace-nowrap select-none"
+                    style={getColumnStyle("payment")}
+                  >
+                    Payment
+                  </div>
+                  <div
+                    data-column="referrer"
+                    className="px-4 py-3 text-sm font-medium whitespace-nowrap select-none"
+                    style={getColumnStyle("referrer")}
+                  >
+                    Referrer
+                  </div>
+                  <div
+                    data-column="referrerReward"
+                    className="px-4 py-3 text-sm font-medium whitespace-nowrap select-none"
+                    style={getColumnStyle("referrerReward")}
+                  >
+                    Referrer Reward
+                  </div>
+                  <div
+                    data-column="registeredBy"
+                    className="px-4 py-3 text-sm font-medium cursor-pointer whitespace-nowrap select-none transition-colors hover:text-foreground"
+                    style={getColumnStyle("registeredBy")}
+                    onClick={() => onToggleSort("createdAt")}
+                  >
+                    Registered{getSortIcon("createdAt")}
+                  </div>
+                  <div
+                    data-column="updatedBy"
+                    className="px-4 py-3 text-sm font-medium cursor-pointer whitespace-nowrap select-none transition-colors hover:text-foreground"
+                    style={getColumnStyle("updatedBy")}
+                    onClick={() => onToggleSort("updatedAt")}
+                  >
+                    Updated{getSortIcon("updatedAt")}
+                  </div>
+                  <div
+                    className={cn(
+                      "px-4 py-3 text-sm font-medium whitespace-nowrap select-none",
+                      loading ? "flex-1" : "w-32 shrink-0"
+                    )}
+                  >
                     Actions
                   </div>
                 </div>
               </div>
 
-            {/* Virtual Scrolling Container */}
-            {loading ? (
-              <div style={{ height: "650px", position: "relative" }}>
-                {Array.from({ length: 10 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="flex w-full min-w-max border-b border-border"
-                    style={{ height: "65px" }}
-                  >
-                    <div className="w-12 px-4 py-3 flex items-center justify-center shrink-0">
-                      <div className="h-4 w-4 bg-muted rounded-sm animate-pulse" />
-                    </div>
-                    {visibleColumns.installerCode && (
-                      <div
-                        data-column="installerCode"
-                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                        style={getColumnStyle("installerCode")}
-                      >
-                        <div className="h-4 bg-muted rounded w-24 animate-pulse" />
+              {/* Virtual Scrolling Container */}
+              {loading ? (
+                <div style={{ height: "650px", position: "relative" }}>
+                  {Array.from({ length: 10 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="flex w-full border-b border-border"
+                      style={{ height: "65px" }}
+                    >
+                      {/* Checkbox */}
+                      <div className="w-12 px-4 py-3 flex items-center justify-center shrink-0">
+                        <div className="h-4 w-4 bg-muted rounded-sm animate-pulse" />
                       </div>
-                    )}
-                    {visibleColumns.installer && (
+
+                      {/* Installer */}
                       <div
-                        data-column="installer"
-                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap gap-2"
                         style={getColumnStyle("installer")}
                       >
-                        <div className="h-4 bg-muted rounded w-32 animate-pulse" />
+                        <div className="h-8 w-8 bg-muted rounded-full animate-pulse shrink-0" />
+                        <div className="space-y-1.5">
+                          <div className="h-4 bg-muted rounded w-24 animate-pulse" />
+                          <div className="h-3 bg-muted rounded w-16 animate-pulse" />
+                        </div>
                       </div>
-                    )}
-                    {visibleColumns.serialNumber && (
+
+                      {/* Product */}
                       <div
-                        data-column="serialNumber"
                         className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                        style={getColumnStyle("serialNumber")}
+                        style={getColumnStyle("product")}
                       >
-                        <div className="h-4 bg-muted rounded w-28 animate-pulse" />
+                        <div className="space-y-1.5">
+                          <div className="h-4 bg-muted rounded w-32 animate-pulse" />
+                          <div className="h-3 bg-muted rounded w-24 animate-pulse" />
+                        </div>
                       </div>
-                    )}
-                    {visibleColumns.productModel && (
+
+                      {/* Location */}
                       <div
-                        data-column="productModel"
                         className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                        style={getColumnStyle("productModel")}
+                        style={getColumnStyle("location")}
                       >
-                        <div className="h-4 bg-muted rounded w-32 animate-pulse" />
+                        <div className="space-y-1.5">
+                          <div className="h-4 bg-muted rounded w-20 animate-pulse" />
+                          <div className="h-3 bg-muted rounded w-16 animate-pulse" />
+                        </div>
                       </div>
-                    )}
-                    {visibleColumns.cityOfInstallation && (
+
+                      {/* Installer Reward */}
                       <div
-                        data-column="cityOfInstallation"
                         className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                        style={getColumnStyle("cityOfInstallation")}
+                        style={getColumnStyle("installerReward")}
                       >
-                        <div className="h-4 bg-muted rounded w-20 animate-pulse" />
+                        <div className="space-y-1.5">
+                          <div className="h-4 bg-muted rounded w-20 animate-pulse" />
+                          <div className="h-3 bg-muted rounded w-24 animate-pulse" />
+                        </div>
                       </div>
-                    )}
-                    {visibleColumns.rewardAmount && (
+
+                      {/* Reward Status */}
                       <div
-                        data-column="rewardAmount"
-                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                        style={getColumnStyle("rewardAmount")}
-                      >
-                        <div className="h-4 bg-muted rounded w-20 animate-pulse" />
-                      </div>
-                    )}
-                    {visibleColumns.rewardStatus && (
-                      <div
-                        data-column="rewardStatus"
-                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        className="px-4 py-3 items-center"
                         style={getColumnStyle("rewardStatus")}
                       >
                         <div className="h-5 bg-muted rounded-full w-16 animate-pulse" />
                       </div>
-                    )}
-                    {visibleColumns.paymentMethod && (
+
+                      {/* Payment */}
                       <div
-                        data-column="paymentMethod"
                         className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                        style={getColumnStyle("paymentMethod")}
+                        style={getColumnStyle("payment")}
                       >
-                        <div className="h-4 bg-muted rounded w-24 animate-pulse" />
+                        <div className="space-y-1.5">
+                          <div className="h-4 bg-muted rounded w-20 animate-pulse" />
+                          <div className="h-3 bg-muted rounded w-16 animate-pulse" />
+                        </div>
                       </div>
-                    )}
-                    {visibleColumns.transactionId && (
+
+                      {/* Referrer */}
                       <div
-                        data-column="transactionId"
-                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                        style={getColumnStyle("transactionId")}
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap gap-2"
+                        style={getColumnStyle("referrer")}
                       >
-                        <div className="h-4 bg-muted rounded w-32 animate-pulse" />
+                        <div className="h-8 w-8 bg-muted rounded-full animate-pulse shrink-0" />
+                        <div className="space-y-1.5">
+                          <div className="h-4 bg-muted rounded w-24 animate-pulse" />
+                          <div className="h-3 bg-muted rounded w-16 animate-pulse" />
+                        </div>
                       </div>
-                    )}
-                    {visibleColumns.sendingDate && (
+
+                      {/* Referrer Reward */}
                       <div
-                        data-column="sendingDate"
-                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                        style={getColumnStyle("sendingDate")}
-                      >
-                        <div className="h-4 bg-muted rounded w-24 animate-pulse" />
-                      </div>
-                    )}
-                    {visibleColumns.inverterSerialNumber && (
-                      <div
-                        data-column="inverterSerialNumber"
-                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                        style={getColumnStyle("inverterSerialNumber")}
-                      >
-                        <div className="h-4 bg-muted rounded w-28 animate-pulse" />
-                      </div>
-                    )}
-                    {visibleColumns.registeredBy && (
-                      <div
-                        data-column="registeredBy"
-                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                        style={getColumnStyle("registeredBy")}
-                      >
-                        <div className="h-4 bg-muted rounded w-28 animate-pulse" />
-                      </div>
-                    )}
-                    {visibleColumns.referrerName && (
-                      <div
-                        data-column="referrerName"
-                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                        style={getColumnStyle("referrerName")}
-                      >
-                        <div className="h-4 bg-muted rounded w-24 animate-pulse" />
-                      </div>
-                    )}
-                    {visibleColumns.referrerTransactionId && (
-                      <div
-                        data-column="referrerTransactionId"
-                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                        style={getColumnStyle("referrerTransactionId")}
-                      >
-                        <div className="h-4 bg-muted rounded w-32 animate-pulse" />
-                      </div>
-                    )}
-                    {visibleColumns.referrerReward && (
-                      <div
-                        data-column="referrerReward"
                         className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
                         style={getColumnStyle("referrerReward")}
                       >
-                        <div className="h-4 bg-muted rounded w-20 animate-pulse" />
-                      </div>
-                    )}
-                    <div className="w-32 px-4 py-3 text-sm flex items-center gap-4 shrink-0">
-                      <div className="size-5 bg-muted rounded animate-pulse" />
-                      <div className="size-5 bg-muted rounded animate-pulse" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : totalRewards === 0 ? (
-              <Table>
-                <TableBody>
-                  <TableRow className="p-4 hover:bg-transparent">
-                    <TableCell
-                      colSpan={activeColumnsLength + 3}
-                      className="w-full place-items-center p-0"
-                    >
-                      <EmptyState
-                        title="No Products Registered"
-                        description="You can register a new product to add in rewards."
-                        icons={[IconActivity]}
-                        className="w-full border-none rounded-none"
-                        action={{
-                          label: (
-                            <div className="flex items-center gap-2">
-                              Register Product
-                              <IconAdd />
-                            </div>
-                          ),
-                          onClick: () => router.push("/rewards/register"),
-                        }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            ) : (
-              <div
-                style={{
-                  height: `${rowVirtualizer.getTotalSize()}px`,
-                  position: "relative",
-                }}
-              >
-                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                  const reward = rewards[virtualRow.index];
-                  const isSelected = selectedRewards.has(reward._id);
-
-                  return (
-                    <div
-                      key={virtualRow.key}
-                      id={`reward-${reward._id}`}
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        minWidth: "max-content",
-                        height: `${virtualRow.size}px`,
-                        transform: `translateY(${virtualRow.start}px)`,
-                      }}
-                      className="flex w-full min-w-max border-b border-border transition-colors hover:bg-muted/30"
-                    >
-                      <div className="w-12 px-4 py-3 text-sm flex items-center justify-center shrink-0">
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() =>
-                            onToggleSelection(reward._id)
-                          }
-                          aria-label={`Select ${reward.serialNumber}`}
-                        />
-                      </div>
-                      {visibleColumns.installerCode && (
-                        <div
-                          data-column="installerCode"
-                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                          style={getColumnStyle("installerCode")}
-                        >
-                          <div className="flex items-center">
-                            {reward.installerCode}
-                            <CopyButton
-                              text={reward.installerCode}
-                              label="Installer Code"
-                            />
-                          </div>
+                        <div className="space-y-1.5">
+                          <div className="h-4 bg-muted rounded w-20 animate-pulse" />
+                          <div className="h-3 bg-muted rounded w-24 animate-pulse" />
                         </div>
-                      )}
-                      {visibleColumns.installer && (
+                      </div>
+
+                      {/* Registered By */}
+                      <div
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("registeredBy")}
+                      >
+                        <div className="space-y-1.5">
+                          <div className="h-4 bg-muted rounded w-24 animate-pulse" />
+                          <div className="h-3 bg-muted rounded w-20 animate-pulse" />
+                        </div>
+                      </div>
+
+                      {/* Updated By */}
+                      <div
+                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                        style={getColumnStyle("updatedBy")}
+                      >
+                        <div className="space-y-1.5">
+                          <div className="h-4 bg-muted rounded w-24 animate-pulse" />
+                          <div className="h-3 bg-muted rounded w-20 animate-pulse" />
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex-1 px-4 py-3 text-sm flex items-center gap-4">
+                        <div className="size-5 bg-muted rounded animate-pulse" />
+                        <div className="size-5 bg-muted rounded animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : totalRewards === 0 ? (
+                <div className="w-full h-[650px] flex items-center justify-between p-0">
+                  <div className="w-full place-items-center p-0">
+                    <EmptyState
+                      title="No Products Registered"
+                      description="You can register a new product to add in rewards."
+                      icons={[IconActivity]}
+                      className="w-full border-none rounded-none"
+                      action={{
+                        label: (
+                          <div className="flex items-center gap-2">
+                            Register Product
+                            <IconAdd />
+                          </div>
+                        ),
+                        onClick: () => router.push("/rewards/register"),
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    position: "relative",
+                  }}
+                >
+                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const reward = rewards[virtualRow.index];
+                    const isSelected = selectedRewards.has(reward._id);
+
+                    return (
+                      <div
+                        key={virtualRow.key}
+                        id={`reward-${reward._id}`}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          minWidth: "max-content",
+                          height: `${virtualRow.size}px`,
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                        className="flex items-center w-full min-w-max border-b border-border transition-colors hover:bg-muted/30"
+                      >
+                        <div className="w-12 px-4 py-3 text-sm flex items-center justify-center shrink-0">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() =>
+                              onToggleSelection(reward._id)
+                            }
+                            aria-label={`Select ${reward.serialNumber}`}
+                          />
+                        </div>
                         <div
                           data-column="installer"
-                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap gap-2"
                           style={getColumnStyle("installer")}
                         >
-                          {reward.installer?.fullName || "N/A"}
-                        </div>
-                      )}
-                      {visibleColumns.serialNumber && (
-                        <div
-                          data-column="serialNumber"
-                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                          style={getColumnStyle("serialNumber")}
-                        >
-                          <div
-                            className="flex items-center cursor-pointer font-medium"
-                            onClick={() =>
-                              router.push(`/rewards/${reward._id}`)
-                            }
-                          >
-                            {reward.serialNumber}
-                            <CopyButton
-                              text={reward.serialNumber}
-                              label="Serial Number"
-                            />
+                          <InstallerAvatar user={reward.installer?.fullName} />
+                          <div>
+                            <div>
+                              {reward.installer?.fullName || <Unavailable />}
+                            </div>
+                            <div className="text-xs text-muted-foreground flex items-center font-mono">
+                              {reward.installerCode}
+                              <CopyButton
+                                text={reward.installerCode}
+                                label="Installer Code"
+                                className="size-3.5! ml-1.5"
+                              />
+                            </div>
                           </div>
                         </div>
-                      )}
-                      {visibleColumns.productModel && (
                         <div
-                          data-column="productModel"
+                          data-column="product"
                           className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                          style={getColumnStyle("productModel")}
+                          style={getColumnStyle("product")}
                         >
-                          {reward.productModel}
+                          <div>
+                            <div
+                              className="flex items-center cursor-pointer font-medium font-mono"
+                              onClick={() =>
+                                router.push(`/rewards/${reward._id}`)
+                              }
+                            >
+                              {reward.serialNumber}
+                              <CopyButton
+                                text={reward.serialNumber}
+                                label="Serial Number"
+                                className="size-3.5! ml-1.5"
+                              />
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {reward.productModel || <Unavailable />}
+                            </div>
+                          </div>
                         </div>
-                      )}
-                      {visibleColumns.cityOfInstallation && (
                         <div
-                          data-column="cityOfInstallation"
+                          data-column="location"
                           className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                          style={getColumnStyle("cityOfInstallation")}
+                          style={getColumnStyle("location")}
                         >
-                          {reward.cityOfInstallation}
+                          <div>
+                            <div>{reward.cityOfInstallation}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {reward.installer?.trainingCenter}
+                            </div>
+                          </div>
                         </div>
-                      )}
-                      {visibleColumns.rewardAmount && (
                         <div
-                          data-column="rewardAmount"
+                          data-column="installerReward"
                           className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                          style={getColumnStyle("rewardAmount")}
+                          style={getColumnStyle("installerReward")}
                         >
-                          Rs. {reward.rewardAmount.toLocaleString()}
+                          <div>
+                            <div className="font-mono">
+                              <span className="text-xs">Rs.</span>{" "}
+                              {reward.rewardAmount.toLocaleString()}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {reward.transactionId ? (
+                                <div className="flex items-center">
+                                  {reward.transactionId}
+                                  <CopyButton
+                                    text={reward.transactionId}
+                                    label="Transaction ID"
+                                    className="size-3.5! ml-1.5"
+                                  />
+                                </div>
+                              ) : (
+                                <Unavailable />
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      )}
-                      {visibleColumns.rewardStatus && (
                         <div
                           data-column="rewardStatus"
-                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          className="px-4 py-3 items-center"
                           style={getColumnStyle("rewardStatus")}
                         >
                           <Badge
                             variant={
                               reward.rewardStatus === "PAID"
-                                ? "default"
+                                ? "success"
                                 : reward.rewardStatus === "PENDING"
-                                ? "secondary"
+                                ? "warning"
                                 : "destructive"
                             }
                           >
                             {reward.rewardStatus}
                           </Badge>
                         </div>
-                      )}
-                      {visibleColumns.paymentMethod && (
                         <div
-                          data-column="paymentMethod"
+                          data-column="payment"
                           className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                          style={getColumnStyle("paymentMethod")}
+                          style={getColumnStyle("payment")}
                         >
-                          {reward.paymentMethod || "N/A"}
-                        </div>
-                      )}
-                      {visibleColumns.transactionId && (
-                        <div
-                          data-column="transactionId"
-                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                          style={getColumnStyle("transactionId")}
-                        >
-                          {reward.transactionId ? (
-                            <div className="flex items-center">
-                              {reward.transactionId}
-                              <CopyButton
-                                text={reward.transactionId}
-                                label="Transaction ID"
-                              />
+                          <div>
+                            <div>{reward.paymentMethod || <Unavailable />}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {reward.sendingDate ? (
+                                new Date(
+                                  reward.sendingDate
+                                ).toLocaleDateString()
+                              ) : (
+                                <Unavailable />
+                              )}
                             </div>
+                          </div>
+                        </div>
+                        <div
+                          data-column="referrer"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap gap-2"
+                          style={getColumnStyle("referrer")}
+                        >
+                          {reward.referrer ? (
+                            <>
+                              <InstallerAvatar
+                                user={reward.referrer?.fullName}
+                              />
+                              <div>
+                                <div>
+                                  {reward.referrer?.fullName || <Unavailable />}
+                                </div>
+                                <div className="text-xs text-muted-foreground flex items-center">
+                                  {reward.referrer?.installerCode}
+                                  <CopyButton
+                                    text={reward.referrer?.installerCode}
+                                    label="Installer Code"
+                                    className="size-3.5! ml-1.5"
+                                  />
+                                </div>
+                              </div>
+                            </>
                           ) : (
-                            "N/A"
+                            <Unavailable title="No Referrer" />
                           )}
                         </div>
-                      )}
-                      {visibleColumns.sendingDate && (
-                        <div
-                          data-column="sendingDate"
-                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                          style={getColumnStyle("sendingDate")}
-                        >
-                          {reward.sendingDate
-                            ? new Date(
-                                reward.sendingDate
-                              ).toLocaleDateString()
-                            : "N/A"}
-                        </div>
-                      )}
-                      {visibleColumns.inverterSerialNumber && (
-                        <div
-                          data-column="inverterSerialNumber"
-                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                          style={getColumnStyle("inverterSerialNumber")}
-                        >
-                          {reward.inverterSerialNumber || "N/A"}
-                        </div>
-                      )}
-                      {visibleColumns.registeredBy && (
-                        <div
-                          data-column="registeredBy"
-                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                          style={getColumnStyle("registeredBy")}
-                        >
-                          {reward.registeredBy?.name || "N/A"}
-                        </div>
-                      )}
-                      {visibleColumns.referrerName && (
-                        <div
-                          data-column="referrerName"
-                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                          style={getColumnStyle("referrerName")}
-                        >
-                          {reward.referrer?.fullName || "N/A"}
-                        </div>
-                      )}
-                      {visibleColumns.referrerTransactionId && (
-                        <div
-                          data-column="referrerTransactionId"
-                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                          style={getColumnStyle("referrerTransactionId")}
-                        >
-                          {reward.referrerTransactionId ? (
-                            <div className="flex items-center">
-                              {reward.referrerTransactionId}
-                              <CopyButton
-                                text={reward.referrerTransactionId}
-                                label="Referrer Transaction ID"
-                              />
-                            </div>
-                          ) : (
-                            "N/A"
-                          )}
-                        </div>
-                      )}
-                      {visibleColumns.referrerReward && (
                         <div
                           data-column="referrerReward"
                           className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
                           style={getColumnStyle("referrerReward")}
                         >
-                          {reward.referrerRewardAmount
-                            ? `Rs. ${reward.referrerRewardAmount.toLocaleString()}`
-                            : "N/A"}
+                          {reward.referrer ? (
+                            <div>
+                              <div>
+                                {reward.referrerRewardAmount
+                                  ? `Rs. ${reward.referrerRewardAmount.toLocaleString()}`
+                                  : "N/A"}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {reward.referrerTransactionId ? (
+                                  <div className="flex items-center">
+                                    {reward.referrerTransactionId}
+                                    <CopyButton
+                                      text={reward.referrerTransactionId}
+                                      label="Referrer Transaction ID"
+                                    />
+                                  </div>
+                                ) : (
+                                  "N/A"
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <Unavailable title="No Referrer" />
+                          )}
                         </div>
-                      )}
-                      <div className="w-32 px-4 py-3 text-sm flex items-center gap-4 shrink-0">
-                        <button
-                          onClick={() => onEditClick(reward._id)}
-                          className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                          title="Edit"
+
+                        <div
+                          data-column="registeredBy"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("registeredBy")}
                         >
-                          <IconEdit2 className="size-5" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            onDeleteClick(reward._id, reward.serialNumber)
-                          }
-                          className="text-destructive-text hover:text-destructive-text-hover transition-colors cursor-pointer"
-                          title="Delete"
+                          <div>
+                            <div>
+                              {reward.registeredBy?.name || "Unavailable"}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(reward.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                        <div
+                          data-column="updatedBy"
+                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
+                          style={getColumnStyle("updatedBy")}
                         >
-                          <IconTrashBin2 className="size-5" />
-                        </button>
+                          {reward.updatedAt !== reward.createdAt ? (
+                            <div>
+                              {/* UPDATED BY */}
+                              <div>
+                                {reward.updatedBy?.name || <Unavailable />}
+                              </div>
+                              {/* UPDATED On */}
+                              <div className="text-xs text-muted-foreground">
+                                {reward.updatedAt ? (
+                                  new Date(
+                                    reward.updatedAt
+                                  ).toLocaleDateString()
+                                ) : (
+                                  <Unavailable />
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <Unavailable title="Never Updated" />
+                          )}
+                        </div>
+                        <div className="w-32 px-4 py-3 text-sm flex items-center gap-4 shrink-0">
+                          <button
+                            onClick={() => onEditClick(reward._id)}
+                            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                            title="Edit"
+                          >
+                            <IconEdit2 className="size-5" />
+                          </button>
+                          <button
+                            onClick={() =>
+                              onDeleteClick(reward._id, reward.serialNumber)
+                            }
+                            className="text-destructive-text hover:text-destructive-text-hover transition-colors cursor-pointer"
+                            title="Delete"
+                          >
+                            <IconTrashBin2 className="size-5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -1425,6 +1255,9 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                 </SelectItem>
                 <SelectItem className="h-6" value="100">
                   100
+                </SelectItem>
+                <SelectItem className="h-6" value="500">
+                  500
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -1505,68 +1338,19 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                 <div className="px-4 py-3 bg-background rounded-xl flex items-center justify-center leading-none select-none">
                   Selected: {selectedRewards.size}
                 </div>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="destructive"
-                      size={"icon"}
-                      disabled={bulkDeleting}
-                      className="gap-1"
-                    >
-                      {bulkDeleting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <IconTrashBin2 width={2} />
-                      )}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className="rounded-4xl">
-                    <AlertDialogHeader className="flex flex-col items-center">
-                      <IconTrashBin2
-                        className="size-32 text-destructive-text"
-                        fill
-                        opacity={"0.2"}
-                        duotone={true}
-                      />
-                      <AlertDialogTitle>
-                        Delete {selectedRewards.size} Reward
-                        {selectedRewards.size > 1 ? "s" : ""}?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription className="w-19/20 flex flex-col items-center text-balance">
-                        This will permanently delete the selected rewards.
-                        <span className="mt-6 flex gap-2 text-destructive-text">
-                          <IconInfoCircle className="size-8" />
-                          <span>
-                            This action cannot be undone. <br />
-                            The rewards will be permanently removed from the
-                            database.
-                          </span>
-                        </span>
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="mt-4">
-                      <AlertDialogAction
-                        onClick={onBulkDelete}
-                        disabled={bulkDeleting}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full rounded-full"
-                      >
-                        {bulkDeleting ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Deleting...
-                          </>
-                        ) : (
-                          `Delete ${selectedRewards.size} Reward${
-                            selectedRewards.size > 1 ? "s" : ""
-                          }`
-                        )}
-                      </AlertDialogAction>
-                      <AlertDialogCancel className="w-full">
-                        Cancel
-                      </AlertDialogCancel>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <Button
+                  variant="destructive"
+                  size={"icon"}
+                  disabled={bulkDeleting}
+                  className="gap-1"
+                  onClick={onOpenBulkDeleteDialog}
+                >
+                  {bulkDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <IconTrashBin2 width={2} />
+                  )}
+                </Button>
               </motion.div>
             </AnimatePresence>
           )}

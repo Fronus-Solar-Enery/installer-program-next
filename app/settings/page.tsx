@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAdminGuard } from "@/hooks/useRoleGuard";
 
 interface SettingsData {
   allowInstallerCodeEdit?: boolean;
@@ -50,9 +51,9 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<SettingsData | null>(null);
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
+  const { isAuthorized } = useAdminGuard({
+    autoRedirect: true,
+  });
 
   const fetchSettings = async () => {
     try {
@@ -70,6 +71,12 @@ export default function SettingsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isAuthorized) {
+      fetchSettings();
+    }
+  }, [isAuthorized]);
 
   const handleSave = async () => {
     try {
@@ -102,6 +109,10 @@ export default function SettingsPage() {
   ) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   if (loading) {
     return (

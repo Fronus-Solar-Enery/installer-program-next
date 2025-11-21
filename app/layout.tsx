@@ -4,6 +4,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { ThemeProvider } from "@/components/theme-provider";
 import AppLayout from "@/app/layout/AppLayout";
+import { BatchJobProvider } from "@/contexts/BatchJobContext";
+import { BatchJobProgress } from "@/components/BatchJobProgress";
 
 const saira = Saira({
   subsets: ["latin"],
@@ -129,7 +131,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Providers>
-            <AppLayout>{children}</AppLayout>
+            <BatchJobProvider>
+              <BatchJobProgress />
+              <AppLayout>{children}</AppLayout>
+            </BatchJobProvider>
           </Providers>
         </ThemeProvider>
       </body>

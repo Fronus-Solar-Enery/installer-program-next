@@ -10,7 +10,6 @@ import {
 } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { IconClose } from "./icons";
 
 export interface UploadStep {
   id: string;
@@ -198,7 +197,7 @@ export default function BulkUploadProgressModal({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-border">
+        {/* <div className="p-6 border-t border-border">
           <Button
             variant={"secondary"}
             onClick={onClose}
@@ -207,7 +206,7 @@ export default function BulkUploadProgressModal({
           >
             Close
           </Button>
-        </div>
+        </div> */}
       </DialogContent>
     </Dialog>
   );

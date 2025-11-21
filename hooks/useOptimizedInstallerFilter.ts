@@ -1,13 +1,13 @@
-import { useMemo } from 'react';
-import type { InstallerWithId } from './useInstallers';
-import type { Filters } from './useInstallersState';
+import { useMemo } from "react";
+import type { InstallerWithId } from "./useInstallers";
+import type { Filters } from "./useInstallersState";
 
 interface UseOptimizedInstallerFilterProps {
   installers: InstallerWithId[];
   search: string;
   filters: Filters;
   sortField: string;
-  sortDirection: 'asc' | 'desc';
+  sortDirection: "asc" | "desc";
 }
 
 interface OptimizedFilterResult {
@@ -99,7 +99,8 @@ export function useOptimizedInstallerFilter({
       // Collect unique values for all installers
       if (installer.city) uniqueCities.add(installer.city);
       if (installer.province) uniqueProvinces.add(installer.province);
-      if (installer.trainingCenter) uniqueTrainingCenters.add(installer.trainingCenter);
+      if (installer.trainingCenter)
+        uniqueTrainingCenters.add(installer.trainingCenter);
       if (installer.certified) certifiedCount++;
 
       // Apply search filter
@@ -129,8 +130,13 @@ export function useOptimizedInstallerFilter({
 
       // Apply other filters
       if (filters.city && installer.city !== filters.city) return false;
-      if (filters.province && installer.province !== filters.province) return false;
-      if (filters.trainingCenter && installer.trainingCenter !== filters.trainingCenter) return false;
+      if (filters.province && installer.province !== filters.province)
+        return false;
+      if (
+        filters.trainingCenter &&
+        installer.trainingCenter !== filters.trainingCenter
+      )
+        return false;
       if (filters.certified !== "") {
         const isCertified = filters.certified === "true";
         if (installer.certified !== isCertified) return false;

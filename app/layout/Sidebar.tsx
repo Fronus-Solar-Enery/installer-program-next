@@ -21,6 +21,7 @@ import IconSettings from "@/components/icons/Settings";
 import IconDocument from "@/components/icons/Document";
 import IconActivity from "@/components/icons/Activity";
 import IconGift from "@/components/icons/Gift";
+import IconClipboardCheck from "@/components/icons/ClipboardCheck";
 import ProgramLogo from "@/components/ProgramLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Badge } from "@/components/ui/badge";
@@ -149,6 +150,12 @@ const DEFAULT_NAV_ITEMS: NavItem[] = [
     href: "/activity",
     Icon: IconActivity,
     show: true,
+  },
+  {
+    title: "Batch Jobs",
+    href: "/batch-jobs",
+    Icon: IconClipboardCheck,
+    show: (role) => role === TeamRole.ADMIN,
   },
   {
     title: "Team",

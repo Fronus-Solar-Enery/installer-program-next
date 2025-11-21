@@ -1882,7 +1882,7 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
   }, [activeInstallers]);
 
   const handleCopy = useCallback(
-    (code: string) => (e: React.MouseEvent<HTMLButtonElement>) => {
+    (code: string) => (e: React.MouseEvent<SVGSVGElement>) => {
       e.stopPropagation(); // defensive — CopyButton also stops propagation
       e.preventDefault();
     },
@@ -1890,7 +1890,7 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
   );
 
   return (
-    <Carousel opts={{ align: "start" }} className="w-full [&>*]:select-none">
+    <Carousel opts={{ align: "start" }} className="w-full *:select-none">
       <CarouselContent>
         {installers.map((installer) => {
           const idx = installer.rank - 1;
@@ -1904,7 +1904,7 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
               <Link href={`installers/${installer.installerCode}`}>
                 <Card
                   className={cn(
-                    "transition-colors flex flex-col items-center py-6 px-2 border-none bg-gradient-to-b",
+                    "transition-colors flex flex-col items-center py-6 px-2 border-none bg-linear-to-b",
                     isVariant
                       ? bgVariants[idx]
                       : "from-muted dark:from-muted/70 to-muted/20 dark:to-muted/10"

@@ -85,13 +85,14 @@ export async function GET(request: NextRequest) {
       InstallerReward.find(query)
         .populate(
           "installer",
-          "installerCode fullName phoneNumber bankName accountNumber accountTitle"
+          "installerCode fullName cnic phoneNumber whatsappNumber trainingCenter bankName accountNumber accountTitle"
         )
         .populate(
           "referrer",
           "installerCode fullName phoneNumber bankName accountNumber accountTitle"
         )
         .populate("registeredBy", "name email role")
+        .populate("updatedBy", "name email role")
         .sort({ [sortBy]: sortOrder })
         .skip(skip)
         .limit(limit),
@@ -187,13 +188,14 @@ export async function POST(request: NextRequest) {
     const populatedReward = await InstallerReward.findById(reward._id)
       .populate(
         "installer",
-        "installerCode fullName phoneNumber bankName accountNumber accountTitle"
+        "installerCode fullName cnic phoneNumber whatsappNumber trainingCenter bankName accountNumber accountTitle"
       )
       .populate(
         "referrer",
         "installerCode fullName phoneNumber bankName accountNumber accountTitle"
       )
-      .populate("registeredBy", "name email role");
+      .populate("registeredBy", "name email role")
+      .populate("updatedBy", "name email role");
 
     return ApiResponse.success(
       populatedReward,

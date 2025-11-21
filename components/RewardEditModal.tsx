@@ -152,10 +152,10 @@ export default function RewardEditModal({
         .map((item) => ({
           value: item.value,
           label: (
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-2 w-8/10">
               <span className="truncate">{item.label}</span>
               {item.reward != null && (
-                <p className="text-muted-foreground text-[10px]">
+                <p className="text-muted-foreground text-[10px] whitespace-nowrap">
                   Rs {item.reward}
                 </p>
               )}

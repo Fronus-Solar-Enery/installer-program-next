@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAdminGuard } from "@/hooks/useRoleGuard";
 
 interface TeamMember {
   _id: string;
@@ -31,7 +32,10 @@ interface TeamMember {
 }
 
 export default function TeamPage() {
-  const router = useRouter();
+  const { isAuthorized } = useAdminGuard({
+    autoRedirect: true,
+  });
+
   const { data: session } = useSession();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,13 +46,7 @@ export default function TeamPage() {
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [selectedTeamMemberId, setSelectedTeamMemberId] = useState("");
 
-  // Check authorization - memoized to prevent recalculation
-  const canAccessTeamManagement = useMemo(
-    () =>
-      session?.user?.role === TeamRole.ADMIN ||
-      session?.user?.role === TeamRole.MANAGER,
-    [session?.user?.role]
-  );
+  // Check authorization
 
   const fetchTeamMembers = useCallback(async () => {
     setLoading(true);
@@ -71,16 +69,10 @@ export default function TeamPage() {
   }, []);
 
   useEffect(() => {
-    if (session && !canAccessTeamManagement) {
-      router.push("/dashboard");
-    }
-  }, [session, canAccessTeamManagement, router]);
-
-  useEffect(() => {
-    if (canAccessTeamManagement) {
+    if (isAuthorized) {
       fetchTeamMembers();
     }
-  }, [canAccessTeamManagement, fetchTeamMembers]);
+  }, [isAuthorized, fetchTeamMembers]);
 
   const handleDelete = useCallback(
     async (id: string, name: string) => {
@@ -108,7 +100,7 @@ export default function TeamPage() {
     [fetchTeamMembers]
   );
 
-  if (!canAccessTeamManagement) {
+  if (!isAuthorized) {
     return null;
   }
 

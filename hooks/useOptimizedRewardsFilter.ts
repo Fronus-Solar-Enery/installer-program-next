@@ -17,6 +17,7 @@ export interface RewardWithId {
   inverterSerialNumber?: string;
   serialNumberStatus?: string;
   createdAt: string;
+  updatedAt?: string;
   installer?: {
     _id: string;
     installerCode: string;
@@ -24,8 +25,14 @@ export interface RewardWithId {
     cnic: string;
     phoneNumber: string;
     whatsappNumber: string;
+    trainingCenter: string;
   };
   registeredBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  updatedBy?: {
     _id: string;
     name: string;
     email: string;

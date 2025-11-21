@@ -9,6 +9,7 @@ export { RewardStatus };
 export interface IInstallerReward {
   _id?: string;
   registeredBy: Types.ObjectId;
+  updatedBy?: Types.ObjectId;
   installer: Types.ObjectId;
   installerCode: string;
   referrerCode?: string;
@@ -39,6 +40,10 @@ const InstallerRewardSchema = new Schema<IInstallerReward>(
       type: Schema.Types.ObjectId,
       ref: "TeamMember",
       required: [true, "Registered by is required"],
+    },
+    updatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "TeamMember",
     },
     installer: {
       type: Schema.Types.ObjectId,
@@ -194,6 +199,7 @@ InstallerRewardSchema.index({ cityOfInstallation: 1 });
 InstallerRewardSchema.index({ productModel: 1 });
 InstallerRewardSchema.index({ sendingDate: 1 });
 InstallerRewardSchema.index({ registeredBy: 1 });
+InstallerRewardSchema.index({ updatedBy: 1 });
 InstallerRewardSchema.index({ createdAt: 1 });
 
 // Compound indexes for common queries

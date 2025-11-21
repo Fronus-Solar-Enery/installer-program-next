@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import IconArrowUpDown from "../icons/ArrowUpDown";
+import { IconCheck } from "../icons";
 
 export interface SearchableSelectOption {
   value: string;
@@ -117,9 +118,9 @@ export function SearchableSelect({
                       )}
                     >
                       {option.label}
-                      <Check
+                      <IconCheck
                         className={cn(
-                          "h-4 w-4",
+                          "shrink-0",
                           value === option.value ? "opacity-100" : "opacity-0"
                         )}
                       />

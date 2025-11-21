@@ -14,6 +14,8 @@ import {
   IconLayer,
   IconSquareShareLine,
   IconClockCircle,
+  IconClose,
+  IconSetting4,
 } from "@/components/icons";
 import { useRelativeTime } from "@/lib/getRelativeTime";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -25,7 +27,7 @@ import {
 import { RewardsStatisticsCards } from "@/components/RewardsStatisticsCards";
 import { RewardsTable } from "@/components/RewardsTable";
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog";
-import { BulkDeleteResultDialog } from "@/components/BulkDeleteResultDialog";
+import { BulkDeleteConfirmationDialog } from "@/components/BulkDeleteConfirmationDialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Popover,
@@ -36,6 +38,14 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import Loading from "@/components/ui/loading";
+import { Input } from "@/components/ui/input";
+import { ArrayCarousel } from "@/components/ArrayCarousel";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TeamMember {
   _id: string;
@@ -49,6 +59,7 @@ const EMPTY_ARRAY: TeamMember[] = [];
 export default function RewardsPage() {
   const router = useRouter();
   const [state, dispatch] = useRewardsState();
+  const [showFilters, setShowFilters] = useState(false);
 
   // Data state
   const [rewards, setRewards] = useState<RewardWithId[]>([]);
@@ -396,69 +407,102 @@ export default function RewardsPage() {
     [dispatch, fetchRewards]
   );
 
+  const handleOpenBulkDeleteDialog = useCallback(() => {
+    if (state.selectedRewards.size === 0) return;
+
+    dispatch({
+      type: "SET_BULK_DELETE_RESULT_STATE",
+      payload: {
+        open: true,
+        status: "confirm",
+      },
+    });
+  }, [state.selectedRewards.size, dispatch]);
+
   const handleBulkDelete = useCallback(async () => {
     if (state.selectedRewards.size === 0) return;
 
-    dispatch({ type: "SET_BULK_DELETING", payload: true });
-    const toastId = toast.loading(
-      `Deleting ${state.selectedRewards.size} reward(s)...`
-    );
+    // Set deleting status
+    dispatch({
+      type: "SET_BULK_DELETE_RESULT_STATE",
+      payload: {
+        status: "deleting",
+      },
+    });
 
     try {
-      let successCount = 0;
-      let failCount = 0;
-      const failures: Array<{ name: string; reason: string }> = [];
+      const response = await fetch("/api/rewards/bulk-delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          rewardIds: Array.from(state.selectedRewards),
+        }),
+      });
 
-      for (const rewardId of state.selectedRewards) {
-        try {
-          const reward = rewards.find((r) => r._id === rewardId);
-          const rewardName = reward?.serialNumber || "Unknown";
+      const data = await response.json();
 
-          const response = await fetch(`/api/rewards/${rewardId}`, {
-            method: "DELETE",
+      if (response.ok && data.success) {
+        const { successCount, failCount, failures } = data.data;
+
+        // Refetch rewards
+        await fetchRewards();
+
+        // Clear selection
+        dispatch({ type: "CLEAR_SELECTION" });
+
+        // Show success toast
+        toast.success(`Successfully deleted ${successCount} reward(s)!`);
+
+        // Show success state
+        dispatch({
+          type: "SET_BULK_DELETE_RESULT_STATE",
+          payload: {
+            open: true,
+            status: "success",
+            successCount,
+            failCount,
+            failures: failCount > 0 ? failures : undefined,
+          },
+        });
+
+        // Auto-close dialog after 3 seconds
+        setTimeout(() => {
+          dispatch({
+            type: "SET_BULK_DELETE_RESULT_STATE",
+            payload: {
+              open: false,
+            },
           });
-
-          if (response.ok) {
-            successCount++;
-          } else {
-            failCount++;
-            const data = await response.json();
-            failures.push({
-              name: rewardName,
-              reason: data.error || "Unknown error",
-            });
-          }
-        } catch (error) {
-          failCount++;
-          const reward = rewards.find((r) => r._id === rewardId);
-          failures.push({
-            name: reward?.serialNumber || "Unknown",
-            reason: "Network error",
-          });
-        }
+        }, 3000);
+      } else {
+        // Show error state
+        dispatch({
+          type: "SET_BULK_DELETE_RESULT_STATE",
+          payload: {
+            open: true,
+            status: "error",
+            successCount: 0,
+            failCount: state.selectedRewards.size,
+            message: data.message || "Failed to delete rewards",
+          },
+        });
       }
-
-      await fetchRewards();
-      dispatch({ type: "CLEAR_SELECTION" });
-      toast.dismiss(toastId);
-
+    } catch (error) {
+      console.error("Bulk delete error:", error);
       dispatch({
         type: "SET_BULK_DELETE_RESULT_STATE",
         payload: {
           open: true,
-          successCount,
-          failCount,
-          failures,
+          status: "error",
+          successCount: 0,
+          failCount: state.selectedRewards.size,
+          message: "Network error occurred while deleting rewards",
         },
       });
-    } catch (error) {
-      toast.dismiss(toastId);
-      console.error("Bulk delete error:", error);
-      toast.error("An error occurred during bulk delete");
-    } finally {
-      dispatch({ type: "SET_BULK_DELETING", payload: false });
     }
-  }, [state.selectedRewards, rewards, fetchRewards, dispatch]);
+  }, [state.selectedRewards, fetchRewards, dispatch]);
 
   const handleDownloadReport = useCallback(async () => {
     dispatch({ type: "SET_DOWNLOADING_REPORT", payload: true });
@@ -532,6 +576,57 @@ export default function RewardsPage() {
     },
     [dispatch]
   );
+
+  // Generate years from 2024 to current year
+  const previousYears = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let year = 2024; year <= currentYear; year++) {
+      years.push(year.toString());
+    }
+    return years;
+  }, []);
+
+  // Create button list for each year
+  const previousYearsRangeList = useMemo(() => {
+    return previousYears.map((year) => {
+      const startDate = `${year}-01-01`;
+      const endDate = `${year}-12-31`;
+      const isActive =
+        state.filters.dateRange === "custom" &&
+        state.filters.customStartDate === startDate &&
+        state.filters.customEndDate === endDate;
+
+      return (
+        <Button
+          key={year}
+          variant={isActive ? "default" : "outline"}
+          size="sm"
+          className="rounded-xl"
+          onClick={() => {
+            // Set date range for the entire year
+            dispatch({
+              type: "SET_FILTERS",
+              payload: {
+                dateRange: "custom",
+                customStartDate: startDate,
+                customEndDate: endDate,
+              },
+            });
+            setIsCustomDateOpen(false);
+          }}
+        >
+          {year}
+        </Button>
+      );
+    });
+  }, [
+    previousYears,
+    state.filters.dateRange,
+    state.filters.customStartDate,
+    state.filters.customEndDate,
+    dispatch,
+  ]);
 
   const handleClearFilter = useCallback(
     (key: string) => {
@@ -616,15 +711,36 @@ export default function RewardsPage() {
         {/* Date Range Filter Card */}
         <Card className="bg-transparent">
           <CardHeader className="flex-row items-center justify-between w-full bg-muted dark:bg-muted/50 border-b border-border">
-            <CardTitle className="text-lg font-semibold">
-              Rewards Database
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>Last Updated:</span>
-                <span>{isPageLoading ? <Loading /> : refreshRelTime}</span>
+            <CardTitle className="flex items-center gap-4 font-mono">
+              <div className="text-lg font-semibold">
+                Rewards Database
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>Last Updated:</span>
+                  <span>{isPageLoading ? <Loading /> : refreshRelTime}</span>
+                </div>
               </div>
             </CardTitle>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 *:font-mono">
+              <div className="relative">
+                <Input
+                  type="text"
+                  id="searchRewards"
+                  placeholder="Search..."
+                  value={state.filters.search}
+                  disabled={isPageLoading}
+                  onChange={(e) => handleFilterChange("search", e.target.value)}
+                  className="w-56 rounded-2xl font-normal text-muted-foreground focus:text-foreground h-9"
+                />
+                {state.filters.search && (
+                  <button
+                    className="absolute right-2 -translate-y-1/2 top-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    onClick={() => handleFilterChange("search", "")}
+                  >
+                    <IconClose className="size-5" />
+                  </button>
+                )}
+              </div>
               {/* DATE RANGE FILTER */}
               <ToggleGroup
                 type="single"
@@ -701,7 +817,6 @@ export default function RewardsPage() {
                         <div className="flex items-center gap-2">
                           <Button
                             size="sm"
-                            className="rounded-xl"
                             variant="outline"
                             onClick={() => {
                               setDateRange(undefined);
@@ -720,7 +835,7 @@ export default function RewardsPage() {
                           </Button>
                           <Button
                             size="sm"
-                            className="rounded-xl"
+                            variant="secondary"
                             onClick={() => {
                               if (dateRange?.from && dateRange?.to) {
                                 // Convert dates to local date strings (YYYY-MM-DD)
@@ -752,6 +867,12 @@ export default function RewardsPage() {
                           >
                             Apply
                           </Button>
+                        </div>
+                      </div>
+                      <div className="px-4 py-2 w-full text-xs">
+                        Select by Year
+                        <div className="flex items-center gap-2 mt-2">
+                          {previousYearsRangeList}
                         </div>
                       </div>
                       <CalendarComponent
@@ -803,11 +924,29 @@ export default function RewardsPage() {
                   </>
                 )}
               </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setShowFilters((prev) => !prev)}
+                      disabled={loading}
+                    >
+                      <IconSetting4 />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {showFilters ? "Hide" : "Show"} Filters
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </CardHeader>
 
           {/* Rewards Table */}
           <RewardsTable
+            showFilters={showFilters}
             rewards={paginatedRewards}
             totalRewards={filtered.length}
             totalUnfilteredRewards={rewards.length}
@@ -830,6 +969,7 @@ export default function RewardsPage() {
             onEditClick={handleEditClick}
             onDeleteClick={handleDeleteClick}
             onBulkDelete={handleBulkDelete}
+            onOpenBulkDeleteDialog={handleOpenBulkDeleteDialog}
             onPageChange={handlePageChange}
             onItemsPerPageChange={handleItemsPerPageChange}
             onClearFilter={handleClearFilter}
@@ -869,13 +1009,18 @@ export default function RewardsPage() {
         </Card>
       </div>
 
-      {/* Bulk Delete Result Dialog */}
-      <BulkDeleteResultDialog
+      {/* Bulk Delete Confirmation Dialog */}
+      <BulkDeleteConfirmationDialog
         open={state.bulkDeleteResultState.open}
+        status={state.bulkDeleteResultState.status}
+        count={state.selectedRewards.size}
         successCount={state.bulkDeleteResultState.successCount}
         failCount={state.bulkDeleteResultState.failCount}
+        message={state.bulkDeleteResultState.message}
         failures={state.bulkDeleteResultState.failures}
         entityType="reward"
+        warningMessage="The rewards will be permanently removed from the database."
+        onConfirm={handleBulkDelete}
         onClose={() => dispatch({ type: "RESET_BULK_DELETE_RESULT" })}
       />
     </>

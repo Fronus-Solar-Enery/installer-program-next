@@ -135,10 +135,8 @@ function SignInForm() {
       const result = await authenticate(email.trim(), password);
 
       if (result.success) {
-        router.push("/dashboard");
-        router.refresh();
+        window.location.href = "/dashboard";
       } else if (result.error) {
-        // Use the shared error handler
         handleErrorMessage(result.error);
       }
     } catch (err) {

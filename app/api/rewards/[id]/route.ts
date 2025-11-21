@@ -48,7 +48,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const reward = await InstallerReward.findById(id)
       .populate('installer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')
       .populate('referrer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')
-      .populate('registeredBy', 'name email role');
+      .populate('registeredBy', 'name email role')
+      .populate('updatedBy', 'name email role');
 
     if (!reward) {
       return ApiResponse.notFound('Reward not found');
@@ -97,14 +98,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const changes = getChanges(reward.toObject() as unknown as Record<string, unknown>, validatedData);
     const oldRewardStatus = reward.rewardStatus;
 
-    // Update reward
+    // Update reward with updatedBy tracking
     Object.assign(reward, validatedData);
+    reward.updatedBy = session.user.id as never;
     await reward.save();
 
     const updatedReward = await InstallerReward.findById(reward._id)
       .populate('installer', 'installerCode fullName phoneNumber whatsappNumber bankName accountNumber accountTitle')
       .populate('referrer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')
-      .populate('registeredBy', 'name email role');
+      .populate('registeredBy', 'name email role')
+      .populate('updatedBy', 'name email role');
 
     if (!updatedReward) {
       return ApiResponse.error('Failed to fetch updated reward', 500);

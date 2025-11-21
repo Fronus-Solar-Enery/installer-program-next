@@ -1,0 +1,693 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  IconRefresh,
+  IconClockCircle,
+  IconCheckCircle,
+  IconClock,
+  IconClipboardCheck,
+  IconCheck,
+  IconClose,
+  IconTrashBin2,
+  IconEye,
+} from "@/components/icons";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import PageHeader from "@/components/PageHeader";
+import IconDanger from "@/components/icons/Danger";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAdminGuard } from "@/hooks/useRoleGuard"; 
+import HoverCard from "@/components/Tooltip";
+import { useBatchJobs } from "@/contexts/BatchJobContext";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface BatchJob {
+  _id: string;
+  type: "GOOGLE_CONTACTS_CREATE" | "GOOGLE_CONTACTS_DELETE";
+  status: "pending" | "processing" | "completed" | "failed" | "cancelled";
+  totalItems: number;
+  processedItems: number;
+  successCount: number;
+  failedCount: number;
+  metadata?: {
+    errors?: string[];
+    [key: string]: unknown;
+  };
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+  progressPercentage: number;
+}
+
+export default function BatchJobsPage() {
+  const { retryJob } = useBatchJobs();
+  const [jobs, setJobs] = useState<BatchJob[]>([]);
+  const [selectedJob, setSelectedJob] = useState<BatchJob | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [cancellingJobId, setCancellingJobId] = useState<string | null>(null);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+
+  const { isAuthorized } = useAdminGuard({
+    autoRedirect: true,
+  });
+
+  const fetchJobs = async () => {
+    try {
+      const response = await fetch("/api/batch-jobs?limit=100");
+      if (!response.ok) throw new Error("Failed to fetch batch jobs");
+
+      const data = await response.json();
+      if (data.success) {
+        setJobs(data.data.jobs || []);
+      }
+    } catch (error) {
+      console.error("Error fetching batch jobs:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthorized) {
+      fetchJobs();
+
+      const interval = setInterval(() => {
+        fetchJobs();
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthorized]);
+
+  const handleCancelJob = async (jobId: string) => {
+    try {
+      const response = await fetch(`/api/batch-jobs?jobId=${jobId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Failed to cancel job");
+      }
+
+      toast.success("Batch job cancelled successfully");
+      fetchJobs(); // Refresh the list
+    } catch (error) {
+      console.error("Error cancelling job:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to cancel job"
+      );
+    } finally {
+      setShowCancelDialog(false);
+      setCancellingJobId(null);
+    }
+  };
+
+  const filteredJobs = jobs.filter((job) => {
+    if (statusFilter === "all") return true;
+    return job.status === statusFilter;
+  });
+
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      pending: {
+        color:
+          "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20",
+        icon: IconClock,
+      },
+      processing: {
+        color:
+          "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+        icon: IconClockCircle,
+      },
+      completed: {
+        color:
+          "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20",
+        icon: IconCheck,
+      },
+      failed: {
+        color: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+        icon: IconDanger,
+      },
+      cancelled: {
+        color: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+        icon: IconDanger,
+      },
+    };
+
+    const variant =
+      variants[status as keyof typeof variants] || variants.pending;
+    const Icon = variant.icon;
+
+    return (
+      <Badge
+        variant="outline"
+        className={cn("h-6 pr-2.5 pl-1 py-1 font-medium border", variant.color)}
+      >
+        <Icon className="size-4!" />
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
+  };
+
+  const getTypeBadge = (type: string) => {
+    const isCreate = type === "GOOGLE_CONTACTS_CREATE";
+    return (
+      <Badge
+        variant="outline"
+        className={cn(
+          "h-6 px-2.5 py-1 font-medium border",
+          isCreate
+            ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
+            : "bg-rose-900/10 text-rose-600 dark:text-rose-400 border-rose-400/20"
+        )}
+      >
+        {isCreate ? "Create Contacts" : "Delete Contacts"}
+      </Badge>
+    );
+  };
+
+  if (!isAuthorized) {
+    return null;
+  }
+
+  return (
+    <>
+      <PageHeader
+        title="Batch Jobs"
+        description="Monitor and manage background job processing"
+      />
+
+      <div className="flex flex-1 flex-col gap-4 mt-4">
+        {loading ? (
+          <>
+            {/* Loading Stats Cards */}
+            <div className="grid gap-4 md:grid-cols-4">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i}>
+                  <CardContent>
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <Skeleton className="h-4 w-20 mb-2" />
+                        <Skeleton className="h-8 w-12" />
+                      </div>
+                      <Skeleton className="h-8 w-8" round />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Loading Filters */}
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-9 w-32 rounded-lg" />
+              <Skeleton className="h-9 w-9 rounded-lg" />
+            </div>
+
+            {/* Loading Table */}
+            <Card className="flex-1">
+              <CardContent className="p-0 size-full">
+                <div className="flex size-full flex-col">
+                  {/* Table Header */}
+                  <div className="flex items-center gap-4 border-b border-border/50 bg-muted/30 dark:bg-muted/10 p-4 text-sm font-medium text-muted-foreground">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                  {/* Table Rows */}
+                  <div className="p-4 space-y-3">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <div key={i} className="flex items-center gap-4 p-3 rounded-lg border border-border/50">
+                        <Skeleton className="h-6 w-28" />
+                        <Skeleton className="h-6 w-20" />
+                        <Skeleton className="h-2 w-32" />
+                        <Skeleton className="h-5 w-12" />
+                        <Skeleton className="h-5 w-12" />
+                        <Skeleton className="h-5 w-12" />
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-4 w-16" />
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-5 w-5" round />
+                          <Skeleton className="h-5 w-5" round />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <>
+            {/* Stats Cards */}
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Total Jobs
+                      </p>
+                      <p className="text-2xl font-bold">{jobs.length}</p>
+                    </div>
+                    <IconClipboardCheck className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Pending
+                      </p>
+                      <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                        {jobs.filter((j) => j.status === "pending").length}
+                      </p>
+                    </div>
+                    <IconClock className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Processing
+                      </p>
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        {jobs.filter((j) => j.status === "processing").length}
+                      </p>
+                    </div>
+                    <IconClockCircle className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Completed
+                      </p>
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        {jobs.filter((j) => j.status === "completed").length}
+                      </p>
+                    </div>
+                    <IconCheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Filters and Actions */}
+            <div className="flex items-center justify-between">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-32 h-9 rounded-lg">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Jobs</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button onClick={fetchJobs} variant="outline" size="sm">
+                <IconRefresh className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+
+            {/* Jobs Table */}
+            <Card>
+              <CardContent className="lg:p-0">
+            {loading ? (
+              <div className="flex items-center justify-center p-12">
+                <div className="text-center">
+                  <IconClockCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground animate-spin" />
+                  <p className="text-muted-foreground">Loading batch jobs...</p>
+                </div>
+              </div>
+            ) : filteredJobs.length === 0 ? (
+              <div className="flex items-center justify-center p-12">
+                <div className="text-center">
+                  <IconClipboardCheck className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">No batch jobs found</p>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full">
+                <div className="bg-muted/30">
+                  <div className="flex items-center justify-between p-4">
+                    <div className="w-30">Type</div>
+                    <div className="w-28">Status</div>
+                    <div className="w-60">Progress</div>
+                    <div className="w-24">Items</div>
+                    <div className="w-24">Success</div>
+                    <div className="w-24">Failed</div>
+                    <div className="w-30">Created</div>
+                    <div className="w-24">Duration</div>
+                    <div className="w-32">Actions</div>
+                  </div>
+                </div>
+                <ScrollArea className="size-full h-[715px] bg-accent dark:bg-background">
+                  {filteredJobs.map((job) => {
+                    return (
+                      <div
+                        key={job._id}
+                        className="flex items-center justify-between h-12 border-b border-border px-4 py-2 hover:bg-muted/30"
+                      >
+                        <div className="w-30 flex items-center">
+                          {getTypeBadge(job.type)}
+                        </div>
+                        <div className="w-28 flex items-center">
+                          {getStatusBadge(job.status)}
+                        </div>
+                        <div className="w-60 flex items-center">
+                          <div className="space-y-1 grow">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-muted-foreground font-mono">
+                                {job.processedItems} / {job.totalItems}
+                              </span>
+                              <span className="font-medium font-mono">
+                                {job.progressPercentage}%
+                              </span>
+                            </div>
+                            <Progress
+                              value={job.progressPercentage}
+                              className="h-2"
+                            />
+                          </div>
+                        </div>
+                        <div className="font-medium w-24 font-mono flex items-center text-sm">
+                          {job.totalItems}
+                        </div>
+                        <div className="w-24 font-mono flex items-center text-sm">
+                          <span className="text-green-600 dark:text-green-400 font-medium">
+                            {job.successCount}
+                          </span>
+                        </div>
+                        <div className="w-24 font-mono flex items-center text-sm">
+                          <span
+                            className={cn(
+                              "font-medium",
+                              job.failedCount > 0
+                                ? "text-red-600 dark:text-red-400 cursor-help"
+                                : "text-muted-foreground"
+                            )}
+                          >
+                            {job.failedCount > 0 && job.metadata?.errors ? (
+                              <HoverCard
+                                trigger={job.failedCount.toString()}
+                                content={
+                                  <div className="text-xs max-w-64">
+                                    <p className="font-semibold mb-1">Errors:</p>
+                                    <ul className="list-disc list-inside space-y-1">
+                                      {(job.metadata.errors as string[])
+                                        .slice(0, 5)
+                                        .map((err, i) => (
+                                          <li key={i} className="break-all">
+                                            {err}
+                                          </li>
+                                        ))}
+                                      {(job.metadata.errors as string[]).length >
+                                        5 && (
+                                        <li className="text-muted-foreground">
+                                          +
+                                          {(job.metadata.errors as string[])
+                                            .length - 5}{" "}
+                                          more
+                                        </li>
+                                      )}
+                                    </ul>
+                                  </div>
+                                }
+                              />
+                            ) : (
+                              job.failedCount
+                            )}
+                          </span>
+                        </div>
+                        <div className="w-30 flex items-center font-mono">
+                          <span className="text-sm text-muted-foreground whitespace-nowrap">
+                            <HoverCard
+                              trigger={formatDistanceToNow(
+                                new Date(job.createdAt),
+                                {
+                                  addSuffix: true,
+                                }
+                              ).replace("about ", "")}
+                              content={new Date(job.createdAt).toLocaleString()}
+                            />
+                          </span>
+                        </div>
+                        <div className="w-24 flex items-center">
+                          <span className="text-sm text-muted-foreground">
+                            {job.completedAt ? (
+                              <HoverCard
+                                trigger={`${Math.round(
+                                  (new Date(job.completedAt).getTime() -
+                                    new Date(job.createdAt).getTime()) /
+                                    1000
+                                )}s`}
+                                content={(() => {
+                                  const s = Math.round(
+                                    (new Date(job.completedAt).getTime() -
+                                      new Date(job.createdAt).getTime()) /
+                                      1000
+                                  );
+                                  return `${Math.floor(s / 60)}m ${s % 60}s`;
+                                })()}
+                              />
+                            ) : job.status === "processing" ? (
+                              "Running..."
+                            ) : (
+                              "-"
+                            )}
+                          </span>
+                        </div>
+                        <div className="w-32 flex items-center gap-2">
+                          <button
+                            className="text-muted-foreground hover:text-foreground cursor-pointer"
+                            onClick={() => setSelectedJob(job)}
+                            title="View Details"
+                          >
+                            <IconEye className="size-5" />
+                          </button>
+                          <button
+                            className={cn(
+                              "text-destructive-text hover:text-destructive-text-hover cursor-pointer",
+                              !(
+                                job.status === "pending" ||
+                                job.status === "processing"
+                              ) && "opacity-50 select-none cursor-not-allowed"
+                            )}
+                            onClick={() => {
+                              setCancellingJobId(job._id);
+                              setShowCancelDialog(true);
+                            }}
+                            disabled={
+                              !(
+                                job.status === "pending" ||
+                                job.status === "processing"
+                              )
+                            }
+                          >
+                            <IconClose className="size-5" />
+                          </button>
+                          <button
+                            className={cn(
+                              "text-destructive-text hover:text-destructive-text-hover cursor-pointer",
+                              (job.status === "pending" ||
+                                job.status === "processing") &&
+                                "opacity-50 select-none cursor-not-allowed"
+                            )}
+                            disabled={
+                              job.status === "pending" ||
+                              job.status === "processing"
+                            }
+                            onClick={() => console.log("clicked")}
+                          >
+                            <IconTrashBin2 />
+                          </button>
+                          
+                          {job.status === "failed" && (
+                            <button
+                              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 cursor-pointer"
+                              onClick={async () => {
+                                toast.promise(retryJob(job._id), {
+                                  loading: "Retrying job...",
+                                  success: "Job retry started",
+                                  error: "Failed to retry job",
+                                });
+                                // Refresh list after a short delay to show updated status
+                                setTimeout(fetchJobs, 1000);
+                              }}
+                              title="Retry Job"
+                            >
+                              <IconRefresh className="size-5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </ScrollArea>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Batch Job?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this batch job? This action cannot
+              be undone. Any contacts that have already been processed will not
+              be affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, keep running</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => {
+                if (cancellingJobId) {
+                  handleCancelJob(cancellingJobId);
+                }
+              }}
+            >
+              Yes, cancel job
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* Job Details Dialog */}
+      <Dialog open={!!selectedJob} onOpenChange={(open) => !open && setSelectedJob(null)}>
+        <DialogContent className="w-2xl max-h-[80vh] overflow-visible!">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              Job Details
+              {selectedJob && getStatusBadge(selectedJob.status)}
+            </DialogTitle>
+            <DialogDescription>
+              ID: <span className="font-mono text-xs">{selectedJob?._id}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedJob && (
+            <div className="space-y-6">
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground font-medium">Total Items</p>
+                  <p className="text-xl font-bold">{selectedJob.totalItems}</p>
+                </div>
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground font-medium">Processed</p>
+                  <p className="text-xl font-bold">{selectedJob.processedItems}</p>
+                </div>
+                <div className="p-3 bg-green-500/10 rounded-lg">
+                  <p className="text-xs text-green-600 dark:text-green-400 font-medium">Success</p>
+                  <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                    {selectedJob.successCount}
+                  </p>
+                </div>
+                <div className="p-3 bg-red-500/10 rounded-lg">
+                  <p className="text-xs text-red-600 dark:text-red-400 font-medium">Failed</p>
+                  <p className="text-xl font-bold text-red-600 dark:text-red-400">
+                    {selectedJob.failedCount}
+                  </p>
+                </div>
+              </div>
+
+              {/* Timestamps */}
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between py-1 border-b border-border/50">
+                  <span className="text-muted-foreground">Created At</span>
+                  <span className="font-mono">{new Date(selectedJob.createdAt).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-border/50">
+                  <span className="text-muted-foreground">Last Updated</span>
+                  <span className="font-mono">{new Date(selectedJob.updatedAt).toLocaleString()}</span>
+                </div>
+                {selectedJob.completedAt && (
+                  <div className="flex justify-between py-1 border-b border-border/50">
+                    <span className="text-muted-foreground">Completed At</span>
+                    <span className="font-mono">{new Date(selectedJob.completedAt).toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Error Log */}
+              {selectedJob.metadata?.errors && (selectedJob.metadata.errors as string[]).length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium flex items-center gap-2 text-red-600 dark:text-red-400">
+                    <IconDanger className="size-4" />
+                    Error Log
+                  </h4>
+                  <ScrollArea className="bg-muted/50 rounded-lg p-4 max-h-60 overflow-y-auto font-mono text-xs space-y-1 border border-border h-60">
+                    {(selectedJob.metadata.errors as string[]).map((error, i) => (
+                      <div key={i} className="text-destructive-text break-all flex gap-2">
+                        <span className="text-muted-foreground select-none">{i + 1}.</span>
+                        <span>{error}</span>
+                      </div>
+                    ))}
+                  </ScrollArea>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

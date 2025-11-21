@@ -37,7 +37,7 @@ export default function PageHeader({
         <div>
           <h1
             className={cn(
-              "text-2xl font-medium tracking-wide text-foreground leading-none",
+              "text-2xl font-medium text-foreground leading-none",
               titleClassName
             )}
           >

@@ -3,6 +3,7 @@ import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import IconArrowUpDown from "../icons/ArrowUpDown";
+import { IconCheck } from "../icons";
 
 const Select = SelectPrimitive.Root;
 
@@ -17,7 +18,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-11 w-full items-center justify-between rounded-xl border border-border px-3 py-2 text-sm placeholder:text-muted focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 bg-muted/40 hover:bg-muted dark:bg-background dark:hover:bg-muted/40 focus:ring-ring cursor-pointer transition-colors",
+      "flex h-11 w-full items-center justify-between rounded-xl border border-border px-3 py-2 text-sm placeholder:text-muted focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1  hover:bg-muted bg-background  focus:ring-ring cursor-pointer transition-colors",
       className
     )}
     {...props}
@@ -88,7 +89,7 @@ const SelectContent = React.forwardRef<
         className={cn(
           "p-2",
           position === "popper" &&
-            "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
+            "h-(--radix-select-trigger-height) w-full min-w-(--radix-select-trigger-width)"
         )}
       >
         {children}
@@ -118,15 +119,15 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-pointer select-none items-center rounded-md py-1.5 pr-8 pl-2 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-      "data-[state-checked]:bg-white focus:bg-muted",
+      "relative flex w-full cursor-pointer select-none items-center rounded-md py-1.5 pr-8 pl-2 text-sm outline-none data-disabled:pointer-events-none data-disabled:opacity-50",
+      "data-state-checked:bg-white focus:bg-muted",
       className
     )}
     {...props}
   >
     <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
-        <Check className="h-4 w-4" />
+        <IconCheck />
       </SelectPrimitive.ItemIndicator>
     </span>
 
