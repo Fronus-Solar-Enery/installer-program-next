@@ -12,7 +12,7 @@ export function ErrorAlert({ title = 'Error', message, errors, onClose, onRetry 
   return (
     <div className="bg-red-50 border border-destructive/50 rounded-lg p-4 mb-4">
       <div className="flex items-start">
-        <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+        <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
         <div className="ml-3 flex-1">
           <h3 className="text-sm font-medium text-red-800">{title}</h3>
           <p className="text-sm text-red-700 mt-1">{message}</p>

@@ -22,6 +22,7 @@ import ProgramLogo from "@/components/ProgramLogo";
 import { Checkbox } from "@/components/ui/checkbox";
 import { IconEye, IconLockPassword, IconSms } from "@/components/icons";
 import Loading from "@/components/ui/loading";
+import { ForgotPasswordDialog } from "@/components/ForgotPasswordDialog";
 
 function SignInForm() {
   const router = useRouter();
@@ -33,6 +34,8 @@ function SignInForm() {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForgotPasswordDialog, setShowForgotPasswordDialog] =
+    useState(false);
 
   // Check for error in URL params (NextAuth redirects with error)
   useEffect(() => {
@@ -160,7 +163,7 @@ function SignInForm() {
       <ShadersBackground className="size-full" />
       <Card className="w-full max-w-md bg-card/20 backdrop-blur-sm">
         <CardHeader className="flex flex-col items-center gap-4">
-          <ProgramLogo className="w-40 !h-24" />
+          <ProgramLogo className="w-40 h-24!" />
           <div className="text-center">
             <CardTitle className="mb-2 text-2xl capitalize">
               Welcome Back
@@ -174,7 +177,7 @@ function SignInForm() {
         </CardHeader>
 
         <form onSubmit={handleSubmit} className="space-y-2">
-          <CardContent className="space-y-4 !px-6">
+          <CardContent className="space-y-4 px-6!">
             {error && !emailError && !passwordError && (
               <Alert variant="destructive" className="mb-6">
                 <AlertCircle className="h-4 w-4" />
@@ -264,12 +267,17 @@ function SignInForm() {
               variant="link"
               className="p-0 h-max text-xs relative"
               type="button"
-              // onClick={() => navigate("/forgot-password")}
+              onClick={() => setShowForgotPasswordDialog(true)}
             >
               Forgot password?
             </Button>
           </CardFooter>
         </form>
+
+        <ForgotPasswordDialog
+          open={showForgotPasswordDialog}
+          onClose={() => setShowForgotPasswordDialog(false)}
+        />
 
         <div className="py-4 pb-4 text-xs text-center text-muted-foreground">
           Fronus &copy; {new Date().getFullYear()} 

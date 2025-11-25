@@ -9,7 +9,7 @@ const Loading = ({
   stroke?: number | string;
 }) => {
   return (
-    <div aria-label="Loading..." role="status">
+    <span aria-label="Loading..." role="status">
       <svg
         className={cn("size-3.5 animate-spin text-foreground", className)}
         viewBox="0 0 24 24"
@@ -32,7 +32,7 @@ const Loading = ({
           strokeLinecap="round"
         />
       </svg>
-    </div>
+    </span>
   );
 };
 export default Loading;

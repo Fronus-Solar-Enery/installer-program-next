@@ -4,11 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
-  Copy,
   Check,
   Edit,
   Trash2,
-  ArrowLeft,
   Award,
   TrendingUp,
   Activity as ActivityIcon,
@@ -17,7 +15,6 @@ import {
   User,
   Clock,
   AlertCircle,
-  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,17 +29,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { TeamRole } from "@/types/roles";
 import PageHeader from "@/components/PageHeader";
@@ -54,7 +40,7 @@ import { CopyButton } from "@/components/CopyButton";
 import {
   IconArrowLeft,
   IconEdit2,
-  IconInfoCircle,
+  IconStar,
   IconTrashBin2,
 } from "@/components/icons";
 import { InstallerAvatar } from "@/components/UserAvatar";
@@ -365,7 +351,7 @@ export default function InstallerDetailsPage() {
             </Button>
             <InstallerAvatar
               user={installer.fullName}
-              className="size-16 bg-muted"
+              className="size-16 bg-muted/30"
             />
           </>
         }
@@ -387,7 +373,7 @@ export default function InstallerDetailsPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <TrendingUp className="h-8 w-8 text-blue-600" />
                 </div>
                 <div className="ml-4">
@@ -395,7 +381,7 @@ export default function InstallerDetailsPage() {
                     Total Rewards
                   </p>
                   <p className="text-2xl font-semibold">
-                    {statistics.totalRewards}
+                    Rs. {statistics.totalAmount?.toLocaleString() || 0}
                   </p>
                 </div>
               </div>
@@ -405,7 +391,7 @@ export default function InstallerDetailsPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <div className="h-8 w-8 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
                     <span className="text-yellow-600 dark:text-yellow-400 font-bold">
                       P
@@ -417,7 +403,7 @@ export default function InstallerDetailsPage() {
                     Pending
                   </p>
                   <p className="text-2xl font-semibold text-yellow-600 dark:text-yellow-500">
-                    {statistics.pendingRewards}
+                    Rs. {statistics.pendingAmount?.toLocaleString() || 0}
                   </p>
                 </div>
               </div>
@@ -427,7 +413,7 @@ export default function InstallerDetailsPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
                     <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
                   </div>
@@ -437,7 +423,7 @@ export default function InstallerDetailsPage() {
                     Paid
                   </p>
                   <p className="text-2xl font-semibold text-green-600 dark:text-green-500">
-                    {statistics.paidRewards}
+                    Rs. {statistics.paidAmount?.toLocaleString() || 0}
                   </p>
                 </div>
               </div>
@@ -447,7 +433,7 @@ export default function InstallerDetailsPage() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
                     <span className="text-red-600 dark:text-red-400 font-bold">
                       F
@@ -459,50 +445,13 @@ export default function InstallerDetailsPage() {
                     Failed
                   </p>
                   <p className="text-2xl font-semibold text-red-600 dark:text-red-500">
-                    {statistics.failedRewards}
+                    Rs. {statistics.failedAmount?.toLocaleString() || 0}
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-      )}
-
-      {/* Revenue Statistics */}
-      {statistics && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue Statistics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <p className="text-sm opacity-90">Total Amount</p>
-                <p className="text-2xl font-bold">
-                  Rs. {statistics.totalAmount?.toLocaleString() || 0}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm opacity-90">Pending Amount</p>
-                <p className="text-2xl font-bold">
-                  Rs. {statistics.pendingAmount?.toLocaleString() || 0}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm opacity-90">Paid Amount</p>
-                <p className="text-2xl font-bold">
-                  Rs. {statistics.paidAmount?.toLocaleString() || 0}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm opacity-90">Failed Amount</p>
-                <p className="text-2xl font-bold">
-                  Rs. {statistics.failedAmount?.toLocaleString() || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       )}
 
       {/* Tabs */}
@@ -530,14 +479,30 @@ export default function InstallerDetailsPage() {
 
         {/* Details Tab */}
         <TabsContent value="details">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="flex flex-wrap gap-4">
             {/* Personal Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
+            <Card className="min-w-[350px] flex-1">
+              <CardHeader className="flex gap-4 flex-col items-center text-center">
+                <div className="relative">
+                  <InstallerAvatar
+                    user={installer.fullName}
+                    className="size-24 shrink-0 border-none bg-background"
+                  />
+                  {installer.certified && (
+                    <div className="absolute top-0 right-0 p-1 flex items-center justify-center bg-card backdrop-blur-xl group-hover/row:bg-muted/30 rounded-full transition-colors duration-300">
+                      <IconStar
+                        fill
+                        className="size-5 text-cyan-500 group-hover:text-cyan-400 transition-colors duration-300"
+                      />
+                    </div>
+                  )}
+                </div>
+                <CardTitle className="text-lg font-semibold">
+                  {installer.fullName}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <dl className="space-y-3">
+                <dl className="grid grid-cols-2 gap-4">
                   <div>
                     <dt className="text-sm font-medium text-muted-foreground">
                       Full Name
@@ -582,7 +547,7 @@ export default function InstallerDetailsPage() {
             </Card>
 
             {/* Location Information */}
-            <Card>
+            <Card className="min-w-[350px] flex-1">
               <CardHeader>
                 <CardTitle>Location Information</CardTitle>
               </CardHeader>
@@ -617,7 +582,7 @@ export default function InstallerDetailsPage() {
             </Card>
 
             {/* Banking Information */}
-            <Card>
+            <Card className="min-w-[350px] flex-1">
               <CardHeader>
                 <CardTitle>Banking Information</CardTitle>
               </CardHeader>
@@ -652,7 +617,7 @@ export default function InstallerDetailsPage() {
             </Card>
 
             {/* Professional Information */}
-            <Card>
+            <Card className="min-w-[350px] flex-1">
               <CardHeader>
                 <CardTitle>Professional Information</CardTitle>
               </CardHeader>
@@ -698,7 +663,7 @@ export default function InstallerDetailsPage() {
 
             {/* Referrer Information */}
             {installer.referrer && (
-              <Card>
+              <Card className="min-w-[350px] flex-1">
                 <CardHeader>
                   <CardTitle>Referrer Information</CardTitle>
                 </CardHeader>
@@ -730,7 +695,7 @@ export default function InstallerDetailsPage() {
             )}
 
             {/* Registration Information */}
-            <Card>
+            <Card className="min-w-[350px] flex-1">
               <CardHeader>
                 <CardTitle>Registration Information</CardTitle>
               </CardHeader>
