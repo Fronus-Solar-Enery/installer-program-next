@@ -46,4 +46,5 @@ next-env.d.ts
 *.md
 
 # Except these ones
-!README.md 
+!README.md  
+package-lock.json
