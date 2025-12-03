@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IBatchJob extends Document {
-  _id: string;
+  _id: mongoose.Types.ObjectId;
   type: "GOOGLE_CONTACTS_CREATE" | "GOOGLE_CONTACTS_DELETE";
   status: "pending" | "processing" | "completed" | "failed";
   totalItems: number;
