@@ -465,7 +465,7 @@ export default function InstallerDetailsPage() {
             value="activity"
             onClick={() => activities.length === 0 && fetchActivities()}
           >
-            <ActivityIcon className="h-4 w-4 mr-2" />
+            <ActivityIcon className="h-4 w-4 mr-2"/>
             Activity
           </TabsTrigger>
           <TabsTrigger

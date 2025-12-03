@@ -900,7 +900,10 @@ export default function RewardsPage() {
                 className="gap-2 rounded-2xl"
               >
                 Refresh
-                <IconRefresh2 width={2} className="size-3.5!" />
+                <IconRefresh2
+                  width={2}
+                  className={cn("h-3.5 w-3.5", loading && "animate-spin")}
+                />
               </Button>
               <Button
                 variant="outline"
@@ -915,7 +918,7 @@ export default function RewardsPage() {
               >
                 {state.downloadingReport ? (
                   <>
-                    Downloading <Loading />
+                    Downloading <Loading className="size-4" />
                   </>
                 ) : (
                   <>
@@ -932,6 +935,7 @@ export default function RewardsPage() {
                       size="icon"
                       onClick={() => setShowFilters((prev) => !prev)}
                       disabled={loading}
+                      className="size-9"
                     >
                       <IconSetting4 />
                     </Button>

@@ -253,7 +253,7 @@ function SignInForm() {
             >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <Loading className="fill-background" />
+                  <Loading className="text-background" />
                   Signing in...
                 </span>
               ) : (

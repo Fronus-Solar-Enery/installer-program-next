@@ -54,6 +54,7 @@ import {
   IconInstaller,
   IconPackage,
   IconProduct,
+  IconReferrer,
   IconRefresh2,
   IconUser,
 } from "@/components/icons";
@@ -68,7 +69,6 @@ import { formatNumber } from "@/lib/formatNumber";
 import { useClipboard } from "@/hooks/useCopyToClipboard";
 import Link from "next/link";
 import { CopyButton } from "@/components/CopyButton";
-import Modal from "@/components/Modal";
 import {
   Dialog,
   DialogContent,
@@ -640,13 +640,26 @@ export default function DashboardPage() {
                 }
                 setTimePeriod(value as TimePeriod);
               }}
+              className="h-10"
             >
-              <ToggleGroupItem value="all">ALL</ToggleGroupItem>
-              <ToggleGroupItem value="lastWeek">1W</ToggleGroupItem>
-              <ToggleGroupItem value="last30days">30D</ToggleGroupItem>
-              <ToggleGroupItem value="previousMonth">1M</ToggleGroupItem>
-              <ToggleGroupItem value="thisYear">1Y</ToggleGroupItem>
-              <ToggleGroupItem value="previousYear">PY</ToggleGroupItem>
+              <ToggleGroupItem className="h-8" value="all">
+                ALL
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-8" value="lastWeek">
+                1W
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-8" value="last30days">
+                30D
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-8" value="previousMonth">
+                1M
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-8" value="thisYear">
+                1Y
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-8" value="previousYear">
+                PY
+              </ToggleGroupItem>
 
               <Popover
                 open={isCustomDateOpen}
@@ -658,10 +671,10 @@ export default function DashboardPage() {
                     disabled={loading}
                     size="sm"
                     className={cn(
-                      "hidden sm:flex gap-2 rounded-xl text-zinc-400 px-2"
+                      "hidden h-8 sm:flex gap-2 rounded-xl text-zinc-400 px-2"
                     )}
                   >
-                    <IconClockCircle className="h-5 w-5" />
+                    <IconClockCircle />
                   </Button>
                 </PopoverTrigger>
 
@@ -964,23 +977,22 @@ export default function DashboardPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                     <Target className="h-4 w-4" />
-                    <span>Total Rewards (Installer + Referrer)</span>
+                    <span>Total Rewards</span>
                   </div>
                   <div className="text-4xl font-bold text-primary">
-                    Rs. {stats.grandTotal.toLocaleString()}
+                    Rs. {formatNumber(stats.grandTotal)}
                   </div>
                   <div className="flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-blue-500" />
+                      <IconInstaller className="text-blue-400" />
                       <span className="text-muted-foreground">
-                        Installer: Rs. {stats.totalAmount.toLocaleString()}
+                        Rs. {formatNumber(stats.totalAmount)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-purple-500" />
+                      <IconReferrer className="text-purple-400" />
                       <span className="text-muted-foreground">
-                        Referrer: Rs.{" "}
-                        {stats.referrerRewardsTotal.toLocaleString()}
+                        Rs. {formatNumber(stats.referrerRewardsTotal)}
                       </span>
                     </div>
                   </div>
@@ -993,20 +1005,19 @@ export default function DashboardPage() {
                     <span>Total Paid</span>
                   </div>
                   <div className="text-4xl font-bold text-emerald-600 dark:text-emerald-500">
-                    Rs. {stats.grandTotalPaid.toLocaleString()}
+                    Rs. {formatNumber(stats.grandTotalPaid)}
                   </div>
                   <div className="flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                      <IconInstaller className="text-blue-400" />
                       <span className="text-muted-foreground">
-                        Installer: Rs. {stats.paidAmount.toLocaleString()}
+                        Rs. {formatNumber(stats.paidAmount)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                      <IconReferrer className="text-purple-400" />
                       <span className="text-muted-foreground">
-                        Referrer: Rs.{" "}
-                        {stats.referrerRewardsPaid.toLocaleString()}
+                        Rs. {formatNumber(stats.referrerRewardsPaid)}
                       </span>
                     </div>
                   </div>
@@ -1018,21 +1029,20 @@ export default function DashboardPage() {
                     <Package className="h-4 w-4" />
                     <span>Total Pending</span>
                   </div>
-                  <div className="text-4xl font-bold text-orange-600 dark:text-orange-500">
-                    Rs. {stats.grandTotalPending.toLocaleString()}
+                  <div className="text-4xl font-bold text-yellow-600 dark:text-yellow-500">
+                    Rs. {formatNumber(stats.grandTotalPending)}
                   </div>
                   <div className="flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-orange-500" />
+                      <IconInstaller className="text-blue-400" />
                       <span className="text-muted-foreground">
-                        Installer: Rs. {stats.pendingAmount.toLocaleString()}
+                        Rs. {formatNumber(stats.pendingAmount)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-orange-500" />
+                      <IconReferrer className="text-purple-400" />
                       <span className="text-muted-foreground">
-                        Referrer: Rs.{" "}
-                        {stats.referrerRewardsPending.toLocaleString()}
+                        Rs. {formatNumber(stats.referrerRewardsPending)}
                       </span>
                     </div>
                   </div>
@@ -1045,14 +1055,14 @@ export default function DashboardPage() {
                   <span>Payment Progress</span>
                   <span>{grandTotalPaidPercentage}% Completed</span>
                 </div>
-                <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
+                <div className="w-full bg-muted rounded-full h-8 overflow-hidden">
                   <div className="flex h-full">
                     <div
-                      className="bg-emerald-500 transition-all duration-500"
+                      className="bg-primary transition-all duration-500 rounded-full shadow-lg"
                       style={{ width: `${grandTotalPaidPercentage}%` }}
                     />
                     <div
-                      className="bg-orange-500 transition-all duration-500"
+                      className="bg-primary/50 transition-all duration-500 rounded-full shadow-lg"
                       style={{ width: `${grandTotalPendingPercentage}%` }}
                     />
                   </div>
@@ -1065,7 +1075,7 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 rounded-full bg-orange-500" />
+                    <div className="h-2 w-2 rounded-full bg-yellow-500" />
                     <span className="text-muted-foreground">
                       Pending {grandTotalPendingPercentage}%
                     </span>
@@ -1133,8 +1143,8 @@ export default function DashboardPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Paid Rewards
                 </CardTitle>
-                <div className="h-10 w-10 rounded-full bg-orange-500/10 flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 text-orange-500" />
+                <div className="h-10 w-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-yellow-500" />
                 </div>
               </CardHeader>
               <CardContent>

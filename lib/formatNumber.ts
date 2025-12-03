@@ -1,6 +1,6 @@
 export const formatNumber = (
   value: number | string,
-  toFixed: number | string = 1
+  toFixed: number | string = 0
 ): string => {
   const num = typeof value === "string" ? parseFloat(value) : value;
   const fix = typeof toFixed === "string" ? parseFloat(toFixed) : toFixed;
