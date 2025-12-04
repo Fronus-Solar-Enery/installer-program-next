@@ -9,12 +9,13 @@ import {
 interface HoverCardProps {
   trigger: string | React.ReactNode;
   content?: string | React.ReactNode;
+  asChild?: boolean;
 }
-const HoverCard = ({ trigger, content }: HoverCardProps) => {
+const HoverCard = ({ trigger, content, asChild }: HoverCardProps) => {
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger>{trigger}</TooltipTrigger>
+        <TooltipTrigger asChild={asChild}>{trigger}</TooltipTrigger>
         <TooltipContent>{content || trigger}</TooltipContent>
       </Tooltip>
     </TooltipProvider>

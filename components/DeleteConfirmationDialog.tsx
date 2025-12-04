@@ -31,7 +31,7 @@ interface DeleteConfirmationDialogProps {
   status: DeleteStatus;
   itemName?: string;
   message?: string;
-  entityType: "installer" | "reward" | "batch-job";
+  entityType: "installer" | "reward" | "batch-job" | "team-member";
   warningMessage?: string;
   onConfirm: () => void;
   onClose: () => void;
@@ -52,6 +52,8 @@ export function DeleteConfirmationDialog({
       ? "Installer"
       : entityType === "reward"
       ? "Reward"
+      : entityType === "team-member"
+      ? "Team Member"
       : "Batch Job";
   const entityLabelLower = entityLabel.toLowerCase();
 

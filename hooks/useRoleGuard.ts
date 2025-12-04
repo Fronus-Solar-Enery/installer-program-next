@@ -37,6 +37,8 @@ export function useRoleGuard(options?: RoleGuardOptions) {
 
   const isAuthLoading = status === "loading";
   const isAuthenticated = status === "authenticated" && !!session;
+  const isAdmin = isAuthenticated && userRole === TeamRole.ADMIN;
+  const isManager = isAuthenticated && userRole === TeamRole.MANAGER;
 
   const isAuthorized = useMemo(() => {
     if (!isAuthenticated) return false;
@@ -66,6 +68,8 @@ export function useRoleGuard(options?: RoleGuardOptions) {
     isAuthLoading,
     isAuthenticated,
     isAuthorized,
+    isAdmin,
+    isManager,
     userRole,
   } as const;
 }
