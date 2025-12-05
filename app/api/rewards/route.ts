@@ -8,6 +8,7 @@ import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { validateBody, getSearchParams } from "@/lib/validateRequest";
 import { QueryBuilder, parseSortParams } from "@/lib/queryBuilder";
 import { getPaginationParams, createPaginationMeta } from "@/lib/pagination";
+import { BUSINESS_RULES } from "@/lib/constants";
 
 // GET all rewards with filtering
 export const GET = withAuth(
@@ -16,7 +17,9 @@ export const GET = withAuth(
       await dbConnect();
 
       const params = getSearchParams(request);
-      const { page, limit, skip } = getPaginationParams(params.raw);
+      const { page, limit, skip } = getPaginationParams(params.raw, {
+        maxLimit: 10000, // Allow fetching all rewards for dashboard stats
+      });
       const { field: sortBy, order: sortOrder } = parseSortParams(params.raw);
 
       // Build query using QueryBuilder
@@ -131,7 +134,8 @@ export const POST = withAuth(
         if (referrer) {
           rewardData.referrerCode = referrer.installerCode;
           rewardData.referrer = referrer._id;
-          rewardData.referrerRewardAmount = 500; // Fixed amount for referrer
+          rewardData.referrerRewardAmount =
+            BUSINESS_RULES.REFERRER_REWARD_AMOUNT;
         }
       }
 

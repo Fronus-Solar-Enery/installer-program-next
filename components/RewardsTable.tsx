@@ -694,7 +694,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
           {/* REWARDS DATATABLE with Virtual Scrolling */}
           <div
             className="overflow-auto"
-            style={{ height: "715px" }}
+            style={{ maxHeight: "715px" }}
             ref={parentRef}
           >
             <div
@@ -805,7 +805,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
 
               {/* Virtual Scrolling Container */}
               {loading ? (
-                <div style={{ height: "650px", position: "relative" }}>
+                <div style={{ height: "400px", position: "relative" }}>
                   {Array.from({ length: 10 }).map((_, index) => (
                     <div
                       key={index}
@@ -935,7 +935,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   ))}
                 </div>
               ) : totalRewards === 0 ? (
-                <div className="w-full h-[650px] flex items-center justify-between p-0">
+                <div className="w-full h-[400px] flex items-center justify-between p-0">
                   <div className="w-full place-items-center p-0">
                     <EmptyState
                       title="No Products Registered"

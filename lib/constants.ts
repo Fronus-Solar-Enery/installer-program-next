@@ -1,3 +1,10 @@
+// Business rules constants
+export const BUSINESS_RULES = {
+  MAX_REFERRALS_PER_INSTALLER: 5,
+  REFERRER_REWARD_AMOUNT: 500,
+  MAX_BULK_BATCH_SIZE: 500,
+} as const;
+
 // Product Models with their configurations
 export interface ProductModels {
   value: string;

@@ -31,7 +31,7 @@ export default function PageHeader({
   };
 
   return (
-    <div className="flex w-full flex-wrap items-center justify-between gap-4 p-6 border lg:flex-nowrap bg-card squircle rounded-3xl border-border">
+    <div className="flex w-full flex-wrap items-center justify-between gap-4 py-6 lg:flex-nowrap">
       <div className="flex items-center gap-4">
         {renderIcon()}
         <div>

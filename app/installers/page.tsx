@@ -1038,7 +1038,7 @@ export default function InstallersPage() {
     <div className="flex-1 overflow-auto space-y-4">
       <PageHeader
         title="Installers"
-        // iconFill
+        iconFill
         Icon={IconInstaller}
         description={
           <>
@@ -1667,7 +1667,7 @@ export default function InstallersPage() {
             {/* Table with Virtual Scrolling - Single Scroll Container */}
             <div
               className="overflow-auto"
-              style={{ height: "715px" }}
+              style={{ maxHeight: "715px" }}
               ref={parentRef}
             >
               <div ref={measureRef} className="min-w-fit w-full">
@@ -1743,7 +1743,13 @@ export default function InstallersPage() {
 
                 {/* Virtual Scrolling Container */}
                 {loading ? (
-                  <div style={{ height: "650px", position: "relative" }}>
+                  <div
+                    style={{
+                      height:
+                        filteredInstallers.length > 10 ? "715px" : "400px",
+                      position: "relative",
+                    }}
+                  >
                     {Array.from({ length: 10 }).map((_, index) => (
                       <div
                         key={index}
@@ -1802,7 +1808,7 @@ export default function InstallersPage() {
                     ))}
                   </div>
                 ) : filteredInstallers.length === 0 ? (
-                  <div className="w-full h-[650px] flex items-center justify-between p-0">
+                  <div className="w-full h-[400px] flex items-center justify-between p-0">
                     <EmptyState
                       title="Not Found Installers"
                       description="You can register a new Installer by clicking below button."

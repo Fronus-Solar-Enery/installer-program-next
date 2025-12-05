@@ -8,7 +8,7 @@ function Skeleton({ className, round = false, ...props }: SkeletonProps) {
   return (
     <div
       className={cn(
-        "animate-pulse squircle rounded-2xl bg-primary/10",
+        "animate-pulse rounded-2xl bg-primary/10",
         round && "rounded-full",
         className
       )}

@@ -7,7 +7,7 @@ export const UserAvatar = ({
   size = "default",
   className,
 }: {
-  user: SidebarUser | undefined;
+  user: TeamUser | undefined;
   size?: "default" | "small";
   className?: string;
 }) => {

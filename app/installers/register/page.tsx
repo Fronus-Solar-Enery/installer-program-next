@@ -590,7 +590,7 @@ export default function NewInstallerPage() {
   };
 
   return (
-    <>
+    <div className="flex-1 overflow-auto space-y-4">
       {/* Registration Modal */}
       <RegistrationModal
         open={registrationStatus !== "idle"}
@@ -618,6 +618,7 @@ export default function NewInstallerPage() {
       <PageHeader
         title="Register Installer"
         Icon={IconUserPlus}
+        iconFill
         description="Register a new Installer to the Installer Program"
         action={
           <Button
@@ -637,7 +638,7 @@ export default function NewInstallerPage() {
         }
       />
       {/* Main Form */}
-      <Card className="mt-4">
+      <Card>
         <div className="max-w-4xl mx-auto">
           {/* Google Auth Warning Banner */}
           {!authLoading && !googleAuthStatus?.isAuthenticated && (
@@ -1256,6 +1257,6 @@ export default function NewInstallerPage() {
           </CardContent>
         </div>
       </Card>
-    </>
+    </div>
   );
 }

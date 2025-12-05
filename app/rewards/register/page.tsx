@@ -504,6 +504,7 @@ export default function NewRewardPage() {
       <PageHeader
         title="Register Product"
         Icon={IconReward}
+        iconFill
         description="Register a new product for Rewards to the Installer Program"
         action={
           <Button

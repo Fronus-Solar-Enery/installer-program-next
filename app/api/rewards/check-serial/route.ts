@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from "next/server";
+import { Types, FilterQuery } from "mongoose";
 import dbConnect from "@/lib/mongodb";
-import InstallerReward from "@/models/InstallerReward";
+import InstallerReward, { IInstallerReward } from "@/models/InstallerReward";
 import { ApiResponse } from "@/lib/apiResponse";
 
 export async function GET(request: NextRequest) {
@@ -17,13 +17,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Build query to check if serial number exists (case-insensitive)
-    const query: any = {
+    const query: FilterQuery<IInstallerReward> = {
       serialNumber: { $regex: new RegExp(`^${serialNumber}$`, "i") },
     };
 
     // Exclude the current reward if editing
     if (excludeRewardId) {
-      query._id = { $ne: excludeRewardId };
+      query._id = { $ne: new Types.ObjectId(excludeRewardId) };
     }
 
     const existingReward = await InstallerReward.findOne(query).select("_id");

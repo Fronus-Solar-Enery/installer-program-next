@@ -8,6 +8,7 @@ import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { validateBody, getSearchParams } from "@/lib/validateRequest";
 import { QueryBuilder, parseSortParams } from "@/lib/queryBuilder";
 import { getPaginationParams, createPaginationMeta } from "@/lib/pagination";
+import { BUSINESS_RULES } from "@/lib/constants";
 
 // GET all installers with filtering
 export const GET = withAuth(
@@ -16,7 +17,9 @@ export const GET = withAuth(
       await dbConnect();
 
       const params = getSearchParams(request);
-      const { page, limit, skip } = getPaginationParams(params.raw);
+      const { page, limit, skip } = getPaginationParams(params.raw, {
+        maxLimit: 10000, // Allow fetching all installers for dashboard stats
+      });
       const { field: sortBy, order: sortOrder } = parseSortParams(params.raw);
 
       // Build query using QueryBuilder
@@ -71,13 +74,13 @@ export const POST = withAuth(
           return ApiResponse.error("Invalid referrer code", 400);
         }
 
-        // Check if referrer has already referred 5 installers
+        // Check if referrer has already referred maximum installers
         const referralCount = await Installer.countDocuments({
           referrer: referrer._id,
         });
-        if (referralCount >= 5) {
+        if (referralCount >= BUSINESS_RULES.MAX_REFERRALS_PER_INSTALLER) {
           return ApiResponse.error(
-            "Referrer has already referred maximum (5) installers",
+            `Referrer has already referred maximum (${BUSINESS_RULES.MAX_REFERRALS_PER_INSTALLER}) installers`,
             400
           );
         }

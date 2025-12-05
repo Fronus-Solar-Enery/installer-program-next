@@ -675,6 +675,7 @@ export default function RewardsPage() {
         <PageHeader
           title="Rewards & Installations"
           Icon={IconReward}
+          iconFill
           description={
             <p className="mt-1 text-sm text-muted-foreground">
               Manage product installations and reward distributions

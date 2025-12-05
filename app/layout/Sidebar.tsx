@@ -79,7 +79,7 @@ interface SidebarProps {
   showUserInfo?: boolean;
   collapsible?: boolean;
   sectionLabel?: string;
-  user?: SidebarUser;
+  user?: TeamUser;
 }
 
 // Default navigation items

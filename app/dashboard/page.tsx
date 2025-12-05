@@ -49,6 +49,7 @@ import {
   IconCity,
   IconClose,
   IconCopy,
+  IconDangerCircle,
   IconDiagramUp,
   IconGift,
   IconInstaller,
@@ -56,6 +57,8 @@ import {
   IconProduct,
   IconReferrer,
   IconRefresh2,
+  IconReward,
+  IconTeacher,
   IconUser,
 } from "@/components/icons";
 import IconFileSmile from "@/components/icons/FileSmile";
@@ -765,26 +768,47 @@ export default function DashboardPage() {
           <Card className="relative overflow-hidden border-border">
             <CardContent>
               <div className="grid gap-6 md:grid-cols-3">
-                {[1, 2, 3].map((i) => (
+                {[
+                  { title: "Total Rewards", icon: <IconGift /> },
+                  { title: "Total Paid", icon: <IconReward /> },
+                  { title: "Total Pending", icon: <IconDangerCircle /> },
+                ].map((item, i) => (
                   <div key={i} className="space-y-2">
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-10 w-40" />
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground/40">
+                      {item.icon}
+                      <span>{item.title}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-4xl font-bold text-muted-foreground/40">
+                      Rs.
+                      <Skeleton className="h-10 w-20" />
+                    </div>
                     <div className="flex items-center gap-4">
-                      <Skeleton className="h-3 w-32" />
-                      <Skeleton className="h-3 w-32" />
+                      <div className="flex items-center gap-1">
+                        <IconInstaller className="text-blue-400/40" />
+                        <Skeleton className="h-4 w-6" />
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <IconReferrer className="text-purple-400/40" />
+                        <Skeleton className="h-4 w-6" />
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
               <div className="mt-6 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Skeleton className="h-3 w-32" />
-                  <Skeleton className="h-3 w-24" />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground w-full">
+                    <span>Payment Progress</span>
+                    <span className="flex items-center gap-1">
+                      <Skeleton className="h-4 w-6" /> Completed
+                    </span>
+                  </div>
                 </div>
-                <Skeleton className="h-3 w-full rounded-full" />
-                <div className="flex items-center gap-4">
-                  <Skeleton className="h-3 w-20" />
-                  <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-8 w-full rounded-full progressbar" />
+                <div className="flex items-center gap-4 px-1">
+                  <Skeleton className="h-4 w-14" />
+                  <Skeleton className="h-4 w-18" />
                 </div>
               </div>
             </CardContent>
@@ -792,15 +816,37 @@ export default function DashboardPage() {
 
           {/* Stats Grid Skeleton */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[1, 2, 3, 4].map((i) => (
+            {[
+              {
+                title: "Total Installers",
+                icon: <IconInstaller className="size-5" />,
+              },
+              {
+                title: "Total Installations",
+                icon: <IconProduct className="size-5" />,
+              },
+              {
+                title: "Paid Rewards",
+                icon: <IconReward className="size-5" />,
+              },
+              {
+                title: "Total Rewards",
+                icon: <IconGift className="size-5" />,
+              },
+            ].map(({ title, icon }, i) => (
               <Card key={i}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    {title}
+                  </CardTitle>
+
+                  <div className="size-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground/60">
+                    {icon}
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-9 w-20 mb-2" />
-                  <Skeleton className="h-3 w-full" />
+                <CardContent className="pt-0!">
+                  <Skeleton className="h-9 w-20 mb-2 rounded-xl" />
+                  <Skeleton className="h-4 w-1/2" />
                 </CardContent>
               </Card>
             ))}
@@ -823,10 +869,10 @@ export default function DashboardPage() {
                   <Skeleton className="h-[280px] w-full" />
                 </CardContent>
                 <CardFooter className="pt-4 border-t border-border">
-                  <Skeleton className="h-4 w-32" />
-                  <div className="ml-auto">
-                    <Skeleton className="h-7 w-16 mb-1" />
-                    <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-5 w-32" />
+                  <div className="ml-auto flex flex-col items-end">
+                    <Skeleton className="h-7.5 w-14 mb-1" />
+                    <Skeleton className="h-4 w-24" />
                   </div>
                 </CardFooter>
               </Card>
@@ -976,7 +1022,7 @@ export default function DashboardPage() {
                 {/* Grand Total */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Target className="h-4 w-4" />
+                    <IconGift />
                     <span>Total Rewards</span>
                   </div>
                   <div className="text-4xl font-bold text-primary">
@@ -1001,7 +1047,7 @@ export default function DashboardPage() {
                 {/* Paid Amount */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <DollarSign className="h-4 w-4" />
+                    <IconReward />
                     <span>Total Paid</span>
                   </div>
                   <div className="text-4xl font-bold text-emerald-600 dark:text-emerald-500">
@@ -1026,7 +1072,7 @@ export default function DashboardPage() {
                 {/* Pending Amount */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Package className="h-4 w-4" />
+                    <IconDangerCircle />
                     <span>Total Pending</span>
                   </div>
                   <div className="text-4xl font-bold text-yellow-600 dark:text-yellow-500">
@@ -1101,11 +1147,11 @@ export default function DashboardPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Total Installers
                 </CardTitle>
-                <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-blue-500" />
+                <div className="size-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+                  <IconInstaller className="size-5 text-blue-500" />
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0!">
                 <div className="text-3xl font-bold">
                   {stats.totalInstallers}
                 </div>
@@ -1123,11 +1169,11 @@ export default function DashboardPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Total Installations
                 </CardTitle>
-                <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                  <Package className="h-5 w-5 text-green-500" />
+                <div className="size-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <IconProduct className="size-5 text-green-500" />
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0!">
                 <div className="text-3xl font-bold">{stats.totalRewards}</div>
                 <div className="flex items-center gap-1 mt-2 text-xs">
                   <ArrowUpRight className="h-3 w-3 text-green-500" />
@@ -1143,11 +1189,11 @@ export default function DashboardPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Paid Rewards
                 </CardTitle>
-                <div className="h-10 w-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 text-yellow-500" />
+                <div className="size-12 rounded-full bg-yellow-500/10 flex items-center justify-center">
+                  <IconReward className="size-5 text-yellow-500" />
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0!">
                 <div className="text-3xl font-bold">{paidCount}</div>
                 <div className="flex items-center gap-1 mt-2 text-xs">
                   <ArrowUpRight className="h-3 w-3 text-green-500" />
@@ -1161,13 +1207,13 @@ export default function DashboardPage() {
             <Card className="relative overflow-hidden transition-all hover:shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Amount
+                  Total Rewards
                 </CardTitle>
-                <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-                  <Target className="h-5 w-5 text-purple-500" />
+                <div className="size-12 rounded-full bg-purple-500/10 flex items-center justify-center">
+                  <IconGift className="size-5 text-purple-500" />
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0!">
                 <div className="text-3xl font-bold">
                   Rs. {(stats.totalAmount / 1000).toFixed(0)}K
                 </div>
@@ -1405,7 +1451,7 @@ export default function DashboardPage() {
                       const data = await res.json();
                       setCenterInstallers(data.data || []);
                     }}
-                    className="flex items-center gap-3 p-4 squircle rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                    className="flex items-center gap-3 p-4 squircle-icon rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
                   >
                     <div
                       className={cn(
@@ -1594,10 +1640,10 @@ export default function DashboardPage() {
                       return (
                         <div
                           key={installation._id}
-                          className="flex items-center gap-3 p-4 squircle rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                          className="flex items-center gap-3 p-4 squircle-icon rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
                         >
                           <div className="h-10 w-10 rounded-full border border-border bg-primary/10 flex items-center justify-center shrink-0">
-                            <IconPackage className="h-5 w-5 text-primary" />
+                            <IconPackage className="size-5 text-primary" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-sm truncate">
@@ -1663,7 +1709,7 @@ export default function DashboardPage() {
                     recentInstallers.map((installer) => (
                       <div
                         key={installer._id}
-                        className="flex items-center gap-3 p-4 squircle rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                        className="flex items-center gap-3 p-4 squircle-icon rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
                       >
                         <div className="h-10 w-10 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center shrink-0">
                           <IconUser className="size-5 text-blue-500" />
@@ -1730,7 +1776,7 @@ export default function DashboardPage() {
                   <Link
                     href={`/installers/${installer.installerCode}`}
                     key={installer.installerCode}
-                    className="flex items-center gap-4 p-4 squircle rounded-2xl bg-muted/40 hover:bg-muted/70 transition-colors"
+                    className="flex items-center gap-4 p-4 squircle-icon rounded-2xl bg-muted/40 hover:bg-muted/70 transition-colors"
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold bg-primary/10 text-primary leading-none">
                       {index + 1}
@@ -1825,7 +1871,7 @@ const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
         <div className="squircle rounded-xl bg-emerald-100 dark:bg-emerald-950 p-2 hidden md:block">
           <Icon
             fill
-            className="h-5 w-5 text-emerald-600 dark:text-emerald-400"
+            className="size-5 text-emerald-600 dark:text-emerald-400"
           />
         </div>
       )}

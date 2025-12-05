@@ -29,7 +29,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import PageHeader from "@/components/PageHeader";
-import { IconActivity } from "@/components/icons";
+import {
+  IconActivity,
+  IconEdit,
+  IconInstaller,
+  IconReward,
+  IconUser,
+} from "@/components/icons";
 
 interface ActivityData {
   _id: string;
@@ -86,11 +92,12 @@ export default function ActivityPage() {
 
   const getActivityIcon = (type: string) => {
     if (type.includes("INSTALLER_REGISTERED"))
-      return <UserPlus className="h-4 w-4" />;
-    if (type.includes("INSTALLER")) return <User className="h-4 w-4" />;
-    if (type.includes("REWARD")) return <Activity className="h-4 w-4" />;
-    if (type.includes("TEAM")) return <User className="h-4 w-4" />;
-    if (type.includes("UPDATED")) return <Edit className="h-4 w-4" />;
+      return <IconInstaller className="h-4 w-4" />;
+    if (type.includes("INSTALLER"))
+      return <IconInstaller className="h-4 w-4" />;
+    if (type.includes("REWARD")) return <IconReward className="h-4 w-4" />;
+    if (type.includes("TEAM")) return <IconUser className="h-4 w-4" />;
+    if (type.includes("UPDATED")) return <IconEdit className="h-4 w-4" />;
     if (type.includes("DELETED")) return <Trash2 className="h-4 w-4" />;
     return <FileText className="h-4 w-4" />;
   };
@@ -176,11 +183,11 @@ export default function ActivityPage() {
   }, [filter]);
 
   return (
-    <div className="space-y-4">
+    <div className="flex-1 overflow-auto space-y-4">
       <PageHeader
         title="Activity Log"
         description="Track all system activities and changes"
-        // iconFill
+        iconFill
         Icon={IconActivity}
       />
       <div className="container mx-auto space-y-4">

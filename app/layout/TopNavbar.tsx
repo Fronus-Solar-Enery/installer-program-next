@@ -82,7 +82,7 @@ export default function TopNavbar() {
               Search...
               <kbd className="flex items-center px-2 py-1 text-xs font-bold bg-card dark:bg-background rounded-full ml-3 leading-none text-foreground">
                 <span className="text-[10px] mr-1">
-                  <IconCommand className="!size-2.5" width={2} />
+                  <IconCommand className="size-2.5!" width={2} />
                 </span>{" "}
                 K
               </kbd>
@@ -140,7 +140,7 @@ export default function TopNavbar() {
                 <Badge
                   variant="outline"
                   className={cn(
-                    "px-2.5 py-1 text-[10px] border-none rounded-md font-semibold !bg-background",
+                    "px-2.5 py-1 text-[10px] border-none rounded-md font-semibold bg-background!",
                     session?.user?.role === "ADMIN"
                       ? "dark:bg-zinc-950/40 dark:text-rose-400"
                       : session?.user?.role === "MANAGER"
@@ -161,7 +161,7 @@ export default function TopNavbar() {
                   <IconUserRounded className="mr-2" />
                   Profile
                 </Button>
-                <Button
+                {/* <Button
                   variant="ghost"
                   size="sm"
                   className="w-full justify-start px-2 py-2 text-sm bg-transparent rounded-lg"
@@ -169,7 +169,7 @@ export default function TopNavbar() {
                 >
                   <IconSettings className="mr-2" />
                   Settings
-                </Button>
+                </Button> */}
               </div>
 
               <div className="border-t mt-2 border-zinc-200 dark:border-muted p-2">

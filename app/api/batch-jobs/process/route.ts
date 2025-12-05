@@ -4,6 +4,7 @@ import dbConnect from "@/lib/mongodb";
 import BatchJob from "@/models/BatchJob";
 import Installer from "@/models/Installer";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
+import { TeamRole } from "@/models/TeamMember";
 import {
   createGoogleContact,
   preloadContactGroups,
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     // Verify ownership (unless admin)
     if (
       job.createdBy.toString() !== session.user.id &&
-      session.user.role !== "ADMIN"
+      session.user.role !== TeamRole.ADMIN
     ) {
       return ApiResponse.forbidden("You can only process your own batch jobs");
     }
@@ -182,7 +183,6 @@ async function processGoogleContactsCreate(jobId: string) {
 
     // Process contacts in batches
     for (let i = 0; i < pendingInstallers.length; i += BATCH_SIZE) {
-
       // Check if job has been cancelled (fetch fresh from DB)
       await dbConnect(); // Ensure fresh connection
       const currentJob = await BatchJob.findById(jobId).lean();
@@ -193,7 +193,9 @@ async function processGoogleContactsCreate(jobId: string) {
       }
 
       if (currentJob.status === "failed") {
-        console.log(`[Job ${jobId}] ⚠️ Job cancelled by user, stopping processing`);
+        console.log(
+          `[Job ${jobId}] ⚠️ Job cancelled by user, stopping processing`
+        );
         return;
       }
 
@@ -249,7 +251,9 @@ async function processGoogleContactsCreate(jobId: string) {
           );
 
           // Add error to metadata and increment counters atomically
-          const errorMsg = `${installer.installerCode}: ${error instanceof Error ? error.message : "Unknown error"}`;
+          const errorMsg = `${installer.installerCode}: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`;
 
           await BatchJob.findByIdAndUpdate(jobId, {
             $inc: { processedItems: 1, failedCount: 1 },
@@ -313,11 +317,12 @@ async function processGoogleContactsDelete(jobId: string) {
       return;
     }
 
-    const googleContacts = (job.metadata?.googleContacts as Array<{
-      googleContactId: string;
-      installerCode: string;
-      fullName: string;
-    }>) || [];
+    const googleContacts =
+      (job.metadata?.googleContacts as Array<{
+        googleContactId: string;
+        installerCode: string;
+        fullName: string;
+      }>) || [];
 
     if (googleContacts.length === 0) {
       job.status = "failed";
@@ -353,7 +358,9 @@ async function processGoogleContactsDelete(jobId: string) {
       }
 
       if (currentJob.status === "failed") {
-        console.log(`[Job ${jobId}] ⚠️ Job cancelled by user, stopping processing`);
+        console.log(
+          `[Job ${jobId}] ⚠️ Job cancelled by user, stopping processing`
+        );
         return;
       }
 
@@ -385,7 +392,9 @@ async function processGoogleContactsDelete(jobId: string) {
           );
 
           // Add error to metadata and increment counters atomically
-          const errorMsg = `${contact.installerCode}: ${error instanceof Error ? error.message : "Unknown error"}`;
+          const errorMsg = `${contact.installerCode}: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`;
 
           await BatchJob.findByIdAndUpdate(jobId, {
             $inc: { processedItems: 1, failedCount: 1 },

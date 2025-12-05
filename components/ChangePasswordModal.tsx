@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -127,7 +133,8 @@ export default function ChangePasswordModal({
       onClose();
     } catch (error: unknown) {
       console.error("Error changing password:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to change password";
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to change password";
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -266,7 +273,9 @@ export default function ChangePasswordModal({
             <ul className="space-y-1 text-xs text-muted-foreground">
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-0.5">•</span>
-                <span>Use at least 8 characters with letters, numbers, and symbols</span>
+                <span>
+                  Use at least 8 characters with letters, numbers, and symbols
+                </span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-primary mt-0.5">•</span>

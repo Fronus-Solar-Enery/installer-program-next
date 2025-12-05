@@ -306,7 +306,7 @@ export default function BatchJobsPage() {
   }
 
   return (
-    <>
+    <div className="flex-1 overflow-auto space-y-4">
       <PageHeader
         title="Batch Jobs"
         description="Monitor and manage background job processing"
@@ -950,6 +950,6 @@ export default function BatchJobsPage() {
           )}
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }

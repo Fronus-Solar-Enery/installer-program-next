@@ -35,7 +35,7 @@ import BulkUploadProgressModal, {
 } from "@/components/BulkUploadProgressModal";
 import { toast } from "sonner";
 import { FileDropzone } from "@/components/ui/drop-zone";
-import { IconTrashBin2 } from "@/components/icons";
+import { IconLayer, IconTrashBin2 } from "@/components/icons";
 import IconExcel from "@/components/icons/Excel";
 import IconDownloadMinimalistic from "@/components/icons/DownloadMinimalistic";
 
@@ -1122,8 +1122,8 @@ export default function BulkUploadInstallersPage() {
   return (
     <div className="flex-1 overflow-auto space-y-4">
       <PageHeader
-        title="Bulk Upload Installers"
-        description="Upload multiple installers at once using an Excel file"
+        title="Bulk Register Installers"
+        description="Bulk register multiple installers at once using an Excel file"
         action={
           <Button
             variant="ghost"
@@ -1133,6 +1133,8 @@ export default function BulkUploadInstallersPage() {
             Back to Installers
           </Button>
         }
+        iconFill
+        Icon={IconLayer}
       />
       {/* Instructions Card */}
       <Card className="grid grid-cols-1 lg:grid-cols-2 ">

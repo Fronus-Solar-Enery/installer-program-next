@@ -1,71 +1,65 @@
-import { NextRequest } from 'next/server';
-import { auth } from '@/lib/auth';
-import bcrypt from 'bcryptjs';
-import dbConnect from '@/lib/mongodb';
-import TeamMember from '@/models/TeamMember';
-import { changePasswordSchema } from '@/lib/validation';
-import { ApiResponse, handleApiError } from '@/lib/apiResponse';
-
+import { NextRequest } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import TeamMember from "@/models/TeamMember";
+import { ApiResponse, handleApiError } from "@/lib/apiResponse";
+import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 
 // GET current user profile
-export async function GET() {
-  try {
-    const session = await auth();
+export const GET = withAuth(
+  async (request: NextRequest, context: RouteContext, session: AuthSession) => {
+    try {
+      await dbConnect();
 
-    if (!session) {
-      return ApiResponse.unauthorized();
+      const user = await TeamMember.findById(session.user.id).select(
+        "-password"
+      );
+
+      if (!user) {
+        return ApiResponse.notFound("User not found");
+      }
+
+      return ApiResponse.success(user);
+    } catch (error) {
+      return handleApiError(error);
     }
-
-    await dbConnect();
-
-    const user = await TeamMember.findById(session.user.id).select('-password');
-
-    if (!user) {
-      return ApiResponse.notFound('User not found');
-    }
-
-    return ApiResponse.success(user);
-  } catch (error) {
-    return handleApiError(error);
   }
-}
+);
 
 // UPDATE current user profile (name, email)
-export async function PUT(request: NextRequest) {
-  try {
-    const session = await auth();
+export const PUT = withAuth(
+  async (request: NextRequest, context: RouteContext, session: AuthSession) => {
+    try {
+      const body = await request.json();
+      const { name, email } = body;
 
-    if (!session) {
-      return ApiResponse.unauthorized();
-    }
+      await dbConnect();
 
-    const body = await request.json();
-    const { name, email } = body;
+      const user = await TeamMember.findById(session.user.id);
 
-    await dbConnect();
-
-    const user = await TeamMember.findById(session.user.id);
-
-    if (!user) {
-      return ApiResponse.notFound('User not found');
-    }
-
-    if (name) user.name = name;
-    if (email && email !== user.email) {
-      // Check if email already exists
-      const existingUser = await TeamMember.findOne({ email });
-      if (existingUser) {
-        return ApiResponse.error('Email already exists', 409);
+      if (!user) {
+        return ApiResponse.notFound("User not found");
       }
-      user.email = email;
+
+      if (name) user.name = name;
+      if (email && email !== user.email) {
+        // Check if email already exists
+        const existingUser = await TeamMember.findOne({ email });
+        if (existingUser) {
+          return ApiResponse.error("Email already exists", 409);
+        }
+        user.email = email;
+      }
+
+      await user.save();
+
+      const { password, ...userWithoutPassword } = user.toObject();
+
+      return ApiResponse.success(
+        userWithoutPassword,
+        "Profile updated successfully"
+      );
+    } catch (error) {
+      return handleApiError(error);
     }
-
-    await user.save();
-
-    const { password, ...userWithoutPassword } = user.toObject();
-
-    return ApiResponse.success(userWithoutPassword, 'Profile updated successfully');
-  } catch (error) {
-    return handleApiError(error);
   }
-}
+);
