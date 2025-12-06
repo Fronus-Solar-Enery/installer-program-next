@@ -1842,19 +1842,23 @@ interface DashboardCardHeaderProps {
   description: string;
   Icon: FC<IconProps>;
   badge?: string;
+  iconBadge?: boolean;
 }
 
-const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
+export const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
   title,
   description,
   Icon,
   badge,
+  iconBadge = true,
 }) => {
   return (
     <CardHeader className="flex flex-row items-center gap-2 border-b border-border md:text-left">
       <div className="flex-1 flex items-center gap-4 mb-0">
         <div className="hidden md:block">
-          <Icon className="w-12 h-12 mb-0 text-primary" fill duotone />
+          {Icon && (
+            <Icon className="w-12 h-12 mb-0 text-primary" fill duotone />
+          )}
         </div>
         <div>
           <CardTitle className="flex items-center font-normal text-xl md:justify-start">
@@ -1868,12 +1872,14 @@ const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
           {badge}
         </Badge>
       ) : (
-        <div className="squircle rounded-xl bg-emerald-100 dark:bg-emerald-950 p-2 hidden md:block">
-          <Icon
-            fill
-            className="size-5 text-emerald-600 dark:text-emerald-400"
-          />
-        </div>
+        iconBadge && (
+          <div className="squircle rounded-xl bg-emerald-100 dark:bg-emerald-950 p-2 hidden md:block">
+            <Icon
+              fill
+              className="size-5 text-emerald-600 dark:text-emerald-400"
+            />
+          </div>
+        )
       )}
     </CardHeader>
   );

@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Settings as SettingsIcon, Save, RefreshCw } from "lucide-react";
+import {
+  Settings as SettingsIcon,
+  Save,
+  RefreshCw,
+  Pencil,
+} from "lucide-react";
+import { EditSettingDialog } from "./edit-setting-dialog";
 import { toast } from "sonner";
 import {
   Card,
@@ -18,6 +24,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminGuard } from "@/hooks/useRoleGuard";
+import PageHeader from "@/components/PageHeader";
+import {
+  IconEdit2,
+  IconInstaller,
+  IconRefresh,
+  IconRefresh2,
+  IconReward,
+  IconSetting3,
+  IconSetting4,
+  IconSettings,
+} from "@/components/icons";
+import IconReset from "@/components/icons/Reset";
+import { DashboardCardHeader } from "../dashboard/page";
 
 interface SettingsData {
   allowInstallerCodeEdit?: boolean;
@@ -50,6 +69,25 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<SettingsData | null>(null);
+  const [originalSettings, setOriginalSettings] = useState<SettingsData | null>(
+    null
+  );
+  const [dialogConfig, setDialogConfig] = useState<{
+    isOpen: boolean;
+    key: keyof SettingsData | null;
+    title: string;
+    description?: string;
+    type: "text" | "number" | "email" | "textarea";
+  }>({
+    isOpen: false,
+    key: null,
+    title: "",
+    description: "",
+    type: "text",
+  });
+
+  const hasChanges =
+    JSON.stringify(settings) !== JSON.stringify(originalSettings);
 
   const { isAuthorized } = useAdminGuard({
     autoRedirect: true,
@@ -63,6 +101,7 @@ export default function SettingsPage() {
 
       if (data.success) {
         setSettings(data.data);
+        setOriginalSettings(data.data);
       }
     } catch (error) {
       console.error("Failed to fetch settings:", error);
@@ -73,7 +112,7 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    if (!isAuthorized) {
+    if (isAuthorized) {
       fetchSettings();
     }
   }, [isAuthorized]);
@@ -91,6 +130,7 @@ export default function SettingsPage() {
 
       if (response.ok) {
         toast.success("Settings saved successfully");
+        setOriginalSettings(settings);
         fetchSettings();
       } else {
         toast.error(data.error || "Failed to save settings");
@@ -110,22 +150,39 @@ export default function SettingsPage() {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
+  const openEditDialog = (
+    key: keyof SettingsData,
+    title: string,
+    description: string,
+    type: "text" | "number" | "email" | "textarea" = "text"
+  ) => {
+    setDialogConfig({
+      isOpen: true,
+      key,
+      title,
+      description,
+      type,
+    });
+  };
+
+  const handleDialogSave = (value: string | number) => {
+    if (dialogConfig.key) {
+      updateSetting(dialogConfig.key, value);
+    }
+  };
+
   if (!isAuthorized) {
     return null;
   }
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="space-y-6">
-            <Skeleton className="h-12 w-64" />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <Skeleton key={i} className="h-64" />
-              ))}
-            </div>
-          </div>
+      <div className="space-y-6">
+        <Skeleton className="h-12 w-64" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} className="h-64" />
+          ))}
         </div>
       </div>
     );
@@ -133,90 +190,136 @@ export default function SettingsPage() {
 
   return (
     <>
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <SettingsIcon className="h-8 w-8" />
-            System Settings
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Configure system-wide settings and preferences
-          </p>
+      <PageHeader
+        title="System Settings"
+        description="Configure system-wide settings and preferences"
+        iconFill
+        Icon={IconSettings}
+        action={
+          <div className="flex gap-3">
+            <Button onClick={fetchSettings} variant="outline" className="gap-1">
+              <IconReset className="size-3.5!" />
+              Reset
+            </Button>
+            <Button onClick={handleSave} disabled={saving || !hasChanges}>
+              <Save className="h-4 w-4 mr-2" />
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        }
+      />
+      <div className="space-y-2">
+        <div className="flex gap-2">
+          {/* Allow Installer Code Edit */}
+          <Card className="flex items-center justify-between max-w-3xs p-6 gap-2">
+            <div className="flex-1">
+              <Label htmlFor="allowInstallerCodeEdit">InstallerCode Edit</Label>
+              <p className="text-xs text-muted-foreground">
+                Allow editing installer codes after creation
+              </p>
+            </div>
+            <Switch
+              id="allowInstallerCodeEdit"
+              checked={settings?.allowInstallerCodeEdit || false}
+              onCheckedChange={(checked) =>
+                updateSetting("allowInstallerCodeEdit", checked)
+              }
+              className="h-7 w-12"
+              thumbClassName="size-6 data-[state=checked]:translate-x-5"
+            />
+          </Card>
+
+          {/* Allow Training Center Edit */}
+          <Card className="flex items-center justify-between max-w-3xs p-6 gap-2">
+            <div className="flex-1">
+              <Label htmlFor="allowTrainingCenterEdit">
+                Training Center Edit
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Allow editing training center after creation
+              </p>
+            </div>
+            <Switch
+              id="allowTrainingCenterEdit"
+              checked={settings?.allowTrainingCenterEdit || false}
+              onCheckedChange={(checked) =>
+                updateSetting("allowTrainingCenterEdit", checked)
+              }
+              className="h-7 w-12"
+              thumbClassName="size-6 data-[state=checked]:translate-x-5"
+            />
+          </Card>
         </div>
-        <div className="flex gap-3">
-          <Button onClick={fetchSettings} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Reset
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            <Save className="h-4 w-4 mr-2" />
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
+        <div>
+          {/* Allow Training Center Edit */}
+          <Card className="flex flex-col items-center justify-between max-w-[160px] p-6 gap-2">
+            <div className="flex justify-between w-full">
+              <div className="text-6xl font-mono font-bold">
+                {settings?.maxReferralsPerInstaller}
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                className="size-8 rounded-[12px] mt-2"
+                onClick={() =>
+                  openEditDialog(
+                    "maxReferralsPerInstaller",
+                    "Max Referrals Per Installer",
+                    "Set the maximum number of referrals allowed per installer",
+                    "number"
+                  )
+                }
+              >
+                <IconEdit2 fill duotone className="size-5" />
+              </Button>
+            </div>
+            <div className="flex-1">
+              <Label htmlFor="allowTrainingCenterEdit">Referrals</Label>
+              <p className="text-xs text-muted-foreground">
+                Max Referrals Per Installer
+              </p>
+            </div>
+          </Card>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Installer Settings */}
         <Card>
-          <CardHeader>
-            <CardTitle>Installer Settings</CardTitle>
-            <CardDescription>
-              Configure installer-related preferences
-            </CardDescription>
-          </CardHeader>
+          <DashboardCardHeader
+            title="Installer Settings"
+            description={`Configure installer-related preferences`}
+            Icon={IconInstaller}
+            iconBadge={false}
+          />
           <CardContent className="space-y-6">
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="allowInstallerCodeEdit">
-                  Allow Installer Code Edit
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Allow editing installer codes after creation
-                </p>
-              </div>
-              <Switch
-                id="allowInstallerCodeEdit"
-                checked={settings?.allowInstallerCodeEdit || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("allowInstallerCodeEdit", checked)
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="allowInstallerCodeEdit">
-                  Allow Training Center Edit
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Allow editing Training Center after creation
-                </p>
-              </div>
-              <Switch
-                id="allowInstallerCodeEdit"
-                checked={settings?.allowTrainingCenterEdit || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("allowTrainingCenterEdit", checked)
-                }
-              />
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="maxReferralsPerInstaller">
                 Max Referrals Per Installer
               </Label>
-              <Input
-                id="maxReferralsPerInstaller"
-                type="number"
-                min="0"
-                max="100"
-                value={settings?.maxReferralsPerInstaller || 5}
-                onChange={(e) =>
-                  updateSetting(
-                    "maxReferralsPerInstaller",
-                    parseInt(e.target.value)
-                  )
-                }
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="maxReferralsPerInstaller"
+                  type="number"
+                  value={settings?.maxReferralsPerInstaller || 5}
+                  readOnly
+                  className="bg-muted"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() =>
+                    openEditDialog(
+                      "maxReferralsPerInstaller",
+                      "Max Referrals Per Installer",
+                      "Set the maximum number of referrals allowed per installer",
+                      "number"
+                    )
+                  }
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between space-x-2">
@@ -259,47 +362,69 @@ export default function SettingsPage() {
 
         {/* Reward Settings */}
         <Card>
-          <CardHeader>
-            <CardTitle>Reward Settings</CardTitle>
-            <CardDescription>
-              Configure reward and payment preferences
-            </CardDescription>
-          </CardHeader>
+          <DashboardCardHeader
+            title="Reward Settings"
+            description={`Configure reward and payment preferences`}
+            Icon={IconReward}
+            iconBadge={false}
+          />
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="defaultReferralReward">
                 Default Referral Reward (Rs.)
               </Label>
-              <Input
-                id="defaultReferralReward"
-                type="number"
-                min="0"
-                value={settings?.defaultReferralReward || 500}
-                onChange={(e) =>
-                  updateSetting(
-                    "defaultReferralReward",
-                    parseInt(e.target.value)
-                  )
-                }
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="defaultReferralReward"
+                  type="number"
+                  value={settings?.defaultReferralReward || 500}
+                  readOnly
+                  className="bg-muted"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() =>
+                    openEditDialog(
+                      "defaultReferralReward",
+                      "Default Referral Reward",
+                      "Set the default reward amount for referrals (Rs.)",
+                      "number"
+                    )
+                  }
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="maxRewardProcessingDays">
                 Max Reward Processing Days
               </Label>
-              <Input
-                id="maxRewardProcessingDays"
-                type="number"
-                min="1"
-                value={settings?.maxRewardProcessingDays || 30}
-                onChange={(e) =>
-                  updateSetting(
-                    "maxRewardProcessingDays",
-                    parseInt(e.target.value)
-                  )
-                }
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="maxRewardProcessingDays"
+                  type="number"
+                  value={settings?.maxRewardProcessingDays || 30}
+                  readOnly
+                  className="bg-muted"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() =>
+                    openEditDialog(
+                      "maxRewardProcessingDays",
+                      "Max Reward Processing Days",
+                      "Set the maximum number of days to process a reward",
+                      "number"
+                    )
+                  }
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between space-x-2">
@@ -389,18 +514,29 @@ export default function SettingsPage() {
               <Label htmlFor="sessionTimeoutMinutes">
                 Session Timeout (Minutes)
               </Label>
-              <Input
-                id="sessionTimeoutMinutes"
-                type="number"
-                min="30"
-                value={settings?.sessionTimeoutMinutes || 480}
-                onChange={(e) =>
-                  updateSetting(
-                    "sessionTimeoutMinutes",
-                    parseInt(e.target.value)
-                  )
-                }
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="sessionTimeoutMinutes"
+                  type="number"
+                  value={settings?.sessionTimeoutMinutes || 480}
+                  readOnly
+                  className="bg-muted"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() =>
+                    openEditDialog(
+                      "sessionTimeoutMinutes",
+                      "Session Timeout",
+                      "Set the session timeout in minutes",
+                      "number"
+                    )
+                  }
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -468,15 +604,31 @@ export default function SettingsPage() {
               <Label htmlFor="systemNotificationMessage">
                 System Notification Message
               </Label>
-              <Textarea
-                id="systemNotificationMessage"
-                value={settings?.systemNotificationMessage || ""}
-                onChange={(e) =>
-                  updateSetting("systemNotificationMessage", e.target.value)
-                }
-                rows={3}
-                placeholder="Display a message to all users..."
-              />
+              <div className="flex gap-2">
+                <Textarea
+                  id="systemNotificationMessage"
+                  value={settings?.systemNotificationMessage || ""}
+                  readOnly
+                  rows={3}
+                  className="bg-muted"
+                  placeholder="Display a message to all users..."
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-auto"
+                  onClick={() =>
+                    openEditDialog(
+                      "systemNotificationMessage",
+                      "System Notification Message",
+                      "Set the message to display to all users",
+                      "textarea"
+                    )
+                  }
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -530,15 +682,30 @@ export default function SettingsPage() {
               <Label htmlFor="adminNotificationEmail">
                 Admin Notification Email
               </Label>
-              <Input
-                id="adminNotificationEmail"
-                type="email"
-                value={settings?.adminNotificationEmail || ""}
-                onChange={(e) =>
-                  updateSetting("adminNotificationEmail", e.target.value)
-                }
-                placeholder="admin@example.com"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="adminNotificationEmail"
+                  type="email"
+                  value={settings?.adminNotificationEmail || ""}
+                  readOnly
+                  className="bg-muted"
+                  placeholder="admin@example.com"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() =>
+                    openEditDialog(
+                      "adminNotificationEmail",
+                      "Admin Notification Email",
+                      "Set the email address for admin notifications",
+                      "email"
+                    )
+                  }
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -574,33 +741,58 @@ export default function SettingsPage() {
               <Label htmlFor="maxBulkUploadSize">
                 Max Bulk Upload Size (rows)
               </Label>
-              <Input
-                id="maxBulkUploadSize"
-                type="number"
-                min="1"
-                value={settings?.maxBulkUploadSize || 1000}
-                onChange={(e) =>
-                  updateSetting("maxBulkUploadSize", parseInt(e.target.value))
-                }
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="maxBulkUploadSize"
+                  type="number"
+                  value={settings?.maxBulkUploadSize || 1000}
+                  readOnly
+                  className="bg-muted"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() =>
+                    openEditDialog(
+                      "maxBulkUploadSize",
+                      "Max Bulk Upload Size",
+                      "Set the maximum number of rows allowed in bulk uploads",
+                      "number"
+                    )
+                  }
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="activityLogRetentionDays">
                 Activity Log Retention (Days)
               </Label>
-              <Input
-                id="activityLogRetentionDays"
-                type="number"
-                min="30"
-                value={settings?.activityLogRetentionDays || 90}
-                onChange={(e) =>
-                  updateSetting(
-                    "activityLogRetentionDays",
-                    parseInt(e.target.value)
-                  )
-                }
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="activityLogRetentionDays"
+                  type="number"
+                  value={settings?.activityLogRetentionDays || 90}
+                  readOnly
+                  className="bg-muted"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() =>
+                    openEditDialog(
+                      "activityLogRetentionDays",
+                      "Activity Log Retention",
+                      "Set the number of days to retain activity logs",
+                      "number"
+                    )
+                  }
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between space-x-2">
@@ -631,6 +823,23 @@ export default function SettingsPage() {
             Last updated: {new Date(settings.updatedAt).toLocaleString()}
           </AlertDescription>
         </Alert>
+      )}
+      {settings && (
+        <EditSettingDialog
+          isOpen={dialogConfig.isOpen}
+          onClose={() =>
+            setDialogConfig((prev) => ({ ...prev, isOpen: false }))
+          }
+          onSave={handleDialogSave}
+          title={dialogConfig.title}
+          description={dialogConfig.description}
+          currentValue={
+            dialogConfig.key
+              ? (settings[dialogConfig.key] as string | number)
+              : ""
+          }
+          type={dialogConfig.type}
+        />
       )}
     </>
   );
