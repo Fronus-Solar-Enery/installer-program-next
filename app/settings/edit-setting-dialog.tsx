@@ -20,6 +20,7 @@ interface EditSettingDialogProps {
   description?: string;
   currentValue: string | number;
   type?: "text" | "number" | "email" | "textarea";
+  isSaving?: boolean;
 }
 
 export function EditSettingDialog({
@@ -30,11 +31,13 @@ export function EditSettingDialog({
   description,
   currentValue,
   type = "text",
+  isSaving = false,
 }: EditSettingDialogProps) {
-  const [value, setValue] = useState<string | number>(currentValue);
+  // Ensure value is always defined to keep input controlled
+  const [value, setValue] = useState<string | number>(currentValue ?? "");
 
   useEffect(() => {
-    setValue(currentValue);
+    setValue(currentValue ?? "");
   }, [currentValue, isOpen]);
 
   const handleSave = () => {
@@ -43,10 +46,9 @@ export function EditSettingDialog({
     } else {
       onSave(value);
     }
-    onClose();
   };
 
-  return (
+  return ( 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         className="sm:max-w-[425px]"
@@ -62,7 +64,7 @@ export function EditSettingDialog({
             {type === "textarea" ? (
               <Textarea
                 id="setting-value"
-                value={value}
+                value={value ?? ""}
                 onChange={(e) => setValue(e.target.value)}
                 rows={4}
               />
@@ -70,17 +72,19 @@ export function EditSettingDialog({
               <Input
                 id="setting-value"
                 type={type}
-                value={value}
+                value={value ?? ""}
                 onChange={(e) => setValue(e.target.value)}
               />
             )}
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={isSaving}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>Save changes</Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? "Saving..." : "Save changes"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

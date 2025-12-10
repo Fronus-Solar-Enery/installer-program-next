@@ -5,17 +5,21 @@ const IconDiagramUp: FC<IconProps> = ({
   fill = false,
   duotone = false,
   width = "1.5",
+  opacity = "0.5",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
-            opacity={duotone ? "0.5" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M22 22H12C7.28595 22 4.92893 22 3.46447 20.5355C2 19.0711 2 16.714 2 12V2"
             stroke="currentColor"
             strokeWidth={width}
@@ -29,13 +33,16 @@ const IconDiagramUp: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
-            opacity={duotone ? "0.5" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M2.75 2C2.75 1.58579 2.41421 1.25 2 1.25C1.58579 1.25 1.25 1.58579 1.25 2V12.0574C1.24999 14.3658 1.24998 16.1748 1.43975 17.5863C1.63399 19.031 2.03933 20.1711 2.93414 21.0659C3.82895 21.9607 4.96897 22.366 6.41371 22.5603C7.82519 22.75 9.63423 22.75 11.9426 22.75H22C22.4142 22.75 22.75 22.4142 22.75 22C22.75 21.5858 22.4142 21.25 22 21.25H12C9.62178 21.25 7.91356 21.2484 6.61358 21.0736C5.33517 20.9018 4.56445 20.5749 3.9948 20.0052C3.42514 19.4355 3.09825 18.6648 2.92637 17.3864C2.75159 16.0864 2.75 14.3782 2.75 12V2Z"
             fill="currentColor"
           />
@@ -45,11 +52,14 @@ const IconDiagramUp: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             d="M2.75 2C2.75 1.58579 2.41421 1.25 2 1.25C1.58579 1.25 1.25 1.58579 1.25 2V12.0574C1.24999 14.3658 1.24998 16.1748 1.43975 17.5863C1.63399 19.031 2.03933 20.1711 2.93414 21.0659C3.82895 21.9607 4.96897 22.366 6.41371 22.5603C7.82519 22.75 9.63423 22.75 11.9426 22.75H22C22.4142 22.75 22.75 22.4142 22.75 22C22.75 21.5858 22.4142 21.25 22 21.25H12C9.62178 21.25 7.91356 21.2484 6.61358 21.0736C5.33517 20.9018 4.56445 20.5749 3.9948 20.0052C3.42514 19.4355 3.09825 18.6648 2.92637 17.3864C2.75159 16.0864 2.75 14.3782 2.75 12V2Z"
             fill="currentColor"

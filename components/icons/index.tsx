@@ -104,6 +104,7 @@ export { default as IconWarning2 } from "./Warning2";
 export { default as IconWhatsapp } from "./Whatsapp";
 export { default as IconWidget } from "./Widget";
 export { default as IconPackage } from "./BoxMinimalistic";
+export { default as IconSave } from "./Diskette";
 
 // INSTALLER ICONS
 export { default as IconInstallerCode } from "./QRCode";

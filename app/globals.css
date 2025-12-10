@@ -85,7 +85,6 @@
 @variant light (&:where(.light, .light *));
 
 @theme inline {
-  /* Base variables mapped to Tailwind theme tokens */
   --font-number: "Bloxat", sans-serif;
   --font-mono: var(--font-saira);
 
