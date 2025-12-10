@@ -32,7 +32,7 @@ export default function PageHeader({
 
   return (
     <div className="flex w-full flex-wrap items-center justify-between gap-4 py-6 lg:flex-nowrap">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 ml-6">
         {renderIcon()}
         <div>
           <h1
