@@ -3,11 +3,13 @@ import { FileRejection, useDropzone } from "react-dropzone";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { IconCloudUpload } from "../icons";
+import { Label } from "./label";
 
 interface FileDropzoneProps {
   onDrop: (files: File[]) => void;
   onReject?: (rejections: FileRejection[]) => void;
   label: string;
+  id: string;
   accept: Record<string, string[]>;
   acceptedFileTypes?: string[];
   fileTypeLabel?: string;
@@ -22,6 +24,7 @@ export const FileDropzone = React.memo(
     onDrop,
     onReject,
     label,
+    id,
     accept = {},
     acceptedFileTypes = [".xlsx", ".xls"],
     fileTypeLabel = "Excel files",
@@ -171,7 +174,9 @@ export const FileDropzone = React.memo(
     return (
       <div {...getRootProps()} className={dropzoneClasses}>
         <input {...getInputProps()} className="hidden" />
-        <label className={labelClasses}>{label}</label>
+        <Label htmlFor={id} className={labelClasses}>
+          {label}
+        </Label>
         <div className={contentClasses}>
           <IconCloudUpload className="size-14" />
           <p>

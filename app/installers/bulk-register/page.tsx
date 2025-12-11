@@ -1188,6 +1188,7 @@ export default function BulkUploadInstallersPage() {
               <h3 className="mb-3">File Upload</h3>
               <div className="space-y-2">
                 <FileDropzone
+                  id="bulkRegisterInstallersDropzone"
                   label={
                     file
                       ? "FILE ALREADY SELECTED"

@@ -1155,6 +1155,7 @@ export default function BulkCreateRewardsPage() {
             <h3 className="mb-3">File Upload</h3>
             <div className="space-y-2">
               <FileDropzone
+                id="bulkRegisterRewardsDropzone"
                 label={
                   file
                     ? "FILE ALREADY SELECTED"
@@ -1228,10 +1229,10 @@ export default function BulkCreateRewardsPage() {
                     </div>
                     <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden shadow-inner">
                       <div
-                        className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-200 ease-out rounded-full relative overflow-hidden"
+                        className="h-full bg-linear-to-r from-primary to-primary/80 transition-all duration-200 ease-out rounded-full relative overflow-hidden"
                         style={{ width: `${fileReadProgress}%` }}
                       >
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
+                        <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent animate-pulse" />
                       </div>
                     </div>
                   </div>

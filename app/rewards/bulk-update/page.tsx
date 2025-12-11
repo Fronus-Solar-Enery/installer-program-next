@@ -857,6 +857,7 @@ export default function BulkUploadRewardsPage() {
               <h3 className="mb-3">File Upload</h3>
               <div className="space-y-2">
                 <FileDropzone
+                  id="bulkUpdateRewardsDropzone"
                   label={
                     file
                       ? "FILE ALREADY SELECTED"
