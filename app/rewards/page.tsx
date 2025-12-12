@@ -2,10 +2,15 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/PageHeader";
-import RewardEditModal from "@/components/RewardEditModal";
+// Dynamic import: RewardEditModal is 46KB - only loaded when modal opens (~47KB bundle reduction)
+const RewardEditModal = dynamic(() => import("@/components/RewardEditModal"), {
+  ssr: false,
+  loading: () => null, // Modal is conditionally rendered anyway
+});
 import { cn } from "@/lib/utils";
 import {
   IconAdd,
@@ -135,19 +140,21 @@ export default function RewardsPage() {
     dispatch({ type: "RESET_TO_PAGE_ONE" });
   }, [state.filters, dispatch]);
 
-  // Fetch rewards from API
+  // Fetch rewards from API with server-side pagination and search
   const fetchRewards = useCallback(async () => {
     try {
       setLoading(true);
       setIsFetching(true);
       const params = new URLSearchParams();
 
+      // Server-side search
+      if (debouncedSearch) {
+        params.append("search", debouncedSearch);
+      }
+
       // Only add non-default filter values to reduce API payload
       if (state.filters.rewardStatus && state.filters.rewardStatus !== "ALL") {
         params.append("rewardStatus", state.filters.rewardStatus);
-      }
-      if (state.filters.sendingDate) {
-        params.append("sendingDate", state.filters.sendingDate);
       }
       if (
         state.filters.paymentMethod &&
@@ -168,29 +175,86 @@ export default function RewardsPage() {
         params.append("registeredBy", state.filters.teamMember);
       }
 
-      // Fetch all rewards for client-side filtering and pagination
-      params.append("limit", "10000");
+      // Date range filter
+      if (state.filters.dateRange !== "all") {
+        const now = new Date();
+        const todayStart = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+
+        let startDate: Date | null = null;
+        let endDate: Date | null = null;
+
+        switch (state.filters.dateRange) {
+          case "today":
+            startDate = todayStart;
+            endDate = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
+            break;
+          case "week":
+            startDate = new Date(
+              todayStart.getTime() - 7 * 24 * 60 * 60 * 1000
+            );
+            endDate = now;
+            break;
+          case "month":
+            startDate = new Date(
+              todayStart.getTime() - 30 * 24 * 60 * 60 * 1000
+            );
+            endDate = now;
+            break;
+          case "year":
+            startDate = new Date(
+              todayStart.getTime() - 365 * 24 * 60 * 60 * 1000
+            );
+            endDate = now;
+            break;
+          case "custom":
+            if (state.filters.customStartDate) {
+              startDate = new Date(state.filters.customStartDate);
+            }
+            if (state.filters.customEndDate) {
+              endDate = new Date(state.filters.customEndDate);
+              endDate.setHours(23, 59, 59, 999);
+            }
+            break;
+        }
+
+        if (startDate) {
+          params.append("startDate", startDate.toISOString());
+        }
+        if (endDate) {
+          params.append("endDate", endDate.toISOString());
+        }
+      }
+
+      // Server-side pagination
+      params.append("page", state.currentPage.toString());
+      params.append("limit", state.itemsPerPage.toString());
+
+      // Server-side sorting
+      params.append("sortBy", state.sortField);
+      params.append("sortOrder", state.sortDirection);
+
+      // Request stats for dashboard display
+      params.append("includeStats", "true");
+
       const response = await fetch(`/api/rewards?${params.toString()}`);
       const data = await response.json();
 
       if (data.success) {
         setRewards(data.data.rewards);
 
-        // Extract unique team members
-        const uniqueTeamMembers = data.data.rewards
-          .map((r: RewardWithId) => r.registeredBy)
-          .filter(
-            (
-              value: TeamMember | undefined,
-              index: number,
-              self: (TeamMember | undefined)[]
-            ) =>
-              value &&
-              self.findIndex(
-                (t: TeamMember | undefined) => t?._id === value?._id
-              ) === index
-          ) as TeamMember[];
-        setTeamMembers(uniqueTeamMembers);
+        // Extract unique team members (from first fetch only, cache for filters)
+        if (!teamMembers.length) {
+          // Fetch all team members separately for filter dropdown
+          const teamResponse = await fetch("/api/team");
+          const teamData = await teamResponse.json();
+          if (teamData.success && teamData.data?.teamMembers) {
+            setTeamMembers(teamData.data.teamMembers);
+          }
+        }
       }
       setLastUpdated(new Date());
     } catch (error) {
@@ -201,12 +265,20 @@ export default function RewardsPage() {
       setIsFetching(false);
     }
   }, [
+    debouncedSearch,
     state.filters.rewardStatus,
-    state.filters.sendingDate,
     state.filters.paymentMethod,
     state.filters.serialNumberStatus,
     state.filters.productModel,
     state.filters.teamMember,
+    state.filters.dateRange,
+    state.filters.customStartDate,
+    state.filters.customEndDate,
+    state.currentPage,
+    state.itemsPerPage,
+    state.sortField,
+    state.sortDirection,
+    teamMembers.length,
   ]);
 
   // Fetch rewards on mount and when filters change

@@ -57,14 +57,14 @@
   "categories": ["business", "productivity", "utilities"],
   "screenshots": [
     {
-      "src": "/screenshots/desktop.png",
-      "sizes": "1024x512",
+      "src": "screenshots/desktop.png",
+      "sizes": "3840x2160",
       "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "/screenshots/mobile.png",
-      "sizes": "640x480",
+      "src": "screenshots/mobile.png",
+      "sizes": "1080x2209",
       "type": "image/png",
       "form_factor": "narrow"
     }

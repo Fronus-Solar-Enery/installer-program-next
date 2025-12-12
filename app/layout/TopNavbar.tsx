@@ -2,6 +2,7 @@
 
 import { signOut, useSession } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -19,7 +20,11 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import IconArrowUpDown from "@/components/icons/ArrowUpDown";
 import IconMagnifer from "@/components/icons/Magnifer";
-import GlobalSearchModal from "@/components/GlobalSearchModal";
+// Dynamic import: GlobalSearchModal is 26KB - only loaded when search is opened
+const GlobalSearchModal = dynamic(
+  () => import("@/components/GlobalSearchModal"),
+  { ssr: false }
+);
 import { IconCommand } from "@/components/icons";
 
 export default function TopNavbar() {

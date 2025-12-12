@@ -16,7 +16,7 @@ export interface IInstallerReward {
   referrer?: Types.ObjectId;
   cityOfInstallation: string;
   productModel: string;
-  serialNumber: string; // Primary key
+  serialNumber: string;
   serialNumberStatus: string;
   inverterSerialNumber: string;
   installationDate?: Date;
@@ -205,6 +205,8 @@ InstallerRewardSchema.index({ createdAt: 1 });
 // Compound indexes for common queries
 InstallerRewardSchema.index({ installer: 1, rewardStatus: 1 });
 InstallerRewardSchema.index({ rewardStatus: 1, sendingDate: 1 });
+// Compound index for dashboard aggregations (referrer lookups with date filtering)
+InstallerRewardSchema.index({ referrer: 1, createdAt: -1 });
 
 const InstallerReward: Model<IInstallerReward> =
   mongoose.models.InstallerReward ||

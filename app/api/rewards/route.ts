@@ -23,7 +23,19 @@ export const GET = withAuth(
       const { field: sortBy, order: sortOrder } = parseSortParams(params.raw);
 
       // Build query using QueryBuilder
+      const searchTerm = params.getString("search");
+
       const query = new QueryBuilder<IInstallerReward>()
+        // Server-side search across multiple fields
+        .search(
+          [
+            "serialNumber",
+            "transactionId",
+            "referrerTransactionId",
+            "installerCode",
+          ],
+          searchTerm
+        )
         .enumFilter("rewardStatus", params.getString("rewardStatus"))
         .filter("productModel", params.getString("productModel"), {
           regex: true,
@@ -38,13 +50,16 @@ export const GET = withAuth(
         .filter("serialNumberStatus", params.getString("serialNumberStatus"))
         .filter("paymentMethod", params.getString("paymentMethod"))
         .dateRange(
-          "sendingDate",
+          "createdAt",
           params.getString("startDate"),
           params.getString("endDate")
         )
         .build();
 
-      const [rewards, total] = await Promise.all([
+      // Check if stats are requested (skip expensive aggregation when not needed)
+      const includeStats = params.getString("includeStats") === "true";
+
+      const [rewards, total, stats] = await Promise.all([
         InstallerReward.find(query)
           .populate(
             "installer",
@@ -60,18 +75,19 @@ export const GET = withAuth(
           .skip(skip)
           .limit(limit),
         InstallerReward.countDocuments(query),
-      ]);
-
-      // Get statistics
-      const stats = await InstallerReward.aggregate([
-        { $match: query },
-        {
-          $group: {
-            _id: "$rewardStatus",
-            count: { $sum: 1 },
-            totalAmount: { $sum: "$rewardAmount" },
-          },
-        },
+        // Only run expensive aggregation if stats are requested
+        includeStats
+          ? InstallerReward.aggregate([
+              { $match: query },
+              {
+                $group: {
+                  _id: "$rewardStatus",
+                  count: { $sum: 1 },
+                  totalAmount: { $sum: "$rewardAmount" },
+                },
+              },
+            ])
+          : Promise.resolve([]),
       ]);
 
       return ApiResponse.success({

@@ -1,6 +1,12 @@
 import { useReducer, Dispatch } from "react";
+import {
+  BaseEntityListState,
+  BaseEntityListAction,
+  BaseDateFilters,
+} from "./useEntityListState";
 
-export interface ColumnVisibility {
+// Rewards-specific column visibility
+export interface RewardsColumnVisibility {
   serialNumber: boolean;
   installerCode: boolean;
   installer: boolean;
@@ -18,7 +24,8 @@ export interface ColumnVisibility {
   referrerReward: boolean;
 }
 
-export interface Filters {
+// Rewards-specific filters extending base date filters
+export interface RewardsFilters extends BaseDateFilters {
   rewardStatus: string;
   sendingDate: string;
   paymentMethod: string;
@@ -26,93 +33,11 @@ export interface Filters {
   productModel: string;
   teamMember: string;
   search: string;
-  dateRange: "all" | "today" | "week" | "month" | "year" | "custom";
-  customStartDate: string;
-  customEndDate: string;
   updatedAt: string;
 }
 
-export interface RewardsState {
-  // Search and filtering
-  filters: Filters;
-
-  // Sorting
-  sortField: string;
-  sortDirection: "asc" | "desc";
-
-  // Pagination
-  currentPage: number;
-  itemsPerPage: number;
-
-  // Column visibility
-  visibleColumns: ColumnVisibility;
-
-  // Selection
-  selectedRewards: Set<string>;
-
-  // Modal state
-  editModalOpen: boolean;
-  selectedRewardId: string;
-
-  // Delete dialog state
-  deleteDialogState: {
-    open: boolean;
-    status: "confirm" | "deleting" | "success" | "error";
-    message?: string;
-    rewardId?: string;
-    rewardSerialNumber?: string;
-  };
-
-  // Bulk delete state
-  bulkDeleteResultState: {
-    open: boolean;
-    status: "confirm" | "deleting" | "success" | "error";
-    successCount: number;
-    failCount: number;
-    failures: Array<{ name: string; reason: string }>;
-    message?: string;
-  };
-
-  // UI state
-  bulkDeleting: boolean;
-  deletingId: string | null;
-  downloadingReport: boolean;
-}
-
-export type RewardsAction =
-  | { type: "SET_FILTER"; payload: { key: keyof Filters; value: string } }
-  | { type: "SET_FILTERS"; payload: Partial<Filters> }
-  | { type: "RESET_FILTERS" }
-  | { type: "SET_SORT"; payload: { field: string; direction: "asc" | "desc" } }
-  | { type: "TOGGLE_SORT"; payload: string }
-  | { type: "SET_PAGE"; payload: number }
-  | { type: "SET_ITEMS_PER_PAGE"; payload: number }
-  | { type: "TOGGLE_COLUMN"; payload: keyof ColumnVisibility }
-  | { type: "SET_COLUMNS"; payload: Partial<ColumnVisibility> }
-  | { type: "SELECT_REWARD"; payload: string }
-  | { type: "DESELECT_REWARD"; payload: string }
-  | { type: "SELECT_ALL_REWARDS"; payload: string[] }
-  | { type: "DESELECT_ALL_REWARDS"; payload: string[] }
-  | { type: "CLEAR_SELECTION" }
-  | { type: "TOGGLE_REWARD_SELECTION"; payload: string }
-  | { type: "OPEN_EDIT_MODAL"; payload: string }
-  | { type: "CLOSE_EDIT_MODAL" }
-  | {
-      type: "SET_DELETE_DIALOG_STATE";
-      payload: Partial<RewardsState["deleteDialogState"]>;
-    }
-  | { type: "RESET_DELETE_DIALOG" }
-  | {
-      type: "SET_BULK_DELETE_RESULT_STATE";
-      payload: Partial<RewardsState["bulkDeleteResultState"]>;
-    }
-  | { type: "RESET_BULK_DELETE_RESULT" }
-  | { type: "SET_BULK_DELETING"; payload: boolean }
-  | { type: "SET_DELETING_ID"; payload: string | null }
-  | { type: "SET_DOWNLOADING_REPORT"; payload: boolean }
-  | { type: "RESET_TO_PAGE_ONE" };
-
-const initialFilters: Filters = {
+// Initial values
+const initialFilters: RewardsFilters = {
   rewardStatus: "ALL",
   sendingDate: "",
   paymentMethod: "all",
@@ -126,7 +51,7 @@ const initialFilters: Filters = {
   updatedAt: "",
 };
 
-const initialColumnVisibility: ColumnVisibility = {
+const initialColumnVisibility: RewardsColumnVisibility = {
   serialNumber: true,
   installerCode: false,
   installer: true,
@@ -144,6 +69,29 @@ const initialColumnVisibility: ColumnVisibility = {
   referrerReward: false,
 };
 
+// Extended state type with rewards-specific additions
+export interface RewardsState
+  extends BaseEntityListState<RewardsFilters, RewardsColumnVisibility> {
+  // Rewards-specific UI state
+  bulkDeleting: boolean;
+  // Backwards compatibility aliases
+  selectedRewards: Set<string>;
+  selectedRewardId: string;
+}
+
+// Extended action type for rewards-specific actions
+export type RewardsAction =
+  | BaseEntityListAction<RewardsFilters, RewardsColumnVisibility>
+  // Legacy action aliases for backwards compatibility
+  | { type: "SELECT_REWARD"; payload: string }
+  | { type: "DESELECT_REWARD"; payload: string }
+  | { type: "SELECT_ALL_REWARDS"; payload: string[] }
+  | { type: "DESELECT_ALL_REWARDS"; payload: string[] }
+  | { type: "TOGGLE_REWARD_SELECTION"; payload: string }
+  // Rewards-specific actions
+  | { type: "SET_BULK_DELETING"; payload: boolean };
+
+// Create initial state
 export const initialState: RewardsState = {
   filters: initialFilters,
   sortField: "createdAt",
@@ -151,13 +99,13 @@ export const initialState: RewardsState = {
   currentPage: 1,
   itemsPerPage: 10,
   visibleColumns: initialColumnVisibility,
-  selectedRewards: new Set(),
+  selectedItems: new Set(),
   editModalOpen: false,
+  selectedItemId: "",
+  // Backwards compatibility aliases
+  selectedRewards: new Set(),
   selectedRewardId: "",
-  deleteDialogState: {
-    open: false,
-    status: "confirm",
-  },
+  deleteDialogState: { open: false, status: "confirm" },
   bulkDeleteResultState: {
     open: false,
     status: "confirm",
@@ -165,9 +113,10 @@ export const initialState: RewardsState = {
     failCount: 0,
     failures: [],
   },
-  bulkDeleting: false,
   deletingId: null,
   downloadingReport: false,
+  // Rewards-specific state
+  bulkDeleting: false,
 };
 
 function rewardsReducer(
@@ -175,6 +124,46 @@ function rewardsReducer(
   action: RewardsAction
 ): RewardsState {
   switch (action.type) {
+    // Rewards-specific actions
+    case "SET_BULK_DELETING":
+      return { ...state, bulkDeleting: action.payload };
+
+    // Legacy action aliases (map to base actions)
+    case "SELECT_REWARD":
+      return {
+        ...state,
+        selectedItems: new Set([...state.selectedItems, action.payload]),
+      };
+
+    case "DESELECT_REWARD": {
+      const newSelection = new Set(state.selectedItems);
+      newSelection.delete(action.payload);
+      return { ...state, selectedItems: newSelection };
+    }
+
+    case "SELECT_ALL_REWARDS":
+      return {
+        ...state,
+        selectedItems: new Set([...state.selectedItems, ...action.payload]),
+      };
+
+    case "DESELECT_ALL_REWARDS": {
+      const newSelection = new Set(state.selectedItems);
+      action.payload.forEach((id) => newSelection.delete(id));
+      return { ...state, selectedItems: newSelection };
+    }
+
+    case "TOGGLE_REWARD_SELECTION": {
+      const newSelection = new Set(state.selectedItems);
+      if (newSelection.has(action.payload)) {
+        newSelection.delete(action.payload);
+      } else {
+        newSelection.add(action.payload);
+      }
+      return { ...state, selectedItems: newSelection };
+    }
+
+    // Base entity list actions
     case "SET_FILTER":
       return {
         ...state,
@@ -182,16 +171,13 @@ function rewardsReducer(
           ...state.filters,
           [action.payload.key]: action.payload.value,
         },
-        currentPage: 1, // Reset to first page on filter
+        currentPage: 1,
       };
 
     case "SET_FILTERS":
       return {
         ...state,
-        filters: {
-          ...state.filters,
-          ...action.payload,
-        },
+        filters: { ...state.filters, ...action.payload },
         currentPage: 1,
       };
 
@@ -226,138 +212,97 @@ function rewardsReducer(
         } else {
           // For other fields: cycle through asc -> desc -> reset to default
           if (state.sortDirection === "asc") {
-            return {
-              ...state,
-              sortDirection: "desc",
-            };
+            return { ...state, sortDirection: "desc" };
           } else {
             // Reset to default sort (createdAt desc)
-            return {
-              ...state,
-              sortField: "createdAt",
-              sortDirection: "desc",
-            };
+            return { ...state, sortField: "createdAt", sortDirection: "desc" };
           }
         }
       } else {
         // Clicking a new field: start with ascending
-        return {
-          ...state,
-          sortField: action.payload,
-          sortDirection: "asc",
-        };
+        return { ...state, sortField: action.payload, sortDirection: "asc" };
       }
 
     case "SET_PAGE":
-      return {
-        ...state,
-        currentPage: action.payload,
-      };
+      return { ...state, currentPage: action.payload };
 
     case "SET_ITEMS_PER_PAGE":
-      return {
-        ...state,
-        itemsPerPage: action.payload,
-        currentPage: 1,
-      };
+      return { ...state, itemsPerPage: action.payload, currentPage: 1 };
+
+    case "RESET_TO_PAGE_ONE":
+      return { ...state, currentPage: 1 };
 
     case "TOGGLE_COLUMN":
       return {
         ...state,
         visibleColumns: {
           ...state.visibleColumns,
-          [action.payload]: !state.visibleColumns[action.payload],
+          [action.payload]:
+            !state.visibleColumns[
+              action.payload as keyof RewardsColumnVisibility
+            ],
         },
       };
 
     case "SET_COLUMNS":
       return {
         ...state,
-        visibleColumns: {
-          ...state.visibleColumns,
-          ...action.payload,
-        },
+        visibleColumns: { ...state.visibleColumns, ...action.payload },
       };
 
-    case "SELECT_REWARD":
+    case "SELECT_ITEM":
       return {
         ...state,
-        selectedRewards: new Set([...state.selectedRewards, action.payload]),
+        selectedItems: new Set([...state.selectedItems, action.payload]),
       };
 
-    case "DESELECT_REWARD": {
-      const newSelection = new Set(state.selectedRewards);
+    case "DESELECT_ITEM": {
+      const newSelection = new Set(state.selectedItems);
       newSelection.delete(action.payload);
-      return {
-        ...state,
-        selectedRewards: newSelection,
-      };
+      return { ...state, selectedItems: newSelection };
     }
 
-    case "SELECT_ALL_REWARDS":
+    case "SELECT_ALL_ITEMS":
       return {
         ...state,
-        selectedRewards: new Set([...state.selectedRewards, ...action.payload]),
+        selectedItems: new Set([...state.selectedItems, ...action.payload]),
       };
 
-    case "DESELECT_ALL_REWARDS": {
-      const newSelection = new Set(state.selectedRewards);
+    case "DESELECT_ALL_ITEMS": {
+      const newSelection = new Set(state.selectedItems);
       action.payload.forEach((id) => newSelection.delete(id));
-      return {
-        ...state,
-        selectedRewards: newSelection,
-      };
+      return { ...state, selectedItems: newSelection };
     }
 
     case "CLEAR_SELECTION":
-      return {
-        ...state,
-        selectedRewards: new Set(),
-      };
+      return { ...state, selectedItems: new Set() };
 
-    case "TOGGLE_REWARD_SELECTION": {
-      const newSelection = new Set(state.selectedRewards);
+    case "TOGGLE_ITEM_SELECTION": {
+      const newSelection = new Set(state.selectedItems);
       if (newSelection.has(action.payload)) {
         newSelection.delete(action.payload);
       } else {
         newSelection.add(action.payload);
       }
-      return {
-        ...state,
-        selectedRewards: newSelection,
-      };
+      return { ...state, selectedItems: newSelection };
     }
 
     case "OPEN_EDIT_MODAL":
-      return {
-        ...state,
-        editModalOpen: true,
-        selectedRewardId: action.payload,
-      };
+      return { ...state, editModalOpen: true, selectedItemId: action.payload };
 
     case "CLOSE_EDIT_MODAL":
-      return {
-        ...state,
-        editModalOpen: false,
-        selectedRewardId: "",
-      };
+      return { ...state, editModalOpen: false, selectedItemId: "" };
 
     case "SET_DELETE_DIALOG_STATE":
       return {
         ...state,
-        deleteDialogState: {
-          ...state.deleteDialogState,
-          ...action.payload,
-        },
+        deleteDialogState: { ...state.deleteDialogState, ...action.payload },
       };
 
     case "RESET_DELETE_DIALOG":
       return {
         ...state,
-        deleteDialogState: {
-          open: false,
-          status: "confirm",
-        },
+        deleteDialogState: { open: false, status: "confirm" },
       };
 
     case "SET_BULK_DELETE_RESULT_STATE":
@@ -381,35 +326,42 @@ function rewardsReducer(
         },
       };
 
-    case "SET_BULK_DELETING":
-      return {
-        ...state,
-        bulkDeleting: action.payload,
-      };
-
     case "SET_DELETING_ID":
-      return {
-        ...state,
-        deletingId: action.payload,
-      };
+      return { ...state, deletingId: action.payload };
 
     case "SET_DOWNLOADING_REPORT":
-      return {
-        ...state,
-        downloadingReport: action.payload,
-      };
-
-    case "RESET_TO_PAGE_ONE":
-      return {
-        ...state,
-        currentPage: 1,
-      };
+      return { ...state, downloadingReport: action.payload };
 
     default:
       return state;
   }
 }
 
-export function useRewardsState(): [RewardsState, Dispatch<RewardsAction>] {
-  return useReducer(rewardsReducer, initialState);
+// Export types for backwards compatibility
+export type { RewardsColumnVisibility as ColumnVisibility };
+export type { RewardsFilters as Filters };
+
+// Wrapper type that adds backwards compatibility aliases
+type RewardsStateWithAliases = Omit<
+  RewardsState,
+  "selectedRewards" | "selectedRewardId"
+> & {
+  selectedRewards: Set<string>;
+  selectedRewardId: string;
+};
+
+export function useRewardsState(): [
+  RewardsStateWithAliases,
+  Dispatch<RewardsAction>
+] {
+  const [state, dispatch] = useReducer(rewardsReducer, initialState);
+
+  // Create state with backwards compatibility aliases (computed from base properties)
+  const stateWithAliases: RewardsStateWithAliases = {
+    ...state,
+    selectedRewards: state.selectedItems,
+    selectedRewardId: state.selectedItemId,
+  };
+
+  return [stateWithAliases, dispatch];
 }
