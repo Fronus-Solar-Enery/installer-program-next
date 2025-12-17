@@ -38,15 +38,15 @@ import { Input } from "@/components/ui/input";
 import { HyperText } from "@/components/ui/hypertext";
 import { ReviewItem } from "./ReviewItem";
 import PageHeader from "@/components/PageHeader";
+import {
+  CARD_SECTION_CLASS,
+  GRID_2_COL_CLASS,
+} from "@/lib/registration-styles";
 
 interface ValidationError {
   path?: string[];
   message: string;
 }
-
-// Style constants
-const CARD_SECTION_CLASS = "bg-card/30 border-border border p-6 rounded-3xl";
-const GRID_2_COL_CLASS = "grid gap-6 md:grid-cols-2";
 
 export default function NewRewardPage() {
   const router = useRouter();

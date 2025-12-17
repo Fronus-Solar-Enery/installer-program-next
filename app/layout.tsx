@@ -7,6 +7,10 @@ import AppLayout from "@/app/layout/AppLayout";
 import { BatchJobProvider } from "@/contexts/BatchJobContext";
 import { BatchJobProgress } from "@/components/BatchJobProgress";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { WifiOffIcon } from "@/components/icons/animated/WifiOff";
+import { WifiIcon } from "@/components/icons/animated/WifiOn";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const saira = Saira({
   subsets: ["latin"],
@@ -19,7 +23,7 @@ const siteUrl = process.env.NEXTAUTH_URL || "https://ipms.fronus.com";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Installer Program Management System",
+    default: "IPMS - Fronus",
     template: "%s | IPMS",
   },
   description:

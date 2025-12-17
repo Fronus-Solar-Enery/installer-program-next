@@ -19,7 +19,6 @@ import { AlertCircle } from "lucide-react";
 import { ShadersBackground } from "@/components/ui/shaders-background";
 import { cn } from "@/lib/utils";
 import ProgramLogo from "@/components/ProgramLogo";
-import { Checkbox } from "@/components/ui/checkbox";
 import { IconEye, IconLockPassword, IconSms } from "@/components/icons";
 import Loading from "@/components/ui/loading";
 import { ForgotPasswordDialog } from "@/components/ForgotPasswordDialog";

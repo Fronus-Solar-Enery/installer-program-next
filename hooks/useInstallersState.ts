@@ -1,11 +1,12 @@
-import { useReducer, Dispatch } from "react";
+import { useReducer, Dispatch, useMemo } from "react";
 import type { DateRange } from "react-day-picker";
 import {
-  useEntityListState,
   BaseEntityListState,
   BaseEntityListAction,
   EntityListConfig,
   BaseDateFilters,
+  createEntityListReducer,
+  createInitialState,
 } from "./useEntityListState";
 
 // Installer-specific column visibility
@@ -78,9 +79,8 @@ export interface InstallersState
   isCustomDateOpen: boolean;
 }
 
-// Extended action type for installer-specific actions
-export type InstallersAction =
-  | BaseEntityListAction<InstallerFilters, InstallerColumnVisibility>
+// Installer-specific action types (not in base)
+type InstallerSpecificAction =
   | { type: "SET_SEARCH"; payload: string }
   | { type: "TOGGLE_FILTERS" }
   | { type: "SET_DATE_RANGE_PICKER"; payload: DateRange | undefined }
@@ -92,38 +92,37 @@ export type InstallersAction =
   | { type: "SELECT_ALL_INSTALLERS"; payload: string[] }
   | { type: "TOGGLE_INSTALLER_SELECTION"; payload: string };
 
-// Create initial state
-export const initialState: InstallersState = {
-  filters: initialFilters,
-  sortField: "createdAt",
-  sortDirection: "desc",
-  currentPage: 1,
-  itemsPerPage: 10,
-  visibleColumns: initialColumnVisibility,
-  selectedItems: new Set(),
-  editModalOpen: false,
-  selectedItemId: "",
-  deleteDialogState: { open: false, status: "confirm" },
-  bulkDeleteResultState: {
-    open: false,
-    status: "confirm",
-    successCount: 0,
-    failCount: 0,
-    failures: [],
-  },
-  deletingId: null,
-  downloadingReport: false,
-  // Installer-specific state
+// Extended action type combining base and installer-specific actions
+export type InstallersAction =
+  | BaseEntityListAction<InstallerFilters, InstallerColumnVisibility>
+  | InstallerSpecificAction;
+
+// Initial installer-specific state additions
+const installerSpecificInitialState = {
   search: "",
   showFilters: false,
-  dateRangePicker: undefined,
+  dateRangePicker: undefined as DateRange | undefined,
   isCustomDateOpen: false,
 };
 
+// Create initial state by combining base state with installer-specific state
+export const initialState: InstallersState = {
+  ...createInitialState(installersConfig),
+  ...installerSpecificInitialState,
+};
+
+// Get the base reducer
+const baseReducer = createEntityListReducer(installersConfig);
+
+/**
+ * Reducer that composes base entity list reducer with installer-specific actions.
+ * This eliminates duplication by delegating common actions to the base reducer.
+ */
 function installersReducer(
   state: InstallersState,
   action: InstallersAction
 ): InstallersState {
+  // Handle installer-specific actions first
   switch (action.type) {
     // Installer-specific actions
     case "SET_SEARCH":
@@ -142,7 +141,7 @@ function installersReducer(
     case "SET_CUSTOM_DATE_OPEN":
       return { ...state, isCustomDateOpen: action.payload };
 
-    // Legacy action aliases (map to base actions)
+    // Legacy action aliases (map to base actions for backwards compatibility)
     case "SET_ROWS_PER_PAGE":
       return { ...state, itemsPerPage: action.payload, currentPage: 1 };
 
@@ -171,163 +170,33 @@ function installersReducer(
       return { ...state, selectedItems: newSelection };
     }
 
-    // Base entity list actions
-    case "SET_FILTER":
+    // Special handling for RESET_FILTERS to also reset dateRangePicker
+    case "RESET_FILTERS": {
+      const baseResult = baseReducer(state, action);
       return {
         ...state,
-        filters: {
-          ...state.filters,
-          [action.payload.key]: action.payload.value,
-        },
-        currentPage: 1,
-      };
-
-    case "SET_FILTERS":
-      return {
-        ...state,
-        filters: { ...state.filters, ...action.payload },
-        currentPage: 1,
-      };
-
-    case "RESET_FILTERS":
-      return {
-        ...state,
-        filters: initialFilters,
+        ...baseResult,
         dateRangePicker: undefined,
-        currentPage: 1,
       };
-
-    case "SET_SORT":
-      return {
-        ...state,
-        sortField: action.payload.field,
-        sortDirection: action.payload.direction,
-      };
-
-    case "TOGGLE_SORT":
-      if (state.sortField === action.payload) {
-        return {
-          ...state,
-          sortDirection: state.sortDirection === "asc" ? "desc" : "asc",
-        };
-      }
-      return {
-        ...state,
-        sortField: action.payload,
-        sortDirection: "asc",
-      };
-
-    case "SET_PAGE":
-      return { ...state, currentPage: action.payload };
-
-    case "SET_ITEMS_PER_PAGE":
-      return { ...state, itemsPerPage: action.payload, currentPage: 1 };
-
-    case "RESET_TO_PAGE_ONE":
-      return { ...state, currentPage: 1 };
-
-    case "TOGGLE_COLUMN":
-      return {
-        ...state,
-        visibleColumns: {
-          ...state.visibleColumns,
-          [action.payload]:
-            !state.visibleColumns[
-              action.payload as keyof InstallerColumnVisibility
-            ],
-        },
-      };
-
-    case "SET_COLUMNS":
-      return {
-        ...state,
-        visibleColumns: { ...state.visibleColumns, ...action.payload },
-      };
-
-    case "SELECT_ITEM":
-      return {
-        ...state,
-        selectedItems: new Set([...state.selectedItems, action.payload]),
-      };
-
-    case "DESELECT_ITEM": {
-      const newSelection = new Set(state.selectedItems);
-      newSelection.delete(action.payload);
-      return { ...state, selectedItems: newSelection };
     }
 
-    case "SELECT_ALL_ITEMS":
+    // Delegate all other actions to the base reducer
+    default: {
+      // Cast to base action type for the base reducer
+      const baseAction = action as BaseEntityListAction<
+        InstallerFilters,
+        InstallerColumnVisibility
+      >;
+      const baseResult = baseReducer(state, baseAction);
+      // Preserve installer-specific state when base reducer handles the action
       return {
-        ...state,
-        selectedItems: new Set([...state.selectedItems, ...action.payload]),
+        ...baseResult,
+        search: state.search,
+        showFilters: state.showFilters,
+        dateRangePicker: state.dateRangePicker,
+        isCustomDateOpen: state.isCustomDateOpen,
       };
-
-    case "DESELECT_ALL_ITEMS": {
-      const newSelection = new Set(state.selectedItems);
-      action.payload.forEach((id) => newSelection.delete(id));
-      return { ...state, selectedItems: newSelection };
     }
-
-    case "CLEAR_SELECTION":
-      return { ...state, selectedItems: new Set() };
-
-    case "TOGGLE_ITEM_SELECTION": {
-      const newSelection = new Set(state.selectedItems);
-      if (newSelection.has(action.payload)) {
-        newSelection.delete(action.payload);
-      } else {
-        newSelection.add(action.payload);
-      }
-      return { ...state, selectedItems: newSelection };
-    }
-
-    case "OPEN_EDIT_MODAL":
-      return { ...state, editModalOpen: true, selectedItemId: action.payload };
-
-    case "CLOSE_EDIT_MODAL":
-      return { ...state, editModalOpen: false, selectedItemId: "" };
-
-    case "SET_DELETE_DIALOG_STATE":
-      return {
-        ...state,
-        deleteDialogState: { ...state.deleteDialogState, ...action.payload },
-      };
-
-    case "RESET_DELETE_DIALOG":
-      return {
-        ...state,
-        deleteDialogState: { open: false, status: "confirm" },
-      };
-
-    case "SET_BULK_DELETE_RESULT_STATE":
-      return {
-        ...state,
-        bulkDeleteResultState: {
-          ...state.bulkDeleteResultState,
-          ...action.payload,
-        },
-      };
-
-    case "RESET_BULK_DELETE_RESULT":
-      return {
-        ...state,
-        bulkDeleteResultState: {
-          open: false,
-          status: "confirm",
-          successCount: 0,
-          failCount: 0,
-          failures: [],
-        },
-      };
-
-    case "SET_DELETING_ID":
-      return { ...state, deletingId: action.payload };
-
-    case "SET_DOWNLOADING_REPORT":
-      return { ...state, downloadingReport: action.payload };
-
-    default:
-      return state;
   }
 }
 

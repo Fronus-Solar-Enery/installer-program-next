@@ -6,6 +6,7 @@ import {
   useCallback,
   memo,
   useRef,
+  // REMOVABLE: Unused Import - Activity is imported but never used in this file
   Activity,
 } from "react";
 import { useVirtualizer, type VirtualItem } from "@tanstack/react-virtual";
