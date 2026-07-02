@@ -42,8 +42,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-# Ignore all markdown files in the root
-*.md
+
 
 # Except these ones
 !README.md  
