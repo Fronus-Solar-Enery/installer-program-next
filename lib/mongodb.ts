@@ -1,4 +1,11 @@
 import mongoose from "mongoose";
+import dns from "dns";
+
+// System DNS resolver can't resolve mongodb+srv SRV records on this
+// network (router/ISP limitation). Force a public resolver that can.
+if (process.env.NODE_ENV === "development") {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+}
 
 const MONGODB_URI = process.env.MONGODB_URI!;
 
