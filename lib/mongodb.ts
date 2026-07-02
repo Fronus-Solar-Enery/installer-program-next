@@ -1,13 +1,6 @@
 import mongoose from "mongoose";
-import dns from "dns";
 
 const MONGODB_URI = process.env.MONGODB_URI!;
-
-// Fix DNS SRV resolution for MongoDB Atlas on some routers/ISPs
-// that don't properly handle SRV queries through their DNS proxy
-if (MONGODB_URI?.includes("mongodb+srv://")) {
-  dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
-}
 
 if (!MONGODB_URI) {
   throw new Error(
