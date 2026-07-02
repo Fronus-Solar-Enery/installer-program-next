@@ -81,10 +81,18 @@ export const authConfig: NextAuthConfig = {
           throw new CustomAuthError("Password cannot be empty");
         }
 
-        await dbConnect();
-        const user = await TeamMember.findOne({
-          email: email.trim().toLowerCase(),
-        });
+        let user;
+        try {
+          await dbConnect();
+          user = await TeamMember.findOne({
+            email: email.trim().toLowerCase(),
+          });
+        } catch (dbError) {
+          console.error("Database error during authentication:", dbError);
+          throw new CustomAuthError(
+            "Unable to connect to the server. Please try again later."
+          );
+        }
 
         if (!user) {
           throw new CustomAuthError("No account found with this email address");
