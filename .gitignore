@@ -15,8 +15,7 @@
 
 # next.js
 /.next/
-/.fixes/
-/.claude/
+/.fixes/ 
 /.scripts/
 /out/
 
