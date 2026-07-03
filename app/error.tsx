@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 
 /**
  * Route-segment error boundary. Catches errors thrown while rendering any page
@@ -19,8 +20,9 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Central hook for render-time error reporting (wire to Sentry/etc here).
-    console.error("Route error:", error);
+    // Routed through the logger seam → forwarded to the error tracker if one
+    // is attached via setErrorReporter.
+    logger.error("Route render error", { err: error, digest: error.digest });
   }, [error]);
 
   return (

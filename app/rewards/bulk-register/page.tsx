@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import IconDownloadMinimalistic from "@/components/icons/DownloadMinimalistic";
 import {
   AlertCircle,
   CheckCircle2,
@@ -41,6 +42,7 @@ import { toast } from "sonner";
 import BulkUploadProgressModal, {
   UploadStep,
 } from "@/components/BulkUploadProgressModal";
+import Loading from "@/components/ui/loading";
 
 interface RewardCreate {
   timestamp: string;
@@ -168,7 +170,7 @@ export default function BulkCreateRewardsPage() {
     return PAYMENT_METHOD.some(
       (pm) =>
         pm.value.toUpperCase() === normalizedMethod ||
-        pm.label.toUpperCase() === normalizedMethod
+        pm.label.toUpperCase() === normalizedMethod,
     );
   };
 
@@ -178,20 +180,20 @@ export default function BulkCreateRewardsPage() {
     const matched = PAYMENT_METHOD.find(
       (pm) =>
         pm.value.toUpperCase() === normalizedInput ||
-        pm.label.toUpperCase() === normalizedInput
+        pm.label.toUpperCase() === normalizedInput,
     );
     return matched ? matched.value : method;
   };
 
   const validateProductModel = (model: string): boolean => {
     return PRODUCT_MODELS.some(
-      (pm) => pm.value === model || pm.label === model
+      (pm) => pm.value === model || pm.label === model,
     );
   };
 
   const normalizeProductModel = (model: string): string => {
     const matched = PRODUCT_MODELS.find(
-      (pm) => pm.value === model || pm.label === model
+      (pm) => pm.value === model || pm.label === model,
     );
     return matched ? matched.value : model;
   };
@@ -203,7 +205,7 @@ export default function BulkCreateRewardsPage() {
       (bank) =>
         bank.label.toLowerCase() === normalizedInput ||
         bank.value.toLowerCase() === normalizedInput ||
-        bank.shortcut.toLowerCase() === normalizedInput
+        bank.shortcut.toLowerCase() === normalizedInput,
     );
     return matchedBank ? matchedBank.label : bankName;
   };
@@ -215,7 +217,7 @@ export default function BulkCreateRewardsPage() {
       (bank) =>
         bank.label.toLowerCase() === normalizedInput ||
         bank.value.toLowerCase() === normalizedInput ||
-        bank.shortcut.toLowerCase() === normalizedInput
+        bank.shortcut.toLowerCase() === normalizedInput,
     );
   };
 
@@ -223,7 +225,7 @@ export default function BulkCreateRewardsPage() {
     if (!status) return false;
     const normalizedInput = status.trim();
     return SERIAL_STATUSES.some(
-      (s) => s.value === normalizedInput || s.label === normalizedInput
+      (s) => s.value === normalizedInput || s.label === normalizedInput,
     );
   };
 
@@ -260,7 +262,7 @@ export default function BulkCreateRewardsPage() {
   };
 
   const validateReward = (
-    reward: Omit<RewardCreate, "issues" | "isValid">
+    reward: Omit<RewardCreate, "issues" | "isValid">,
   ): string[] => {
     const issues: string[] = [];
 
@@ -292,12 +294,12 @@ export default function BulkCreateRewardsPage() {
       issues.push("Product model is required");
     } else if (!validateProductModel(reward.productModel)) {
       issues.push(
-        `Product model "${reward.productModel}" is not in the approved list`
+        `Product model "${reward.productModel}" is not in the approved list`,
       );
     } else {
       // Check if inverter serial is required based on product configuration
       const productConfig = PRODUCT_MODELS.find(
-        (pm) => pm.value === reward.productModel
+        (pm) => pm.value === reward.productModel,
       );
       if (productConfig?.requiresInverter && !reward.inverterSerialNumber) {
         issues.push("Inverter serial number is required for this product");
@@ -314,7 +316,7 @@ export default function BulkCreateRewardsPage() {
       issues.push("Serial number status is required");
     } else if (!validateSerialStatus(reward.serialNumberStatus)) {
       issues.push(
-        `Invalid serial number status "${reward.serialNumberStatus}" (must be: 2025, 2025 - Not Found, 2024, or Not Found)`
+        `Invalid serial number status "${reward.serialNumberStatus}" (must be: 2025, 2025 - Not Found, 2024, or Not Found)`,
       );
     }
 
@@ -345,7 +347,7 @@ export default function BulkCreateRewardsPage() {
       issues.push("Reward status is required");
     } else if (!validateRewardStatus(reward.rewardStatus)) {
       issues.push(
-        `Invalid reward status "${reward.rewardStatus}" (must be: PAID, PENDING, or FAILED)`
+        `Invalid reward status "${reward.rewardStatus}" (must be: PAID, PENDING, or FAILED)`,
       );
     }
 
@@ -359,7 +361,7 @@ export default function BulkCreateRewardsPage() {
       issues.push("Payment method is required");
     } else if (!validatePaymentMethod(reward.paymentMethod)) {
       issues.push(
-        `Invalid payment method "${reward.paymentMethod}" (must be: UBANK, UPaisa, or NayaPay)`
+        `Invalid payment method "${reward.paymentMethod}" (must be: UBANK, UPaisa, or NayaPay)`,
       );
     }
 
@@ -484,7 +486,7 @@ export default function BulkCreateRewardsPage() {
 
             // Check if product requires inverter (same logic as register page)
             const productConfig = PRODUCT_MODELS.find(
-              (pm) => pm.value === normalizedProductModel
+              (pm) => pm.value === normalizedProductModel,
             );
             const requiresInverter = productConfig?.requiresInverter || false;
 
@@ -521,7 +523,7 @@ export default function BulkCreateRewardsPage() {
               referrerTransactionId:
                 row["Referrer Transaction ID"]?.toString().trim() || undefined,
               sendingDate: parseSendingDate(
-                row["Sending Date"]?.toString() || ""
+                row["Sending Date"]?.toString() || "",
               ),
               paymentMethod: normalizePaymentMethod(rawPaymentMethod),
             };
@@ -632,7 +634,7 @@ export default function BulkCreateRewardsPage() {
     setPreview(validRecords);
     setTerminateDialogOpen(false);
     toast.success(
-      `Terminated ${invalidCount} invalid record(s). ${validRecords.length} valid record(s) remaining.`
+      `Terminated ${invalidCount} invalid record(s). ${validRecords.length} valid record(s) remaining.`,
     );
   };
 
@@ -711,7 +713,7 @@ export default function BulkCreateRewardsPage() {
     const invalidRows = preview.filter((p) => !p.isValid);
     if (invalidRows.length > 0) {
       toast.error(
-        `Cannot upload: ${invalidRows.length} row(s) have validation issues. Please fix them first.`
+        `Cannot upload: ${invalidRows.length} row(s) have validation issues. Please fix them first.`,
       );
       return;
     }
@@ -785,15 +787,15 @@ export default function BulkCreateRewardsPage() {
                 progress: 100,
                 details: `Validated ${totalRecords} records`,
               }
-            : step
-        )
+            : step,
+        ),
       );
 
       // Step 2: Start registering rewards in chunks
       setUploadSteps((prev) =>
         prev.map((step) =>
-          step.id === "register" ? { ...step, status: "processing" } : step
-        )
+          step.id === "register" ? { ...step, status: "processing" } : step,
+        ),
       );
 
       // Process in optimized chunks for real-time progress
@@ -809,8 +811,8 @@ export default function BulkCreateRewardsPage() {
 
       console.log(
         `Starting bulk upload of ${totalRecords} rewards in ${Math.ceil(
-          totalRecords / CHUNK_SIZE
-        )} chunks`
+          totalRecords / CHUNK_SIZE,
+        )} chunks`,
       );
 
       for (let i = 0; i < validRewards.length; i += CHUNK_SIZE) {
@@ -827,7 +829,7 @@ export default function BulkCreateRewardsPage() {
         const maxRetries = 2;
 
         console.log(
-          `Processing chunk ${chunkNumber}: rewards ${i + 1} to ${currentBatch}`
+          `Processing chunk ${chunkNumber}: rewards ${i + 1} to ${currentBatch}`,
         );
 
         // Retry logic for failed chunks
@@ -857,7 +859,7 @@ export default function BulkCreateRewardsPage() {
               totalFailed += chunkFailed;
 
               console.log(
-                `Chunk ${chunkNumber}: ${chunkSuccess} succeeded, ${chunkFailed} failed. Total: ${totalSuccess}/${currentBatch}`
+                `Chunk ${chunkNumber}: ${chunkSuccess} succeeded, ${chunkFailed} failed. Total: ${totalSuccess}/${currentBatch}`,
               );
 
               if (data.data?.errors && data.data.errors.length > 0) {
@@ -868,13 +870,13 @@ export default function BulkCreateRewardsPage() {
               if (retryCount === maxRetries) {
                 console.error(
                   `Chunk ${chunkNumber} failed with error:`,
-                  data.error
+                  data.error,
                 );
                 totalFailed += chunk.length;
                 allErrors.push(
                   `Chunk ${chunkNumber}: ${
                     data.error || "Chunk registration failed"
-                  } after ${maxRetries} retries`
+                  } after ${maxRetries} retries`,
                 );
                 failedChunks.push({
                   chunk,
@@ -883,7 +885,7 @@ export default function BulkCreateRewardsPage() {
               } else {
                 // Wait before retry (exponential backoff)
                 await new Promise((resolve) =>
-                  setTimeout(resolve, 1000 * (retryCount + 1))
+                  setTimeout(resolve, 1000 * (retryCount + 1)),
                 );
                 retryCount++;
               }
@@ -904,7 +906,7 @@ export default function BulkCreateRewardsPage() {
               failedChunks.push({ chunk, error: errorMsg });
             } else {
               await new Promise((resolve) =>
-                setTimeout(resolve, 1000 * (retryCount + 1))
+                setTimeout(resolve, 1000 * (retryCount + 1)),
               );
               retryCount++;
             }
@@ -927,8 +929,8 @@ export default function BulkCreateRewardsPage() {
                   description: `Processing ${currentBatch} of ${totalRecords} reward(s)`,
                   details: `Registered: ${totalSuccess} | Failed: ${totalFailed}`,
                 }
-              : step
-          )
+              : step,
+          ),
         );
 
         // Small delay between chunks to allow UI updates
@@ -936,7 +938,7 @@ export default function BulkCreateRewardsPage() {
       }
 
       console.log(
-        `Upload complete. Total processed: ${validRewards.length}, Success: ${totalSuccess}, Failed: ${totalFailed}`
+        `Upload complete. Total processed: ${validRewards.length}, Success: ${totalSuccess}, Failed: ${totalFailed}`,
       );
 
       // Step 2: Complete registration
@@ -950,8 +952,8 @@ export default function BulkCreateRewardsPage() {
                 details: `Registered ${totalSuccess} out of ${totalRecords} rewards`,
                 error: totalFailed > 0 ? `${totalFailed} failed` : undefined,
               }
-            : step
-        )
+            : step,
+        ),
       );
 
       if (totalSuccess === 0) {
@@ -963,8 +965,8 @@ export default function BulkCreateRewardsPage() {
                   status: "error",
                   error: "No rewards were registered successfully",
                 }
-              : step
-          )
+              : step,
+          ),
         );
         setError(`Registration failed. Errors: ${allErrors.join(", ")}`);
         return;
@@ -974,8 +976,8 @@ export default function BulkCreateRewardsPage() {
       await new Promise((resolve) => setTimeout(resolve, 300));
       setUploadSteps((prev) =>
         prev.map((step) =>
-          step.id === "activity" ? { ...step, status: "processing" } : step
-        )
+          step.id === "activity" ? { ...step, status: "processing" } : step,
+        ),
       );
 
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -988,8 +990,8 @@ export default function BulkCreateRewardsPage() {
                 progress: 100,
                 details: `Logged ${totalSuccess} activities`,
               }
-            : step
-        )
+            : step,
+        ),
       );
 
       // Step 4: Complete
@@ -1006,15 +1008,15 @@ export default function BulkCreateRewardsPage() {
             : {
                 ...step,
                 status: step.status === "pending" ? "completed" : step.status,
-              }
-        )
+              },
+        ),
       );
 
       setSuccess(`Successfully created ${totalSuccess} reward(s)!`);
 
       if (totalFailed > 0) {
         setError(
-          `${totalFailed} reward(s) failed. Check the logs for details.`
+          `${totalFailed} reward(s) failed. Check the logs for details.`,
         );
       }
     } catch (err: unknown) {
@@ -1023,8 +1025,8 @@ export default function BulkCreateRewardsPage() {
         prev.map((step) =>
           step.status === "processing"
             ? { ...step, status: "error", error: errorMessage }
-            : step
-        )
+            : step,
+        ),
       );
       setError("Failed to create rewards: " + errorMessage);
     } finally {
@@ -1042,11 +1044,11 @@ export default function BulkCreateRewardsPage() {
 
   const validCount = useMemo(
     () => preview.filter((p) => p.isValid).length,
-    [preview]
+    [preview],
   );
   const invalidCount = useMemo(
     () => preview.filter((p) => !p.isValid).length,
-    [preview]
+    [preview],
   );
 
   // Virtual scrolling for large datasets (performance optimization)
@@ -1095,11 +1097,12 @@ export default function BulkCreateRewardsPage() {
                 onClick={downloadTemplate}
                 variant="outline"
                 disabled={downloadingTemplate}
+                className="gap-2"
               >
                 {downloadingTemplate ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loading />
                 ) : (
-                  <Download className="h-4 w-4 mr-2" />
+                  <IconDownloadMinimalistic />
                 )}
                 {downloadingTemplate ? "Downloading..." : "Download Template"}
               </Button>
@@ -1160,10 +1163,10 @@ export default function BulkCreateRewardsPage() {
                   file
                     ? "FILE ALREADY SELECTED"
                     : fileReading
-                    ? "READING FILE..."
-                    : preview.length > 0
-                    ? "RECORDS IN PROGRESS"
-                    : "UPLOAD EXCEL FILE"
+                      ? "READING FILE..."
+                      : preview.length > 0
+                        ? "RECORDS IN PROGRESS"
+                        : "UPLOAD EXCEL FILE"
                 }
                 accept={{
                   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
@@ -1214,14 +1217,14 @@ export default function BulkCreateRewardsPage() {
                         {fileReadProgress < 25
                           ? "Starting file upload..."
                           : fileReadProgress < 65
-                          ? "Reading file data..."
-                          : fileReadProgress < 80
-                          ? "Parsing Excel workbook..."
-                          : fileReadProgress < 90
-                          ? "Extracting records..."
-                          : fileReadProgress < 98
-                          ? "Processing and validating..."
-                          : "Finalizing..."}
+                            ? "Reading file data..."
+                            : fileReadProgress < 80
+                              ? "Parsing Excel workbook..."
+                              : fileReadProgress < 90
+                                ? "Extracting records..."
+                                : fileReadProgress < 98
+                                  ? "Processing and validating..."
+                                  : "Finalizing..."}
                       </span>
                       <span className="font-semibold text-primary tabular-nums">
                         {fileReadProgress}%
@@ -1344,10 +1347,10 @@ export default function BulkCreateRewardsPage() {
                 {loading
                   ? "Creating..."
                   : validating
-                  ? "Validating..."
-                  : fileReading
-                  ? "Reading file..."
-                  : `Create ${validCount} Valid Record(s)`}
+                    ? "Validating..."
+                    : fileReading
+                      ? "Reading file..."
+                      : `Create ${validCount} Valid Record(s)`}
               </Button>
             )}
             <Button
@@ -1506,8 +1509,8 @@ export default function BulkCreateRewardsPage() {
                               reward.rewardStatus === "PAID"
                                 ? "default"
                                 : reward.rewardStatus === "FAILED"
-                                ? "destructive"
-                                : "secondary"
+                                  ? "destructive"
+                                  : "secondary"
                             }
                           >
                             {reward.rewardStatus}

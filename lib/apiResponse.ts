@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { logger } from "@/lib/logger";
 
 /**
  * Standardized API response utility class.
@@ -194,7 +195,9 @@ interface MongoError {
 }
 
 export function handleApiError(error: unknown) {
-  console.error("API Error:", error);
+  // Central choke point for every API route error — structured + forwarded to
+  // the error tracker (if configured) via the logger.
+  logger.error("API error", { err: error });
 
   // Handle Zod validation errors
   if (error instanceof ZodError) {

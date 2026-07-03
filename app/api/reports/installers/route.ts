@@ -5,6 +5,7 @@ import dbConnect from '@/lib/mongodb';
 import Installer, { IInstaller } from '@/models/Installer';
 import { ITeamMember } from '@/models/TeamMember';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
+import { escapeRegex } from '@/lib/queryBuilder';
 import { FilterQuery } from 'mongoose';
 
 // Type for populated installer document
@@ -54,11 +55,11 @@ export async function GET(request: NextRequest) {
     const query: FilterQuery<IInstaller> = {};
 
     if (city) {
-      query.city = { $regex: city, $options: 'i' };
+      query.city = { $regex: escapeRegex(city), $options: 'i' };
     }
 
     if (province) {
-      query.province = { $regex: province, $options: 'i' };
+      query.province = { $regex: escapeRegex(province), $options: 'i' };
     }
 
     if (certified !== null && certified !== undefined) {

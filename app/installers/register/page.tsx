@@ -81,6 +81,8 @@ export default function NewInstallerPage() {
   const [googleAuthStatus, setGoogleAuthStatus] = useState<{
     isAuthenticated: boolean;
     needsReauth?: boolean;
+    configError?: boolean;
+    configErrorReason?: string;
     hasRefreshToken: boolean;
     accountEmail: string | null;
   } | null>(null);
@@ -662,12 +664,20 @@ export default function NewInstallerPage() {
                     </svg>
                     <div className="flex-1">
                       <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-1">
-                        {googleAuthStatus?.needsReauth
+                        {googleAuthStatus?.configError
+                          ? "Google Contacts Misconfigured"
+                          : googleAuthStatus?.needsReauth
                           ? "Google Contacts Token Expired"
                           : "Google Contacts Authentication Required"}
                       </h3>
                       <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                        {googleAuthStatus?.needsReauth
+                        {googleAuthStatus?.configError
+                          ? `Google Contacts is misconfigured on the server${
+                              googleAuthStatus.configErrorReason
+                                ? ` (${googleAuthStatus.configErrorReason})`
+                                : ""
+                            }, so contacts are not syncing. This is a server configuration issue that re-authenticating cannot fix — please contact the system administrator.`
+                          : googleAuthStatus?.needsReauth
                           ? isAdmin
                             ? "The Google Contacts token has expired or been revoked, so contacts are no longer syncing. Please reconnect before registering installers."
                             : "The Google Contacts token has expired — contacts are not syncing. Please contact an administrator to reconnect."
@@ -680,7 +690,9 @@ export default function NewInstallerPage() {
                   <div className="flex gap-2">
                     <Button
                       onClick={handleAuthenticateGoogle}
-                      disabled={!isAdmin || authLoading}
+                      disabled={
+                        !isAdmin || authLoading || googleAuthStatus?.configError
+                      }
                       className="bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-300"
                     >
                       <svg

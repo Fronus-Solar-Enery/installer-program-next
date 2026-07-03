@@ -230,20 +230,20 @@ export default function DashboardPage() {
     ActiveInstallersData[]
   >([]);
   const [activeInstallers, setActiveInstallers] = useState<ActiveInstaller[]>(
-    []
+    [],
   );
   const [trainingCenterActive, setTrainingCenterActive] = useState<
     TrainingCenterActive[]
   >([]);
   const [selectedCenter, setSelectedCenter] = useState<string | null>(null);
   const [centerInstallers, setCenterInstallers] = useState<InstallerByCenter[]>(
-    []
+    [],
   );
   const [recentInstallations, setRecentInstallations] = useState<
     RecentInstallation[]
   >([]);
   const [recentInstallers, setRecentInstallers] = useState<RecentInstaller[]>(
-    []
+    [],
   );
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -282,7 +282,7 @@ export default function DashboardPage() {
             0,
             23,
             59,
-            59
+            59,
           );
           return { startDate: prevMonthStart, endDate: prevMonthEnd };
 
@@ -308,13 +308,13 @@ export default function DashboardPage() {
           return { startDate: null, endDate: null };
       }
     },
-    [customStartDate, customEndDate]
+    [customStartDate, customEndDate],
   );
 
   const filterByDateRange = useCallback(
     <T extends ItemWithDate>(
       items: T[],
-      dateField: keyof T = "createdAt" as keyof T
+      dateField: keyof T = "createdAt" as keyof T,
     ): T[] => {
       const { startDate, endDate } = getDateRange(timePeriod);
 
@@ -326,7 +326,7 @@ export default function DashboardPage() {
         return itemDate >= startDate && itemDate <= endDate;
       });
     },
-    [timePeriod, getDateRange]
+    [timePeriod, getDateRange],
   );
 
   const fetchStats = useCallback(async () => {
@@ -376,10 +376,10 @@ export default function DashboardPage() {
 
       // Filter data by date range
       const filteredRewards = filterByDateRange(
-        allRewards.data?.rewards || []
+        allRewards.data?.rewards || [],
       ) as DashboardReward[];
       const filteredInstallers = filterByDateRange(
-        allInstallers.data?.installers || []
+        allInstallers.data?.installers || [],
       ) as DashboardInstaller[];
 
       // Optimize calculations using a single reduce pass
@@ -411,7 +411,7 @@ export default function DashboardPage() {
           referrerRewardsTotal: 0,
           referrerRewardsPending: 0,
           referrerRewardsPaid: 0,
-        }
+        },
       );
 
       // Calculate grand totals (installer rewards + referrer rewards)
@@ -476,14 +476,14 @@ export default function DashboardPage() {
       // Calculate Active Installers for different time periods
       const calculateActiveInstallers = (
         startDate: Date | null,
-        endDate: Date | null
+        endDate: Date | null,
       ) => {
         if (!startDate || !endDate) {
           // For "All Time", use all rewards
           const uniqueInstallers = new Set(
             allRewards.data?.rewards
               ?.map((r: DashboardReward) => r.installer?._id)
-              .filter(Boolean)
+              .filter(Boolean),
           );
           return uniqueInstallers.size;
         }
@@ -497,7 +497,7 @@ export default function DashboardPage() {
         const uniqueInstallers = new Set(
           periodRewards
             .map((r: DashboardReward) => r.installer?._id)
-            .filter(Boolean)
+            .filter(Boolean),
         );
         return uniqueInstallers.size;
       };
@@ -516,7 +516,7 @@ export default function DashboardPage() {
       const prevMonthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59);
       const prevMonthCount = calculateActiveInstallers(
         prevMonthStart,
-        prevMonthEnd
+        prevMonthEnd,
       );
 
       // Last 6 months
@@ -529,7 +529,7 @@ export default function DashboardPage() {
       const previousYearEnd = new Date(currentYear - 1, 11, 31, 23, 59, 59);
       const previousYearCount = calculateActiveInstallers(
         previousYearStart,
-        previousYearEnd
+        previousYearEnd,
       );
 
       const activeInstallersArray: ActiveInstallersData[] = [
@@ -575,10 +575,10 @@ export default function DashboardPage() {
     () =>
       stats.totalRewards > 0
         ? Math.round(
-            (stats.paidAmount / stats.totalAmount) * stats.totalRewards
+            (stats.paidAmount / stats.totalAmount) * stats.totalRewards,
           )
         : 0,
-    [stats.totalRewards, stats.paidAmount, stats.totalAmount]
+    [stats.totalRewards, stats.paidAmount, stats.totalAmount],
   );
 
   const avgPerProduct = useMemo(
@@ -586,7 +586,7 @@ export default function DashboardPage() {
       productData.length > 0
         ? Math.round(stats.totalRewards / productData.length)
         : 0,
-    [productData.length, stats.totalRewards]
+    [productData.length, stats.totalRewards],
   );
 
   const grandTotalPaidPercentage = useMemo(
@@ -594,7 +594,7 @@ export default function DashboardPage() {
       stats.grandTotal > 0
         ? Math.round((stats.grandTotalPaid / stats.grandTotal) * 100)
         : 0,
-    [stats.grandTotal, stats.grandTotalPaid]
+    [stats.grandTotal, stats.grandTotalPaid],
   );
 
   const grandTotalPendingPercentage = useMemo(
@@ -602,7 +602,7 @@ export default function DashboardPage() {
       stats.grandTotal > 0
         ? Math.round((stats.grandTotalPending / stats.grandTotal) * 100)
         : 0,
-    [stats.grandTotal, stats.grandTotalPending]
+    [stats.grandTotal, stats.grandTotalPending],
   );
 
   useEffect(() => {
@@ -674,7 +674,7 @@ export default function DashboardPage() {
                     disabled={loading}
                     size="sm"
                     className={cn(
-                      "hidden h-8 sm:flex gap-2 rounded-xl text-zinc-400 px-2"
+                      "hidden h-8 sm:flex gap-2 rounded-xl text-zinc-400 px-2",
                     )}
                   >
                     <IconClockCircle />
@@ -1445,8 +1445,8 @@ export default function DashboardPage() {
 
                       const res = await fetch(
                         `/api/dashboard/installers-by-center?trainingCenter=${encodeURIComponent(
-                          center.trainingCenter
-                        )}${dateParams}`
+                          center.trainingCenter,
+                        )}${dateParams}`,
                       );
                       const data = await res.json();
                       setCenterInstallers(data.data || []);
@@ -1456,7 +1456,7 @@ export default function DashboardPage() {
                     <div
                       className={cn(
                         "flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-bold border border-border shadow-xs",
-                        "bg-primary/10 text-primary"
+                        "bg-primary/10 text-primary",
                       )}
                     >
                       {index + 1}
@@ -1562,11 +1562,11 @@ export default function DashboardPage() {
                 description={`Historical view of installer activity in ${timeLabels[timePeriod]}`}
                 Icon={IconUserCheckRounded}
               />
-              <CardContent>
+              <CardContent className="p-0!">
                 {activeInstallersData.length > 0 ? (
                   <div className="space-y-4">
                     {activeInstallersData.map((period, index) => (
-                      <div key={period.period} className="space-y-2">
+                      <div key={period.period} className="space-y-2 p-4 lg:p-6">
                         <div className="flex items-center justify-between text-sm">
                           <span className="font-medium flex-1">
                             {period.label}
@@ -1581,7 +1581,8 @@ export default function DashboardPage() {
                             <span className="text-xs text-muted-foreground min-w-[50px] text-right">
                               {stats.totalInstallers > 0
                                 ? Math.round(
-                                    (period.count / stats.totalInstallers) * 100
+                                    (period.count / stats.totalInstallers) *
+                                      100,
                                   )
                                 : 0}
                               %
@@ -1603,7 +1604,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     ))}
-                    <div className="mt-6 pt-4 border-t border-border">
+                    <div className="mt-6 pt-4 border-t border-border p-4 lg:p-6">
                       <div className="flex items-center justify-between text-sm">
                         <span className="font-medium text-muted-foreground">
                           Total Registered
@@ -1659,7 +1660,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="text-xs text-muted-foreground whitespace-nowrap">
                               {new Date(
-                                installation.createdAt
+                                installation.createdAt,
                               ).toLocaleDateString("en-US", {
                                 day: "numeric",
                                 month: "short",
@@ -1729,7 +1730,7 @@ export default function DashboardPage() {
                           <div className="text-xs text-muted-foreground whitespace-nowrap">
                             {new Date(installer.createdAt).toLocaleDateString(
                               "en-GB",
-                              { day: "numeric", month: "short" }
+                              { day: "numeric", month: "short" },
                             )}
                           </div>
                         </div>
@@ -1948,7 +1949,7 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
       e.stopPropagation(); // defensive — CopyButton also stops propagation
       e.preventDefault();
     },
-    []
+    [],
   );
 
   return (
@@ -1969,7 +1970,7 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                     "transition-colors flex flex-col items-center py-6 px-2 border-none bg-linear-to-b",
                     isVariant
                       ? bgVariants[idx]
-                      : "from-muted dark:from-muted/70 to-muted/20 dark:to-muted/10"
+                      : "from-muted dark:from-muted/70 to-muted/20 dark:to-muted/10",
                   )}
                 >
                   {/* INSTALLER AVATAR */}
@@ -1984,7 +1985,7 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                       "mb-4 size-18 shadow-md font-black font-sans text-2xl",
                       isVariant
                         ? avatarVariants[idx]
-                        : "dark:bg-border dark:border-ring border-zinc-300 bg-card"
+                        : "dark:bg-border dark:border-ring border-zinc-300 bg-card",
                     )}
                   />
 
@@ -1992,14 +1993,14 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                   <h2
                     className={cn(
                       "text-md font-semibold text-center text-balance mb-4 leading-none",
-                      isVariant ? titleColorVariants[idx] : "text-foreground"
+                      isVariant ? titleColorVariants[idx] : "text-foreground",
                     )}
                   >
                     <p>{installer.installerName}</p>
 
                     <div
                       className={cn(
-                        "text-xs text-muted-foreground/70 font-light font-mono"
+                        "text-xs text-muted-foreground/70 font-light font-mono",
                         // isVariant ? toneVariants[idx] : "text-muted-foreground"
                       )}
                     >
@@ -2019,7 +2020,9 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                       <IconProduct
                         className={cn(
                           "size-10",
-                          isVariant ? iconColorVariants[idx] : "text-foreground"
+                          isVariant
+                            ? iconColorVariants[idx]
+                            : "text-foreground",
                         )}
                         fill
                       />
@@ -2028,7 +2031,7 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                         <h3
                           className={cn(
                             "text-xs flex items-center gap-2 text-muted-foreground",
-                            idx > 2 && "text-muted-foreground"
+                            idx > 2 && "text-muted-foreground",
                           )}
                         >
                           Products
@@ -2039,7 +2042,7 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                             "text-primary text-xl leading-none font-number",
                             isVariant
                               ? iconProductTextVariants[idx]
-                              : "text-foreground "
+                              : "text-foreground ",
                           )}
                         >
                           {installer.totalProducts}
@@ -2051,7 +2054,9 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                       <IconGift
                         className={cn(
                           "size-10",
-                          isVariant ? giftIconVariants[idx] : "text-foreground "
+                          isVariant
+                            ? giftIconVariants[idx]
+                            : "text-foreground ",
                         )}
                         fill
                       />
@@ -2060,7 +2065,7 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                         <h3
                           className={cn(
                             "text-xs flex items-center gap-2 text-muted-foreground",
-                            idx > 2 && "text-muted-foreground"
+                            idx > 2 && "text-muted-foreground",
                           )}
                         >
                           Rewards
@@ -2071,7 +2076,7 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                             "text-primary text-xl leading-none font-number",
                             isVariant
                               ? iconProductTextVariants[idx]
-                              : "text-foreground "
+                              : "text-foreground ",
                           )}
                         >
                           {formatNumber(installer.rewardAmount)}

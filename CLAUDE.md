@@ -8,13 +8,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev          # Dev server with Turbopack
 npm run build        # Production build
 npm run lint         # ESLint
+npm test             # Vitest unit tests (run once)
+npm run test:watch   # Vitest in watch mode
 npm run test:db      # Test MongoDB connection and diagnose issues
 npm run setup        # Generate NEXTAUTH_SECRET + create admin user
 npm run setup:admin  # Create first admin user only
 npm run setup:secret # Generate NEXTAUTH_SECRET only
 ```
 
-No test suite exists. Lint is the only automated code check.
+### Testing
+
+Vitest unit tests live in `tests/` (`tests/**/*.test.ts`), config in `vitest.config.ts` (node env, tsconfig `@/` aliases). Coverage is intentionally narrow and load-bearing, not breadth-chasing: the pure helpers (`queryBuilder` incl. `escapeRegex`, `pagination`, `apiResponse` error mapping, `validation` Zod schemas, `encryption`, `logger`) and — most valuably — the `withAuth` guard (asserts 401 signed-out / 403 wrong-role / handler runs when allowed), which turns a forgotten role check into a failing test. Tests that touch DB/network are avoided by mocking the seam (e.g. `vi.mock("@/lib/auth")`). Still missing (next steps): per-route auth-guard coverage and a Playwright sign-in→register e2e smoke test.
 
 ## Architecture
 
@@ -67,10 +71,16 @@ Batch jobs (`models/BatchJob.ts`, `app/api/batch-jobs/`) handle async bulk regis
 
 `lib/googleContacts.ts` — optional integration. Syncs installer records to Google Contacts using OAuth refresh token. Installer model stores `googleContactId` for update/delete sync.
 
+### Logging
+
+Use `logger` from `lib/logger.ts` (`logger.error/warn/info/debug(message, context?)`) instead of `console.*`. Output is line-delimited JSON in production (aggregator-friendly), readable in dev; level via `LOG_LEVEL` (default `info` prod / `debug` dev). Every API route error already flows through it via `handleApiError`; the `error.tsx`/`global-error.tsx` boundaries route through it too. To enable an external error tracker (Sentry/Bugsnag/…), call `setErrorReporter(reporter)` once at startup (e.g. Next.js `instrumentation.ts`) — every `logger.error` forwards automatically, no call-site changes. Remaining raw `console.*` sites can migrate incrementally.
+
 ### Environment variables
 
 Required: `MONGODB_URI`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`
 Optional: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (OAuth login), `GOOGLE_CONTACTS_*` (contacts sync), `GMAIL_USER` + `GMAIL_APP_PASSWORD` (forgot-password email)
+
+Required once Google Contacts is used: `TOKEN_ENCRYPTION_KEY` — 32-byte base64/hex key (`openssl rand -base64 32`) used by `lib/encryption.ts` (AES-256-GCM) to encrypt the stored Google OAuth refresh/access tokens at rest. Keep it in the deployment's secret store, **separate from `MONGODB_URI`**, so DB read access alone can't decrypt the tokens. Tokens are encrypted in `google-auth/callback` on write and decrypted only in `getAuthClient()`; values written before this key existed stay as legacy plaintext until the next OAuth re-auth.
 
 ### Validation
 

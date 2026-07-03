@@ -1,6 +1,16 @@
 import { FilterQuery } from "mongoose";
 
 /**
+ * Escape regex metacharacters so a user-supplied string is matched literally by
+ * MongoDB `$regex`. Prevents ReDoS (no attacker-controlled quantifiers) and
+ * accidental over-broad matches from characters like `.`, `|`, `*`.
+ * Route every user string through this before it reaches `$regex`.
+ */
+export function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
  * Fluent query builder for MongoDB queries.
  * Reduces duplication in API route GET handlers.
  *
@@ -21,8 +31,9 @@ export class QueryBuilder<T> {
    */
   search(fields: (keyof T)[], value?: string | null): this {
     if (value && value.trim()) {
+      const pattern = escapeRegex(value.trim());
       this.query.$or = fields.map((field) => ({
-        [field]: { $regex: value.trim(), $options: "i" },
+        [field]: { $regex: pattern, $options: "i" },
       })) as FilterQuery<T>["$or"];
     }
     return this;
@@ -41,7 +52,7 @@ export class QueryBuilder<T> {
     if (value !== undefined && value !== null && value !== "") {
       if (options?.regex) {
         (this.query as Record<string, unknown>)[field as string] = {
-          $regex: value,
+          $regex: escapeRegex(value),
           $options: "i",
         };
       } else {

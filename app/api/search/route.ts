@@ -5,6 +5,7 @@ import InstallerReward from "@/models/InstallerReward";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { getSearchParams } from "@/lib/validateRequest";
+import { escapeRegex } from "@/lib/queryBuilder";
 
 // GET - Global search across installers and rewards
 export const GET = withAuth(
@@ -23,7 +24,7 @@ export const GET = withAuth(
 
       await dbConnect();
 
-      const searchRegex = new RegExp(query.trim(), "i");
+      const searchRegex = new RegExp(escapeRegex(query.trim()), "i");
 
       // Build search conditions for installers
       const installerSearchConditions = [

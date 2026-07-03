@@ -6,6 +6,7 @@ import InstallerReward, { IInstallerReward } from '@/models/InstallerReward';
 import { IInstaller } from '@/models/Installer';
 import { ITeamMember } from '@/models/TeamMember';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
+import { escapeRegex } from '@/lib/queryBuilder';
 import { FilterQuery } from 'mongoose';
 
 // Type for populated reward document
@@ -75,11 +76,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (productModel) {
-      query.productModel = { $regex: productModel, $options: 'i' };
+      query.productModel = { $regex: escapeRegex(productModel), $options: 'i' };
     }
 
     if (city) {
-      query.cityOfInstallation = { $regex: city, $options: 'i' };
+      query.cityOfInstallation = { $regex: escapeRegex(city), $options: 'i' };
     }
 
     if (startDate || endDate) {

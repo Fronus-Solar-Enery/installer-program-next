@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import GoogleAuth from "@/models/GoogleAuth";
 import { TeamRole } from "@/models/TeamMember";
+import { verifyGoogleAuthLiveness } from "@/lib/googleContacts";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,22 +13,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await dbConnect();
+    // Proactively probe the stored token (throttled) so a dead/undecryptable
+    // token surfaces on page load, not only after a sync happens to fail.
+    const liveness = await verifyGoogleAuthLiveness();
 
-    // Check for ANY active Google auth (global, not per-user)
-    const googleAuth = await GoogleAuth.findOne({
-      isActive: true,
-    });
-
-    const needsReauth = !!googleAuth?.needsReauth;
+    const isAuthenticated = liveness.status === "authenticated";
+    const needsReauth = liveness.status === "needs_reauth";
+    const configError = liveness.status === "misconfigured";
 
     return NextResponse.json({
-      // "Authenticated" means usable: a record exists AND its refresh token
-      // hasn't been rejected. A dead token (invalid_grant) reads as unauthenticated.
-      isAuthenticated: !!googleAuth && !needsReauth,
+      // "Authenticated" means the refresh token was just proven usable.
+      isAuthenticated,
       needsReauth,
-      hasRefreshToken: !!googleAuth?.refreshToken,
-      accountEmail: googleAuth?.accountEmail || null,
+      // Server-side config problem (bad/missing encryption key or OAuth creds);
+      // re-authenticating will NOT fix this.
+      configError,
+      configErrorReason: configError ? liveness.reason : undefined,
+      hasRefreshToken: liveness.status !== "not_authenticated",
+      accountEmail:
+        "accountEmail" in liveness ? liveness.accountEmail : null,
     });
   } catch (error) {
     console.error("Error checking Google auth status:", error);

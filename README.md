@@ -116,8 +116,9 @@ Optional — Google Contacts sync (installer → Google Contacts):
 ```env
 GOOGLE_CONTACTS_CLIENT_ID=
 GOOGLE_CONTACTS_CLIENT_SECRET=
-GOOGLE_CONTACTS_REFRESH_TOKEN=
 ```
+
+The Google Contacts refresh token is obtained through the in-app OAuth flow (Admin → authenticate Google Contacts) and stored encrypted in the database — it is not an environment variable.
 
 Optional — forgot-password email, via Gmail:
 

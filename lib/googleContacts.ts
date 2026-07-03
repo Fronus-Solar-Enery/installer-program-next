@@ -3,6 +3,7 @@ import { google } from "googleapis";
 import dbConnect from "./mongodb";
 import GoogleAuth from "@/models/GoogleAuth";
 import { TRAINING_CENTER } from "./constants";
+import { decryptSecret } from "./encryption";
 
 export interface ContactData {
   fullName: string;
@@ -184,12 +185,118 @@ async function getAuthClient() {
     `${process.env.NEXTAUTH_URL}/api/google-auth/callback`
   );
 
+  // Decrypt credentials only here, at the point of use.
   oauth2Client.setCredentials({
-    refresh_token: googleAuth.refreshToken,
-    access_token: googleAuth.accessToken,
+    refresh_token: decryptSecret(googleAuth.refreshToken),
+    access_token: googleAuth.accessToken
+      ? decryptSecret(googleAuth.accessToken)
+      : undefined,
   });
 
   return oauth2Client;
+}
+
+/** Result of a proactive Google auth liveness probe (used by the status route). */
+export type GoogleAuthLiveness =
+  | { status: "authenticated"; accountEmail: string }
+  | { status: "needs_reauth"; accountEmail: string; reason: string }
+  | { status: "misconfigured"; accountEmail: string; reason: string }
+  | { status: "not_authenticated" };
+
+// Don't re-probe Google on every status poll — cache a successful check.
+const LIVENESS_THROTTLE_MS = 5 * 60 * 1000;
+
+/**
+ * Proactively determine whether the stored Google auth is actually usable,
+ * instead of only discovering a dead token when a sync happens to run.
+ *
+ * Detects three failure modes the status endpoint previously couldn't see:
+ *  - revoked/expired refresh token (invalid_grant) → flags needsReauth
+ *  - un-decryptable stored token (missing/rotated TOKEN_ENCRYPTION_KEY, corrupt
+ *    ciphertext) → reports "misconfigured" (re-auth won't fix a server config bug)
+ *  - missing OAuth client credentials → "misconfigured"
+ *
+ * Throttled: a fresh success is cached for LIVENESS_THROTTLE_MS so page loads
+ * don't hammer Google's token endpoint.
+ */
+export async function verifyGoogleAuthLiveness(): Promise<GoogleAuthLiveness> {
+  await dbConnect();
+
+  const googleAuth = await GoogleAuth.findOne({ isActive: true });
+  if (!googleAuth?.refreshToken) {
+    return { status: "not_authenticated" };
+  }
+
+  // Already flagged as dead by a prior sync/probe — report without re-probing.
+  if (googleAuth.needsReauth) {
+    return {
+      status: "needs_reauth",
+      accountEmail: googleAuth.accountEmail,
+      reason: googleAuth.lastError || "invalid_grant",
+    };
+  }
+
+  // Recently verified live — trust the cache.
+  const lastVerified = googleAuth.lastVerifiedAt?.getTime() ?? 0;
+  if (Date.now() - lastVerified < LIVENESS_THROTTLE_MS) {
+    return { status: "authenticated", accountEmail: googleAuth.accountEmail };
+  }
+
+  const CLIENT_ID =
+    process.env.GOOGLE_CONTACTS_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+  const CLIENT_SECRET =
+    process.env.GOOGLE_CONTACTS_CLIENT_SECRET ||
+    process.env.GOOGLE_CLIENT_SECRET;
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    return {
+      status: "misconfigured",
+      accountEmail: googleAuth.accountEmail,
+      reason: "oauth_credentials_missing",
+    };
+  }
+
+  // Decrypt may throw if the key is missing/rotated or the value is corrupt.
+  let refreshToken: string;
+  try {
+    refreshToken = decryptSecret(googleAuth.refreshToken);
+  } catch (error) {
+    console.error("Failed to decrypt stored Google refresh token:", error);
+    return {
+      status: "misconfigured",
+      accountEmail: googleAuth.accountEmail,
+      reason: "token_decrypt_failed",
+    };
+  }
+
+  const oauth2Client = new google.auth.OAuth2(
+    CLIENT_ID,
+    CLIENT_SECRET,
+    `${process.env.NEXTAUTH_URL}/api/google-auth/callback`
+  );
+  oauth2Client.setCredentials({ refresh_token: refreshToken });
+
+  try {
+    // Forces a token refresh against Google — the cheapest real liveness test.
+    await oauth2Client.getAccessToken();
+  } catch (error) {
+    if (isInvalidGrant(error)) {
+      await flagReauthNeeded("invalid_grant");
+      return {
+        status: "needs_reauth",
+        accountEmail: googleAuth.accountEmail,
+        reason: "invalid_grant",
+      };
+    }
+    // Transient (network/5xx). Don't flag or cache — next poll retries.
+    console.error("Google auth liveness check failed (transient):", error);
+    return { status: "authenticated", accountEmail: googleAuth.accountEmail };
+  }
+
+  await GoogleAuth.updateOne(
+    { _id: googleAuth._id },
+    { lastVerifiedAt: new Date() }
+  );
+  return { status: "authenticated", accountEmail: googleAuth.accountEmail };
 }
 
 /**

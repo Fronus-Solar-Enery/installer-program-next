@@ -11,6 +11,7 @@ export interface IGoogleAuth {
   needsReauth?: boolean; // Set when the refresh token is rejected (invalid_grant)
   lastError?: string; // Last auth error message (e.g. "invalid_grant")
   lastErrorAt?: Date; // When the last auth error occurred
+  lastVerifiedAt?: Date; // Last successful liveness check (throttles proactive checks)
   authenticatedBy?: string; // User ID who authenticated (for audit trail)
   createdAt?: Date;
   updatedAt?: Date;
@@ -50,6 +51,9 @@ const GoogleAuthSchema = new Schema<IGoogleAuth>(
       type: String,
     },
     lastErrorAt: {
+      type: Date,
+    },
+    lastVerifiedAt: {
       type: Date,
     },
     authenticatedBy: {

@@ -32,9 +32,12 @@ export function CNICInput({
         <Input
           id="installer-cnic"
           type="text"
+          inputMode="numeric"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="35202-1234567-8"
+          aria-invalid={!!error}
+          aria-describedby={error ? "installer-cnic-error" : undefined}
           className={`pr-10 ${error ? "border-destructive" : ""}`}
         />
         {isValidating && (
@@ -58,7 +61,13 @@ export function CNICInput({
         )}
       </div>
       {error && !isValidating && (
-        <p className="text-sm text-destructive-text">{error}</p>
+        <p
+          id="installer-cnic-error"
+          role="alert"
+          className="text-sm text-destructive-text"
+        >
+          {error}
+        </p>
       )}
     </div>
   );

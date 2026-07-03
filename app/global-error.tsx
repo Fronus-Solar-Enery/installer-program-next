@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { logger } from "@/lib/logger";
 
 /**
  * Last-resort boundary for errors thrown in the ROOT layout (app/layout.tsx) or
@@ -17,7 +18,10 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Global error:", error);
+    logger.error("Global (root layout) error", {
+      err: error,
+      digest: error.digest,
+    });
   }, [error]);
 
   return (

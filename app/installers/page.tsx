@@ -238,7 +238,7 @@ const InstallerRow = memo(
             <a
               href={`https://wa.me/${installer.whatsappNumber?.replace(
                 /\+/g,
-                ""
+                "",
               )}`}
               target="blank"
               className="flex gap-2 items-center hover:text-primary transition-colors"
@@ -300,7 +300,7 @@ const InstallerRow = memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 InstallerRow.displayName = "InstallerRow";
@@ -321,7 +321,7 @@ export default function InstallersPage() {
   const loading = isLoading || isFetching;
   const installers = useMemo(
     () => queryData?.installers || [],
-    [queryData?.installers]
+    [queryData?.installers],
   );
 
   // Debounced search
@@ -331,6 +331,8 @@ export default function InstallersPage() {
   const [googleAuthStatus, setGoogleAuthStatus] = useState<{
     isAuthenticated: boolean;
     needsReauth?: boolean;
+    configError?: boolean;
+    configErrorReason?: string;
     hasRefreshToken: boolean;
     accountEmail: string | null;
   } | null>(null);
@@ -349,7 +351,7 @@ export default function InstallersPage() {
 
   // Bulk selection and delete state
   const [selectedInstallers, setSelectedInstallers] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [bulkDeleteDialogState, setBulkDeleteDialogState] = useState<{
     open: boolean;
@@ -561,7 +563,7 @@ export default function InstallersPage() {
         setDeletingId(null);
       }
     },
-    [fetchInstallers]
+    [fetchInstallers],
   );
 
   // Bulk delete handler
@@ -598,7 +600,7 @@ export default function InstallersPage() {
 
         // Show success toast
         toast.success(
-          `Successfully deleted ${successCount} installer(s) from database!`
+          `Successfully deleted ${successCount} installer(s) from database!`,
         );
 
         // Show success state with background job info
@@ -671,7 +673,7 @@ export default function InstallersPage() {
 
     // If all on current page are selected, deselect all
     const allSelected = currentPageIds.every((id) =>
-      selectedInstallers.has(id)
+      selectedInstallers.has(id),
     );
 
     if (allSelected) {
@@ -850,7 +852,7 @@ export default function InstallersPage() {
     // Measure each column across all currently rendered cells
     columnKeys.forEach((columnKey) => {
       const cells = measureElement.querySelectorAll(
-        `[data-column="${columnKey}"]`
+        `[data-column="${columnKey}"]`,
       );
       let maxWidth = 0;
 
@@ -1004,7 +1006,7 @@ export default function InstallersPage() {
         flexGrow: 0,
       } as React.CSSProperties,
     }),
-    [columnWidths]
+    [columnWidths],
   );
 
   // Use React Query's dataUpdatedAt for last update time
@@ -1100,13 +1102,11 @@ export default function InstallersPage() {
 
       {/* Google Account Status Indicator */}
       {googleAuthStatus?.isAuthenticated && googleAuthStatus.accountEmail ? (
-        <Card className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800">
+        <Card className="bg-green-50 dark:bg-green-950/10 border-green-200 dark:border-green-800/20">
           <CardContent className="py-3 px-4">
-            <div className="flex items-center gap-2 text-sm">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-muted-foreground">
-                Google Contacts authenticated as:
-              </span>
+            <div className="flex items-center gap-2 text-sm text-green-600">
+              <CheckCircle className="h-4 w-4" />
+              Google Contacts authenticated as:
               <Badge variant="secondary">{googleAuthStatus.accountEmail}</Badge>
             </div>
           </CardContent>
@@ -1122,6 +1122,25 @@ export default function InstallersPage() {
                       googleAuthStatus.accountEmail ?? "the connected account"
                     } has expired or been revoked. Contacts are no longer syncing. Click 'Authenticate Google Contacts' above to reconnect.`
                   : "Google Contacts token has expired — contacts are not syncing. Please contact an administrator to reconnect."}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      ) : googleAuthStatus?.configError ? (
+        <Card className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center gap-2 text-sm">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <span className="text-muted-foreground">
+                {/* Server misconfig (bad/missing TOKEN_ENCRYPTION_KEY or OAuth
+                    creds). Re-authenticating won't help — this is an env fix. */}
+                Google Contacts is misconfigured on the server
+                {googleAuthStatus.configErrorReason
+                  ? ` (${googleAuthStatus.configErrorReason})`
+                  : ""}
+                , so contacts are not syncing. This is a server configuration
+                issue and cannot be fixed by re-authenticating — please contact
+                the system administrator.
               </span>
             </div>
           </CardContent>
@@ -1221,7 +1240,7 @@ export default function InstallersPage() {
                       "hidden sm:flex gap-2 rounded-xl py-1.5 px-2 h-max",
                       filters.dateRange === "custom"
                         ? "text-primary bg-muted"
-                        : "text-muted-foreground"
+                        : "text-muted-foreground",
                     )}
                     disabled={loading}
                   >
@@ -1270,11 +1289,11 @@ export default function InstallersPage() {
                               // Convert dates to local date strings (YYYY-MM-DD)
                               const fromDate = new Date(
                                 dateRange.from.getTime() -
-                                  dateRange.from.getTimezoneOffset() * 60000
+                                  dateRange.from.getTimezoneOffset() * 60000,
                               );
                               const toDate = new Date(
                                 dateRange.to.getTime() -
-                                  dateRange.to.getTimezoneOffset() * 60000
+                                  dateRange.to.getTimezoneOffset() * 60000,
                               );
 
                               setFilters((prev) => ({
@@ -1398,7 +1417,7 @@ export default function InstallersPage() {
                         "size-4!",
                         sortField === "createdAt" && sortDirection === "desc"
                           ? "cursor-not-allowed opacity-50"
-                          : "cursor-pointer"
+                          : "cursor-pointer",
                       )}
                       onClick={() => {
                         if (
@@ -1432,7 +1451,7 @@ export default function InstallersPage() {
                         "size-4!",
                         filters.dateRange === "all"
                           ? "cursor-not-allowed opacity-50"
-                          : "cursor-pointer"
+                          : "cursor-pointer",
                       )}
                       onClick={() => {
                         if (filters.dateRange !== "all") {
@@ -1699,14 +1718,14 @@ export default function InstallersPage() {
                         checked={
                           paginatedInstallers.length > 0 &&
                           paginatedInstallers.every((i) =>
-                            selectedInstallers.has(i._id)
+                            selectedInstallers.has(i._id),
                           )
                             ? true
                             : paginatedInstallers.some((i) =>
-                                selectedInstallers.has(i._id)
-                              )
-                            ? "indeterminate"
-                            : false
+                                  selectedInstallers.has(i._id),
+                                )
+                              ? "indeterminate"
+                              : false
                         }
                         onCheckedChange={toggleSelectAll}
                         aria-label="Select all installers on this page"
@@ -1888,7 +1907,7 @@ export default function InstallersPage() {
                     }}
                     exit={{ opacity: 0, y: 5 }}
                     className={cn(
-                      "border border-border rounded-2xl p-2 flex items-center gap-2 relative bg-background/40 backdrop-blur-sm pointer-events-auto"
+                      "border border-border rounded-2xl p-2 flex items-center gap-2 relative bg-background/40 backdrop-blur-sm pointer-events-auto",
                     )}
                   >
                     <div className="px-4 py-3 rounded-xl flex items-center justify-center leading-none select-none">
@@ -2040,7 +2059,7 @@ export default function InstallersPage() {
           ) {
             handleDelete(
               deleteDialogState.installerId,
-              deleteDialogState.installerName
+              deleteDialogState.installerName,
             );
           }
         }}

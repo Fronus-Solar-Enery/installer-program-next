@@ -347,6 +347,7 @@ export function ForgotPasswordDialog({
               <div className="flex justify-center">
                 <AnimatedOTPInput
                   maxLength={6}
+                  aria-label="6-Digit PIN"
                   value={pin}
                   onChange={(value) => {
                     setPin(value);

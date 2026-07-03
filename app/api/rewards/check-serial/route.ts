@@ -3,6 +3,7 @@ import { Types, FilterQuery } from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import InstallerReward, { IInstallerReward } from "@/models/InstallerReward";
 import { ApiResponse } from "@/lib/apiResponse";
+import { escapeRegex } from "@/lib/queryBuilder";
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,9 +17,10 @@ export async function GET(request: NextRequest) {
       return ApiResponse.error("Serial number is required", 400);
     }
 
-    // Build query to check if serial number exists (case-insensitive)
+    // Build query to check if serial number exists (case-insensitive, exact).
+    // Escape so a serial containing regex metacharacters matches literally.
     const query: FilterQuery<IInstallerReward> = {
-      serialNumber: { $regex: new RegExp(`^${serialNumber}$`, "i") },
+      serialNumber: { $regex: new RegExp(`^${escapeRegex(serialNumber)}$`, "i") },
     };
 
     // Exclude the current reward if editing

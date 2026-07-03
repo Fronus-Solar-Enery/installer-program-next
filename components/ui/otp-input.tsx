@@ -15,6 +15,9 @@ interface AnimatedInputOTPProps {
   onComplete?: (value: string) => void;
   maxLength?: number;
   className?: string;
+  /** Accessible name for the field — the slot <div>s are decorative, so the
+   *  underlying input needs this or screen readers announce nothing. */
+  "aria-label"?: string;
 }
 
 function AnimatedInputOTP({
@@ -24,6 +27,7 @@ function AnimatedInputOTP({
   onChange,
   onComplete,
   maxLength = 6,
+  "aria-label": ariaLabel = "Verification code",
   children,
   ...props
 }: AnimatedInputOTPProps & { children: React.ReactNode }) {
@@ -36,6 +40,9 @@ function AnimatedInputOTP({
   return (
     <OTPInput
       data-slot="input-otp"
+      aria-label={ariaLabel}
+      inputMode="numeric"
+      autoComplete="one-time-code"
       containerClassName={cn(
         "flex items-center gap-2 has-disabled:opacity-50",
         containerClassName

@@ -15,7 +15,9 @@
     "test:db": "node scripts/testDbConnection.js",
     "icondex": "node icondex.mjs",
     "removeprops": "node scripts/remove-iconprops.js",
-    "reset:admin": "node scripts/resetAdmin.js"
+    "reset:admin": "node scripts/resetAdmin.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@auth/core": "0.41.0",
@@ -88,6 +90,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
     "tailwindcss": "^4.1.14",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.9"
   }
 }
