@@ -3,12 +3,11 @@ import dbConnect from "@/lib/mongodb";
 import Installer, { IInstaller } from "@/models/Installer";
 import { registerInstallerSchema } from "@/lib/validation";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
-import { createGoogleContact } from "@/lib/googleContacts";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { validateBody, getSearchParams } from "@/lib/validateRequest";
 import { QueryBuilder, parseSortParams } from "@/lib/queryBuilder";
 import { getPaginationParams, createPaginationMeta } from "@/lib/pagination";
-import { BUSINESS_RULES } from "@/lib/constants";
+import { createInstaller, InstallerServiceError } from "@/services/installers";
 
 // GET all installers with filtering
 export const GET = withAuth(
@@ -58,85 +57,25 @@ export const GET = withAuth(
 export const POST = withAuth(
   async (request: NextRequest, context: RouteContext, session: AuthSession) => {
     try {
-      // Validate request body
       const validation = await validateBody(request, registerInstallerSchema);
       if (!validation.success) return validation.response;
-      const validatedData = validation.data;
 
       await dbConnect();
 
-      // Validate referrer code if provided
-      if (validatedData.referrerCode) {
-        const referrer = await Installer.findOne({
-          installerCode: validatedData.referrerCode,
-        });
-        if (!referrer) {
-          return ApiResponse.error("Invalid referrer code", 400);
-        }
-
-        // Check if referrer has already referred maximum installers
-        const referralCount = await Installer.countDocuments({
-          referrer: referrer._id,
-        });
-        if (referralCount >= BUSINESS_RULES.MAX_REFERRALS_PER_INSTALLER) {
-          return ApiResponse.error(
-            `Referrer has already referred maximum (${BUSINESS_RULES.MAX_REFERRALS_PER_INSTALLER}) installers`,
-            400
-          );
-        }
-      }
-
-      // Create installer
-      const installer = await Installer.create({
-        ...validatedData,
-        registeredBy: session.user.id,
-      });
-
-      // Create Google Contact (using global authentication)
-      let googleContactStatus = "not attempted";
-      try {
-        const googleContactId = await createGoogleContact({
-          fullName: installer.fullName,
-          phoneNumber: installer.phoneNumber,
-          whatsappNumber: installer.whatsappNumber,
-          address: installer.address,
-          city: installer.city,
-          province: installer.province,
-          companyName: installer.companyName,
-          installerCode: installer.installerCode,
-          referrerCode: installer.referrerCode,
-          cnic: installer.cnic,
-          trainingCenter: installer.trainingCenter,
-        });
-
-        if (googleContactId) {
-          installer.googleContactId = googleContactId;
-          await installer.save();
-          googleContactStatus = "success";
-          console.log("✓ Google contact created:", googleContactId);
-        } else {
-          googleContactStatus = "failed - no ID returned";
-          console.warn("⚠ Google contact creation returned null");
-        }
-      } catch (error) {
-        googleContactStatus = "failed - error";
-        console.error("✗ Failed to create Google contact:", error);
-        if (error instanceof Error) {
-          console.error("Error details:", error.message);
-          console.error("Error stack:", error.stack);
-        }
-      }
-
-      const populatedInstaller = await Installer.findById(installer._id)
-        .populate("registeredBy", "name email role")
-        .populate("referrer", "installerCode fullName");
+      const installer = await createInstaller(
+        validation.data,
+        session.user.id
+      );
 
       return ApiResponse.success(
-        populatedInstaller,
+        installer,
         "Installer registered successfully",
         201
       );
     } catch (error) {
+      if (error instanceof InstallerServiceError) {
+        return ApiResponse.error(error.message, error.status);
+      }
       return handleApiError(error);
     }
   }

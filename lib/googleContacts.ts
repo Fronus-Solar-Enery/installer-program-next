@@ -106,6 +106,50 @@ async function getOrCreateContactGroup(
   }
 }
 
+/**
+ * Detects a dead refresh token. Google returns `invalid_grant`
+ * ("Token has been expired or revoked") once the stored refresh token is no
+ * longer usable — the only fix is re-authenticating via the OAuth flow.
+ */
+function isInvalidGrant(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const e = error as any;
+  return (
+    e?.response?.data?.error === "invalid_grant" ||
+    e?.message === "invalid_grant" ||
+    /invalid_grant/i.test(typeof e?.message === "string" ? e.message : "")
+  );
+}
+
+/**
+ * Flags the active Google auth record as needing re-authentication so the UI
+ * can surface a visible banner instead of silently failing every sync.
+ */
+async function flagReauthNeeded(reason: string): Promise<void> {
+  try {
+    await dbConnect();
+    await GoogleAuth.updateOne(
+      { isActive: true },
+      { needsReauth: true, lastError: reason, lastErrorAt: new Date() }
+    );
+    console.error(
+      "⚠ Google Contacts refresh token rejected (invalid_grant). Flagged for re-authentication."
+    );
+  } catch (e) {
+    console.error("Failed to flag Google auth for re-authentication:", e);
+  }
+}
+
+/**
+ * Inspects a caught error and, if it is an invalid_grant, records the re-auth
+ * flag. Safe to call from any catch block.
+ */
+async function handleGoogleAuthError(error: unknown): Promise<void> {
+  if (isInvalidGrant(error)) {
+    await flagReauthNeeded("invalid_grant");
+  }
+}
+
 async function getAuthClient() {
   await dbConnect();
 
@@ -194,6 +238,7 @@ export async function preloadContactGroups(
     return result;
   } catch (error) {
     console.error("Error preloading contact groups:", error);
+    await handleGoogleAuthError(error);
     return null;
   }
 }
@@ -544,6 +589,7 @@ export async function createGoogleContact(
     if (error instanceof Error) {
       console.error("Error message:", error.message);
     }
+    await handleGoogleAuthError(error);
     return null;
   }
 }
@@ -751,6 +797,7 @@ export async function updateGoogleContact(
     return true;
   } catch (error) {
     console.error("Error updating Google contact:", error);
+    await handleGoogleAuthError(error);
     return false;
   }
 }
@@ -805,6 +852,7 @@ export async function deleteGoogleContact(
     }
 
     console.error("Error deleting Google contact:", error);
+    await handleGoogleAuthError(error);
     return false;
   }
 }

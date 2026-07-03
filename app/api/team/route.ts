@@ -3,6 +3,8 @@ import dbConnect from "@/lib/mongodb";
 import TeamMember, { TeamRole } from "@/models/TeamMember";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
+import { validateBody } from "@/lib/validateRequest";
+import { registerTeamMemberSchema } from "@/lib/validation";
 import bcrypt from "bcryptjs";
 
 // GET all team members (ADMIN/MANAGER only)
@@ -30,25 +32,11 @@ export const GET = withAuth(
 export const POST = withAuth(
   async (request: NextRequest, context: RouteContext, session: AuthSession) => {
     try {
+      const validation = await validateBody(request, registerTeamMemberSchema);
+      if (!validation.success) return validation.response;
+      const { name, email, password, role } = validation.data;
+
       await dbConnect();
-
-      const { name, email, password, role } = await request.json();
-
-      // Validate required fields
-      if (!name || !email || !password) {
-        return ApiResponse.badRequest("Name, email, and password are required");
-      }
-
-      // Validate password length
-      if (password.length < 6) {
-        return ApiResponse.badRequest("Password must be at least 6 characters");
-      }
-
-      // Validate role
-      const validRoles = [TeamRole.ADMIN, TeamRole.MANAGER, TeamRole.USER];
-      if (role && !validRoles.includes(role)) {
-        return ApiResponse.badRequest("Invalid role");
-      }
 
       // Check if user can create this role
       const userRole = session.user.role;
@@ -56,9 +44,11 @@ export const POST = withAuth(
         return ApiResponse.forbidden("Only admins can create admin accounts");
       }
 
+      const normalizedEmail = email.toLowerCase();
+
       // Check if email already exists
       const existingMember = await TeamMember.findOne({
-        email: email.toLowerCase(),
+        email: normalizedEmail,
       });
       if (existingMember) {
         return ApiResponse.conflict(
@@ -72,9 +62,9 @@ export const POST = withAuth(
       // Create team member
       const teamMember = await TeamMember.create({
         name,
-        email: email.toLowerCase(),
+        email: normalizedEmail,
         password: hashedPassword,
-        role: role || TeamRole.USER,
+        role,
       });
 
       // Return member without password

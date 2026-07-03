@@ -4,6 +4,21 @@ import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/mongodb";
 import TeamMember, { TeamRole } from "@/models/TeamMember";
+import { isRateLimited, recordFailedAttempt } from "@/lib/rateLimit";
+
+// Login throttle: cap failed password guesses per (email, IP).
+const LOGIN_WINDOW_MS = 10 * 60 * 1000;
+const LOGIN_LIMIT = 5;
+
+function ipFromRequest(request: Request | undefined): string {
+  const headers = request?.headers;
+  const forwarded = headers?.get("x-forwarded-for");
+  return (
+    forwarded?.split(",")[0]?.trim() ||
+    headers?.get("x-real-ip") ||
+    "unknown"
+  );
+}
 
 // Custom error class for passing specific error messages to client
 // This is required for NextAuth v5 to properly pass error messages
@@ -65,7 +80,7 @@ export const authConfig: NextAuthConfig = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) {
           throw new CustomAuthError("Please enter both email and password");
         }
@@ -81,12 +96,29 @@ export const authConfig: NextAuthConfig = {
           throw new CustomAuthError("Password cannot be empty");
         }
 
+        // Throttle password guessing per (email, IP). Only failed attempts are
+        // recorded, so a legitimate login never consumes the budget.
+        const normalizedEmail = email.trim().toLowerCase();
+        const rateLimitKey = `login:${normalizedEmail}:${ipFromRequest(
+          request as Request | undefined
+        )}`;
+        const rl = await isRateLimited(rateLimitKey, {
+          limit: LOGIN_LIMIT,
+          windowMs: LOGIN_WINDOW_MS,
+        });
+        if (rl.limited) {
+          throw new CustomAuthError(
+            "Too many login attempts. Please try again later."
+          );
+        }
+
         await dbConnect();
         const user = await TeamMember.findOne({
-          email: email.trim().toLowerCase(),
+          email: normalizedEmail,
         });
 
         if (!user) {
+          await recordFailedAttempt(rateLimitKey, { windowMs: LOGIN_WINDOW_MS });
           throw new CustomAuthError("No account found with this email address");
         }
 
@@ -100,6 +132,7 @@ export const authConfig: NextAuthConfig = {
         const isValid = await bcrypt.compare(password, passwordHash);
 
         if (!isValid) {
+          await recordFailedAttempt(rateLimitKey, { windowMs: LOGIN_WINDOW_MS });
           throw new CustomAuthError("Incorrect password. Please try again.");
         }
 

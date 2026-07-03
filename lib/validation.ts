@@ -30,7 +30,9 @@ export const registerTeamMemberSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.email({ message: "Invalid email address" }),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(TeamRole),
+  // Optional with a default so a missing role falls back to USER, matching the
+  // route's prior behavior.
+  role: z.enum(TeamRole).default(TeamRole.USER),
 });
 
 export const updateTeamMemberSchema = z.object({

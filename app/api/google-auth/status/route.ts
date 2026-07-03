@@ -19,8 +19,13 @@ export async function GET(request: NextRequest) {
       isActive: true,
     });
 
+    const needsReauth = !!googleAuth?.needsReauth;
+
     return NextResponse.json({
-      isAuthenticated: !!googleAuth,
+      // "Authenticated" means usable: a record exists AND its refresh token
+      // hasn't been rejected. A dead token (invalid_grant) reads as unauthenticated.
+      isAuthenticated: !!googleAuth && !needsReauth,
+      needsReauth,
       hasRefreshToken: !!googleAuth?.refreshToken,
       accountEmail: googleAuth?.accountEmail || null,
     });

@@ -6,9 +6,11 @@ export interface IPasswordReset {
   expiresAt: Date;
   createdAt: Date;
   used: boolean;
+  /** Failed verification attempts; the record is destroyed once this hits the cap. */
+  attempts: number;
 }
 
-const passwordResetSchema = new mongoose.Schema({
+const passwordResetSchema = new mongoose.Schema<IPasswordReset>({
   email: {
     type: String,
     required: true,
@@ -32,11 +34,17 @@ const passwordResetSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  attempts: {
+    type: Number,
+    default: 0,
+  },
 });
 
 // Compound index for efficient queries
 passwordResetSchema.index({ email: 1, pin: 1 });
 
-const PasswordReset = mongoose.models.PasswordReset || mongoose.model('PasswordReset', passwordResetSchema);
+const PasswordReset =
+  (mongoose.models.PasswordReset as mongoose.Model<IPasswordReset>) ||
+  mongoose.model<IPasswordReset>('PasswordReset', passwordResetSchema);
 
 export default PasswordReset;

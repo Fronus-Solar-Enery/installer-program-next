@@ -330,6 +330,7 @@ export default function InstallersPage() {
   const debouncedSearch = useDebounce(search, 300);
   const [googleAuthStatus, setGoogleAuthStatus] = useState<{
     isAuthenticated: boolean;
+    needsReauth?: boolean;
     hasRefreshToken: boolean;
     accountEmail: string | null;
   } | null>(null);
@@ -1107,6 +1108,21 @@ export default function InstallersPage() {
                 Google Contacts authenticated as:
               </span>
               <Badge variant="secondary">{googleAuthStatus.accountEmail}</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      ) : googleAuthStatus?.needsReauth ? (
+        <Card className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center gap-2 text-sm">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <span className="text-muted-foreground">
+                {isAdmin
+                  ? `Google Contacts token for ${
+                      googleAuthStatus.accountEmail ?? "the connected account"
+                    } has expired or been revoked. Contacts are no longer syncing. Click 'Authenticate Google Contacts' above to reconnect.`
+                  : "Google Contacts token has expired — contacts are not syncing. Please contact an administrator to reconnect."}
+              </span>
             </div>
           </CardContent>
         </Card>

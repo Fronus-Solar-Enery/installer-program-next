@@ -80,6 +80,7 @@ export default function NewInstallerPage() {
   // Google Auth Status
   const [googleAuthStatus, setGoogleAuthStatus] = useState<{
     isAuthenticated: boolean;
+    needsReauth?: boolean;
     hasRefreshToken: boolean;
     accountEmail: string | null;
   } | null>(null);
@@ -661,10 +662,16 @@ export default function NewInstallerPage() {
                     </svg>
                     <div className="flex-1">
                       <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-1">
-                        Google Contacts Authentication Required
+                        {googleAuthStatus?.needsReauth
+                          ? "Google Contacts Token Expired"
+                          : "Google Contacts Authentication Required"}
                       </h3>
                       <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                        {isAdmin
+                        {googleAuthStatus?.needsReauth
+                          ? isAdmin
+                            ? "The Google Contacts token has expired or been revoked, so contacts are no longer syncing. Please reconnect before registering installers."
+                            : "The Google Contacts token has expired — contacts are not syncing. Please contact an administrator to reconnect."
+                          : isAdmin
                           ? "Please authenticate Google Contacts before registering installers. This allows automatic contact creation in Google Contacts."
                           : "Google Contacts is not authenticated. Please contact an administrator to authenticate Google Contacts before registering installers."}
                       </p>

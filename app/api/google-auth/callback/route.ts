@@ -70,6 +70,9 @@ export async function GET(request: NextRequest) {
         expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date) : undefined,
         scope: 'https://www.googleapis.com/auth/contacts',
         isActive: true,
+        needsReauth: false, // Fresh token — clear any prior invalid_grant flag
+        lastError: null,
+        lastErrorAt: null,
         authenticatedBy: state, // Track which user authenticated (audit trail)
       },
       { upsert: true, new: true }

@@ -24,6 +24,7 @@ Next.js 15 App Router application. MongoDB via Mongoose. NextAuth v5 (JWT sessio
 
 - `app/api/` — All API routes. Each resource folder contains `route.ts` for collection endpoints and `[id]/route.ts` for item endpoints.
 - `app/(pages)/` — Page components. Auth-protected pages rely on `AppLayout` to enforce session.
+- `services/` — Per-aggregate orchestration (business rules + persistence + side-effect sync). Route handlers stay thin: auth + validate + call service + respond. Services throw typed errors (e.g. `InstallerServiceError` with an HTTP `status`) and stay HTTP-free; routes map those to `ApiResponse`. See `services/installers.ts`.
 - `lib/` — Shared server utilities.
 - `models/` — Mongoose schemas. Use the `mongoose.models.X || mongoose.model('X', schema)` pattern to avoid model re-registration in dev.
 - `components/` — Client components (shadcn/ui base + custom). Icons are individual files under `components/icons/`.
@@ -50,6 +51,13 @@ Use `handleApiError(error)` in catch blocks — it handles Zod errors, Mongoose 
 ### Database connection
 
 `lib/mongodb.ts` exports `dbConnect()` — cached singleton with connection pooling. Call at the top of every API route handler. Connection is lazy (first request triggers it). Verbose diagnostic logging in dev mode.
+
+### Deferred scaling triggers
+
+Two known architecture debts are intentionally deferred — fine at current scale, revisit only when the trigger fires. Do **not** pre-build these:
+
+- **`lib/` grouping** — flat today. When file count roughly doubles (~2-3x), split into `lib/db/`, `lib/integrations/`, `lib/http/`, `lib/domain/`. Mechanical (file moves + import fixes), no new abstraction.
+- **Model-access seam** — modules import Mongoose models directly (`import Installer from "@/models/Installer"`). Introduce a repository/DI layer only when a concrete need lands (caching, read replica). Until then, direct imports stay.
 
 ### Bulk operations
 

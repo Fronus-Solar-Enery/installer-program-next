@@ -157,7 +157,7 @@ export function RegistrationModal({
                     // Calculate cumulative weight up to this step
                     const cumulativeWeight = REGISTRATION_STEPS.slice(
                       0,
-                      index
+                      index,
                     ).reduce((sum, s) => sum + s.weight, 0);
                     const stepThreshold = cumulativeWeight * 100;
                     const stepEndThreshold =
@@ -173,7 +173,7 @@ export function RegistrationModal({
                       ? Math.min(
                           ((progress - stepThreshold) / (step.weight * 100)) *
                             100,
-                          100
+                          100,
                         )
                       : 0;
 
@@ -185,7 +185,7 @@ export function RegistrationModal({
                         transition={{ delay: index * 0.1 }}
                         className={cn(
                           "relative flex items-center gap-3 p-3 rounded-2xl overflow-hidden transition-colors duration-300",
-                          isCompleted && "bg-success/5"
+                          isCompleted && "bg-success/5",
                         )}
                       >
                         {/* Animated progress bar background for current step */}
@@ -204,7 +204,7 @@ export function RegistrationModal({
                               "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300",
                               isCompleted && "bg-success/20 text-success-text",
                               isCurrent && "bg-primary text-primary-foreground",
-                              isPending && "bg-muted text-muted-foreground"
+                              isPending && "bg-muted text-muted-foreground",
                             )}
                           >
                             {isCompleted ? (
@@ -228,7 +228,7 @@ export function RegistrationModal({
                               "text-sm font-medium transition-colors duration-300",
                               isCompleted && "text-success-text",
                               isCurrent && "text-foreground",
-                              isPending && "text-muted-foreground"
+                              isPending && "text-muted-foreground",
                             )}
                           >
                             {step.label}
