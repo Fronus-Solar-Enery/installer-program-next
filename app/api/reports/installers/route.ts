@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import dbConnect from '@/lib/mongodb';
 import Installer, { IInstaller } from '@/models/Installer';
 import { ITeamMember } from '@/models/TeamMember';
@@ -25,7 +25,7 @@ interface ExcelInstallerData {
   'Address': string;
   'City': string;
   'Province': string;
-  'Training Center': string;
+  'District': string;
   'Company Name': string;
   'Bank Name': string;
   'Account Number': string;
@@ -73,7 +73,8 @@ export async function GET(request: NextRequest) {
 
     if (format === 'excel') {
       // Create Excel workbook
-      const workbook = XLSX.utils.book_new();
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Installers');
 
       // Prepare data for Excel
       const excelData: ExcelInstallerData[] = installers.map((installer) => {
@@ -87,7 +88,7 @@ export async function GET(request: NextRequest) {
           'Address': populatedInstaller.address,
           'City': populatedInstaller.city,
           'Province': populatedInstaller.province,
-          'Training Center': populatedInstaller.trainingCenter,
+          'District': populatedInstaller.district,
           'Company Name': populatedInstaller.companyName || '',
           'Bank Name': populatedInstaller.bankName,
           'Account Number': populatedInstaller.accountNumber,
@@ -99,13 +100,18 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      const worksheet = XLSX.utils.json_to_sheet(excelData);
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Installers');
+      worksheet.columns = [
+        'Installer Code', 'Full Name', 'CNIC', 'Phone Number', 'WhatsApp Number',
+        'Address', 'City', 'Province', 'District', 'Company Name',
+        'Bank Name', 'Account Number', 'Account Title', 'Certified',
+        'Referrer Code', 'Registered By', 'Registration Date',
+      ].map((header) => ({ header, key: header }));
+      worksheet.addRows(excelData);
 
       // Generate Excel file
-      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      const excelBuffer = await workbook.xlsx.writeBuffer();
 
-      return new Response(excelBuffer, {
+      return new Response(Buffer.from(excelBuffer), {
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'Content-Disposition': `attachment; filename=installers_report_${Date.now()}.xlsx`,

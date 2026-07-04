@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   CITIES,
   CITY_TO_PROVINCE,
-  TRAINING_CENTER,
+  CITY_TO_DISTRICT,
   BANKS,
   PROVINCES,
 } from "@/lib/constants";
@@ -36,7 +36,6 @@ import {
   IconUserOctagon,
   IconAltArrowRight,
   IconAltArrowLeft,
-  IconTrainingCenter,
   IconLayer,
 } from "@/components/icons";
 import Loading from "@/components/ui/loading";
@@ -132,9 +131,9 @@ export default function NewInstallerPage() {
   // Step 2 - Location & Training
   const [city, setCity] = useState("");
   const [province, setProvince] = useState("");
+  const [district, setDistrict] = useState("");
   const [address, setAddress] = useState("");
-  const [trainingCenter, setTrainingCenter] = useState("");
-  const prevTrainingCenterRef = useRef("");
+  const prevDistrictRef = useRef("");
 
   const {
     installerCode,
@@ -145,8 +144,8 @@ export default function NewInstallerPage() {
     handleInstallerCodeChange,
     setInstallerCode,
   } = useInstallerCodeGeneration(
-    trainingCenter,
-    settings?.allowInstallerCodeEdit || false
+    district,
+    settings?.allowInstallerCodeEdit || false,
   );
 
   const installerCodeAutoGen = !settings?.allowInstallerCodeEdit;
@@ -174,7 +173,6 @@ export default function NewInstallerPage() {
       phoneNumber.trim() !== "" ||
       city !== "" ||
       address.trim() !== "" ||
-      trainingCenter !== "" ||
       bankName !== "" ||
       accountNumber.trim() !== "" ||
       companyName.trim() !== "" ||
@@ -186,7 +184,6 @@ export default function NewInstallerPage() {
     phoneNumber,
     city,
     address,
-    trainingCenter,
     bankName,
     accountNumber,
     companyName,
@@ -281,23 +278,25 @@ export default function NewInstallerPage() {
     if (city) {
       const cityProvince = CITY_TO_PROVINCE[city];
       if (cityProvince) setProvince(cityProvince);
+      const cityDistrict = CITY_TO_DISTRICT[city];
+      if (cityDistrict) setDistrict(cityDistrict);
     }
   }, [city]);
 
-  // Handle training center change - clear installer code to trigger regeneration
-  // This is for NEW installer registration only (no initial training center)
+  // Handle district change - clear installer code to trigger regeneration
+  // This is for NEW installer registration only (no initial district)
   useEffect(() => {
     if (
-      trainingCenter &&
+      district &&
       installerCodeAutoGen &&
-      prevTrainingCenterRef.current &&
-      prevTrainingCenterRef.current !== trainingCenter
+      prevDistrictRef.current &&
+      prevDistrictRef.current !== district
     ) {
-      // Training center changed, clear the code to trigger regeneration
+      // District changed, clear the code to trigger regeneration
       setInstallerCode("");
     }
-    prevTrainingCenterRef.current = trainingCenter;
-  }, [trainingCenter, installerCodeAutoGen, setInstallerCode]);
+    prevDistrictRef.current = district;
+  }, [district, installerCodeAutoGen, setInstallerCode]);
 
   // Memoize validation functions
   const isStep1Valid = useCallback(() => {
@@ -316,7 +315,7 @@ export default function NewInstallerPage() {
   }, [cnicChecked, cnic, cnicError, fullName, phoneNumber, whatsappNumber]);
 
   const isStep2Valid = useCallback(() => {
-    if (!city || !address.trim() || !trainingCenter || !installerCode.trim()) {
+    if (!city || !address.trim() || !district || !installerCode.trim()) {
       return false;
     }
     // For manual edit mode, code must be valid
@@ -328,7 +327,7 @@ export default function NewInstallerPage() {
   }, [
     city,
     address,
-    trainingCenter,
+    district,
     installerCode,
     installerCodeAutoGen,
     codeValid,
@@ -356,25 +355,25 @@ export default function NewInstallerPage() {
   const handleNext = useCallback(() => {
     if (currentStep === 1 && !isStep1Valid()) {
       toast.error(
-        "Please check: CNIC must be 13 digits, Phone numbers must start with 03 and be 11 digits long"
+        "Please check: CNIC must be 13 digits, Phone numbers must start with 03 and be 11 digits long",
       );
       return;
     }
     if (currentStep === 2 && !isStep2Valid()) {
       toast.error(
-        "Please complete: City, Address, Training Center, and Installer Code must all be filled"
+        "Please complete: City, Address, District, and Installer Code must all be filled",
       );
       return;
     }
     if (currentStep === 3 && !isStep3Valid()) {
       toast.error(
-        "Please verify: Bank Name, Account Title, and correct Account Number format"
+        "Please verify: Bank Name, Account Title, and correct Account Number format",
       );
       return;
     }
     if (currentStep === 4 && !isStep4Valid()) {
       toast.error(
-        "Referrer code is not valid. You can leave it empty if you don't have a referrer."
+        "Referrer code is not valid. You can leave it empty if you don't have a referrer.",
       );
       return;
     }
@@ -397,12 +396,12 @@ export default function NewInstallerPage() {
         cnic: cnicDisplay,
         phoneNumber: phoneNumberToDBFormat(phoneInput.value || phoneNumber),
         whatsappNumber: phoneNumberToDBFormat(
-          whatsappInput.value || whatsappNumber
+          whatsappInput.value || whatsappNumber,
         ),
         address,
         city,
         province,
-        trainingCenter,
+        district,
         companyName,
         bankName,
         accountNumber: isDigitalPayment
@@ -467,7 +466,7 @@ export default function NewInstallerPage() {
           });
         } else {
           toast.error(
-            data.error || data.message || "Failed to register installer"
+            data.error || data.message || "Failed to register installer",
           );
         }
       }
@@ -507,7 +506,7 @@ export default function NewInstallerPage() {
   // Memoize selected bank and digital payment check
   const selectedBank = useMemo(
     () => BANKS.find((b) => b.value === bankName),
-    [bankName]
+    [bankName],
   );
   const isDigitalPayment = selectedBank?.mobile || false;
 
@@ -520,7 +519,7 @@ export default function NewInstallerPage() {
       { number: 4, title: "Additional Info" },
       { number: 5, title: "Review" },
     ],
-    []
+    [],
   );
 
   // Memoize city groups for dropdown
@@ -540,17 +539,7 @@ export default function NewInstallerPage() {
             ),
           })),
       })),
-    []
-  );
-
-  // Memoize training center options
-  const trainingCenterOptions = useMemo(
-    () =>
-      TRAINING_CENTER.map((tc) => ({
-        value: tc.city,
-        label: tc.city,
-      })),
-    []
+    [],
   );
 
   // Memoize bank groups
@@ -571,7 +560,7 @@ export default function NewInstallerPage() {
         })),
       },
     ],
-    []
+    [],
   );
 
   const referrerJoined = useRelativeTime(referrerData?.createdAt || "");
@@ -667,8 +656,8 @@ export default function NewInstallerPage() {
                         {googleAuthStatus?.configError
                           ? "Google Contacts Misconfigured"
                           : googleAuthStatus?.needsReauth
-                          ? "Google Contacts Token Expired"
-                          : "Google Contacts Authentication Required"}
+                            ? "Google Contacts Token Expired"
+                            : "Google Contacts Authentication Required"}
                       </h3>
                       <p className="text-sm text-yellow-800 dark:text-yellow-200">
                         {googleAuthStatus?.configError
@@ -678,12 +667,12 @@ export default function NewInstallerPage() {
                                 : ""
                             }, so contacts are not syncing. This is a server configuration issue that re-authenticating cannot fix — please contact the system administrator.`
                           : googleAuthStatus?.needsReauth
-                          ? isAdmin
-                            ? "The Google Contacts token has expired or been revoked, so contacts are no longer syncing. Please reconnect before registering installers."
-                            : "The Google Contacts token has expired — contacts are not syncing. Please contact an administrator to reconnect."
-                          : isAdmin
-                          ? "Please authenticate Google Contacts before registering installers. This allows automatic contact creation in Google Contacts."
-                          : "Google Contacts is not authenticated. Please contact an administrator to authenticate Google Contacts before registering installers."}
+                            ? isAdmin
+                              ? "The Google Contacts token has expired or been revoked, so contacts are no longer syncing. Please reconnect before registering installers."
+                              : "The Google Contacts token has expired — contacts are not syncing. Please contact an administrator to reconnect."
+                            : isAdmin
+                              ? "Please authenticate Google Contacts before registering installers. This allows automatic contact creation in Google Contacts."
+                              : "Google Contacts is not authenticated. Please contact an administrator to authenticate Google Contacts before registering installers."}
                       </p>
                     </div>
                   </div>
@@ -739,7 +728,7 @@ export default function NewInstallerPage() {
           <CardContent
             className={cn(
               !googleAuthStatus?.isAuthenticated &&
-                "opacity-50 pointer-events-none select-none"
+                "opacity-50 pointer-events-none select-none",
             )}
           >
             {/* Step Content */}
@@ -757,7 +746,7 @@ export default function NewInstallerPage() {
                     className={cn(
                       "text-card-foreground",
                       GRID_2_COL_CLASS,
-                      CARD_SECTION_CLASS
+                      CARD_SECTION_CLASS,
                     )}
                   >
                     <CNICInput
@@ -881,6 +870,28 @@ export default function NewInstallerPage() {
                           disabled
                         />
 
+                        <FormField
+                          type="text"
+                          label="District"
+                          id="district"
+                          value={district}
+                          onChange={() => {}}
+                          icon={IconMapPoint}
+                          disabled
+                        />
+
+                        {district && (
+                          <InstallerCodeDisplay
+                            code={installerCode}
+                            isGenerating={codeGenerating}
+                            isManualEdit={!installerCodeAutoGen}
+                            onCodeChange={handleInstallerCodeChange}
+                            isValidating={codeValidating}
+                            error={codeError}
+                            isValid={codeValid}
+                          />
+                        )}
+
                         <div className="col-span-2">
                           <FormField
                             type="text"
@@ -893,35 +904,6 @@ export default function NewInstallerPage() {
                             autocomplete={"on"}
                             required
                           />
-                        </div>
-
-                        <div className="grid grid-cols-2 col-span-2 gap-4">
-                          <FormField
-                            type="select"
-                            label="Training Center"
-                            id="trainingCenter"
-                            value={trainingCenter}
-                            onChange={setTrainingCenter}
-                            placeholder="Select Training Center"
-                            icon={IconTrainingCenter}
-                            options={trainingCenterOptions}
-                            searchable
-                            searchPlaceholder="Search training centers..."
-                            emptyMessage="No training center found."
-                            required
-                          />
-
-                          {trainingCenter && (
-                            <InstallerCodeDisplay
-                              code={installerCode}
-                              isGenerating={codeGenerating}
-                              isManualEdit={!installerCodeAutoGen}
-                              onCodeChange={handleInstallerCodeChange}
-                              isValidating={codeValidating}
-                              error={codeError}
-                              isValid={codeValid}
-                            />
-                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -1148,7 +1130,7 @@ export default function NewInstallerPage() {
                           <div
                             className={cn(
                               "mt-2 p-4 border pointer-events-none select-none border-border group rounded-3xl bg-muted/50 hover:bg-muted/70 transition-colors duration-300 flex items-center justify-between",
-                              referrerData && "pointer-events-auto"
+                              referrerData && "pointer-events-auto",
                             )}
                           >
                             {referrerData && (
@@ -1156,7 +1138,7 @@ export default function NewInstallerPage() {
                                 <div className="relative">
                                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-card text-sm font-medium text-muted-foreground">
                                     {getInitials(
-                                      referrerData.fullName as string
+                                      referrerData.fullName as string,
                                     ) || "?"}
                                   </div>
                                   {referrerData.certified && (
@@ -1204,8 +1186,8 @@ export default function NewInstallerPage() {
                   whatsappNumber={whatsappNumber}
                   city={city}
                   province={province}
+                  district={district}
                   address={address}
-                  trainingCenter={trainingCenter}
                   bankName={bankName}
                   accountNumber={accountNumber}
                   accountTitle={accountTitle}
@@ -1227,7 +1209,7 @@ export default function NewInstallerPage() {
             <CardFooter
               className={cn(
                 "flex justify-between items-center my-6",
-                CARD_SECTION_CLASS
+                CARD_SECTION_CLASS,
               )}
             >
               <Button

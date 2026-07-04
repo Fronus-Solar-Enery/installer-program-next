@@ -39,7 +39,6 @@ import IconDatabase from "@/components/icons/Database";
 
 export interface SettingsData {
   allowInstallerCodeEdit?: boolean;
-  allowTrainingCenterEdit?: boolean;
   maxReferralsPerInstaller?: number;
   requireCertificationForRewards?: boolean;
   autoVerifyInstallers?: boolean;
@@ -71,7 +70,6 @@ const p_CLASSES =
 // List of switch (boolean) settings keys
 const SWITCH_SETTINGS_KEYS: (keyof SettingsData)[] = [
   "allowInstallerCodeEdit",
-  "allowTrainingCenterEdit",
   "requireCertificationForRewards",
   "autoVerifyInstallers",
   "requireTransactionIdForPaid",
@@ -90,7 +88,6 @@ const SWITCH_SETTINGS_KEYS: (keyof SettingsData)[] = [
 // Default settings values
 const DEFAULT_SETTINGS: SettingsData = {
   allowInstallerCodeEdit: false,
-  allowTrainingCenterEdit: false,
   maxReferralsPerInstaller: 5,
   requireCertificationForRewards: false,
   autoVerifyInstallers: false,
@@ -360,23 +357,6 @@ export default function SettingsPage() {
                     checked={settings?.allowInstallerCodeEdit || false}
                     onCheckedChange={(checked) =>
                       updateSetting("allowInstallerCodeEdit", checked)
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="allowTrainingCenterEdit">
-                      Allow Training Center Edit
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Allow editing training center after registration
-                    </p>
-                  </div>
-                  <Switch
-                    id="allowTrainingCenterEdit"
-                    checked={settings?.allowTrainingCenterEdit || false}
-                    onCheckedChange={(checked) =>
-                      updateSetting("allowTrainingCenterEdit", checked)
                     }
                   />
                 </div>

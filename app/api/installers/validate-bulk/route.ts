@@ -3,6 +3,7 @@ import dbConnect from "@/lib/mongodb";
 import Installer from "@/models/Installer";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
+import { CITY_TO_DISTRICT, DISTRICT_CODES } from "@/lib/constants";
 
 interface InstallerUpload {
   installerCode: string;
@@ -14,7 +15,6 @@ interface InstallerUpload {
   address: string;
   city: string;
   province: string;
-  trainingCenter: string;
   companyName?: string;
   bankName: string;
   accountNumber: string;
@@ -102,6 +102,23 @@ export const POST = withAuth(
             );
           } else {
             codesInBatch.set(code, index);
+          }
+
+          // Check installer code prefix matches the district derived from city
+          const district = installer.city
+            ? CITY_TO_DISTRICT[installer.city]
+            : undefined;
+          if (installer.city && !district) {
+            newIssues.push(
+              `Unrecognized city "${installer.city}": cannot determine district`
+            );
+          } else if (district) {
+            const expectedPrefix = DISTRICT_CODES[district];
+            if (!code.startsWith(expectedPrefix)) {
+              newIssues.push(
+                `Installer code must start with "${expectedPrefix}" for district "${district}" (city: ${installer.city})`
+              );
+            }
           }
 
           // Check for duplicate CNIC in database

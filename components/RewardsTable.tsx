@@ -1041,7 +1041,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                           <div>
                             <div>{reward.cityOfInstallation}</div>
                             <div className="text-xs text-muted-foreground">
-                              {reward.installer?.trainingCenter}
+                              {reward.installer?.district}
                             </div>
                           </div>
                         </div>

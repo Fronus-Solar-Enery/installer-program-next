@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import dbConnect from '@/lib/mongodb';
 import InstallerReward, { IInstallerReward } from '@/models/InstallerReward';
 import { IInstaller } from '@/models/Installer';
@@ -101,7 +101,8 @@ export async function GET(request: NextRequest) {
 
     if (format === 'excel') {
       // Create Excel workbook
-      const workbook = XLSX.utils.book_new();
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Rewards');
 
       // Prepare data for Excel
       const excelData: ExcelRewardData[] = rewards.map((reward) => {
@@ -126,13 +127,18 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      const worksheet = XLSX.utils.json_to_sheet(excelData);
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Rewards');
+      worksheet.columns = [
+        'Installer Code', 'Installer Name', 'Phone Number', 'Serial Number',
+        'Product Model', 'City of Installation', 'Reward Amount', 'Reward Status',
+        'Transaction ID', 'Bank Name', 'Account Number', 'Account Title',
+        'Payment Method', 'Sending Date', 'Registered By', 'Registration Date',
+      ].map((header) => ({ header, key: header }));
+      worksheet.addRows(excelData);
 
       // Generate Excel file
-      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      const excelBuffer = await workbook.xlsx.writeBuffer();
 
-      return new Response(excelBuffer, {
+      return new Response(Buffer.from(excelBuffer), {
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'Content-Disposition': `attachment; filename=rewards_report_${Date.now()}.xlsx`,

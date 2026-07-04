@@ -16,12 +16,12 @@ export const GET = withAuth(
 
       const dateFilter = buildDateRangeFilter(startDate, endDate);
 
-      // Aggregate to get active installers by training center
-      const activeByTrainingCenter = await InstallerReward.aggregate([
+      // Aggregate to get active installers by district
+      const activeByDistrict = await InstallerReward.aggregate([
         // Filter by date range if provided
         ...(hasFilterConditions(dateFilter) ? [{ $match: dateFilter }] : []),
 
-        // Lookup installer details to get training center
+        // Lookup installer details to get district
         {
           $lookup: {
             from: "installers",
@@ -34,10 +34,10 @@ export const GET = withAuth(
         // Unwind installer details
         { $unwind: "$installerDetails" },
 
-        // Group by training center and count unique installers
+        // Group by district and count unique installers
         {
           $group: {
-            _id: "$installerDetails.trainingCenter",
+            _id: "$installerDetails.district",
             activeInstallers: { $addToSet: "$installer" },
             totalInstallations: { $sum: 1 },
           },
@@ -47,7 +47,7 @@ export const GET = withAuth(
         {
           $project: {
             _id: 0,
-            trainingCenter: "$_id",
+            district: "$_id",
             activeInstallersCount: { $size: "$activeInstallers" },
             totalInstallations: 1,
           },
@@ -57,10 +57,10 @@ export const GET = withAuth(
         { $sort: { activeInstallersCount: -1 } },
       ]);
 
-      return ApiResponse.success(activeByTrainingCenter);
+      return ApiResponse.success(activeByDistrict);
     } catch (error) {
       console.error(
-        "Error fetching active installers by training center:",
+        "Error fetching active installers by district:",
         error
       );
       return handleApiError(error);

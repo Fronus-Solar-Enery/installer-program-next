@@ -11,17 +11,17 @@ export const GET = withAuth(
       await dbConnect();
 
       const { searchParams } = new URL(request.url);
-      const trainingCenter = searchParams.get("trainingCenter");
+      const district = searchParams.get("district");
       const startDate = searchParams.get("startDate");
       const endDate = searchParams.get("endDate");
 
-      if (!trainingCenter) {
-        return ApiResponse.badRequest("Training center is required");
+      if (!district) {
+        return ApiResponse.badRequest("District is required");
       }
 
       const dateFilter = buildDateRangeFilter(startDate, endDate);
 
-      // Aggregate to get installers from specific training center with installations
+      // Aggregate to get installers from specific district with installations
       const installers = await InstallerReward.aggregate([
         // Filter by date range if provided
         ...(hasFilterConditions(dateFilter) ? [{ $match: dateFilter }] : []),
@@ -39,10 +39,10 @@ export const GET = withAuth(
         // Unwind installer details
         { $unwind: "$installerDetails" },
 
-        // Filter by training center
+        // Filter by district
         {
           $match: {
-            "installerDetails.trainingCenter": trainingCenter,
+            "installerDetails.district": district,
           },
         },
 
@@ -52,7 +52,7 @@ export const GET = withAuth(
             _id: "$installer",
             installerName: { $first: "$installerDetails.fullName" },
             installerCode: { $first: "$installerDetails.installerCode" },
-            trainingCenter: { $first: "$installerDetails.trainingCenter" },
+            district: { $first: "$installerDetails.district" },
             city: { $first: "$installerDetails.city" },
             totalProducts: { $sum: 1 },
             totalRewardAmount: { $sum: "$rewardAmount" },
@@ -71,7 +71,7 @@ export const GET = withAuth(
             _id: 0,
             installerName: 1,
             installerCode: 1,
-            trainingCenter: 1,
+            district: 1,
             city: 1,
             totalProducts: 1,
             rewardAmount: "$totalRewardAmount",
@@ -82,7 +82,7 @@ export const GET = withAuth(
 
       return ApiResponse.success(installers);
     } catch (error) {
-      console.error("Error fetching installers by training center:", error);
+      console.error("Error fetching installers by district:", error);
       return handleApiError(error);
     }
   }

@@ -195,7 +195,7 @@ function Sidebar({
   // Use provided user or session user
   const currentUser = useMemo(
     () => user || session?.user,
-    [user, session?.user]
+    [user, session?.user],
   );
 
   // State to manage accordion open/close
@@ -213,7 +213,7 @@ function Sidebar({
     (path: string) => {
       return pathname === path || pathname?.startsWith(path + "/");
     },
-    [pathname]
+    [pathname],
   );
 
   // Exact match for sub-items to avoid false positives
@@ -221,7 +221,7 @@ function Sidebar({
     (path: string) => {
       return pathname === path;
     },
-    [pathname]
+    [pathname],
   );
 
   // Memoize filtered nav items based on user role
@@ -239,7 +239,7 @@ function Sidebar({
   // Memoize branding config
   const brandingConfig = useMemo(
     () => ({ ...DEFAULT_BRANDING, ...branding }),
-    [branding]
+    [branding],
   );
 
   const sideBarRef = useRef<HTMLDivElement>(null);
@@ -312,7 +312,7 @@ function Sidebar({
             ease: "power2.inOut",
             stagger: 0.03,
           },
-          0
+          0,
         );
 
         tl.to(
@@ -324,7 +324,7 @@ function Sidebar({
             ease: "power2.inOut",
             stagger: 0.03,
           },
-          "<"
+          "<",
         );
 
         tl.to(
@@ -335,7 +335,7 @@ function Sidebar({
             duration: 0.36,
             ease: "power2.inOut",
           },
-          "<"
+          "<",
         );
 
         tl.to(
@@ -349,7 +349,7 @@ function Sidebar({
               hideProfile();
             },
           },
-          "<"
+          "<",
         );
 
         tl.to(
@@ -363,7 +363,7 @@ function Sidebar({
               hideProfile();
             },
           },
-          "<"
+          "<",
         );
 
         tl.to(
@@ -374,7 +374,7 @@ function Sidebar({
             duration: 0.36,
             ease: "power2.inOut",
           },
-          "<"
+          "<",
         );
 
         tl.to(
@@ -384,7 +384,7 @@ function Sidebar({
             duration: 0.36,
             ease: "power2.inOut",
           },
-          "<"
+          "<",
         );
 
         tl.to(
@@ -394,7 +394,7 @@ function Sidebar({
             duration: 0.36,
             ease: "power2.inOut",
           },
-          "-=0.739"
+          "-=0.739",
         );
       } else {
         tl.to(
@@ -404,7 +404,7 @@ function Sidebar({
             duration: 0.36,
             ease: "power2.inOut",
           },
-          "+=0.05"
+          "+=0.05",
         );
         tl.to(
           logo,
@@ -413,7 +413,7 @@ function Sidebar({
             duration: 0.36,
             ease: "power2.inOut",
           },
-          0
+          0,
         );
 
         tl.to(
@@ -425,7 +425,7 @@ function Sidebar({
             ease: "power2.inOut",
             stagger: 0.03,
           },
-          "<"
+          "<",
         );
 
         tl.to(
@@ -437,7 +437,7 @@ function Sidebar({
             ease: "power2.inOut",
             stagger: 0.03,
           },
-          0
+          0,
         );
 
         // add a callback (returns void) to set display before animating titles
@@ -453,7 +453,7 @@ function Sidebar({
             stagger: 0.04,
             ease: "power2.out",
           },
-          "-=0.08"
+          "-=0.08",
         );
 
         tl.to(
@@ -464,7 +464,7 @@ function Sidebar({
             duration: 0.56,
             ease: "power2.inOut",
           },
-          0
+          0,
         );
 
         // add a callback (returns void) to set display before animating titles
@@ -479,7 +479,7 @@ function Sidebar({
             duration: 0.22,
             ease: "power2.out",
           },
-          "-=0.15"
+          "-=0.15",
         );
 
         tl.fromTo(
@@ -491,7 +491,7 @@ function Sidebar({
             duration: 0.22,
             ease: "power2.out",
           },
-          "-=0.15"
+          "-=0.15",
         );
 
         tl.to(
@@ -502,7 +502,7 @@ function Sidebar({
             duration: 0.6,
             ease: "power2.inOut",
           },
-          "-=1.05"
+          "-=1.05",
         );
       }
     }, sidebar);
@@ -522,7 +522,7 @@ function Sidebar({
     <div
       ref={sideBarRef}
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen border-r border-border bg-sidebar transition-[width] duration-300 flex flex-col w-64"
+        "fixed left-0 top-0 z-40 h-screen border-r border-border bg-sidebar transition-[width] duration-300 flex flex-col w-64",
       )}
     >
       {/* Logo Section */}
@@ -535,7 +535,7 @@ function Sidebar({
             ref={logoRef}
             className={cn(
               "transition-[width] duration-300 ease-fluid shrink-0 m-0! w-24",
-              collapsed ? "w-14" : "w-24"
+              collapsed ? "w-14" : "w-24",
             )}
           />
         </Link>
@@ -551,7 +551,7 @@ function Sidebar({
               <IconAltArrowLeft
                 className={cn(
                   "h-3 w-3 transition-transform duration-700 ease-fluid",
-                  collapsed && "rotate-180"
+                  collapsed && "rotate-180",
                 )}
               />
             </Button>
@@ -562,7 +562,7 @@ function Sidebar({
       {/* Navigation */}
       <div
         className={cn(
-          "flex flex-col gap-1 px-3 py-4 overflow-y-auto overflow-x-hidden"
+          "flex flex-col gap-1 px-3 py-4 overflow-y-auto overflow-x-hidden",
         )}
       >
         {sectionLabel && (
@@ -594,7 +594,7 @@ function Sidebar({
               });
 
               const isAnySubItemActive = visibleSubItems.some((subItem) =>
-                isExactActive(subItem.href)
+                isExactActive(subItem.href),
               );
 
               // Render accordion item with popover for collapsed state
@@ -613,7 +613,7 @@ function Sidebar({
                           collapsed ? "squircle-icon" : "squircle",
                           isAnySubItemActive
                             ? "bg-sidebar-primary text-primary font-medium"
-                            : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground"
+                            : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground",
                         )}
                       >
                         <div className="flex items-center gap-2 flex-1">
@@ -629,7 +629,7 @@ function Sidebar({
                               "text-sm transition-all whitespace-nowrap navlink-title",
                               isAnySubItemActive
                                 ? "font-semibold"
-                                : "font-medium"
+                                : "font-medium",
                             )}
                           >
                             {item.title}
@@ -654,7 +654,7 @@ function Sidebar({
                                 "before-wrapper relative before:left-2 after:left-2",
                                 isExactActive(subItem.href)
                                   ? "before:w-2"
-                                  : "before:w-4 hover:before:w-2"
+                                  : "before:w-4 hover:before:w-2",
                               )}
                             >
                               <Link
@@ -664,7 +664,7 @@ function Sidebar({
                                   "before-content relative mt-1 ml-5 px-3 py-2 rounded-2xl text-sm transition-all duration-200 squircle flex items-center z-10",
                                   isExactActive(subItem.href)
                                     ? "bg-sidebar-primary text-primary"
-                                    : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground"
+                                    : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground",
                                 )}
                               >
                                 {subItem.title}
@@ -685,7 +685,7 @@ function Sidebar({
                               "before-wrapper relative",
                               isExactActive(subItem.href)
                                 ? "before:w-2"
-                                : "before:w-4 hover:before:w-2"
+                                : "before:w-4 hover:before:w-2",
                             )}
                           >
                             <Link
@@ -694,7 +694,7 @@ function Sidebar({
                                 "before-content relative mt-1 ml-1 px-3 py-2 rounded-2xl text-sm transition-all duration-200 squircle flex items-center z-10",
                                 isExactActive(subItem.href)
                                   ? "bg-sidebar-primary text-primary"
-                                  : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground"
+                                  : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground",
                               )}
                             >
                               {subItem.title}
@@ -746,8 +746,8 @@ function Sidebar({
                 currentUser?.role === "ADMIN"
                   ? "dark:bg-zinc-950/40 dark:text-rose-400"
                   : currentUser?.role === "MANAGER"
-                  ? "dark:bg-zinc-950/40 dark:text-cyan-400"
-                  : "dark:bg-zinc-950/40 dark:text-zinc-400"
+                    ? "dark:bg-zinc-950/40 dark:text-cyan-400"
+                    : "dark:bg-zinc-950/40 dark:text-zinc-400",
               )}
             >
               {currentUser?.role || "USER"}
@@ -783,7 +783,7 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
           isExpanded ? "squircle" : "squircle-icon",
           isActive
             ? "bg-sidebar-primary text-primary font-medium"
-            : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground"
+            : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground",
         )}
       >
         <div className="flex items-center justify-center transition-all">
@@ -797,7 +797,7 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
           <span
             className={cn(
               "text-sm transition-all whitespace-nowrap",
-              isActive ? "translate-x-0.5" : ""
+              isActive ? "translate-x-0.5" : "",
             )}
           >
             {label}
@@ -815,7 +815,7 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
             side="right"
             className={cn(
               "flex items-center gap-2 py-1",
-              isExpanded && "hidden"
+              isExpanded && "hidden",
             )}
           >
             <span className="font-medium">{label}</span>
@@ -823,7 +823,7 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
         </Tooltip>
       </TooltipProvider>
     );
-  }
+  },
 );
 
 NavItemBase.displayName = "NavItemBase";

@@ -155,7 +155,7 @@ export default function BatchJobsPage() {
         `/api/batch-jobs?jobId=${cancelDialog.itemId}`,
         {
           method: "DELETE",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -207,7 +207,7 @@ export default function BatchJobsPage() {
         `/api/batch-jobs?jobId=${deleteDialog.itemId}&action=delete`,
         {
           method: "DELETE",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -293,7 +293,7 @@ export default function BatchJobsPage() {
           "h-6 px-2.5 py-1 font-medium border",
           isCreate
             ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20"
-            : "bg-rose-900/10 text-rose-600 dark:text-rose-400 border-rose-400/20"
+            : "bg-rose-900/10 text-rose-600 dark:text-rose-400 border-rose-400/20",
         )}
       >
         {isCreate ? "Create Contacts" : "Delete Contacts"}
@@ -497,7 +497,7 @@ export default function BatchJobsPage() {
                             <Skeleton className="h-5 w-5" round />
                           </div>
                         </div>
-                      )
+                      ),
                     )
                   ) : filteredJobs.length === 0 ? (
                     <div className="flex items-center justify-center p-12 h-[715px]">
@@ -558,7 +558,7 @@ export default function BatchJobsPage() {
                                 "font-medium",
                                 job.failedCount > 0
                                   ? "text-red-600 dark:text-red-400 cursor-help"
-                                  : "text-muted-foreground"
+                                  : "text-muted-foreground",
                               )}
                             >
                               {job.failedCount > 0 && job.metadata?.errors ? (
@@ -602,10 +602,10 @@ export default function BatchJobsPage() {
                                   new Date(job.createdAt),
                                   {
                                     addSuffix: true,
-                                  }
+                                  },
                                 ).replace("about ", "")}
                                 content={new Date(
-                                  job.createdAt
+                                  job.createdAt,
                                 ).toLocaleString()}
                               />
                             </span>
@@ -617,13 +617,13 @@ export default function BatchJobsPage() {
                                   trigger={`${Math.round(
                                     (new Date(job.completedAt).getTime() -
                                       new Date(job.createdAt).getTime()) /
-                                      1000
+                                      1000,
                                   )}s`}
                                   content={(() => {
                                     const s = Math.round(
                                       (new Date(job.completedAt).getTime() -
                                         new Date(job.createdAt).getTime()) /
-                                        1000
+                                        1000,
                                     );
                                     return `${Math.floor(s / 60)}m ${s % 60}s`;
                                   })()}
@@ -649,7 +649,8 @@ export default function BatchJobsPage() {
                                 !(
                                   job.status === "pending" ||
                                   job.status === "processing"
-                                ) && "opacity-50 select-none cursor-not-allowed"
+                                ) &&
+                                  "opacity-50 select-none cursor-not-allowed",
                               )}
                               onClick={() => {
                                 setCancelDialog({
@@ -673,7 +674,7 @@ export default function BatchJobsPage() {
                                 "text-destructive-text hover:text-destructive-text-hover cursor-pointer",
                                 (job.status === "pending" ||
                                   job.status === "processing") &&
-                                  "opacity-50 select-none cursor-not-allowed"
+                                  "opacity-50 select-none cursor-not-allowed",
                               )}
                               disabled={
                                 job.status === "pending" ||
@@ -854,7 +855,7 @@ export default function BatchJobsPage() {
                                           "size-full pr-2 transition-colors shrink-0",
                                           retryingCodes.has(installerCode)
                                             ? "cursor-not-allowed pointer-events-none text-muted-foreground/50 opacity-50"
-                                            : "cursor-pointer text-muted-foreground hover:text-foreground"
+                                            : "cursor-pointer text-muted-foreground hover:text-foreground",
                                         )}
                                         onClick={async () => {
                                           if (retryingCodes.has(installerCode))
@@ -863,7 +864,7 @@ export default function BatchJobsPage() {
                                           try {
                                             // Add to retrying set
                                             setRetryingCodes((prev) =>
-                                              new Set(prev).add(installerCode)
+                                              new Set(prev).add(installerCode),
                                             );
 
                                             const res = await fetch(
@@ -880,12 +881,12 @@ export default function BatchJobsPage() {
                                                     installerCode,
                                                   ],
                                                 }),
-                                              }
+                                              },
                                             );
 
                                             if (!res.ok)
                                               throw new Error(
-                                                "Failed to create retry job"
+                                                "Failed to create retry job",
                                               );
 
                                             const data = await res.json();
@@ -897,12 +898,12 @@ export default function BatchJobsPage() {
                                               // Start the job immediately
                                               await retryJob(data.data.jobId);
                                               toast.success(
-                                                `Retry job started for ${installerCode}`
+                                                `Retry job started for ${installerCode}`,
                                               );
                                             }
                                           } catch (err) {
                                             toast.error(
-                                              "Failed to retry contact creation"
+                                              "Failed to retry contact creation",
                                             );
                                             console.error(err);
                                             // Remove from retrying set on error
@@ -941,7 +942,7 @@ export default function BatchJobsPage() {
                                 )}
                             </div>
                           );
-                        }
+                        },
                       )}
                     </ScrollArea>
                   </div>

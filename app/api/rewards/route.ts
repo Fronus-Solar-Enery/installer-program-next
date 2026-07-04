@@ -63,7 +63,7 @@ export const GET = withAuth(
         InstallerReward.find(query)
           .populate(
             "installer",
-            "installerCode fullName cnic phoneNumber whatsappNumber trainingCenter bankName accountNumber accountTitle"
+            "installerCode fullName cnic phoneNumber whatsappNumber district bankName accountNumber accountTitle"
           )
           .populate(
             "referrer",
@@ -161,7 +161,7 @@ export const POST = withAuth(
       const populatedReward = await InstallerReward.findById(reward._id)
         .populate(
           "installer",
-          "installerCode fullName cnic phoneNumber whatsappNumber trainingCenter bankName accountNumber accountTitle"
+          "installerCode fullName cnic phoneNumber whatsappNumber district bankName accountNumber accountTitle"
         )
         .populate(
           "referrer",

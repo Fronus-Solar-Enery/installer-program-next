@@ -25,7 +25,7 @@ export interface RewardWithId {
     cnic: string;
     phoneNumber: string;
     whatsappNumber: string;
-    trainingCenter: string;
+    district: string;
   };
   registeredBy?: {
     _id: string;

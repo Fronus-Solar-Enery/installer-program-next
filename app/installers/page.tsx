@@ -186,7 +186,7 @@ const InstallerRow = memo(
               />
             </div>
             <div className="text-xs text-muted-foreground">
-              {installer.trainingCenter}
+              {installer.district}
             </div>
           </div>
         </div>
@@ -384,7 +384,7 @@ export default function InstallersPage() {
     phoneNumber: true,
     city: true,
     province: true,
-    trainingCenter: true,
+    district: true,
     // companyName: false,
     certified: true,
     // bankName: false,
@@ -395,7 +395,7 @@ export default function InstallersPage() {
   const [filters, setFilters] = useState({
     city: "",
     province: "",
-    trainingCenter: "",
+    district: "",
     certified: "",
     dateRange: "all" as "all" | "today" | "week" | "month" | "year" | "custom",
     customStartDate: "",
@@ -701,7 +701,7 @@ export default function InstallersPage() {
       const queryParams = new URLSearchParams({
         city: filters.city || "",
         province: filters.province || "",
-        trainingCenter: filters.trainingCenter || "",
+        district: filters.district || "",
         certified: filters.certified || "",
         dateRange: filters.dateRange !== "all" ? filters.dateRange : "",
         customStartDate: filters.customStartDate || "",
@@ -1407,7 +1407,7 @@ export default function InstallersPage() {
                     {sortField === "installerCode" && "Installer Code"}
                     {sortField === "fullName" && "Name"}
                     {sortField === "cnic" && "CNIC"}
-                    {sortField === "trainingCenter" && "Training Center"}
+                    {sortField === "district" && "District"}
                     {sortField === "city" && "City"}
                     {sortField === "province" && "Province"}
                     {sortField === "certified" && "Certified"}
@@ -1508,21 +1508,21 @@ export default function InstallersPage() {
                     </Badge>
                   </div>
                 )}
-                {/* TRAINIG CENTER FILTER */}
-                {filters.trainingCenter && (
+                {/* DISTRICT FILTER */}
+                {filters.district && (
                   <div className="text-xs flex items-center gap-1 text-muted-foreground">
-                    Training Center:
+                    District:
                     <Badge
                       variant="outline"
                       className="gap-1 [&>svg]:pointer-events-auto h-5.5 pr-1"
                     >
-                      {filters.trainingCenter}
+                      {filters.district}
                       <IconClose
                         className={"size-4! cursor-pointer"}
                         onClick={() =>
                           setFilters((prev) => ({
                             ...prev,
-                            trainingCenter: "",
+                            district: "",
                           }))
                         }
                       />
@@ -1607,30 +1607,30 @@ export default function InstallersPage() {
                   </Select>
                 </div>
 
-                {/* TRAINING CENTERS FILTER */}
+                {/* DISTRICT FILTER */}
                 <div className="space-y-2 w-full">
                   <span className="text-sm px-2 whitespace-nowrap">
-                    Training Center
+                    District
                   </span>
                   <Select
-                    value={filters.trainingCenter || "all"}
+                    value={filters.district || "all"}
                     onValueChange={(value) =>
                       setFilters((prev) => ({
                         ...prev,
-                        trainingCenter: value === "all" ? "" : value,
+                        district: value === "all" ? "" : value,
                       }))
                     }
-                    name="trainingCenterfilter"
+                    name="districtfilter"
                     disabled={loading}
                   >
                     <SelectTrigger className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
-                      <SelectValue placeholder="All centers" />
+                      <SelectValue placeholder="All districts" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All centers</SelectItem>
-                      {uniqueValues.trainingCenters.map((center) => (
-                        <SelectItem key={center} value={center}>
-                          {center}
+                      <SelectItem value="all">All districts</SelectItem>
+                      {uniqueValues.districts.map((district) => (
+                        <SelectItem key={district} value={district}>
+                          {district}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1673,7 +1673,7 @@ export default function InstallersPage() {
                       setFilters({
                         city: "",
                         province: "",
-                        trainingCenter: "",
+                        district: "",
                         certified: "",
                         dateRange: "all",
                         customStartDate: "",
@@ -1685,7 +1685,7 @@ export default function InstallersPage() {
                     disabled={
                       (!filters.city &&
                         !filters.province &&
-                        !filters.trainingCenter &&
+                        !filters.district &&
                         !filters.certified &&
                         sortField === "createdAt" &&
                         sortDirection === "desc" &&

@@ -2,7 +2,7 @@
 import { google } from "googleapis";
 import dbConnect from "./mongodb";
 import GoogleAuth from "@/models/GoogleAuth";
-import { TRAINING_CENTER } from "./constants";
+import { DISTRICT_CODES } from "./constants";
 import { decryptSecret } from "./encryption";
 
 export interface ContactData {
@@ -17,7 +17,7 @@ export interface ContactData {
   installerCode?: string;
   referrerCode?: string;
   cnic?: string;
-  trainingCenter?: string;
+  district?: string;
 }
 
 /**
@@ -57,15 +57,12 @@ function formatPhoneNumber(phone: string): string {
 }
 
 /**
- * Get training center short code from city name
+ * Get district short code from district name
  * Example: "Lahore" -> "LHE"
  */
-function getTrainingCenterShort(trainingCenter?: string): string | null {
-  if (!trainingCenter) return null;
-  const center = TRAINING_CENTER.find(
-    (tc) => tc.city.toLowerCase() === trainingCenter.toLowerCase()
-  );
-  return center?.short || null;
+function getDistrictShort(district?: string): string | null {
+  if (!district) return null;
+  return DISTRICT_CODES[district] || null;
 }
 
 /**
@@ -301,10 +298,10 @@ export async function verifyGoogleAuthLiveness(): Promise<GoogleAuthLiveness> {
 
 /**
  * Pre-fetch contact groups for bulk operations to avoid quota limits
- * Returns group resource names for "ALL" and all unique training centers
+ * Returns group resource names for "ALL" and all unique districts
  */
 export async function preloadContactGroups(
-  trainingCenters: string[]
+  districts: string[]
 ): Promise<{ allGroup?: string; centerGroups?: Map<string, string> } | null> {
   try {
     const authClient = await getAuthClient();
@@ -323,18 +320,18 @@ export async function preloadContactGroups(
       result.allGroup = allGroup;
     }
 
-    // Get unique training center shorts
-    const uniqueCenters = new Set(
-      trainingCenters
-        .map(getTrainingCenterShort)
+    // Get unique district shorts
+    const uniqueDistricts = new Set(
+      districts
+        .map(getDistrictShort)
         .filter((c): c is string => !!c)
     );
 
-    // Get or create all training center groups
-    for (const centerShort of uniqueCenters) {
-      const centerGroup = await getOrCreateContactGroup(people, centerShort);
+    // Get or create all district groups
+    for (const districtShort of uniqueDistricts) {
+      const centerGroup = await getOrCreateContactGroup(people, districtShort);
       if (centerGroup) {
-        result.centerGroups!.set(centerShort, centerGroup);
+        result.centerGroups!.set(districtShort, centerGroup);
       }
     }
 
@@ -500,35 +497,35 @@ export async function createGoogleContact(
         throw new Error("Failed to get/create ALL contact group");
       }
 
-      // Add training center group (e.g., "LHE" for Lahore) - MANDATORY if trainingCenter exists
-      const trainingCenterShort = getTrainingCenterShort(data.trainingCenter);
-      if (trainingCenterShort) {
+      // Add district group (e.g., "LHE" for Lahore) - MANDATORY if district exists
+      const districtShort = getDistrictShort(data.district);
+      if (districtShort) {
         let centerGroupName: string | null = null;
-        if (preloadedGroups?.centerGroups?.has(trainingCenterShort)) {
+        if (preloadedGroups?.centerGroups?.has(districtShort)) {
           centerGroupName =
-            preloadedGroups.centerGroups.get(trainingCenterShort) || null;
+            preloadedGroups.centerGroups.get(districtShort) || null;
         } else {
           centerGroupName = await getOrCreateContactGroup(
             people,
-            trainingCenterShort
+            districtShort
           );
         }
         if (centerGroupName) {
           groupsToAdd.push(centerGroupName);
-          groupNames[centerGroupName] = trainingCenterShort;
+          groupNames[centerGroupName] = districtShort;
         } else {
-          // STRICT: If training center group cannot be created, delete contact and fail
+          // STRICT: If district group cannot be created, delete contact and fail
           console.error(
-            `✗ CRITICAL: Cannot create/get training center group "${trainingCenterShort}"`
+            `✗ CRITICAL: Cannot create/get district group "${districtShort}"`
           );
           try {
             await people.people.deleteContact({ resourceName });
-            console.log("✓ Deleted contact due to missing training center group");
+            console.log("✓ Deleted contact due to missing district group");
           } catch (deleteError) {
             console.error("Failed to delete contact:", deleteError);
           }
           throw new Error(
-            `Failed to get/create training center group "${trainingCenterShort}"`
+            `Failed to get/create district group "${districtShort}"`
           );
         }
       }
@@ -815,12 +812,12 @@ export async function updateGoogleContact(
         groupsToAdd.push(allGroupName);
       }
 
-      // Add training center group (e.g., "LHE" for Lahore)
-      const trainingCenterShort = getTrainingCenterShort(data.trainingCenter);
-      if (trainingCenterShort) {
+      // Add district group (e.g., "LHE" for Lahore)
+      const districtShort = getDistrictShort(data.district);
+      if (districtShort) {
         const centerGroupName = await getOrCreateContactGroup(
           people,
-          trainingCenterShort
+          districtShort
         );
         if (centerGroupName) {
           groupsToAdd.push(centerGroupName);
@@ -839,28 +836,28 @@ export async function updateGoogleContact(
           .map((m: any) => m.contactGroupMembership.contactGroupResourceName) ||
         [];
 
-      // Get all possible training center short codes for comparison
-      const allTrainingCenterShorts = TRAINING_CENTER.map((tc) => tc.short);
+      // Get all possible district short codes for comparison
+      const allDistrictShorts = Object.values(DISTRICT_CODES);
 
-      // Get list of all contact groups to identify training center groups
+      // Get list of all contact groups to identify district groups
       const allGroups = await people.contactGroups.list();
-      const trainingCenterGroupIds =
+      const districtGroupIds =
         allGroups.data.contactGroups
           ?.filter(
             (g: any) =>
               g.name &&
-              allTrainingCenterShorts.includes(g.name) &&
+              allDistrictShorts.includes(g.name) &&
               g.resourceName
           )
           .map((g: any) => g.resourceName) || [];
 
-      // Remove from old training center groups (groups that are training center labels but not in groupsToAdd)
+      // Remove from old district groups (groups that are district labels but not in groupsToAdd)
       for (const existingGroupId of existingGroupIds) {
-        const isTrainingCenterGroup =
-          trainingCenterGroupIds.includes(existingGroupId);
+        const isDistrictGroup =
+          districtGroupIds.includes(existingGroupId);
         const shouldKeep = groupsToAdd.includes(existingGroupId);
 
-        if (isTrainingCenterGroup && !shouldKeep) {
+        if (isDistrictGroup && !shouldKeep) {
           try {
             await people.contactGroups.members.modify({
               resourceName: existingGroupId,

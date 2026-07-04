@@ -73,7 +73,7 @@ export const registerInstallerSchema = z.object({
   address: z.string().min(5, "Address must be at least 5 characters"),
   city: z.string().min(2, "City is required"),
   province: z.string().min(2, "Province is required"),
-  trainingCenter: z.string().min(2, "Training center is required"),
+  district: z.string().min(2, "District is required"),
   companyName: z.string().optional(),
   bankName: z.string().min(2, "Bank name is required"),
   accountNumber: z.string().min(5, "Account number is required"),

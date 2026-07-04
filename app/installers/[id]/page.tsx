@@ -56,7 +56,7 @@ interface InstallerDetails {
   address: string;
   city: string;
   province: string;
-  trainingCenter: string;
+  district: string;
   companyName?: string;
   bankName: string;
   accountNumber: string;
@@ -561,6 +561,12 @@ export default function InstallerDetailsPage() {
                   </div>
                   <div>
                     <dt className="text-sm font-medium text-muted-foreground">
+                      District
+                    </dt>
+                    <dd className="mt-1 text-sm">{installer.district}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">
                       Province
                     </dt>
                     <dd className="mt-1 text-sm">{installer.province}</dd>
@@ -570,12 +576,6 @@ export default function InstallerDetailsPage() {
                       Address
                     </dt>
                     <dd className="mt-1 text-sm">{installer.address}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Training Center
-                    </dt>
-                    <dd className="mt-1 text-sm">{installer.trainingCenter}</dd>
                   </div>
                 </dl>
               </CardContent>

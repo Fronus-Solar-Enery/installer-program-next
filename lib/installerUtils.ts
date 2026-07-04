@@ -72,6 +72,6 @@ export function prepareInstallerContactData(
     installerCode: installer.installerCode,
     referrerCode: installer.referrerCode,
     cnic: installer.cnic,
-    trainingCenter: installer.trainingCenter,
+    district: installer.district,
   };
 }

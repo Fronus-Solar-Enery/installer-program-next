@@ -83,12 +83,6 @@ export const getSwitchCards = (settings: SettingsData | null) => [
     value: settings?.allowInstallerCodeEdit,
   },
   {
-    key: "allowTrainingCenterEdit" as keyof SettingsData,
-    label: "Training Center Edit",
-    description: "Allow editing training center after creation",
-    value: settings?.allowTrainingCenterEdit,
-  },
-  {
     key: "requireCertificationForRewards" as keyof SettingsData,
     label: "Certification",
     description: "Only certified installers can receive rewards",

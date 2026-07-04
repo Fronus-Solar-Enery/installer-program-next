@@ -12,7 +12,7 @@ export interface InstallerWithId {
   companyName?: string;
   referrerCode?: string;
   cnic: string;
-  trainingCenter: string;
+  district: string;
   status: "ACTIVE" | "INACTIVE";
   certified: boolean;
   bankName?: string;

@@ -12,7 +12,7 @@ export interface IInstaller {
   address: string;
   city: string;
   province: string;
-  trainingCenter: string;
+  district: string;
   companyName?: string;
   bankName: string;
   accountNumber: string;
@@ -78,9 +78,9 @@ const InstallerSchema = new Schema<IInstaller>(
       required: [true, 'Province is required'],
       trim: true,
     },
-    trainingCenter: {
+    district: {
       type: String,
-      required: [true, 'Training center is required'],
+      required: [true, 'District is required'],
       trim: true,
     },
     companyName: {
@@ -125,6 +125,7 @@ const InstallerSchema = new Schema<IInstaller>(
 InstallerSchema.index({ referrerCode: 1 });
 InstallerSchema.index({ city: 1 });
 InstallerSchema.index({ province: 1 });
+InstallerSchema.index({ district: 1 });
 InstallerSchema.index({ certified: 1 });
 InstallerSchema.index({ registeredBy: 1 });
 

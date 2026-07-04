@@ -119,16 +119,16 @@ interface ActiveInstaller {
   referralRewardAmount: number;
 }
 
-interface TrainingCenterActive {
-  trainingCenter: string;
+interface DistrictActive {
+  district: string;
   activeInstallersCount: number;
   totalInstallations: number;
 }
 
-interface InstallerByCenter {
+interface InstallersByDistrict {
   installerName: string;
   installerCode: string;
-  trainingCenter: string;
+  district: string;
   city: string;
   totalProducts: number;
   rewardAmount: number;
@@ -232,11 +232,11 @@ export default function DashboardPage() {
   const [activeInstallers, setActiveInstallers] = useState<ActiveInstaller[]>(
     [],
   );
-  const [trainingCenterActive, setTrainingCenterActive] = useState<
-    TrainingCenterActive[]
+  const [districtActive, setDistrictActive] = useState<
+    DistrictActive[]
   >([]);
-  const [selectedCenter, setSelectedCenter] = useState<string | null>(null);
-  const [centerInstallers, setCenterInstallers] = useState<InstallerByCenter[]>(
+  const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
+  const [districtInstallers, setDistrictInstallers] = useState<InstallersByDistrict[]>(
     [],
   );
   const [recentInstallations, setRecentInstallations] = useState<
@@ -347,14 +347,14 @@ export default function DashboardPage() {
         allRewardsRes,
         allInstallersRes,
         activeInstallersRes,
-        trainingCenterRes,
+        districtRes,
       ] = await Promise.all([
         fetch("/api/installers?limit=5&sortBy=createdAt&sortOrder=desc"),
         fetch("/api/rewards?limit=5&sortBy=createdAt&sortOrder=desc"),
         fetch("/api/rewards?limit=5000"),
         fetch("/api/installers?limit=5000"),
         fetch(`/api/dashboard/active-installers${dateParams}`),
-        fetch(`/api/dashboard/active-by-training-center${dateParams}`),
+        fetch(`/api/dashboard/active-by-district${dateParams}`),
       ]);
 
       // Parse all responses in parallel
@@ -364,14 +364,14 @@ export default function DashboardPage() {
         allRewards,
         allInstallers,
         activeInstallersData,
-        trainingCenterData,
+        districtData,
       ] = await Promise.all([
         installersRes.json(),
         rewardsRes.json(),
         allRewardsRes.json(),
         allInstallersRes.json(),
         activeInstallersRes.json(),
-        trainingCenterRes.json(),
+        districtRes.json(),
       ]);
 
       // Filter data by date range
@@ -559,8 +559,8 @@ export default function DashboardPage() {
       // Set active installers from API
       setActiveInstallers(activeInstallersData.data || []);
 
-      // Set training center active data
-      setTrainingCenterActive(trainingCenterData.data || []);
+      // Set district active data
+      setDistrictActive(districtData.data || []);
 
       setRecentInstallations(rewardsData.data?.rewards || []);
       setRecentInstallers(installersData.data?.installers || []);
@@ -879,7 +879,7 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Active Installers by Training Center Skeleton */}
+          {/* Active Installers by District Skeleton */}
           <Card>
             <CardHeader className="border-b border-border">
               <div className="flex items-center gap-4">
@@ -1420,23 +1420,23 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Active Installers by Training Center */}
+          {/* Active Installers by District */}
           <Card className="transition-all hover:shadow-lg">
             <DashboardCardHeader
-              title="Active Installers by Training Center"
+              title="Active Installers by District"
               description={`Installers with at least 1 installation in ${timeLabels[timePeriod]}`}
               Icon={IconUserCheckRounded}
             />
             <CardContent>
-              {trainingCenterActive.length > 0 ? (
-                trainingCenterActive.map((center, index) => (
+              {districtActive.length > 0 ? (
+                districtActive.map((districtRow, index) => (
                   <div
-                    key={center.trainingCenter}
+                    key={districtRow.district}
                     onClick={async () => {
-                      setSelectedCenter(center.trainingCenter);
+                      setSelectedDistrict(districtRow.district);
                       setModalOpen(true);
 
-                      // Fetch installers for this training center
+                      // Fetch installers for this district
                       const { startDate, endDate } = getDateRange(timePeriod);
                       const dateParams =
                         startDate && endDate
@@ -1444,12 +1444,12 @@ export default function DashboardPage() {
                           : "";
 
                       const res = await fetch(
-                        `/api/dashboard/installers-by-center?trainingCenter=${encodeURIComponent(
-                          center.trainingCenter,
+                        `/api/dashboard/installers-by-district?district=${encodeURIComponent(
+                          districtRow.district,
                         )}${dateParams}`,
                       );
                       const data = await res.json();
-                      setCenterInstallers(data.data || []);
+                      setDistrictInstallers(data.data || []);
                     }}
                     className="flex items-center gap-3 p-4 squircle-icon rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
                   >
@@ -1463,7 +1463,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-base truncate">
-                        {center.trainingCenter}
+                        {districtRow.district}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         Click to view installers
@@ -1475,7 +1475,7 @@ export default function DashboardPage() {
                           Active
                         </div>
                         <div className="font-bold text-lg text-primary">
-                          {center.activeInstallersCount}
+                          {districtRow.activeInstallersCount}
                         </div>
                       </div>
                       <div>
@@ -1483,7 +1483,7 @@ export default function DashboardPage() {
                           Installations
                         </div>
                         <div className="font-bold text-lg text-green-600 dark:text-green-500">
-                          {center.totalInstallations}
+                          {districtRow.totalInstallations}
                         </div>
                       </div>
                     </div>
@@ -1748,7 +1748,7 @@ export default function DashboardPage() {
         </>
       )}
 
-      {/* Training Center Installers Modal */}
+      {/* District Installers Modal */}
       {modalOpen && (
         <Dialog open={modalOpen} onOpenChange={() => setModalOpen(false)}>
           <DialogContent
@@ -1759,7 +1759,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <DialogTitle className="text-2xl font-bold">
-                    {selectedCenter}
+                    {selectedDistrict}
                   </DialogTitle>
                   <DialogDescription>
                     Active installers in selected period
@@ -1772,8 +1772,8 @@ export default function DashboardPage() {
               </div>
             </DialogHeader>
             <div className="space-y-3 p-4">
-              {centerInstallers.length > 0 ? (
-                centerInstallers.map((installer, index) => (
+              {districtInstallers.length > 0 ? (
+                districtInstallers.map((installer, index) => (
                   <Link
                     href={`/installers/${installer.installerCode}`}
                     key={installer.installerCode}

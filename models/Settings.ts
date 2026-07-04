@@ -5,7 +5,6 @@ export interface ISettings {
 
   // Installer Settings
   allowInstallerCodeEdit: boolean;
-  allowTrainingCenterEdit: boolean;
   maxReferralsPerInstaller: number;
   requireCertificationForRewards: boolean;
   autoVerifyInstallers: boolean;
@@ -49,11 +48,6 @@ const SettingsSchema = new Schema<ISettings>(
   {
     // Installer Settings
     allowInstallerCodeEdit: {
-      type: Boolean,
-      default: false,
-      required: true,
-    },
-    allowTrainingCenterEdit: {
       type: Boolean,
       default: false,
       required: true,

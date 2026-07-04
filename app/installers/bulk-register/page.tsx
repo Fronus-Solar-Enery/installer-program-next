@@ -2,7 +2,7 @@
 import { useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useRoleGuard } from "@/hooks/useRoleGuard";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useBatchJobs } from "@/contexts/BatchJobContext";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ import {
   Loader2,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import { BANKS } from "@/lib/constants";
+import { BANKS, CITY_TO_DISTRICT, DISTRICT_CODES } from "@/lib/constants";
 import BulkUploadProgressModal, {
   UploadStep,
 } from "@/components/BulkUploadProgressModal";
@@ -38,6 +38,40 @@ import { FileDropzone } from "@/components/ui/drop-zone";
 import { IconLayer, IconTrashBin2 } from "@/components/icons";
 import IconExcel from "@/components/icons/Excel";
 import IconDownloadMinimalistic from "@/components/icons/DownloadMinimalistic";
+
+function worksheetToJson(worksheet: ExcelJS.Worksheet): Record<string, unknown>[] {
+  const headers: string[] = [];
+  worksheet.getRow(1).eachCell((cell, colNumber) => {
+    headers[colNumber] = cell.value != null ? String(cell.value) : "";
+  });
+
+  const rows: Record<string, unknown>[] = [];
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const obj: Record<string, unknown> = {};
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const header = headers[colNumber];
+      if (header) obj[header] = cell.value;
+    });
+    rows.push(obj);
+  });
+  return rows;
+}
+
+async function downloadWorkbook(workbook: ExcelJS.Workbook, filename: string) {
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
 
 interface InstallerUpload {
   installerCode: string;
@@ -49,7 +83,6 @@ interface InstallerUpload {
   address: string;
   city: string;
   province: string;
-  trainingCenter: string;
   companyName?: string;
   bankName: string;
   accountNumber: string;
@@ -100,7 +133,6 @@ export default function BulkUploadInstallersPage() {
     Address: string;
     City: string;
     Province: string;
-    "Training Center": string;
     "Company Name": string;
     "Bank Name": string;
     "Account Number": string;
@@ -113,61 +145,50 @@ export default function BulkUploadInstallersPage() {
   ): void => {
     setDownloadingTemplate(true);
 
-    const generationPromise: Promise<{ name: string }> = new Promise(
-      (resolve, reject) => {
-        try {
-          const template: TemplateRow[] = [
-            {
-              "Installer Code": "IP-0001",
-              "Full Name": "John Doe",
-              "Referrer Code": "IP-0000 (optional)",
-              CNIC: "12345-1234567-1",
-              "Phone Number": "03001234567",
-              "WhatsApp Number": "03001234567",
-              Address: "123 Main Street",
-              City: "Karachi",
-              Province: "Sindh",
-              "Training Center": "Center A",
-              "Company Name": "ABC Company (optional)",
-              "Bank Name": "HBL/KONNECT",
-              "Account Number": "12345678901234",
-              "Account Title": "John Doe",
-              Certified: "true",
-            },
-          ];
+    const generationPromise: Promise<{ name: string }> = (async () => {
+      const template: TemplateRow[] = [
+        {
+          "Installer Code": "IP-0001",
+          "Full Name": "John Doe",
+          "Referrer Code": "IP-0000 (optional)",
+          CNIC: "12345-1234567-1",
+          "Phone Number": "03001234567",
+          "WhatsApp Number": "03001234567",
+          Address: "123 Main Street",
+          City: "Karachi",
+          Province: "Sindh",
+          "Company Name": "ABC Company (optional)",
+          "Bank Name": "HBL/KONNECT",
+          "Account Number": "12345678901234",
+          "Account Title": "John Doe",
+          Certified: "true",
+        },
+      ];
 
-          const ws = XLSX.utils.json_to_sheet(template);
-          const wb = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(wb, ws, "Installers Template");
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Installers Template");
+      ws.columns = [
+        { header: "Installer Code", key: "Installer Code", width: 15 },
+        { header: "Full Name", key: "Full Name", width: 20 },
+        { header: "Referrer Code", key: "Referrer Code", width: 15 },
+        { header: "CNIC", key: "CNIC", width: 18 },
+        { header: "Phone Number", key: "Phone Number", width: 15 },
+        { header: "WhatsApp Number", key: "WhatsApp Number", width: 15 },
+        { header: "Address", key: "Address", width: 30 },
+        { header: "City", key: "City", width: 15 },
+        { header: "Province", key: "Province", width: 12 },
+        { header: "Company Name", key: "Company Name", width: 20 },
+        { header: "Bank Name", key: "Bank Name", width: 12 },
+        { header: "Account Number", key: "Account Number", width: 20 },
+        { header: "Account Title", key: "Account Title", width: 20 },
+        { header: "Certified", key: "Certified", width: 10 },
+      ];
+      ws.addRows(template);
 
-          // Set column widths
-          ws["!cols"] = [
-            { wch: 15 },
-            { wch: 20 },
-            { wch: 15 },
-            { wch: 18 },
-            { wch: 15 },
-            { wch: 15 },
-            { wch: 30 },
-            { wch: 15 },
-            { wch: 12 },
-            { wch: 15 },
-            { wch: 20 },
-            { wch: 12 },
-            { wch: 20 },
-            { wch: 20 },
-            { wch: 10 },
-          ];
+      await downloadWorkbook(wb, "installers_bulk_upload_template.xlsx");
 
-          // writeFile is synchronous in browser contexts (triggers download)
-          XLSX.writeFile(wb, "installers_bulk_upload_template.xlsx");
-
-          resolve({ name: "Installers Template" });
-        } catch (error) {
-          reject(error);
-        }
-      }
-    );
+      return { name: "Installers Template" };
+    })();
 
     toast.promise(generationPromise, {
       loading: "Generating template...",
@@ -304,8 +325,20 @@ export default function BulkUploadInstallersPage() {
       if (!installer.province || installer.province.length < 2) {
         issues.push("Province is required");
       }
-      if (!installer.trainingCenter || installer.trainingCenter.length < 2) {
-        issues.push("Training center is required");
+      const district = installer.city
+        ? CITY_TO_DISTRICT[installer.city]
+        : undefined;
+      if (installer.city && !district) {
+        issues.push(`Unrecognized city "${installer.city}": cannot determine district`);
+      } else if (district) {
+        const expectedPrefix = DISTRICT_CODES[district];
+        if (
+          !installer.installerCode?.toUpperCase().startsWith(expectedPrefix)
+        ) {
+          issues.push(
+            `Installer code must start with "${expectedPrefix}" for district "${district}" (city: ${installer.city})`
+          );
+        }
       }
       if (!installer.bankName || installer.bankName.length < 2) {
         issues.push("Bank name is required");
@@ -389,26 +422,23 @@ export default function BulkUploadInstallersPage() {
           // Allow UI to update
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const data = e.target?.result as ArrayBuffer;
 
           setFileReadProgress(75);
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const workbook = XLSX.read(data, { type: "array" });
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(data);
 
           setFileReadProgress(80);
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
+          const worksheet = workbook.worksheets[0];
 
           setFileReadProgress(85);
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<
-            string,
-            unknown
-          >[];
+          const jsonData = worksheetToJson(worksheet);
 
           setFileReadProgress(90);
           await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -449,8 +479,6 @@ export default function BulkUploadInstallersPage() {
               const rawAddress = row["Address"]?.toString().trim() || "";
               const rawCity = row["City"]?.toString().trim() || "";
               const rawProvince = row["Province"]?.toString().trim() || "";
-              const rawTrainingCenter =
-                row["Training Center"]?.toString().trim() || "";
               const rawCompanyName =
                 row["Company Name"]?.toString().trim() || "";
               const rawAccountTitle =
@@ -476,9 +504,6 @@ export default function BulkUploadInstallersPage() {
                 address: rawAddress ? capitalizeEachWord(rawAddress) : "",
                 city: rawCity ? capitalizeEachWord(rawCity) : "",
                 province: rawProvince ? capitalizeEachWord(rawProvince) : "",
-                trainingCenter: rawTrainingCenter
-                  ? capitalizeEachWord(rawTrainingCenter)
-                  : "",
                 companyName: rawCompanyName
                   ? capitalizeEachWord(rawCompanyName)
                   : undefined,
@@ -585,7 +610,7 @@ export default function BulkUploadInstallersPage() {
     toast.success("Form reset successfully");
   };
 
-  const downloadInvalidRecords = () => {
+  const downloadInvalidRecords = async () => {
     setDownloadingInvalid(true);
     const toastId = toast.loading("Generating invalid records file...");
     try {
@@ -607,7 +632,6 @@ export default function BulkUploadInstallersPage() {
         Address: record.address,
         City: record.city,
         Province: record.province,
-        "Training Center": record.trainingCenter,
         "Company Name": record.companyName || "",
         "Bank Name": record.bankName,
         "Account Number": record.accountNumber,
@@ -616,43 +640,39 @@ export default function BulkUploadInstallersPage() {
         ISSUES: record.issues.join(" | "),
       }));
 
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Invalid Records");
-
-      // Set column widths
-      ws["!cols"] = [
-        { wch: 15 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 18 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 30 },
-        { wch: 15 },
-        { wch: 12 },
-        { wch: 15 },
-        { wch: 20 },
-        { wch: 12 },
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 10 },
-        { wch: 60 },
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Invalid Records");
+      ws.columns = [
+        { header: "Installer Code", key: "Installer Code", width: 15 },
+        { header: "Full Name", key: "Full Name", width: 20 },
+        { header: "Referrer Code", key: "Referrer Code", width: 15 },
+        { header: "CNIC", key: "CNIC", width: 18 },
+        { header: "Phone Number", key: "Phone Number", width: 15 },
+        { header: "WhatsApp Number", key: "WhatsApp Number", width: 15 },
+        { header: "Address", key: "Address", width: 30 },
+        { header: "City", key: "City", width: 15 },
+        { header: "Province", key: "Province", width: 12 },
+        { header: "Company Name", key: "Company Name", width: 20 },
+        { header: "Bank Name", key: "Bank Name", width: 12 },
+        { header: "Account Number", key: "Account Number", width: 20 },
+        { header: "Account Title", key: "Account Title", width: 20 },
+        { header: "Certified", key: "Certified", width: 10 },
+        { header: "ISSUES", key: "ISSUES", width: 60 },
       ];
+      ws.addRows(excelData);
 
       // Style the header row
-      const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
-      for (let col = range.s.c; col <= range.e.c; col++) {
-        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-        if (!ws[cellAddress]) continue;
-        ws[cellAddress].s = {
-          font: { bold: true },
-          fill: { fgColor: { rgb: "FFE0E0E0" } },
+      ws.getRow(1).eachCell((cell) => {
+        cell.font = { bold: true };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFE0E0E0" },
         };
-      }
+      });
 
       const timestamp = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `invalid_installers_${timestamp}.xlsx`);
+      await downloadWorkbook(wb, `invalid_installers_${timestamp}.xlsx`);
       toast.dismiss(toastId);
       toast.success(`Downloaded ${invalidRecords.length} invalid record(s)`);
     } catch (err) {

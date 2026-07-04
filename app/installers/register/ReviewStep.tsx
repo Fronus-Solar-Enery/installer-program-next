@@ -25,7 +25,6 @@ import {
   IconBank,
   IconCard,
   IconUserId,
-  IconTrainingCenter,
 } from "@/components/icons";
 import IconUser from "@/components/icons/User";
 import IconKey from "@/components/icons/Key";
@@ -50,8 +49,8 @@ interface ReviewStepProps {
   whatsappNumber: string;
   city: string;
   province: string;
+  district: string;
   address: string;
-  trainingCenter: string;
   bankName: string;
   accountNumber: string;
   accountTitle: string;
@@ -79,8 +78,8 @@ export function ReviewStep(props: ReviewStepProps) {
     whatsappNumber,
     city,
     province,
+    district,
     address,
-    trainingCenter,
     bankName,
     accountNumber,
     accountTitle,
@@ -152,7 +151,7 @@ export function ReviewStep(props: ReviewStepProps) {
                 {isAutoGen ? (
                   <p>
                     This unique installer code is generated based on the
-                    selected training center ({trainingCenter}).
+                    installer&apos;s district ({district}).
                   </p>
                 ) : (
                   <>This installer code is entered manually.</>
@@ -229,6 +228,7 @@ export function ReviewStep(props: ReviewStepProps) {
               />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <ReviewItem label="City" value={city} />
+                <ReviewItem label="District" value={district} />
                 <ReviewItem label="Province" value={province} />
               </div>
             </div>
@@ -287,17 +287,6 @@ export function ReviewStep(props: ReviewStepProps) {
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-6">
-              {trainingCenter && (
-                <ReviewItem
-                  label="Training Center"
-                  fullWidth={true}
-                  value={trainingCenter}
-                  icon={
-                    <IconTrainingCenter className="h-3.5 w-3.5 text-muted-foreground/90" />
-                  }
-                  isHighlighted={true}
-                />
-              )}
               <ReviewItem
                 label="Company"
                 value={companyName || "Not specified"}

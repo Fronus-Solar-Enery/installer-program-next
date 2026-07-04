@@ -184,14 +184,14 @@ export function RegistrationModal({
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 }}
                         className={cn(
-                          "relative flex items-center gap-3 p-3 rounded-2xl overflow-hidden transition-colors duration-300",
-                          isCompleted && "bg-success/5",
+                          "relative flex items-center gap-3 p-3 rounded-2xl overflow-hidden border border-border/40 bg-muted/10 transition-colors duration-300",
+                          isCompleted && "border-transparent bg-success/5",
                         )}
                       >
                         {/* Animated progress bar background for current step */}
                         {isCurrent && (
                           <motion.div
-                            className="absolute inset-0 bg-primary/5"
+                            className="absolute inset-0 bg-primary/5 rounded-r-lg"
                             style={{ width: `${stepProgress}%` }}
                             transition={{ duration: 0.1, ease: "linear" }}
                           />
@@ -203,7 +203,8 @@ export function RegistrationModal({
                             className={cn(
                               "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300",
                               isCompleted && "bg-success/20 text-success-text",
-                              isCurrent && "bg-primary text-primary-foreground",
+                              isCurrent &&
+                                "bg-primary/10 text-primary-foreground",
                               isPending && "bg-muted text-muted-foreground",
                             )}
                           >

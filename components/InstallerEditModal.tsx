@@ -5,7 +5,7 @@ import Modal from "./Modal";
 import {
   CITIES,
   CITY_TO_PROVINCE,
-  TRAINING_CENTER,
+  CITY_TO_DISTRICT,
   BANKS,
   PROVINCES,
 } from "@/lib/constants";
@@ -47,7 +47,6 @@ import {
   IconAltArrowRight,
   IconAltArrowLeft,
   IconEdit2,
-  IconTrainingCenter,
 } from "@/components/icons";
 import Loading from "@/components/ui/loading";
 import { Switch } from "@/components/ui/switch";
@@ -71,7 +70,6 @@ interface InstallerEditModalProps {
 
 interface Settings {
   allowInstallerCodeEdit?: boolean;
-  allowTrainingCenterEdit?: boolean;
 }
 
 interface InstallerData {
@@ -83,7 +81,7 @@ interface InstallerData {
   address: string;
   city: string;
   province: string;
-  trainingCenter: string;
+  district: string;
   companyName: string;
   bankName: string;
   accountNumber: string;
@@ -147,9 +145,9 @@ export default function InstallerEditModal({
   // Step 2 - Location & Training
   const [city, setCity] = useState("");
   const [province, setProvince] = useState("");
+  const [district, setDistrict] = useState("");
   const [address, setAddress] = useState("");
-  const [trainingCenter, setTrainingCenter] = useState("");
-  const [initialTrainingCenter, setInitialTrainingCenter] = useState("");
+  const [initialDistrict, setInitialDistrict] = useState("");
   const [originalInstallerCode, setOriginalInstallerCode] = useState("");
 
   const {
@@ -161,13 +159,12 @@ export default function InstallerEditModal({
     handleInstallerCodeChange,
     setInstallerCode,
   } = useInstallerCodeGeneration(
-    trainingCenter,
+    district,
     settings?.allowInstallerCodeEdit || false,
-    originalInstallerCode
+    originalInstallerCode,
   );
 
   const installerCodeAutoGen = !settings?.allowInstallerCodeEdit;
-  const canEditTrainingCenter = settings?.allowTrainingCenterEdit || false;
 
   // Step 3 - Banking Details
   const [bankName, setBankName] = useState("");
@@ -195,8 +192,8 @@ export default function InstallerEditModal({
       whatsappNumber,
       city,
       province,
+      district,
       address,
-      trainingCenter,
       installerCode,
       bankName,
       accountNumber,
@@ -221,8 +218,8 @@ export default function InstallerEditModal({
     whatsappNumber,
     city,
     province,
+    district,
     address,
-    trainingCenter,
     installerCode,
     bankName,
     accountNumber,
@@ -259,7 +256,7 @@ export default function InstallerEditModal({
           address: inst.address || "",
           city: inst.city || "",
           province: inst.province || "",
-          trainingCenter: inst.trainingCenter || "",
+          district: inst.district || "",
           companyName: inst.companyName || "",
           bankName: inst.bankName || "",
           accountNumber: inst.accountNumber || "",
@@ -293,8 +290,8 @@ export default function InstallerEditModal({
         setAddress(data.address);
         setCity(data.city);
         setProvince(data.province);
-        setTrainingCenter(data.trainingCenter);
-        setInitialTrainingCenter(data.trainingCenter);
+        setDistrict(data.district);
+        setInitialDistrict(data.district);
         setCompanyName(data.companyName);
         setBankName(data.bankName);
 
@@ -364,35 +361,31 @@ export default function InstallerEditModal({
     if (city) {
       const cityProvince = CITY_TO_PROVINCE[city];
       if (cityProvince) setProvince(cityProvince);
+      const cityDistrict = CITY_TO_DISTRICT[city];
+      if (cityDistrict) setDistrict(cityDistrict);
     }
   }, [city]);
 
-  // Handle training center change and installer code regeneration
+  // Handle district change and installer code regeneration
   useEffect(() => {
     if (
-      trainingCenter &&
-      canEditTrainingCenter &&
+      district &&
+      installerCodeAutoGen &&
       !loading &&
-      initialTrainingCenter // Only if we have an initial value (edit mode)
+      initialDistrict // Only if we have an initial value (edit mode)
     ) {
-      if (trainingCenter === initialTrainingCenter) {
-        // Training center changed back to original, restore original installer code
+      if (district === initialDistrict) {
+        // District changed back to original, restore original installer code
         setInstallerCode(originalInstallerCode);
-        // console.log(
-        //   "Training center restored to original, restoring original installer code"
-        // );
-      } else if (trainingCenter !== initialTrainingCenter) {
-        // Training center changed to something different, clear code to trigger regeneration
+      } else if (district !== initialDistrict) {
+        // District changed to something different, clear code to trigger regeneration
         setInstallerCode("");
-        // console.log(
-        //   "Training center changed, clearing code to trigger regeneration"
-        // );
       }
     }
   }, [
-    trainingCenter,
-    initialTrainingCenter,
-    canEditTrainingCenter,
+    district,
+    initialDistrict,
+    installerCodeAutoGen,
     loading,
     originalInstallerCode,
     setInstallerCode,
@@ -415,7 +408,7 @@ export default function InstallerEditModal({
   }, [cnicChecked, cnic, cnicError, fullName, phoneNumber, whatsappNumber]);
 
   const isStep2Valid = useCallback(() => {
-    if (!city || !address.trim() || !trainingCenter || !installerCode.trim()) {
+    if (!city || !address.trim() || !district || !installerCode.trim()) {
       return false;
     }
     // For manual edit mode, code must be valid
@@ -427,7 +420,7 @@ export default function InstallerEditModal({
   }, [
     city,
     address,
-    trainingCenter,
+    district,
     installerCode,
     installerCodeAutoGen,
     codeValid,
@@ -455,25 +448,25 @@ export default function InstallerEditModal({
   const handleNext = useCallback(() => {
     if (currentStep === 1 && !isStep1Valid()) {
       toast.error(
-        "Please check: CNIC must be 13 digits, Phone numbers must start with 03 and be 11 digits long"
+        "Please check: CNIC must be 13 digits, Phone numbers must start with 03 and be 11 digits long",
       );
       return;
     }
     if (currentStep === 2 && !isStep2Valid()) {
       toast.error(
-        "Please complete: City, Address, Training Center, and Installer Code must all be filled"
+        "Please complete: City, Address, District, and Installer Code must all be filled",
       );
       return;
     }
     if (currentStep === 3 && !isStep3Valid()) {
       toast.error(
-        "Please verify: Bank Name, Account Title, and correct Account Number format"
+        "Please verify: Bank Name, Account Title, and correct Account Number format",
       );
       return;
     }
     if (currentStep === 4 && !isStep4Valid()) {
       toast.error(
-        "Referrer code is not valid. You can leave it empty if you don't have a referrer."
+        "Referrer code is not valid. You can leave it empty if you don't have a referrer.",
       );
       return;
     }
@@ -494,11 +487,12 @@ export default function InstallerEditModal({
         cnic: cnicDisplay,
         phoneNumber: phoneNumberToDBFormat(phoneInput.value || phoneNumber),
         whatsappNumber: phoneNumberToDBFormat(
-          whatsappInput.value || whatsappNumber
+          whatsappInput.value || whatsappNumber,
         ),
         address,
         city,
         province,
+        district,
         companyName,
         bankName,
         accountNumber: isDigitalPayment
@@ -507,11 +501,6 @@ export default function InstallerEditModal({
         accountTitle,
         certified,
       };
-
-      // Only include training center if editing is enabled
-      if (canEditTrainingCenter) {
-        updateData.trainingCenter = trainingCenter;
-      }
 
       // Always include installerCode to ensure it's synced with database and Google Contacts
       // The backend will validate if the change is allowed
@@ -570,7 +559,7 @@ export default function InstallerEditModal({
   // Memoize selected bank and digital payment check
   const selectedBank = useMemo(
     () => BANKS.find((b) => b.value === bankName),
-    [bankName]
+    [bankName],
   );
   const isDigitalPayment = selectedBank?.mobile || false;
 
@@ -583,7 +572,7 @@ export default function InstallerEditModal({
       { number: 4, title: "Additional Info" },
       { number: 5, title: "Review" },
     ],
-    []
+    [],
   );
 
   // Memoize city groups for dropdown
@@ -603,17 +592,7 @@ export default function InstallerEditModal({
             ),
           })),
       })),
-    []
-  );
-
-  // Memoize training center options
-  const trainingCenterOptions = useMemo(
-    () =>
-      TRAINING_CENTER.map((tc) => ({
-        value: tc.city,
-        label: tc.city,
-      })),
-    []
+    [],
   );
 
   // Memoize bank groups
@@ -634,7 +613,7 @@ export default function InstallerEditModal({
         })),
       },
     ],
-    []
+    [],
   );
 
   const referrerJoined = useRelativeTime(referrerData?.createdAt || "");
@@ -696,7 +675,7 @@ export default function InstallerEditModal({
               className={cn(
                 "text-card-foreground",
                 GRID_2_COL_CLASS,
-                CARD_SECTION_CLASS
+                CARD_SECTION_CLASS,
               )}
             >
               {/* CNIC Field */}
@@ -738,7 +717,7 @@ export default function InstallerEditModal({
           <CardFooter
             className={cn(
               "flex justify-between items-center mt-6",
-              CARD_SECTION_CLASS
+              CARD_SECTION_CLASS,
             )}
           >
             <Skeleton className="h-10 w-28" />
@@ -773,7 +752,7 @@ export default function InstallerEditModal({
                 className={cn(
                   "text-card-foreground",
                   GRID_2_COL_CLASS,
-                  CARD_SECTION_CLASS
+                  CARD_SECTION_CLASS,
                 )}
               >
                 <CNICInput
@@ -895,6 +874,16 @@ export default function InstallerEditModal({
                       disabled
                     />
 
+                    <FormField
+                      type="text"
+                      label="District"
+                      id="district"
+                      value={district}
+                      onChange={() => {}}
+                      icon={IconMapPoint}
+                      disabled
+                    />
+
                     <div className="col-span-2">
                       <FormField
                         type="text"
@@ -909,29 +898,8 @@ export default function InstallerEditModal({
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 col-span-2 gap-4">
-                      <FormField
-                        type="select"
-                        label="Training Center"
-                        id="trainingCenter"
-                        value={trainingCenter}
-                        onChange={setTrainingCenter}
-                        placeholder="Select Training Center"
-                        icon={IconTrainingCenter}
-                        options={trainingCenterOptions}
-                        searchable
-                        searchPlaceholder="Search training centers..."
-                        emptyMessage="No training center found."
-                        required
-                        disabled={!canEditTrainingCenter}
-                        hint={
-                          !canEditTrainingCenter
-                            ? "Training center editing is disabled by admin"
-                            : undefined
-                        }
-                      />
-
-                      {trainingCenter && (
+                    {district && (
+                      <div className="col-span-2">
                         <InstallerCodeDisplay
                           code={installerCode}
                           isGenerating={codeGenerating}
@@ -941,8 +909,8 @@ export default function InstallerEditModal({
                           error={codeError}
                           isValid={codeValid}
                         />
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1162,7 +1130,7 @@ export default function InstallerEditModal({
                       <div
                         className={cn(
                           "mt-2 p-4 border pointer-events-none select-none border-border group rounded-3xl bg-muted/50 hover:bg-muted/70 transition-colors duration-300 flex items-center justify-between",
-                          referrerData && "pointer-events-auto"
+                          referrerData && "pointer-events-auto",
                         )}
                       >
                         {referrerData && (
@@ -1274,10 +1242,8 @@ export default function InstallerEditModal({
                         <p className="font-medium">{address}</p>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">
-                          Training Center:
-                        </span>
-                        <p className="font-medium">{trainingCenter}</p>
+                        <span className="text-muted-foreground">District:</span>
+                        <p className="font-medium">{district}</p>
                       </div>
                     </div>
                   </div>
@@ -1354,7 +1320,7 @@ export default function InstallerEditModal({
           <CardFooter
             className={cn(
               "flex justify-between items-center mt-6",
-              CARD_SECTION_CLASS
+              CARD_SECTION_CLASS,
             )}
           >
             <Button

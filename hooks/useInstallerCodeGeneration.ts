@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
-import { TRAINING_CENTER } from "@/lib/constants";
+import { DISTRICT_CODES } from "@/lib/constants";
 
 interface InstallerResponse {
   _id: string;
@@ -10,7 +10,7 @@ interface InstallerResponse {
 }
 
 export function useInstallerCodeGeneration(
-  trainingCenter: string,
+  district: string,
   allowManualEdit: boolean,
   excludeCode?: string
 ) {
@@ -21,8 +21,8 @@ export function useInstallerCodeGeneration(
   const [codeValid, setCodeValid] = useState(false);
 
   const generateInstallerCode = useCallback(async () => {
-    const center = TRAINING_CENTER.find((tc) => tc.city === trainingCenter);
-    if (!center) return;
+    const prefix = DISTRICT_CODES[district];
+    if (!prefix) return;
 
     setCodeGenerating(true);
     setCodeError(null);
@@ -33,7 +33,7 @@ export function useInstallerCodeGeneration(
         return chars.charAt(Math.floor(Math.random() * chars.length));
       }).join("");
 
-      const proposedCode = `${center.short}${randomPart}`;
+      const proposedCode = `${prefix}${randomPart}`;
 
       const response = await fetch(`/api/installers?search=${proposedCode}`);
       const data = await response.json();
@@ -58,7 +58,7 @@ export function useInstallerCodeGeneration(
     } finally {
       setCodeGenerating(false);
     }
-  }, [trainingCenter]);
+  }, [district]);
 
   const validateManualCode = useCallback(
     async (code: string) => {
@@ -75,18 +75,18 @@ export function useInstallerCodeGeneration(
         return;
       }
 
-      const center = TRAINING_CENTER.find((tc) => tc.city === trainingCenter);
-      if (!center) {
-        setCodeError("Training center not selected");
+      const expectedPrefix = DISTRICT_CODES[district];
+      if (!expectedPrefix) {
+        setCodeError("District not selected");
         setCodeValid(false);
         return;
       }
 
-      // Check if code starts with correct training center prefix
+      // Check if code starts with correct district prefix
       const prefix = code.substring(0, 3).toUpperCase();
-      if (prefix !== center.short) {
+      if (prefix !== expectedPrefix) {
         setCodeError(
-          `Code must start with ${center.short} for ${trainingCenter}`
+          `Code must start with ${expectedPrefix} for ${district}`
         );
         setCodeValid(false);
         return;
@@ -136,25 +136,25 @@ export function useInstallerCodeGeneration(
         setCodeValidating(false);
       }
     },
-    [trainingCenter, excludeCode]
+    [district, excludeCode]
   );
 
   useEffect(() => {
-    // Only auto-generate if: training center is selected, manual edit is disabled, and code is empty
+    // Only auto-generate if: district is selected, manual edit is disabled, and code is empty
     // This prevents overwriting existing codes when editing
-    if (trainingCenter && !allowManualEdit && !installerCode) {
+    if (district && !allowManualEdit && !installerCode) {
       generateInstallerCode();
     }
-  }, [trainingCenter, allowManualEdit, installerCode, generateInstallerCode]);
+  }, [district, allowManualEdit, installerCode, generateInstallerCode]);
 
   useEffect(() => {
-    if (allowManualEdit && installerCode && trainingCenter) {
+    if (allowManualEdit && installerCode && district) {
       const timeoutId = setTimeout(() => {
         validateManualCode(installerCode);
       }, 500);
       return () => clearTimeout(timeoutId);
     }
-  }, [installerCode, allowManualEdit, trainingCenter, validateManualCode]);
+  }, [installerCode, allowManualEdit, district, validateManualCode]);
 
   const handleInstallerCodeChange = (value: string) => {
     const upperValue = value.toUpperCase();

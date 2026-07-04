@@ -114,5 +114,4 @@ export { default as IconCompany } from "./Buildings";
 export { default as IconReward } from "./Money";
 export { default as IconProduct } from "./BoxMinimalistic";
 export { default as IconSerialNumber } from "./Barcode";
-export { default as IconTrainingCenter } from "./Teacher";
 export { default as IconInstaller } from "./UserCog";

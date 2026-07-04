@@ -36,7 +36,7 @@ describe("registerInstallerSchema", () => {
     address: "123 Main Street",
     city: "Lahore",
     province: "Punjab",
-    trainingCenter: "Lahore Center",
+    district: "Lahore",
     bankName: "HBL",
     accountNumber: "0123456789",
     accountTitle: "Ali Khan",

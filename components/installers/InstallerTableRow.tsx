@@ -121,9 +121,9 @@ function InstallerTableRowComponent({
         <TableCell>{installer.province || "-"}</TableCell>
       )}
 
-      {/* Training Center */}
-      {visibleColumns.trainingCenter && (
-        <TableCell>{installer.trainingCenter || "-"}</TableCell>
+      {/* District */}
+      {visibleColumns.district && (
+        <TableCell>{installer.district || "-"}</TableCell>
       )}
 
       {/* Company Name */}

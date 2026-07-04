@@ -8,7 +8,7 @@ export interface Statistics {
   notCertified: number;
   cities: number;
   provinces: number;
-  trainingCenters: number;
+  districts: number;
   filtered: number;
 }
 
@@ -76,8 +76,9 @@ function StatisticsCardsComponent({ statistics }: StatisticsCardsProps) {
         <CardContent>
           <div className="text-2xl font-bold">{statistics.cities}</div>
           <p className="text-xs text-muted-foreground mt-1">
-            {statistics.provinces} provinces, {statistics.trainingCenters}{" "}
-            training centers
+            {statistics.provinces} province
+            {statistics.provinces !== 1 ? "s" : ""}, {statistics.districts}
+            district{statistics.districts !== 1 ? "s" : ""}
           </p>
         </CardContent>
       </Card>

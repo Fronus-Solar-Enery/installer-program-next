@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import Installer, { IInstaller } from "@/models/Installer";
 import Activity from "@/models/Activity";
+import { CITY_TO_DISTRICT, DISTRICT_CODES } from "@/lib/constants";
 
 interface BulkInstallerData extends Partial<IInstaller> {
   isValid?: boolean;
@@ -28,7 +29,7 @@ interface InstallerDocument {
   address: string;
   city: string;
   province: string;
-  trainingCenter: string;
+  district: string;
   companyName?: string;
   bankName: string;
   accountNumber: string;
@@ -169,7 +170,6 @@ export async function POST(req: NextRequest) {
         !installerData.address ||
         !installerData.city ||
         !installerData.province ||
-        !installerData.trainingCenter ||
         !installerData.bankName ||
         !installerData.accountNumber ||
         !installerData.accountTitle
@@ -194,6 +194,25 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // District is derived from city, same as the register/edit forms
+      const district = CITY_TO_DISTRICT[installerData.city];
+      if (!district) {
+        installerValidationErrors.push({
+          code: installerData.installerCode || "unknown",
+          error: `Unrecognized city "${installerData.city}": cannot determine district`,
+        });
+        continue;
+      }
+
+      const expectedPrefix = DISTRICT_CODES[district];
+      if (!installerData.installerCode?.toUpperCase().startsWith(expectedPrefix)) {
+        installerValidationErrors.push({
+          code: installerData.installerCode || "unknown",
+          error: `Installer code must start with "${expectedPrefix}" for district "${district}"`,
+        });
+        continue;
+      }
+
       // Prepare installer document
       installersToInsert.push({
         installerCode: installerData.installerCode,
@@ -206,7 +225,7 @@ export async function POST(req: NextRequest) {
         address: installerData.address,
         city: installerData.city,
         province: installerData.province,
-        trainingCenter: installerData.trainingCenter,
+        district,
         companyName: installerData.companyName,
         bankName: installerData.bankName,
         accountNumber: installerData.accountNumber,

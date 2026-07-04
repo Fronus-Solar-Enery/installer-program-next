@@ -17,7 +17,7 @@ export interface InstallerColumnVisibility {
   phoneNumber: boolean;
   city: boolean;
   province: boolean;
-  trainingCenter: boolean;
+  district: boolean;
   companyName: boolean;
   certified: boolean;
   bankName: boolean;
@@ -28,7 +28,7 @@ export interface InstallerColumnVisibility {
 export interface InstallerFilters extends BaseDateFilters {
   city: string;
   province: string;
-  trainingCenter: string;
+  district: string;
   certified: string;
 }
 
@@ -36,7 +36,7 @@ export interface InstallerFilters extends BaseDateFilters {
 const initialFilters: InstallerFilters = {
   city: "",
   province: "",
-  trainingCenter: "",
+  district: "",
   certified: "",
   dateRange: "all",
   customStartDate: "",
@@ -50,7 +50,7 @@ const initialColumnVisibility: InstallerColumnVisibility = {
   phoneNumber: true,
   city: true,
   province: false,
-  trainingCenter: false,
+  district: false,
   companyName: false,
   certified: true,
   bankName: false,

@@ -46,7 +46,7 @@ export function InstallerCodeDisplay({
               className={cn(
                 error && "border-destructive focus-visible:ring-destructive",
                 isValid &&
-                  "border-success-border focus-visible:ring-success-border"
+                  "border-success-border focus-visible:ring-success-border",
               )}
             />
             {isValidating && (

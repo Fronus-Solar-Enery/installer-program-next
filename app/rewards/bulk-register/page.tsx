@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +43,40 @@ import BulkUploadProgressModal, {
   UploadStep,
 } from "@/components/BulkUploadProgressModal";
 import Loading from "@/components/ui/loading";
+
+function worksheetToJson(worksheet: ExcelJS.Worksheet): Record<string, unknown>[] {
+  const headers: string[] = [];
+  worksheet.getRow(1).eachCell((cell, colNumber) => {
+    headers[colNumber] = cell.value != null ? String(cell.value) : "";
+  });
+
+  const rows: Record<string, unknown>[] = [];
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const obj: Record<string, unknown> = {};
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const header = headers[colNumber];
+      if (header) obj[header] = cell.value;
+    });
+    rows.push(obj);
+  });
+  return rows;
+}
+
+async function downloadWorkbook(workbook: ExcelJS.Workbook, filename: string) {
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
 
 interface RewardCreate {
   timestamp: string;
@@ -98,7 +132,7 @@ export default function BulkCreateRewardsPage() {
   // Virtual scrolling ref for large datasets
   const parentRef = useRef<HTMLDivElement>(null);
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
     setDownloadingTemplate(true);
     try {
       const template = [
@@ -127,33 +161,32 @@ export default function BulkCreateRewardsPage() {
         },
       ];
 
-      const ws = XLSX.utils.json_to_sheet(template);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Rewards Template");
-
-      ws["!cols"] = [
-        { wch: 20 },
-        { wch: 25 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 35 },
-        { wch: 15 },
-        { wch: 35 },
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 25 },
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 25 },
-        { wch: 15 },
-        { wch: 40 },
-        { wch: 35 },
-        { wch: 25 },
-        { wch: 15 },
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Rewards Template");
+      ws.columns = [
+        { header: "Timestamp", key: "Timestamp", width: 20 },
+        { header: "Team Member Email", key: "Team Member Email", width: 25 },
+        { header: "Installer Name", key: "Installer Name", width: 20 },
+        { header: "Installer Code", key: "Installer Code", width: 15 },
+        { header: "Product Model", key: "Product Model", width: 35 },
+        { header: "Serial Number", key: "Serial Number", width: 15 },
+        { header: "Inverter Serial Number", key: "Inverter Serial Number", width: 35 },
+        { header: "Serial Number Status", key: "Serial Number Status", width: 20 },
+        { header: "City of Installation", key: "City of Installation", width: 20 },
+        { header: "Bank Name", key: "Bank Name", width: 25 },
+        { header: "Account Number", key: "Account Number", width: 20 },
+        { header: "Account Title", key: "Account Title", width: 20 },
+        { header: "Reward Status", key: "Reward Status", width: 15 },
+        { header: "Transaction ID", key: "Transaction ID", width: 25 },
+        { header: "Reward Amount", key: "Reward Amount", width: 15 },
+        { header: "Referrer Reward Amount", key: "Referrer Reward Amount", width: 40 },
+        { header: "Referrer Transaction ID", key: "Referrer Transaction ID", width: 35 },
+        { header: "Sending Date", key: "Sending Date", width: 25 },
+        { header: "Payment Method", key: "Payment Method", width: 15 },
       ];
+      ws.addRows(template);
 
-      XLSX.writeFile(wb, "rewards_bulk_register_template.xlsx");
+      await downloadWorkbook(wb, "rewards_bulk_register_template.xlsx");
     } finally {
       setTimeout(() => setDownloadingTemplate(false), 500);
     }
@@ -421,26 +454,23 @@ export default function BulkCreateRewardsPage() {
         // Allow UI to update
         await new Promise((resolve) => requestAnimationFrame(resolve));
 
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const data = e.target?.result as ArrayBuffer;
 
         setFileReadProgress(75);
         await new Promise((resolve) => requestAnimationFrame(resolve));
 
-        const workbook = XLSX.read(data, { type: "array" });
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(data);
 
         setFileReadProgress(80);
         await new Promise((resolve) => requestAnimationFrame(resolve));
 
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
+        const worksheet = workbook.worksheets[0];
 
         setFileReadProgress(85);
         await new Promise((resolve) => requestAnimationFrame(resolve));
 
-        const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<
-          string,
-          unknown
-        >[];
+        const jsonData = worksheetToJson(worksheet);
 
         setFileReadProgress(90);
         await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -647,7 +677,7 @@ export default function BulkCreateRewardsPage() {
     }, 500);
   };
 
-  const downloadInvalidRecords = () => {
+  const downloadInvalidRecords = async () => {
     setDownloadingInvalid(true);
     try {
       const invalidRecords = preview.filter((p) => !p.isValid);
@@ -680,25 +710,36 @@ export default function BulkCreateRewardsPage() {
         ISSUES: record.issues.join(" | "),
       }));
 
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Invalid Records");
-
-      ws["!cols"] = [
-        { wch: 15 },
-        { wch: 30 },
-        { wch: 15 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 25 },
-        { wch: 25 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 60 },
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Invalid Records");
+      // Only the first 10 columns had widths set in the original template
+      ws.columns = [
+        { header: "Timestamp", key: "Timestamp", width: 15 },
+        { header: "Team Member Email", key: "Team Member Email", width: 30 },
+        { header: "Installer Name", key: "Installer Name", width: 15 },
+        { header: "Installer Code", key: "Installer Code", width: 20 },
+        { header: "Referrer Code", key: "Referrer Code", width: 15 },
+        { header: "Product Model", key: "Product Model", width: 25 },
+        { header: "Serial Number", key: "Serial Number", width: 25 },
+        { header: "Inverter Serial Number", key: "Inverter Serial Number", width: 20 },
+        { header: "Serial Number Status", key: "Serial Number Status", width: 15 },
+        { header: "City of Installation", key: "City of Installation", width: 60 },
+        { header: "Bank Name", key: "Bank Name" },
+        { header: "Account Number", key: "Account Number" },
+        { header: "Account Title", key: "Account Title" },
+        { header: "Reward Status", key: "Reward Status" },
+        { header: "Transaction ID", key: "Transaction ID" },
+        { header: "Reward Amount", key: "Reward Amount" },
+        { header: "Referrer Reward Amount", key: "Referrer Reward Amount" },
+        { header: "Referrer Transaction ID", key: "Referrer Transaction ID" },
+        { header: "Sending Date", key: "Sending Date" },
+        { header: "Payment Method", key: "Payment Method" },
+        { header: "ISSUES", key: "ISSUES" },
       ];
+      ws.addRows(excelData);
 
       const timestamp = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `invalid_rewards_register_${timestamp}.xlsx`);
+      await downloadWorkbook(wb, `invalid_rewards_register_${timestamp}.xlsx`);
     } finally {
       setTimeout(() => setDownloadingInvalid(false), 500);
     }

@@ -22,7 +22,7 @@ interface InstallerDocument {
   address: string;
   city: string;
   province: string;
-  trainingCenter: string;
+  district: string;
   companyName?: string;
   googleContactId?: string;
 }
@@ -148,8 +148,8 @@ async function processGoogleContactsCreate(jobId: string) {
     }
 
     // Pre-fetch contact groups
-    const trainingCenters = installers.map((i) => i.trainingCenter);
-    const preloadedGroups = await preloadContactGroups(trainingCenters);
+    const districts = installers.map((i) => i.district);
+    const preloadedGroups = await preloadContactGroups(districts);
 
     // IDEMPOTENCY CHECK: Filter out installers that already have a googleContactId
     const pendingInstallers = installers.filter((i) => !i.googleContactId);
@@ -222,7 +222,7 @@ async function processGoogleContactsCreate(jobId: string) {
               installerCode: installer.installerCode,
               referrerCode: installer.referrerCode,
               cnic: installer.cnic,
-              trainingCenter: installer.trainingCenter,
+              district: installer.district,
             },
             preloadedGroups || undefined
           );

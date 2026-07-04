@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -46,6 +46,40 @@ import BulkUploadProgressModal, {
 import Loading from "@/components/ui/loading";
 import IconDownloadMinimalistic from "@/components/icons/DownloadMinimalistic";
 
+function worksheetToJson(worksheet: ExcelJS.Worksheet): Record<string, unknown>[] {
+  const headers: string[] = [];
+  worksheet.getRow(1).eachCell((cell, colNumber) => {
+    headers[colNumber] = cell.value != null ? String(cell.value) : "";
+  });
+
+  const rows: Record<string, unknown>[] = [];
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const obj: Record<string, unknown> = {};
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const header = headers[colNumber];
+      if (header) obj[header] = cell.value;
+    });
+    rows.push(obj);
+  });
+  return rows;
+}
+
+async function downloadWorkbook(workbook: ExcelJS.Workbook, filename: string) {
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
+
 interface RewardUpdate {
   serialNumber: string;
   transactionId: string;
@@ -80,7 +114,7 @@ export default function BulkUploadRewardsPage() {
   const [successCount, setSuccessCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
     setDownloadingTemplate(true);
     try {
       const template = [
@@ -92,19 +126,17 @@ export default function BulkUploadRewardsPage() {
         },
       ];
 
-      const ws = XLSX.utils.json_to_sheet(template);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Rewards Template");
-
-      // Set column widths
-      ws["!cols"] = [
-        { wch: 15 }, // Serial Number
-        { wch: 25 }, // Installer Transaction ID
-        { wch: 25 }, // Referrer Transaction ID
-        { wch: 25 }, // Payment Method
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Rewards Template");
+      ws.columns = [
+        { header: "Serial Number", key: "Serial Number", width: 15 },
+        { header: "Installer Transaction ID", key: "Installer Transaction ID", width: 25 },
+        { header: "Referrer Transaction ID", key: "Referrer Transaction ID", width: 25 },
+        { header: "Payment Method", key: "Payment Method", width: 25 },
       ];
+      ws.addRows(template);
 
-      XLSX.writeFile(wb, "rewards_bulk_update_template.xlsx");
+      await downloadWorkbook(wb, "rewards_bulk_update_template.xlsx");
     } finally {
       setTimeout(() => setDownloadingTemplate(false), 500);
     }
@@ -257,26 +289,23 @@ export default function BulkUploadRewardsPage() {
           // Allow UI to update
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const data = e.target?.result as ArrayBuffer;
 
           setFileReadProgress(75);
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const workbook = XLSX.read(data, { type: "array" });
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(data);
 
           setFileReadProgress(80);
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
+          const worksheet = workbook.worksheets[0];
 
           setFileReadProgress(85);
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<
-            string,
-            unknown
-          >[];
+          const jsonData = worksheetToJson(worksheet);
 
           setFileReadProgress(90);
           await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -485,7 +514,7 @@ export default function BulkUploadRewardsPage() {
     }, 500);
   };
 
-  const downloadInvalidRecords = () => {
+  const downloadInvalidRecords = async () => {
     setDownloadingInvalid(true);
     try {
       const invalidRecords = preview.filter((p) => !p.isValid);
@@ -502,21 +531,19 @@ export default function BulkUploadRewardsPage() {
         ISSUES: record.issues.join(" | "),
       }));
 
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Invalid Records");
-
-      // Set column widths
-      ws["!cols"] = [
-        { wch: 15 }, // Serial Number
-        { wch: 25 }, // Installer Transaction ID
-        { wch: 25 }, // Referrer Transaction ID
-        { wch: 25 }, // Payment Method
-        { wch: 60 }, // ISSUES
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Invalid Records");
+      ws.columns = [
+        { header: "Serial Number", key: "Serial Number", width: 15 },
+        { header: "Installer Transaction ID", key: "Installer Transaction ID", width: 25 },
+        { header: "Referrer Transaction ID", key: "Referrer Transaction ID", width: 25 },
+        { header: "Payment Method", key: "Payment Method", width: 25 },
+        { header: "ISSUES", key: "ISSUES", width: 60 },
       ];
+      ws.addRows(excelData);
 
       const timestamp = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `invalid_rewards_${timestamp}.xlsx`);
+      await downloadWorkbook(wb, `invalid_rewards_${timestamp}.xlsx`);
     } finally {
       setTimeout(() => setDownloadingInvalid(false), 500);
     }

@@ -18,13 +18,13 @@ interface OptimizedFilterResult {
     notCertified: number;
     cities: number;
     provinces: number;
-    trainingCenters: number;
+    districts: number;
     filtered: number;
   };
   uniqueValues: {
     cities: string[];
     provinces: string[];
-    trainingCenters: string[];
+    districts: string[];
   };
 }
 
@@ -45,7 +45,7 @@ export function useOptimizedInstallerFilter({
     // Single-pass processing
     const uniqueCities = new Set<string>();
     const uniqueProvinces = new Set<string>();
-    const uniqueTrainingCenters = new Set<string>();
+    const uniqueDistricts = new Set<string>();
     let certifiedCount = 0;
     let filteredCount = 0;
 
@@ -99,8 +99,8 @@ export function useOptimizedInstallerFilter({
       // Collect unique values for all installers
       if (installer.city) uniqueCities.add(installer.city);
       if (installer.province) uniqueProvinces.add(installer.province);
-      if (installer.trainingCenter)
-        uniqueTrainingCenters.add(installer.trainingCenter);
+      if (installer.district)
+        uniqueDistricts.add(installer.district);
       if (installer.certified) certifiedCount++;
 
       // Apply search filter
@@ -113,7 +113,7 @@ export function useOptimizedInstallerFilter({
           installer.cnic?.includes(searchLower) ||
           installer.city?.toLowerCase().includes(searchLower) ||
           installer.province?.toLowerCase().includes(searchLower) ||
-          installer.trainingCenter?.toLowerCase().includes(searchLower) ||
+          installer.district?.toLowerCase().includes(searchLower) ||
           installer.companyName?.toLowerCase().includes(searchLower) ||
           installer.address?.toLowerCase().includes(searchLower);
 
@@ -133,8 +133,8 @@ export function useOptimizedInstallerFilter({
       if (filters.province && installer.province !== filters.province)
         return false;
       if (
-        filters.trainingCenter &&
-        installer.trainingCenter !== filters.trainingCenter
+        filters.district &&
+        installer.district !== filters.district
       )
         return false;
       if (filters.certified !== "") {
@@ -181,13 +181,13 @@ export function useOptimizedInstallerFilter({
         notCertified: installers.length - certifiedCount,
         cities: uniqueCities.size,
         provinces: uniqueProvinces.size,
-        trainingCenters: uniqueTrainingCenters.size,
+        districts: uniqueDistricts.size,
         filtered: filteredCount,
       },
       uniqueValues: {
         cities: Array.from(uniqueCities).sort(),
         provinces: Array.from(uniqueProvinces).sort(),
-        trainingCenters: Array.from(uniqueTrainingCenters).sort(),
+        districts: Array.from(uniqueDistricts).sort(),
       },
     };
   }, [installers, search, filters, sortField, sortDirection]);
