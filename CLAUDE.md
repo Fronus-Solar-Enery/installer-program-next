@@ -90,6 +90,14 @@ Zod schemas in `lib/validation.ts` and `lib/validation-helpers.ts`. API routes p
 
 Tailwind CSS v4 with shadcn/ui components. Font: Saira (Google Fonts). Theme: `next-themes` with `ThemeProvider`. Toast notifications via `sonner`.
 
+### Animation Implementation Protocol
+
+- **Motion Mechanics:** ALWAYS implement physics-based animations (e.g., springs, inertia) instead of fixed-duration, time-based animations to ensure maximum fluidity and organic responsiveness.
+- **Required Skills:** You must actively reference and apply the principles from the following skill modules whenever writing, planning, or reviewing animation code:
+  - `@.agents/skills/animation-vocabulary/SKILL.md`
+  - `@.agents/skills/emil-design-eng/SKILL.md`
+  - `@.agents/skills/review-animations/SKILL.md`
+
 ## IMPORTANT
 
 - ALWAYS ASK CLARIFYING QUESTIONS IF ANY INSTRUCTIONS ARE UNCLEAR. NEVER ASSUME ANYTHING.

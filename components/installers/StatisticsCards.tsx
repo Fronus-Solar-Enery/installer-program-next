@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { Users, CheckCircle, XCircle, MapPin } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { addS } from "@/lib/utils";
 
 export interface Statistics {
   total: number;
@@ -76,9 +77,8 @@ function StatisticsCardsComponent({ statistics }: StatisticsCardsProps) {
         <CardContent>
           <div className="text-2xl font-bold">{statistics.cities}</div>
           <p className="text-xs text-muted-foreground mt-1">
-            {statistics.provinces} province
-            {statistics.provinces !== 1 ? "s" : ""}, {statistics.districts}
-            district{statistics.districts !== 1 ? "s" : ""}
+            {addS(statistics.provinces, "Province")} • 
+            {addS(statistics.districts, "District")}
           </p>
         </CardContent>
       </Card>

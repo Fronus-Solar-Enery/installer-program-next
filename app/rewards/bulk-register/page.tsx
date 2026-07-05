@@ -29,12 +29,8 @@ import {
   Loader2,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import {
-  PAYMENT_METHOD,
-  PRODUCT_MODELS,
-  BANKS,
-  SERIAL_STATUSES,
-} from "@/lib/constants";
+import { PAYMENT_METHOD, BANKS, SERIAL_STATUSES } from "@/lib/constants";
+import { useProducts } from "@/hooks/useProducts";
 import { FileDropzone } from "@/components/ui/drop-zone";
 import { IconLayer, IconTrashBin2 } from "@/components/icons";
 import IconExcel from "@/components/icons/Excel";
@@ -106,6 +102,7 @@ interface RewardCreate {
 
 export default function BulkCreateRewardsPage() {
   const router = useRouter();
+  const { data: products = [] } = useProducts();
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState("");
@@ -219,13 +216,11 @@ export default function BulkCreateRewardsPage() {
   };
 
   const validateProductModel = (model: string): boolean => {
-    return PRODUCT_MODELS.some(
-      (pm) => pm.value === model || pm.label === model,
-    );
+    return products.some((pm) => pm.value === model || pm.label === model);
   };
 
   const normalizeProductModel = (model: string): string => {
-    const matched = PRODUCT_MODELS.find(
+    const matched = products.find(
       (pm) => pm.value === model || pm.label === model,
     );
     return matched ? matched.value : model;
@@ -331,7 +326,7 @@ export default function BulkCreateRewardsPage() {
       );
     } else {
       // Check if inverter serial is required based on product configuration
-      const productConfig = PRODUCT_MODELS.find(
+      const productConfig = products.find(
         (pm) => pm.value === reward.productModel,
       );
       if (productConfig?.requiresInverter && !reward.inverterSerialNumber) {
@@ -515,7 +510,7 @@ export default function BulkCreateRewardsPage() {
               normalizeProductModel(rawProductModel);
 
             // Check if product requires inverter (same logic as register page)
-            const productConfig = PRODUCT_MODELS.find(
+            const productConfig = products.find(
               (pm) => pm.value === normalizedProductModel,
             );
             const requiresInverter = productConfig?.requiresInverter || false;

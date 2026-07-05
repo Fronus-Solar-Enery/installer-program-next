@@ -123,6 +123,18 @@ export const updateRewardSchema = z.object({
   paymentMethod: z.string().optional(),
 });
 
+// Product Schemas
+export const productSchema = z.object({
+  name: z.string().min(1, "Product name is required"),
+  reward: z.number().min(0, "Reward must be positive"),
+  requiresInverter: z.boolean().default(false),
+  isBattery: z.boolean().default(false),
+  active: z.boolean().default(true),
+  order: z.number().optional(),
+});
+
+export const updateProductSchema = productSchema.partial();
+
 export type RegisterTeamMemberInput = z.infer<typeof registerTeamMemberSchema>;
 export type UpdateTeamMemberInput = z.infer<typeof updateTeamMemberSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
@@ -130,3 +142,5 @@ export type RegisterInstallerInput = z.infer<typeof registerInstallerSchema>;
 export type UpdateInstallerInput = z.infer<typeof updateInstallerSchema>;
 export type RegisterRewardInput = z.infer<typeof registerRewardSchema>;
 export type UpdateRewardInput = z.infer<typeof updateRewardSchema>;
+export type ProductInput = z.infer<typeof productSchema>;
+export type UpdateProductInput = z.infer<typeof updateProductSchema>;

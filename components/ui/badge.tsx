@@ -17,6 +17,7 @@ const badgeVariants = cva(
           "border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:
           "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+        dark: "text-foreground bg-background [a&]:hover:text-accent-foreground",
 
         info: "border-transparent bg-cyan-500 text-white dark:bg-cyan-950/50 dark:text-cyan-400 focus-visible:outline-cyan-700 focus-visible:dark:outline-cyan-300",
 
@@ -30,11 +31,12 @@ const badgeVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof badgeVariants> {
   icon?: React.ReactNode;
   dot?: boolean;

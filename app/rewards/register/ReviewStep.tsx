@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { PRODUCT_MODELS, SERIAL_STATUSES } from "@/lib/constants";
+import { SERIAL_STATUSES } from "@/lib/constants";
+import { useProducts } from "@/hooks/useProducts";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { HyperText } from "@/components/ui/hypertext";
@@ -78,8 +79,9 @@ export function ReviewStep(props: ReviewStepProps) {
     installerData,
   } = props;
 
+  const { data: products = [] } = useProducts();
   const selectedProductLabel =
-    PRODUCT_MODELS.find((p) => p.value === productModel)?.label || productModel;
+    products.find((p) => p.value === productModel)?.label || productModel;
   const selectedStatusLabel =
     SERIAL_STATUSES.find((s) => s.value === serialNumberStatus)?.label ||
     serialNumberStatus;

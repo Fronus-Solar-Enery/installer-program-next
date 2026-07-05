@@ -48,7 +48,7 @@ export function EditSettingDialog({
     }
   };
 
-  return ( 
+  return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         className="sm:max-w-[425px]"

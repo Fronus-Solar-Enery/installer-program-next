@@ -45,6 +45,7 @@ import {
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
+import { EASE_MOVE, EASE_MOVE_REVERSE, EASE_ENTER } from "@/lib/gsapEases";
 import { IconAltArrowLeft, IconInstaller } from "@/components/icons";
 
 // Types
@@ -258,12 +259,17 @@ function Sidebar({
     const navItems = gsap.utils.toArray<HTMLElement>(".navitem-link");
     const navTitles = gsap.utils.toArray<HTMLElement>(".navlink-title");
     const navIcons = gsap.utils.toArray<HTMLElement>(".navitem-icon");
-    const profileContainer = document.querySelector(".profile-container");
-    const profileName = document.querySelector(".profile-name");
-    const profileBadge = document.querySelector(".profile-badge");
-    const profileAvatar = document.querySelector(".profile-avatar");
 
     if (!sidebar || !logo || !navIcons || !navTitles || !navItems) return;
+
+    const profileContainer = sidebar.querySelector(".profile-container");
+    const profileName = sidebar.querySelector(".profile-name");
+    const profileBadge = sidebar.querySelector(".profile-badge");
+    const profileAvatar = sidebar.querySelector(".profile-avatar");
+
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const ctx = gsap.context(() => {
       // helpers must return void, not a Tween
@@ -290,14 +296,15 @@ function Sidebar({
       };
 
       const tl = gsap.timeline();
+      tl.timeScale(prefersReducedMotion ? 40 : 1);
 
       if (collapsed) {
         tl.to(navTitles, {
           x: -20,
           opacity: 0,
-          duration: 0.36,
-          stagger: 0.04,
-          ease: "power2.inOut",
+          duration: 0.3,
+          stagger: 0.035,
+          ease: EASE_ENTER,
           onComplete: () => {
             hideTitles();
           },
@@ -308,9 +315,9 @@ function Sidebar({
           {
             width: "3rem",
             height: "3rem",
-            duration: 0.36,
-            ease: "power2.inOut",
-            stagger: 0.03,
+            duration: 0.3,
+            ease: EASE_MOVE,
+            stagger: 0.025,
           },
           0,
         );
@@ -320,9 +327,9 @@ function Sidebar({
           {
             width: "1.5rem",
             height: "1.5rem",
-            duration: 0.6,
-            ease: "power2.inOut",
-            stagger: 0.03,
+            duration: 0.45,
+            ease: EASE_MOVE,
+            stagger: 0.025,
           },
           "<",
         );
@@ -332,8 +339,8 @@ function Sidebar({
           {
             padding: 0,
             border: 0,
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_MOVE,
           },
           "<",
         );
@@ -343,8 +350,8 @@ function Sidebar({
           {
             x: -20,
             opacity: 0,
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_ENTER,
             onComplete: () => {
               hideProfile();
             },
@@ -357,8 +364,8 @@ function Sidebar({
           {
             x: 20,
             opacity: 0,
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_ENTER,
             onComplete: () => {
               hideProfile();
             },
@@ -371,8 +378,8 @@ function Sidebar({
           {
             height: "3rem",
             width: "3rem",
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_MOVE,
           },
           "<",
         );
@@ -381,8 +388,8 @@ function Sidebar({
           logo,
           {
             width: "3.5rem",
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_MOVE,
           },
           "<",
         );
@@ -391,27 +398,27 @@ function Sidebar({
           sidebar,
           {
             width: "72px",
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_MOVE_REVERSE,
           },
-          "-=0.739",
+          0, // start with main-elem's margin tween (AppLayout), not offset into the timeline
         );
       } else {
         tl.to(
           sidebar,
           {
             width: "256px",
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_MOVE_REVERSE,
           },
-          "+=0.05",
+          0, // start with main-elem's margin tween (AppLayout), not offset into the timeline
         );
         tl.to(
           logo,
           {
             width: "6rem",
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_MOVE,
           },
           0,
         );
@@ -421,9 +428,9 @@ function Sidebar({
           {
             width: "1.25rem",
             height: "1.25rem",
-            duration: 0.45,
-            ease: "power2.inOut",
-            stagger: 0.03,
+            duration: 0.35,
+            ease: EASE_MOVE,
+            stagger: 0.025,
           },
           "<",
         );
@@ -431,11 +438,11 @@ function Sidebar({
         tl.to(
           navItems,
           {
-            height: "atuo",
+            height: "auto",
             width: "100%",
-            duration: 0.36,
-            ease: "power2.inOut",
-            stagger: 0.03,
+            duration: 0.3,
+            ease: EASE_MOVE,
+            stagger: 0.025,
           },
           0,
         );
@@ -449,11 +456,11 @@ function Sidebar({
           {
             x: 0,
             opacity: 1,
-            duration: 0.22,
-            stagger: 0.04,
-            ease: "power2.out",
+            duration: 0.2,
+            stagger: 0.035,
+            ease: EASE_ENTER,
           },
-          "-=0.08",
+          "-=0.07",
         );
 
         tl.to(
@@ -461,8 +468,8 @@ function Sidebar({
           {
             height: "2.25rem",
             width: "2.25rem",
-            duration: 0.56,
-            ease: "power2.inOut",
+            duration: 0.45,
+            ease: EASE_MOVE,
           },
           0,
         );
@@ -476,10 +483,10 @@ function Sidebar({
           {
             x: 0,
             opacity: 1,
-            duration: 0.22,
-            ease: "power2.out",
+            duration: 0.2,
+            ease: EASE_ENTER,
           },
-          "-=0.15",
+          "-=0.13",
         );
 
         tl.fromTo(
@@ -488,10 +495,10 @@ function Sidebar({
           {
             x: 0,
             opacity: 1,
-            duration: 0.22,
-            ease: "power2.out",
+            duration: 0.2,
+            ease: EASE_ENTER,
           },
-          "-=0.15",
+          "-=0.13",
         );
 
         tl.to(
@@ -499,10 +506,10 @@ function Sidebar({
           {
             padding: "0.75rem",
             border: 1,
-            duration: 0.6,
-            ease: "power2.inOut",
+            duration: 0.48,
+            ease: EASE_MOVE,
           },
-          "-=1.05",
+          "-=0.85",
         );
       }
     }, sidebar);
@@ -522,7 +529,7 @@ function Sidebar({
     <div
       ref={sideBarRef}
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen border-r border-border bg-sidebar transition-[width] duration-300 flex flex-col w-64",
+        "fixed left-0 top-0 z-40 h-screen border-r border-border bg-sidebar flex flex-col w-64",
       )}
     >
       {/* Logo Section */}
@@ -533,10 +540,7 @@ function Sidebar({
         >
           <ProgramLogo
             ref={logoRef}
-            className={cn(
-              "transition-[width] duration-300 ease-fluid shrink-0 m-0! w-24",
-              collapsed ? "w-14" : "w-24",
-            )}
+            className={cn("shrink-0 m-0! w-24", collapsed ? "w-14" : "w-24")}
           />
         </Link>
         {/* Collapse Toggle */}
@@ -545,12 +549,12 @@ function Sidebar({
             <Button
               variant="outline"
               size="icon"
-              className="h-6 w-6 rounded-full border border-border bg-background active:translate-y-0! shadow-sm"
+              className="h-6 w-6 rounded-full border border-border bg-background shadow-sm"
               onClick={handleToggle}
             >
               <IconAltArrowLeft
                 className={cn(
-                  "h-3 w-3 transition-transform duration-700 ease-fluid",
+                  "h-3 w-3 transition-transform duration-300 ease-fluid",
                   collapsed && "rotate-180",
                 )}
               />
@@ -609,11 +613,13 @@ function Sidebar({
                       <AccordionTrigger
                         hideArrow={hideArrow}
                         className={cn(
-                          "navitem-link flex items-center gap-2 px-3 py-3 rounded-2xl transition-all duration-200 hover:no-underline w-full",
+                          // Only color/transform transition here — GSAP owns width/height,
+                          // so `transition-all` would fight it every frame.
+                          "navitem-link flex items-center gap-2 px-3 py-3 rounded-2xl transition-[color,background-color,transform] duration-200 ease-fluid hover:no-underline active:scale-[0.98] w-full",
                           collapsed ? "squircle-icon" : "squircle",
                           isAnySubItemActive
                             ? "bg-sidebar-primary text-primary font-medium"
-                            : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground",
+                            : "[@media(hover:hover)]:hover:bg-sidebar-primary text-sidebar-accent-foreground/70 [@media(hover:hover)]:hover:text-sidebar-accent-foreground",
                         )}
                       >
                         <div className="flex items-center gap-2 flex-1">
@@ -661,10 +667,10 @@ function Sidebar({
                                 key={subItem.href}
                                 href={subItem.href}
                                 className={cn(
-                                  "before-content relative mt-1 ml-5 px-3 py-2 rounded-2xl text-sm transition-all duration-200 squircle flex items-center z-10",
+                                  "before-content relative mt-1 ml-5 px-3 py-2 rounded-2xl text-sm transition-[color,background-color,transform] duration-200 ease-fluid active:scale-[0.98] squircle flex items-center z-10",
                                   isExactActive(subItem.href)
                                     ? "bg-sidebar-primary text-primary"
-                                    : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground",
+                                    : "[@media(hover:hover)]:hover:bg-sidebar-primary text-sidebar-accent-foreground/70 [@media(hover:hover)]:hover:text-sidebar-accent-foreground",
                                 )}
                               >
                                 {subItem.title}
@@ -691,10 +697,10 @@ function Sidebar({
                             <Link
                               href={subItem.href}
                               className={cn(
-                                "before-content relative mt-1 ml-1 px-3 py-2 rounded-2xl text-sm transition-all duration-200 squircle flex items-center z-10",
+                                "before-content relative mt-1 ml-1 px-3 py-2 rounded-2xl text-sm transition-[color,background-color,transform] duration-200 ease-fluid active:scale-[0.98] squircle flex items-center z-10",
                                 isExactActive(subItem.href)
                                   ? "bg-sidebar-primary text-primary"
-                                  : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground",
+                                  : "[@media(hover:hover)]:hover:bg-sidebar-primary text-sidebar-accent-foreground/70 [@media(hover:hover)]:hover:text-sidebar-accent-foreground",
                               )}
                             >
                               {subItem.title}
@@ -783,7 +789,7 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
           isExpanded ? "squircle" : "squircle-icon",
           isActive
             ? "bg-sidebar-primary text-primary font-medium"
-            : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground",
+            : "[@media(hover:hover)]:hover:bg-sidebar-primary text-sidebar-accent-foreground/70 [@media(hover:hover)]:hover:text-sidebar-accent-foreground",
         )}
       >
         <div className="flex items-center justify-center transition-all">

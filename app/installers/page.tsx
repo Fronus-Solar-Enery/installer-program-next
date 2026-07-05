@@ -60,6 +60,7 @@ import {
   IconEdit2,
   IconInstaller,
   IconRefresh2,
+  IconSearchNormal,
   IconSetting4,
   IconSmartphone2,
   IconSortFromBottomToTop,
@@ -246,16 +247,6 @@ const InstallerRow = memo(
               <IconWhatsapp />
               {installer.whatsappNumber}
             </a>
-          </div>
-        </div>
-        <div
-          data-column="location"
-          className="px-4 py-3 text-sm text-muted-foreground flex items-center whitespace-nowrap"
-          style={columnStyles.location}
-        >
-          <div>
-            <div className="text-primary">{installer.city}</div>
-            <div className="text-xs">{installer.province}</div>
           </div>
         </div>
         <div
@@ -1178,15 +1169,18 @@ export default function InstallersPage() {
 
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Input
-                type="text"
-                placeholder="Search..."
-                disabled={loading}
-                value={search}
-                name="Search Installers"
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-56 rounded-2xl font-normal text-muted-foreground focus:text-foreground h-9"
-              />
+              <div className="flex items-center pl-2 pr-5 bg-background border border-border rounded-xl h-9 overflow-hidden">
+                <IconSearchNormal />
+                <Input
+                  type="text"
+                  placeholder="Search..."
+                  disabled={loading}
+                  value={search}
+                  name="Search Installers"
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-56 border-none! bg-none! focus-visible:bg-none! focus-visible:ring-0! focus:ring-0! h-full rounded-none!"
+                />
+              </div>
               {search && (
                 <button
                   className="absolute right-2 -translate-y-1/2 top-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
@@ -1754,14 +1748,6 @@ export default function InstallersPage() {
                       Contact
                     </div>
                     <div
-                      data-column="location"
-                      className="px-4 py-3 text-sm font-semibold cursor-pointer whitespace-nowrap select-none"
-                      onClick={() => handleSort("city")}
-                      style={columnStyles.location}
-                    >
-                      Location {getSortIcon("city")}
-                    </div>
-                    <div
                       data-column="bankDetails"
                       className="px-4 py-3 text-sm font-semibold whitespace-nowrap select-none"
                       style={columnStyles.bankDetails}
@@ -1818,13 +1804,6 @@ export default function InstallersPage() {
                           style={columnStyles.contact}
                         >
                           <div className="h-4 bg-muted rounded w-24 animate-pulse" />
-                        </div>
-                        <div
-                          data-column="location"
-                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                          style={columnStyles.location}
-                        >
-                          <div className="h-4 bg-muted rounded w-20 animate-pulse" />
                         </div>
                         <div
                           data-column="bankDetails"

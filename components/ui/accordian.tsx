@@ -30,7 +30,7 @@ const AccordionTrigger = React.forwardRef<
     <AccordionPrimitive.Trigger
       ref={ref}
       className={cn(
-        "group flex flex-1 items-center justify-between text-left transition-all cursor-pointer",
+        "group flex flex-1 items-center justify-between text-left transition-colors cursor-pointer",
         className
       )}
       {...props}
@@ -39,7 +39,7 @@ const AccordionTrigger = React.forwardRef<
       {!hideArrow && (
         <IconAltArrowDown
           className={cn(
-            "shrink-0 opacity-60 transition-all duration-300 ease-fluid group-data-[state=open]:rotate-180",
+            "shrink-0 opacity-60 transition-[transform,opacity] duration-300 ease-fluid group-data-[state=open]:rotate-180",
             hideArrow && "opacity-0"
           )}
         />
@@ -55,7 +55,7 @@ const AccordionContent = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <AccordionPrimitive.Content
     ref={ref}
-    className="overflow-hidden text-sm transition-all duration-1000 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
+    className="overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
     {...props}
   >
     <div className={cn("pb-4 pt-0", className)}>{children}</div>

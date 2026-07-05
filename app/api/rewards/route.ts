@@ -8,7 +8,7 @@ import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { validateBody, getSearchParams } from "@/lib/validateRequest";
 import { QueryBuilder, parseSortParams } from "@/lib/queryBuilder";
 import { getPaginationParams, createPaginationMeta } from "@/lib/pagination";
-import { BUSINESS_RULES } from "@/lib/constants";
+import { getSettings } from "@/models/Settings";
 
 // GET all rewards with filtering
 export const GET = withAuth(
@@ -148,10 +148,10 @@ export const POST = withAuth(
       if (installer.referrer) {
         const referrer = await Installer.findById(installer.referrer);
         if (referrer) {
+          const { defaultReferralReward } = await getSettings();
           rewardData.referrerCode = referrer.installerCode;
           rewardData.referrer = referrer._id;
-          rewardData.referrerRewardAmount =
-            BUSINESS_RULES.REFERRER_REWARD_AMOUNT;
+          rewardData.referrerRewardAmount = defaultReferralReward;
         }
       }
 

@@ -59,14 +59,14 @@ export default function Modal({
         aria-describedby={description}
         className={cn(
           sizeClasses[size],
-          "p-0 flex flex-col max-h-[90vh] squircle rounded-3xl overflow-hidden light:border-primary/20"
+          "p-0 flex flex-col max-h-[90vh] squircle rounded-3xl overflow-hidden light:border-primary/20",
         )}
         hideClose
       >
         <div
           className={cn(
             "overflow-y-auto overflow-x-hidden flex-1 px-6 py-6",
-            className
+            className,
           )}
         >
           {children}

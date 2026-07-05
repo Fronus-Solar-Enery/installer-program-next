@@ -23,7 +23,7 @@ import IconMagnifer from "@/components/icons/Magnifer";
 // Dynamic import: GlobalSearchModal is 26KB - only loaded when search is opened
 const GlobalSearchModal = dynamic(
   () => import("@/components/GlobalSearchModal"),
-  { ssr: false }
+  { ssr: false },
 );
 import { IconCommand } from "@/components/icons";
 
@@ -149,8 +149,8 @@ export default function TopNavbar() {
                     session?.user?.role === "ADMIN"
                       ? "dark:bg-zinc-950/40 dark:text-rose-400"
                       : session?.user?.role === "MANAGER"
-                      ? "dark:bg-zinc-950/40 dark:text-cyan-400"
-                      : "dark:bg-zinc-950/40 dark:text-zinc-400"
+                        ? "dark:bg-zinc-950/40 dark:text-cyan-400"
+                        : "dark:bg-zinc-950/40 dark:text-zinc-400",
                   )}
                 >
                   {session?.user?.role || "USER"}

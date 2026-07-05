@@ -61,6 +61,10 @@ export function BulkDeleteConfirmationDialog({
     >
       <AlertDialogContent className="rounded-4xl">
         <AlertDialogHeader className="flex flex-col items-center">
+          <div
+            key={status}
+            className="flex flex-col items-center gap-2 animate-status-in"
+          >
           {status === "confirm" && (
             <>
               <IconTrashBin2
@@ -175,6 +179,7 @@ export function BulkDeleteConfirmationDialog({
               </AlertDialogDescription>
             </>
           )}
+          </div>
         </AlertDialogHeader>
 
         <AlertDialogFooter className="mt-4">

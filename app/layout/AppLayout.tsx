@@ -15,6 +15,7 @@ import { getRouteIcon } from "@/components/breadcrumbIcons";
 import { Skeleton } from "@/components/ui/skeleton";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { EASE_MOVE_REVERSE } from "@/lib/gsapEases";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(useGSAP);
@@ -60,10 +61,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
     const mainElem = mainRef?.current;
     if (!mainElem) return;
 
+    // Match the sidebar width tween exactly (same curve + duration) so the
+    // content edge tracks the sidebar edge instead of lagging on collapse.
     gsap.to(mainElem, {
       marginLeft: sidebarCollapsed ? "64px" : "256px",
-      duration: 0.4,
-      ease: "power1.inOut",
+      duration: 0.3,
+      ease: EASE_MOVE_REVERSE,
     });
   }, [sidebarCollapsed]);
 
@@ -120,7 +123,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         {/* Main Content Area */}
         <div
           ref={mainRef}
-          className={`fixed top-0 right-0 left-0 bottom-0 flex flex-1 flex-col overflow-hidden transition-all duration-300 main-elem max-h-screen h-full ml-64`}
+          className={`fixed top-0 right-0 left-0 bottom-0 flex flex-1 flex-col overflow-hidden main-elem max-h-screen h-full ml-64`}
         >
           {/* Top Navbar */}
           <TopNavbar />

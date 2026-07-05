@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback, useMemo, FC } from "react";
+import { useEffect, useState, useCallback, useMemo, FC, ReactNode } from "react";
 import {
   Card,
   CardContent,
@@ -232,13 +232,11 @@ export default function DashboardPage() {
   const [activeInstallers, setActiveInstallers] = useState<ActiveInstaller[]>(
     [],
   );
-  const [districtActive, setDistrictActive] = useState<
-    DistrictActive[]
-  >([]);
+  const [districtActive, setDistrictActive] = useState<DistrictActive[]>([]);
   const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
-  const [districtInstallers, setDistrictInstallers] = useState<InstallersByDistrict[]>(
-    [],
-  );
+  const [districtInstallers, setDistrictInstallers] = useState<
+    InstallersByDistrict[]
+  >([]);
   const [recentInstallations, setRecentInstallations] = useState<
     RecentInstallation[]
   >([]);
@@ -1844,6 +1842,7 @@ interface DashboardCardHeaderProps {
   Icon: FC<IconProps>;
   badge?: string;
   iconBadge?: boolean;
+  actions?: ReactNode;
 }
 
 export const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
@@ -1852,6 +1851,7 @@ export const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
   Icon,
   badge,
   iconBadge = true,
+  actions,
 }) => {
   return (
     <CardHeader className="flex flex-row items-center gap-2 border-b border-border md:text-left">
@@ -1868,6 +1868,7 @@ export const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
           <CardDescription>{description}</CardDescription>
         </div>
       </div>
+      {actions}
       {badge ? (
         <Badge className="hidden md:block" variant="outline">
           {badge}

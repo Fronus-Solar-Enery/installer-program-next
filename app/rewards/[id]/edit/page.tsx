@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { RewardStatus } from '@/types/rewards';
-import { PRODUCT_MODELS, PAYMENT_METHOD } from '@/lib/constants';
+import { PAYMENT_METHOD } from '@/lib/constants';
+import { useProducts } from '@/hooks/useProducts';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ export default function EditRewardPage() {
   const router = useRouter();
   const params = useParams();
   const rewardId = params.id as string;
+  const { data: products = [] } = useProducts();
 
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
@@ -254,7 +256,7 @@ export default function EditRewardPage() {
                   <SelectValue placeholder="Select product model" />
                 </SelectTrigger>
                 <SelectContent>
-                  {PRODUCT_MODELS.map((product) => (
+                  {products.map((product) => (
                     <SelectItem key={product.value} value={product.value}>
                       {product.label} {product.reward ? `(Rs. ${product.reward.toLocaleString()})` : ''}
                     </SelectItem>

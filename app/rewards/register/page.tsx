@@ -2,13 +2,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  PRODUCT_MODELS,
   SERIAL_STATUSES,
   CITIES,
   CITY_TO_PROVINCE,
   PROVINCES,
-  ProductModels,
 } from "@/lib/constants";
+import { useProducts } from "@/hooks/useProducts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -98,10 +97,12 @@ export default function NewRewardPage() {
   const [cityOfInstallation, setCityOfInstallation] = useState("");
   const [serialNumberStatus, setSerialNumberStatus] = useState("");
 
+  const { data: products = [] } = useProducts();
+
   // Memoize selected product details to avoid recalculation
   const selectedProduct = useMemo(
-    () => PRODUCT_MODELS.find((p) => p.value === productModel),
-    [productModel]
+    () => products.find((p) => p.value === productModel),
+    [products, productModel]
   );
   const rewardAmount = selectedProduct?.reward || 0;
   const isBatteryProduct =
@@ -109,9 +110,9 @@ export default function NewRewardPage() {
 
   // Memoize product groups for select dropdown (expensive calculation)
   const productGroups = useMemo(() => {
-    const map = new Map<string, ProductModels[]>();
+    const map = new Map<string, typeof products>();
 
-    for (const m of PRODUCT_MODELS as ProductModels[]) {
+    for (const m of products) {
       const key = m.isBattery ? "Batteries" : "Inverters";
       const arr = map.get(key);
       if (arr) arr.push(m);
@@ -137,7 +138,7 @@ export default function NewRewardPage() {
           ),
         })),
     }));
-  }, []);
+  }, [products]);
 
   // Memoize city groups for select dropdown
   const cityGroups = useMemo(

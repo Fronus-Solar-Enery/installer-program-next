@@ -5,7 +5,7 @@ import {
   RegisterInstallerInput,
   UpdateInstallerInput,
 } from "@/lib/validation";
-import { BUSINESS_RULES } from "@/lib/constants";
+import { getSettings } from "@/models/Settings";
 import {
   createGoogleContact,
   updateGoogleContact,
@@ -50,9 +50,10 @@ async function assertReferrerWithinLimit(referrerCode: string): Promise<void> {
   const referralCount = await Installer.countDocuments({
     referrer: referrer._id,
   });
-  if (referralCount >= BUSINESS_RULES.MAX_REFERRALS_PER_INSTALLER) {
+  const { maxReferralsPerInstaller } = await getSettings();
+  if (referralCount >= maxReferralsPerInstaller) {
     throw new InstallerServiceError(
-      `Referrer has already referred maximum (${BUSINESS_RULES.MAX_REFERRALS_PER_INSTALLER}) installers`,
+      `Referrer has already referred maximum (${maxReferralsPerInstaller}) installers`,
       400
     );
   }

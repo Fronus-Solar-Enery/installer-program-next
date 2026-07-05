@@ -1,4 +1,4 @@
-import mongoose, { Schema, Model } from 'mongoose';
+import mongoose, { Schema, Model } from "mongoose";
 
 export interface ISettings {
   _id?: string;
@@ -161,12 +161,12 @@ const SettingsSchema = new Schema<ISettings>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const Settings: Model<ISettings> =
   mongoose.models.Settings ||
-  mongoose.model<ISettings>('Settings', SettingsSchema);
+  mongoose.model<ISettings>("Settings", SettingsSchema);
 
 export default Settings;
 

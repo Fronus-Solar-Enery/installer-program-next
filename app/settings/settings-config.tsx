@@ -1,169 +1,255 @@
-import { SettingsData } from "./page";
+import type { FC } from "react";
+import {
+  IconInstaller,
+  IconReward,
+  IconSettings,
+  IconUsersGroupRounded,
+} from "@/components/icons";
+import IconBellBing from "@/components/icons/BellBing";
+import IconDatabase from "@/components/icons/Database";
+import type { SettingsData } from "./page";
 
-export const getSettingsCards = (settings: SettingsData | null) => [
-  {
-    key: "maxReferralsPerInstaller" as keyof SettingsData,
-    label: (
-      <>
-        Max <br /> Referrals
-      </>
-    ),
-    dialogTitle: "Max Referrals Per Installer",
-    dialogDescription:
-      "Set the maximum number of referrals allowed per installer",
-    description: "Max Number of Referrals Per Installer",
-    value: settings?.maxReferralsPerInstaller,
-    align: "items-center",
-  },
-  {
-    key: "defaultReferralReward" as keyof SettingsData,
-    label: (
-      <>
-        Referral <br /> Reward
-      </>
-    ),
-    dialogTitle: "Default Referral Reward",
-    dialogDescription: "Set the default reward amount for referrals (Rs.)",
-    description: "Referral Reward for each Referrer Installer",
-    value: settings?.defaultReferralReward || 500,
-    align: "items-end",
-  },
-  {
-    key: "maxRewardProcessingDays" as keyof SettingsData,
-    label: "Reward Processing",
-    dialogTitle: "Max Reward Processing Days",
-    dialogDescription: "Set the maximum number of days to process a reward",
-    description: "Max Processing Days for Reward",
-    value: settings?.maxRewardProcessingDays || 30,
-    align: "items-end",
-  },
-  {
-    key: "sessionTimeoutMinutes" as keyof SettingsData,
-    label: "Session Timeout",
-    dialogTitle: "Session Timeout",
-    dialogDescription: "Set the session timeout in minutes",
-    description: "Session Timeout in Minutes",
-    value: settings?.sessionTimeoutMinutes || 480,
-    align: "items-end",
-  },
-  {
-    key: "maxBulkUploadSize" as keyof SettingsData,
-    label: "Max Bulk Upload Size",
-    dialogTitle: "Max Bulk Upload Size",
-    dialogDescription: "Set the max bulk upload size in MB",
-    description: "Max Bulk Upload Size in MB",
-    value: settings?.maxBulkUploadSize || 1000,
-    align: "items-end",
-  },
-  {
-    key: "activityLogRetentionDays" as keyof SettingsData,
-    label: "Activity Log Retention Days",
-    dialogTitle: "Activity Log Retention Days",
-    dialogDescription: "Set the activity log retention days",
-    description: "Activity Log Retention Days",
-    value: settings?.activityLogRetentionDays || 90,
-    align: "items-end",
-  },
-  //   {
-  //     key: "systemNotificationMessage" as keyof SettingsData,
-  //     label: "System Notification Message",
-  //     dialogTitle: "System Notification Message",
-  //     dialogDescription: "Set the system notification message",
-  //     description: "System Notification Message",
-  //     value: settings?.systemNotificationMessage,
-  //     align: "items-end",
-  //   },
-];
+type ValueType = "text" | "number" | "email" | "textarea";
 
-export const getSwitchCards = (settings: SettingsData | null) => [
+export type SettingRow =
+  | {
+      kind: "switch";
+      key: keyof SettingsData;
+      label: string;
+      description: string;
+    }
+  | {
+      kind: "value";
+      key: keyof SettingsData;
+      label: string;
+      dialogTitle: string;
+      dialogDescription: string;
+      type: ValueType;
+      format: (settings: SettingsData | null) => string;
+    }
+  | {
+      kind: "config";
+      key: keyof SettingsData;
+      label: string;
+      dialogTitle: string;
+      dialogDescription: string;
+      type: ValueType;
+      format: (settings: SettingsData | null) => string;
+    };
+
+export interface SettingsCardConfig {
+  id: string;
+  title: string;
+  description: string;
+  Icon: FC<IconProps>;
+  rows: SettingRow[];
+}
+
+export const SETTINGS_CARDS: SettingsCardConfig[] = [
   {
-    key: "allowInstallerCodeEdit" as keyof SettingsData,
-    label: "InstallerCode Edit",
-    description: "Allow editing installer codes after creation",
-    value: settings?.allowInstallerCodeEdit,
+    id: "installer",
+    title: "Installer Settings",
+    description: "Configure installer-related preferences",
+    Icon: IconInstaller,
+    rows: [
+      {
+        kind: "switch",
+        key: "allowInstallerCodeEdit",
+        label: "Allow Installer Code Edit",
+        description: "Allow editing installer code after registration",
+      },
+      {
+        kind: "value",
+        key: "maxReferralsPerInstaller",
+        label: "Max Referrals Per Installer",
+        dialogTitle: "Max Referrals Per Installer",
+        dialogDescription:
+          "Set the maximum number of referrals allowed per installer",
+        type: "number",
+        format: (s) => `${s?.maxReferralsPerInstaller || 5} referrals`,
+      },
+      {
+        kind: "switch",
+        key: "requireCertificationForRewards",
+        label: "Require Certification for Rewards",
+        description: "Only certified installers can receive rewards",
+      },
+      {
+        kind: "switch",
+        key: "autoVerifyInstallers",
+        label: "Auto Verify Installers",
+        description: "Automatically verify new installers",
+      },
+    ],
   },
   {
-    key: "requireCertificationForRewards" as keyof SettingsData,
-    label: "Certification",
-    description: "Only certified installers can receive rewards",
-    value: settings?.requireCertificationForRewards,
+    id: "reward",
+    title: "Reward Settings",
+    description: "Configure reward and payment preferences",
+    Icon: IconReward,
+    rows: [
+      {
+        kind: "value",
+        key: "defaultReferralReward",
+        label: "Default Referral Reward (Rs.)",
+        dialogTitle: "Default Referral Reward",
+        dialogDescription: "Set the default reward amount for referrals (Rs.)",
+        type: "number",
+        format: (s) => `Rs. ${s?.defaultReferralReward ?? ""}`,
+      },
+      {
+        kind: "value",
+        key: "maxRewardProcessingDays",
+        label: "Max Reward Processing Days",
+        dialogTitle: "Max Reward Processing Days",
+        dialogDescription: "Set the maximum number of days to process a reward",
+        type: "number",
+        format: (s) => `${s?.maxRewardProcessingDays || 30} days`,
+      },
+      {
+        kind: "switch",
+        key: "requireTransactionIdForPaid",
+        label: "Require Transaction ID for Paid",
+        description: "Transaction ID required to mark as PAID",
+      },
+      {
+        kind: "switch",
+        key: "autoSendWhatsAppOnPaid",
+        label: "Auto Send WhatsApp on Paid",
+        description: "Automatically send WhatsApp when marked as PAID",
+      },
+    ],
   },
   {
-    key: "requireTransactionIdForPaid" as keyof SettingsData,
-    label: "TRX ID for Paid",
-    description: "Transaction ID required to mark as PAID",
-    value: settings?.requireTransactionIdForPaid,
+    id: "team",
+    title: "Team Settings",
+    description: "Manage team and user access settings",
+    Icon: IconUsersGroupRounded,
+    rows: [
+      {
+        kind: "switch",
+        key: "allowUserSelfRegistration",
+        label: "Allow User Self Registration",
+        description: "Users can register without admin approval",
+      },
+      {
+        kind: "switch",
+        key: "requireEmailVerification",
+        label: "Require Email Verification",
+        description: "Verify email before account activation",
+      },
+      {
+        kind: "value",
+        key: "sessionTimeoutMinutes",
+        label: "Session Timeout (Minutes)",
+        dialogTitle: "Session Timeout",
+        dialogDescription: "Set the session timeout in minutes",
+        type: "number",
+        format: (s) => `${s?.sessionTimeoutMinutes || 480} minutes`,
+      },
+    ],
   },
   {
-    key: "autoSendWhatsAppOnPaid" as keyof SettingsData,
-    label: "Notify on Paid",
-    description: "Auto send WhatsApp message on PAID",
-    value: settings?.autoSendWhatsAppOnPaid,
+    id: "system",
+    title: "System Settings",
+    description: "Configure system-level options",
+    Icon: IconSettings,
+    rows: [
+      {
+        kind: "switch",
+        key: "enableActivityLogging",
+        label: "Enable Activity Logging",
+        description: "Track all user actions",
+      },
+      {
+        kind: "switch",
+        key: "enableWhatsAppNotifications",
+        label: "Enable WhatsApp Notifications",
+        description: "Send WhatsApp messages to installers",
+      },
+      {
+        kind: "switch",
+        key: "maintenanceMode",
+        label: "Maintenance Mode",
+        description: "Disable access for non-admin users",
+      },
+      {
+        kind: "config",
+        key: "systemNotificationMessage",
+        label: "System Notification Message",
+        dialogTitle: "System Notification Message",
+        dialogDescription: "Set the message to display to all users",
+        type: "textarea",
+        format: (s) => `${s?.systemNotificationMessage || ""}`,
+      },
+    ],
   },
   {
-    key: "allowUserSelfRegistration" as keyof SettingsData,
-    label: "Self Registration",
-    description: "Users can register without admin approval",
-    value: settings?.allowUserSelfRegistration,
+    id: "notification",
+    title: "Notification Settings",
+    description: "Configure email and notification preferences",
+    Icon: IconBellBing,
+    rows: [
+      {
+        kind: "switch",
+        key: "notifyAdminOnNewInstaller",
+        label: "Notify Admin on New Installer",
+        description: "Email admin when installer registers",
+      },
+      {
+        kind: "switch",
+        key: "notifyAdminOnRewardSubmission",
+        label: "Notify Admin on Reward Submission",
+        description: "Email admin on new reward submission",
+      },
+      {
+        kind: "value",
+        key: "adminNotificationEmail",
+        label: "Admin Notification Email",
+        dialogTitle: "Admin Notification Email",
+        dialogDescription: "Set the email address for admin notifications",
+        type: "email",
+        format: (s) => `${s?.adminNotificationEmail || "No email set"}`,
+      },
+    ],
   },
   {
-    key: "requireEmailVerification" as keyof SettingsData,
-    label: "Email Verification",
-    description: "Verify email before account activation",
-    value: settings?.requireEmailVerification,
-  },
-  {
-    key: "enableActivityLogging" as keyof SettingsData,
-    label: "Activity Logging",
-    description: "Track all user actions in activity logs",
-    value: settings?.enableActivityLogging,
-  },
-  {
-    key: "enableWhatsAppNotifications" as keyof SettingsData,
-    label: "WhatsApp Notifications",
-    description: "Send WhatsApp messages to installers",
-    value: settings?.enableWhatsAppNotifications,
-  },
-  {
-    key: "maintenanceMode" as keyof SettingsData,
-    label: "Maintenance Mode",
-    description: "Disable access for non-admin users",
-    value: settings?.maintenanceMode,
-  },
-  {
-    key: "notifyAdminOnNewInstaller" as keyof SettingsData,
-    label: "Notify Admin on Installer",
-    dialogTitle: "Notify Admin on New Installer",
-    dialogDescription: "Notify admin when a new installer is registered",
-    description: "Notify Admin on New Installer",
-    value: settings?.notifyAdminOnNewInstaller,
-    align: "items-end",
-  },
-  {
-    key: "notifyAdminOnRewardSubmission" as keyof SettingsData,
-    label: "Notify Admin on Reward",
-    dialogTitle: "Notify Admin on Reward Submission",
-    dialogDescription: "Notify admin when a new installer is registered",
-    description: "Notify Admin on New Installer",
-    value: settings?.notifyAdminOnRewardSubmission,
-    align: "items-end",
-  },
-  {
-    key: "allowBulkRewardUpload" as keyof SettingsData,
-    label: "Allow Bulk Reward",
-    dialogTitle: "Allow Bulk Reward Upload",
-    dialogDescription: "Allow bulk reward upload ",
-    description: "Allow Bulk Reward Upload",
-    value: settings?.allowBulkRewardUpload,
-    align: "items-end",
-  },
-  {
-    key: "autoDeleteOldActivities" as keyof SettingsData,
-    label: "Auto Delete Old Activities",
-    dialogTitle: "Auto Delete Old Activities",
-    dialogDescription: "Auto delete old activities",
-    description: "Auto Delete Old Activities",
-    value: settings?.autoDeleteOldActivities,
-    align: "items-end",
+    id: "data",
+    title: "Data Management",
+    description: "Configure bulk operations and data retention",
+    Icon: IconDatabase,
+    rows: [
+      {
+        kind: "switch",
+        key: "allowBulkRewardUpload",
+        label: "Allow Bulk Reward Upload",
+        description: "Enable Excel bulk upload feature",
+      },
+      {
+        kind: "switch",
+        key: "autoDeleteOldActivities",
+        label: "Auto Delete Old Activities",
+        description: "Automatically clean up old activity logs",
+      },
+      {
+        kind: "value",
+        key: "maxBulkUploadSize",
+        label: "Max Bulk Upload Size (rows)",
+        dialogTitle: "Max Bulk Upload Size",
+        dialogDescription:
+          "Set the maximum number of rows allowed in bulk uploads",
+        type: "number",
+        format: (s) => `${s?.maxBulkUploadSize || 1000} rows`,
+      },
+      {
+        kind: "value",
+        key: "activityLogRetentionDays",
+        label: "Activity Log Retention (Days)",
+        dialogTitle: "Activity Log Retention",
+        dialogDescription: "Set the number of days to retain activity logs",
+        type: "number",
+        format: (s) => `${s?.activityLogRetentionDays || 90} days`,
+      },
+    ],
   },
 ];

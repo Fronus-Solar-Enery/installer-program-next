@@ -1,13 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Save, Pencil } from "lucide-react";
 import { EditSettingDialog } from "./edit-setting-dialog";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,17 +22,31 @@ import { useAdminGuard } from "@/hooks/useRoleGuard";
 import PageHeader from "@/components/PageHeader";
 import {
   IconEdit2,
-  IconInstaller,
-  IconReward,
+  IconProduct,
+  IconAdd,
+  IconTrashBin2,
   IconSave,
   IconSettings,
-  IconUsersGroupRounded,
 } from "@/components/icons";
 import IconReset from "@/components/icons/Reset";
 import { DashboardCardHeader } from "../dashboard/page";
 import { AnimatePresence, motion } from "framer-motion";
-import IconBellBing from "@/components/icons/BellBing";
-import IconDatabase from "@/components/icons/Database";
+import { Badge } from "@/components/ui/badge";
+import {
+  useProducts,
+  useCreateProduct,
+  useUpdateProduct,
+  useDeleteProduct,
+  type ProductWithId,
+  type ProductInput,
+} from "@/hooks/useProducts";
+import { ProductFormDialog } from "./product-form-dialog";
+import {
+  DeleteConfirmationDialog,
+  type DeleteDialogState,
+} from "@/components/DeleteConfirmationDialog";
+import { SETTINGS_CARDS } from "./settings-config";
+import { SwitchRow, ValueRow } from "./setting-row";
 
 export interface SettingsData {
   allowInstallerCodeEdit?: boolean;
@@ -62,10 +73,6 @@ export interface SettingsData {
   autoDeleteOldActivities?: boolean;
   updatedAt?: string;
 }
-
-const GRID_CLASSES = "grid grid-cols-1 lg:grid-cols-2 gap-6";
-const p_CLASSES =
-  "text-xs bg-background border border-border px-2 py-1 rounded-xl squircle font-mono";
 
 // List of switch (boolean) settings keys
 const SWITCH_SETTINGS_KEYS: (keyof SettingsData)[] = [
@@ -117,7 +124,7 @@ export default function SettingsPage() {
   const [dialogSaving, setDialogSaving] = useState(false);
   const [settings, setSettings] = useState<SettingsData | null>(null);
   const [originalSettings, setOriginalSettings] = useState<SettingsData | null>(
-    null
+    null,
   );
   const [dialogConfig, setDialogConfig] = useState<{
     isOpen: boolean;
@@ -135,9 +142,80 @@ export default function SettingsPage() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
 
+  // Products (admin-editable, backed by the Product collection)
+  const { data: products = [], isLoading: productsLoading } = useProducts(true);
+  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+  const deleteProduct = useDeleteProduct();
+  const [productDialog, setProductDialog] = useState<{
+    isOpen: boolean;
+    product: ProductWithId | null;
+  }>({ isOpen: false, product: null });
+  const [deleteDialogState, setDeleteDialogState] = useState<
+    DeleteDialogState & { productId?: string; productName?: string }
+  >({ open: false, status: "confirm" });
+
+  const handleProductSave = async (input: ProductInput) => {
+    try {
+      if (productDialog.product) {
+        await updateProduct.mutateAsync({
+          id: productDialog.product._id,
+          input,
+        });
+        toast.success("Product updated successfully");
+      } else {
+        await createProduct.mutateAsync(input);
+        toast.success("Product created successfully");
+      }
+      setProductDialog({ isOpen: false, product: null });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save product",
+      );
+    }
+  };
+
+  const openDeleteDialog = (product: ProductWithId) => {
+    setDeleteDialogState({
+      open: true,
+      status: "confirm",
+      productId: product._id,
+      productName: product.name,
+    });
+  };
+
+  const closeDeleteDialog = () => {
+    setDeleteDialogState({ open: false, status: "confirm" });
+  };
+
+  const handleProductDelete = async () => {
+    const { productId, productName } = deleteDialogState;
+    if (!productId) return;
+
+    setDeleteDialogState((prev) => ({ ...prev, status: "deleting" }));
+
+    try {
+      await deleteProduct.mutateAsync(productId);
+      setDeleteDialogState({
+        open: true,
+        status: "success",
+        message: `Product "${productName}" has been deleted successfully!`,
+        productName,
+      });
+    } catch (error) {
+      setDeleteDialogState({
+        open: true,
+        status: "error",
+        message:
+          error instanceof Error ? error.message : "Failed to delete product",
+        productName,
+      });
+    }
+  };
+
   // Only check switch settings for hasChanges
   const hasChanges = SWITCH_SETTINGS_KEYS.some(
-    (key) => settings?.[key] !== originalSettings?.[key]
+    (key) => settings?.[key] !== originalSettings?.[key],
   );
 
   const { isAuthorized } = useAdminGuard({
@@ -196,7 +274,7 @@ export default function SettingsPage() {
 
   const updateSetting = (
     key: keyof SettingsData,
-    value: string | number | boolean
+    value: string | number | boolean,
   ) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
@@ -205,7 +283,7 @@ export default function SettingsPage() {
     key: keyof SettingsData,
     title: string,
     description: string,
-    type: "text" | "number" | "email" | "textarea" = "text"
+    type: "text" | "number" | "email" | "textarea" = "text",
   ) => {
     setDialogConfig({
       isOpen: true,
@@ -334,526 +412,138 @@ export default function SettingsPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Installer Settings */}
-            <Card>
+            {SETTINGS_CARDS.map((card) => (
+              <Card key={card.id}>
+                <DashboardCardHeader
+                  title={card.title}
+                  description={card.description}
+                  Icon={card.Icon}
+                  iconBadge={false}
+                />
+                <CardContent className="p-4! space-y-2">
+                  {card.rows.map((row) =>
+                    row.kind === "switch" ? (
+                      <SwitchRow
+                        key={row.key}
+                        id={row.key}
+                        label={row.label}
+                        description={row.description}
+                        checked={Boolean(settings?.[row.key])}
+                        onCheckedChange={(checked) =>
+                          updateSetting(row.key, checked)
+                        }
+                      />
+                    ) : (
+                      <ValueRow
+                        key={row.key}
+                        label={row.label}
+                        value={row.format(settings)}
+                        onEdit={() =>
+                          openEditDialog(
+                            row.key,
+                            row.dialogTitle,
+                            row.dialogDescription,
+                            row.type,
+                          )
+                        }
+                      />
+                    ),
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+
+            {/* Products & Reward Amounts */}
+            <Card className="lg:col-span-2">
               <DashboardCardHeader
-                title="Installer Settings"
-                description={`Configure installer-related preferences`}
-                Icon={IconInstaller}
+                title="Products & Reward Amounts"
+                description="Manage the product list and each product's installer reward"
+                Icon={IconProduct}
                 iconBadge={false}
+                actions={
+                  <Button
+                    size="sm"
+                    className="gap-1"
+                    onClick={() =>
+                      setProductDialog({ isOpen: true, product: null })
+                    }
+                  >
+                    <IconAdd className="size-3.5!" />
+                    Add Product
+                  </Button>
+                }
               />
-              <CardContent className={GRID_CLASSES}>
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="allowInstallerCodeEdit">
-                      Allow Installer Code Edit
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Allow editing installer code after registration
-                    </p>
+              <CardContent className="space-y-4 p-4">
+                {productsLoading ? (
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                      <Skeleton key={i} className="h-14 w-full rounded-xl" />
+                    ))}
                   </div>
-                  <Switch
-                    id="allowInstallerCodeEdit"
-                    checked={settings?.allowInstallerCodeEdit || false}
-                    onCheckedChange={(checked) =>
-                      updateSetting("allowInstallerCodeEdit", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-end justify-between gap-4">
-                  <div className="flex-1">
-                    <Label htmlFor="maxReferralsPerInstaller">
-                      Max Referrals Per Installer
-                    </Label>
-                    <p className={p_CLASSES}>
-                      {settings?.maxReferralsPerInstaller || 5} referrals
-                    </p>
+                ) : products.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    No products yet. Add one to get started.
+                  </p>
+                ) : (
+                  <div className="grid lg:grid-cols-2 gap-2 max-h-[480px] overflow-y-auto pr-1">
+                    {products.map((product) => (
+                      <div
+                        key={product._id}
+                        className="flex items-center justify-between gap-4 squircle rounded-2xl border border-border pl-4 p-3 transition-colors duration-150 ease-fluid hover:bg-muted/50"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            <p className="text-sm font-medium truncate">
+                              {product.name}
+                            </p>
+                            <Badge variant="dark">Rs. {product.reward}</Badge>
+                            {product.isBattery && (
+                              <Badge variant="secondary">Battery</Badge>
+                            )}
+                            {product.requiresInverter && (
+                              <Badge variant="secondary">
+                                Requires Inverter Serial
+                              </Badge>
+                            )}
+                            {!product.active && (
+                              <Badge variant="warning">Inactive</Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Switch
+                            checked={product.active}
+                            aria-label={`${product.active ? "Deactivate" : "Activate"} ${product.name}`}
+                            onCheckedChange={(checked) =>
+                              updateProduct.mutate({
+                                id: product._id,
+                                input: { active: checked },
+                              })
+                            }
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            aria-label={`Edit ${product.name}`}
+                            onClick={() =>
+                              setProductDialog({ isOpen: true, product })
+                            }
+                          >
+                            <IconEdit2 aria-hidden />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            aria-label={`Delete ${product.name}`}
+                            onClick={() => openDeleteDialog(product)}
+                          >
+                            <IconTrashBin2 aria-hidden />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() =>
-                      openEditDialog(
-                        "maxReferralsPerInstaller",
-                        "Max Referrals Per Installer",
-                        "Set the maximum number of referrals allowed per installer",
-                        "number"
-                      )
-                    }
-                    className="shrink-0"
-                  >
-                    <IconEdit2 />
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="requireCertificationForRewards">
-                      Require Certification for Rewards
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Only certified installers can receive rewards
-                    </p>
-                  </div>
-                  <Switch
-                    id="requireCertificationForRewards"
-                    checked={settings?.requireCertificationForRewards || false}
-                    onCheckedChange={(checked) =>
-                      updateSetting("requireCertificationForRewards", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="autoVerifyInstallers">
-                      Auto Verify Installers
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Automatically verify new installers
-                    </p>
-                  </div>
-                  <Switch
-                    id="autoVerifyInstallers"
-                    checked={settings?.autoVerifyInstallers || false}
-                    onCheckedChange={(checked) =>
-                      updateSetting("autoVerifyInstallers", checked)
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Reward Settings */}
-            <Card>
-              <DashboardCardHeader
-                title="Reward Settings"
-                description={`Configure reward and payment preferences`}
-                Icon={IconReward}
-                iconBadge={false}
-              />
-              <CardContent className={GRID_CLASSES}>
-                <div className="flex items-end justify-between gap-4">
-                  <div className="flex-1">
-                    <Label htmlFor="defaultReferralReward">
-                      Default Referral Reward (Rs.)
-                    </Label>
-                    <p className={p_CLASSES}>
-                      Rs. {settings?.defaultReferralReward}
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() =>
-                      openEditDialog(
-                        "defaultReferralReward",
-                        "Default Referral Reward",
-                        "Set the default reward amount for referrals (Rs.)",
-                        "number"
-                      )
-                    }
-                    className="shrink-0"
-                  >
-                    <IconEdit2 />
-                  </Button>
-                </div>
-
-                <div className="flex items-end justify-between gap-4">
-                  <div className="flex-1">
-                    <Label htmlFor="maxRewardProcessingDays">
-                      Max Reward Processing Days
-                    </Label>
-                    <p className={p_CLASSES}>
-                      {settings?.maxRewardProcessingDays || 30} days
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() =>
-                      openEditDialog(
-                        "maxRewardProcessingDays",
-                        "Max Reward Processing Days",
-                        "Set the maximum number of days to process a reward",
-                        "number"
-                      )
-                    }
-                    className="shrink-0"
-                  >
-                    <IconEdit2 />
-                  </Button>
-                </div>
-
-                <div className="flex items-end justify-between gap-4">
-                  <div className="flex-1">
-                    <Label htmlFor="requireTransactionIdForPaid">
-                      Require Transaction ID for Paid
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Transaction ID required to mark as PAID
-                    </p>
-                  </div>
-                  <Switch
-                    id="requireTransactionIdForPaid"
-                    checked={settings?.requireTransactionIdForPaid || false}
-                    onCheckedChange={(checked) =>
-                      updateSetting("requireTransactionIdForPaid", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="autoSendWhatsAppOnPaid">
-                      Auto Send WhatsApp on Paid
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Automatically send WhatsApp when marked as PAID
-                    </p>
-                  </div>
-                  <Switch
-                    id="autoSendWhatsAppOnPaid"
-                    checked={settings?.autoSendWhatsAppOnPaid || false}
-                    onCheckedChange={(checked) =>
-                      updateSetting("autoSendWhatsAppOnPaid", checked)
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Team Settings */}
-            <Card>
-              <DashboardCardHeader
-                title="Team Settings"
-                description={`Manage team and user access settings`}
-                Icon={IconUsersGroupRounded}
-                iconBadge={false}
-              />
-              <CardContent className={GRID_CLASSES}>
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="allowUserSelfRegistration">
-                      Allow User Self Registration
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Users can register without admin approval
-                    </p>
-                  </div>
-                  <Switch
-                    id="allowUserSelfRegistration"
-                    checked={settings?.allowUserSelfRegistration || false}
-                    onCheckedChange={(checked) =>
-                      updateSetting("allowUserSelfRegistration", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="requireEmailVerification">
-                      Require Email Verification
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Verify email before account activation
-                    </p>
-                  </div>
-                  <Switch
-                    id="requireEmailVerification"
-                    checked={settings?.requireEmailVerification || false}
-                    onCheckedChange={(checked) =>
-                      updateSetting("requireEmailVerification", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-end justify-between gap-4">
-                  <div className="flex-1">
-                    <Label htmlFor="sessionTimeoutMinutes">
-                      Session Timeout (Minutes)
-                    </Label>
-                    <p className={p_CLASSES}>
-                      {settings?.sessionTimeoutMinutes || 480} minutes
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() =>
-                      openEditDialog(
-                        "sessionTimeoutMinutes",
-                        "Session Timeout",
-                        "Set the session timeout in minutes",
-                        "number"
-                      )
-                    }
-                    className="shrink-0"
-                  >
-                    <IconEdit2 />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* System Settings */}
-            <Card>
-              <DashboardCardHeader
-                title="System Settings"
-                description={`Configure system-level options`}
-                Icon={IconSettings}
-                iconBadge={false}
-              />
-              <CardContent className={GRID_CLASSES}>
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="enableActivityLogging">
-                      Enable Activity Logging
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Track all user actions
-                    </p>
-                  </div>
-                  <Switch
-                    id="enableActivityLogging"
-                    checked={settings?.enableActivityLogging || false}
-                    onCheckedChange={(checked) =>
-                      updateSetting("enableActivityLogging", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="enableWhatsAppNotifications">
-                      Enable WhatsApp Notifications
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Send WhatsApp messages to installers
-                    </p>
-                  </div>
-                  <Switch
-                    id="enableWhatsAppNotifications"
-                    checked={settings?.enableWhatsAppNotifications || false}
-                    onCheckedChange={(checked) =>
-                      updateSetting("enableWhatsAppNotifications", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Disable access for non-admin users
-                    </p>
-                  </div>
-                  <Switch
-                    id="maintenanceMode"
-                    checked={settings?.maintenanceMode || false}
-                    onCheckedChange={(checked) =>
-                      updateSetting("maintenanceMode", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-end justify-between gap-4">
-                  <div className="flex-1">
-                    <Label htmlFor="systemNotificationMessage">
-                      System Notification Message
-                    </Label>
-                    <p className={p_CLASSES}>
-                      {settings?.systemNotificationMessage || ""}
-                    </p>
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="shrink-0"
-                    onClick={() =>
-                      openEditDialog(
-                        "systemNotificationMessage",
-                        "System Notification Message",
-                        "Set the message to display to all users",
-                        "textarea"
-                      )
-                    }
-                  >
-                    <IconEdit2 />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Notification Settings */}
-            <Card>
-              <DashboardCardHeader
-                title="Notification Settings"
-                description={`Configure email and notification preferences`}
-                Icon={IconBellBing}
-                iconBadge={false}
-              />
-              <CardContent className={GRID_CLASSES}>
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="notifyAdminOnNewInstaller">
-                      Notify Admin on New Installer
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Email admin when installer registers
-                    </p>
-                  </div>
-                  <Switch
-                    id="notifyAdminOnNewInstaller"
-                    checked={settings?.notifyAdminOnNewInstaller || false}
-                    onCheckedChange={(checked) =>
-                      updateSetting("notifyAdminOnNewInstaller", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="notifyAdminOnRewardSubmission">
-                      Notify Admin on Reward Submission
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Email admin on new reward submission
-                    </p>
-                  </div>
-                  <Switch
-                    id="notifyAdminOnRewardSubmission"
-                    checked={settings?.notifyAdminOnRewardSubmission || false}
-                    onCheckedChange={(checked) =>
-                      updateSetting("notifyAdminOnRewardSubmission", checked)
-                    }
-                  />
-                </div>
-
-                <div className="flex items-end justify-between gap-4">
-                  <div className="flex-1">
-                    <Label htmlFor="adminNotificationEmail">
-                      Admin Notification Email
-                    </Label>
-                    <p className={p_CLASSES}>
-                      {settings?.adminNotificationEmail || "No email set"}
-                    </p>
-                  </div>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() =>
-                        openEditDialog(
-                          "adminNotificationEmail",
-                          "Admin Notification Email",
-                          "Set the email address for admin notifications",
-                          "email"
-                        )
-                      }
-                      className="cursor-pointer"
-                    >
-                      <IconEdit2 />
-                    </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Data Management */}
-            <Card>
-              <DashboardCardHeader
-                title="Data Management"
-                description={`Configure bulk operations and data retention`}
-                Icon={IconDatabase}
-                iconBadge={false}
-              />
-              <CardContent className={GRID_CLASSES}>
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="allowBulkRewardUpload">
-                      Allow Bulk Reward Upload
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Enable Excel bulk upload feature
-                    </p>
-                  </div>
-                  <Switch
-                    id="allowBulkRewardUpload"
-                    checked={settings?.allowBulkRewardUpload || false}
-                    onCheckedChange={(checked) =>
-                      updateSetting("allowBulkRewardUpload", checked)
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between space-x-2">
-                  <div className="flex-1">
-                    <Label htmlFor="autoDeleteOldActivities">
-                      Auto Delete Old Activities
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Automatically clean up old activity logs
-                    </p>
-                  </div>
-                  <Switch
-                    id="autoDeleteOldActivities"
-                    checked={settings?.autoDeleteOldActivities || false}
-                    onCheckedChange={(checked) =>
-                      updateSetting("autoDeleteOldActivities", checked)
-                    }
-                  />
-                </div>
-                <div className="flex items-end justify-between gap-4">
-                  <div className="flex-1">
-                    <Label htmlFor="maxBulkUploadSize">
-                      Max Bulk Upload Size (rows)
-                    </Label>
-                    <p className={p_CLASSES}>
-                      {settings?.maxBulkUploadSize || 1000} rows
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() =>
-                      openEditDialog(
-                        "maxBulkUploadSize",
-                        "Max Bulk Upload Size",
-                        "Set the maximum number of rows allowed in bulk uploads",
-                        "number"
-                      )
-                    }
-                    className="shrink-0"
-                  >
-                    <IconEdit2 />
-                  </Button>
-                </div>
-
-                <div className="flex items-end justify-between gap-4">
-                  <div className="flex-1">
-                    <Label htmlFor="activityLogRetentionDays">
-                      Activity Log Retention (Days)
-                    </Label>
-                    <p className={p_CLASSES}>
-                      {settings?.activityLogRetentionDays || 90} days
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() =>
-                      openEditDialog(
-                        "activityLogRetentionDays",
-                        "Activity Log Retention",
-                        "Set the number of days to retain activity logs",
-                        "number"
-                      )
-                    }
-                    className="shrink-0"
-                  >
-                    <IconEdit2 />
-                  </Button>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -877,7 +567,7 @@ export default function SettingsPage() {
                   className="bg-background/70 border border-border backdrop-blur-xl p-6 squircle rounded-2xl shadow-lg flex items-center justify-between"
                 >
                   <p className="text-center text-sm text-muted-foreground">
-                    Careful⠀⎯ ⠀You have unsaved changes
+                    Careful — you have unsaved changes
                   </p>
 
                   <div className="flex items-center justify-center gap-2">
@@ -921,6 +611,25 @@ export default function SettingsPage() {
           )}
         </>
       )}
+
+      <ProductFormDialog
+        isOpen={productDialog.isOpen}
+        onClose={() => setProductDialog({ isOpen: false, product: null })}
+        onSave={handleProductSave}
+        product={productDialog.product}
+        isSaving={createProduct.isPending || updateProduct.isPending}
+      />
+
+      <DeleteConfirmationDialog
+        open={deleteDialogState.open}
+        status={deleteDialogState.status}
+        itemName={deleteDialogState.productName}
+        message={deleteDialogState.message}
+        entityType="product"
+        warningMessage="If any rewards reference this product, deletion will be refused — deactivate it instead."
+        onConfirm={handleProductDelete}
+        onClose={closeDeleteDialog}
+      />
 
       {/* Reset to Defaults Confirmation Dialog */}
       <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>

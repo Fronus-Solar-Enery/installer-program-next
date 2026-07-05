@@ -112,7 +112,7 @@ export default function RewardsPage() {
       ...state.filters,
       search: debouncedSearch,
     }),
-    [state.filters, debouncedSearch]
+    [state.filters, debouncedSearch],
   );
 
   // Single-pass filtering, sorting, and statistics calculation
@@ -181,7 +181,7 @@ export default function RewardsPage() {
         const todayStart = new Date(
           now.getFullYear(),
           now.getMonth(),
-          now.getDate()
+          now.getDate(),
         );
 
         let startDate: Date | null = null;
@@ -194,19 +194,19 @@ export default function RewardsPage() {
             break;
           case "week":
             startDate = new Date(
-              todayStart.getTime() - 7 * 24 * 60 * 60 * 1000
+              todayStart.getTime() - 7 * 24 * 60 * 60 * 1000,
             );
             endDate = now;
             break;
           case "month":
             startDate = new Date(
-              todayStart.getTime() - 30 * 24 * 60 * 60 * 1000
+              todayStart.getTime() - 30 * 24 * 60 * 60 * 1000,
             );
             endDate = now;
             break;
           case "year":
             startDate = new Date(
-              todayStart.getTime() - 365 * 24 * 60 * 60 * 1000
+              todayStart.getTime() - 365 * 24 * 60 * 60 * 1000,
             );
             endDate = now;
             break;
@@ -342,7 +342,7 @@ export default function RewardsPage() {
         },
       });
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleClearFilters = useCallback(() => {
@@ -353,7 +353,7 @@ export default function RewardsPage() {
     (field: string) => {
       dispatch({ type: "TOGGLE_SORT", payload: field });
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleToggleColumn = useCallback(
@@ -373,24 +373,24 @@ export default function RewardsPage() {
         | "registeredBy"
         | "referrerName"
         | "referrerTransactionId"
-        | "referrerReward"
+        | "referrerReward",
     ) => {
       dispatch({ type: "TOGGLE_COLUMN", payload: column });
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleToggleSelection = useCallback(
     (rewardId: string) => {
       dispatch({ type: "TOGGLE_REWARD_SELECTION", payload: rewardId });
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleToggleSelectAll = useCallback(() => {
     const currentPageIds = paginatedRewards.map((r) => r._id);
     const allSelected = currentPageIds.every((id) =>
-      state.selectedRewards.has(id)
+      state.selectedRewards.has(id),
     );
 
     if (allSelected) {
@@ -404,7 +404,7 @@ export default function RewardsPage() {
     (rewardId: string) => {
       dispatch({ type: "OPEN_EDIT_MODAL", payload: rewardId });
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleCloseEditModal = useCallback(() => {
@@ -423,7 +423,7 @@ export default function RewardsPage() {
         },
       });
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleDelete = useCallback(
@@ -476,7 +476,7 @@ export default function RewardsPage() {
         dispatch({ type: "SET_DELETING_ID", payload: null });
       }
     },
-    [dispatch, fetchRewards]
+    [dispatch, fetchRewards],
   );
 
   const handleOpenBulkDeleteDialog = useCallback(() => {
@@ -639,14 +639,14 @@ export default function RewardsPage() {
     (page: number) => {
       dispatch({ type: "SET_PAGE", payload: page });
     },
-    [dispatch]
+    [dispatch],
   );
 
   const handleItemsPerPageChange = useCallback(
     (itemsPerPage: number) => {
       dispatch({ type: "SET_ITEMS_PER_PAGE", payload: itemsPerPage });
     },
-    [dispatch]
+    [dispatch],
   );
 
   // Generate years from 2024 to current year
@@ -738,7 +738,7 @@ export default function RewardsPage() {
         },
       });
     },
-    [dispatch]
+    [dispatch],
   );
 
   return (
@@ -833,7 +833,7 @@ export default function RewardsPage() {
                 }}
                 className={cn(
                   "h-9 bg-background",
-                  isPageLoading && "opacity-50"
+                  isPageLoading && "opacity-50",
                 )}
                 disabled={isPageLoading}
               >
@@ -864,7 +864,7 @@ export default function RewardsPage() {
                         "hidden sm:flex gap-2 rounded-xl py-1.5 px-2 h-max",
                         state.filters.dateRange === "custom"
                           ? "text-primary bg-muted"
-                          : "text-muted-foreground"
+                          : "text-muted-foreground",
                       )}
                       disabled={isPageLoading}
                     >
@@ -914,11 +914,11 @@ export default function RewardsPage() {
                                 // Convert dates to local date strings (YYYY-MM-DD)
                                 const fromDate = new Date(
                                   dateRange.from.getTime() -
-                                    dateRange.from.getTimezoneOffset() * 60000
+                                    dateRange.from.getTimezoneOffset() * 60000,
                                 );
                                 const toDate = new Date(
                                   dateRange.to.getTime() -
-                                    dateRange.to.getTimezoneOffset() * 60000
+                                    dateRange.to.getTimezoneOffset() * 60000,
                                 );
 
                                 dispatch({
@@ -1077,7 +1077,7 @@ export default function RewardsPage() {
               ) {
                 handleDelete(
                   state.deleteDialogState.rewardId,
-                  state.deleteDialogState.rewardSerialNumber
+                  state.deleteDialogState.rewardSerialNumber,
                 );
               }
             }}

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import mongoose, { Schema, Model, Types } from "mongoose";
 import { RewardStatus } from "@/types/rewards";
-import { PRODUCT_MODELS } from "@/lib/constants";
+import Product from "@/models/Product";
 
 // Re-export for backward compatibility
 export { RewardStatus };
@@ -147,8 +147,8 @@ const InstallerRewardSchema = new Schema<IInstallerReward>(
 );
 
 // Custom validation for inverter serial number
-InstallerRewardSchema.pre("save", function (next) {
-  const product = PRODUCT_MODELS.find((p) => p.value === this.productModel);
+InstallerRewardSchema.pre("save", async function (next) {
+  const product = await Product.findOne({ name: this.productModel }).lean();
 
   if (product?.requiresInverter) {
     if (!this.inverterSerialNumber || this.inverterSerialNumber.trim() === "") {
@@ -164,12 +164,12 @@ InstallerRewardSchema.pre("save", function (next) {
 // Validation for updates
 InstallerRewardSchema.pre(
   ["findOneAndUpdate", "updateOne", "updateMany"],
-  function (next) {
+  async function (next) {
     const update = this.getUpdate() as any;
     const productModel = update.productModel || update.$set?.productModel;
 
     if (productModel) {
-      const product = PRODUCT_MODELS.find((p) => p.value === productModel);
+      const product = await Product.findOne({ name: productModel }).lean();
       const inverterSerial =
         update.inverterSerialNumber || update.$set?.inverterSerialNumber;
 

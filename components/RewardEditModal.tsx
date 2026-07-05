@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Modal from "./Modal";
-import { PRODUCT_MODELS, PAYMENT_METHOD, ProductModels } from "@/lib/constants";
+import { PAYMENT_METHOD } from "@/lib/constants";
+import { useProducts } from "@/hooks/useProducts";
 import { RewardStatus } from "@/types/rewards";
 import { toast } from "sonner";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -86,6 +87,7 @@ export default function RewardEditModal({
   rewardId,
   onSuccess,
 }: RewardEditModalProps) {
+  const { data: products = [] } = useProducts();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -122,8 +124,8 @@ export default function RewardEditModal({
 
   // Memoize selected product to avoid recalculation
   const selectedProduct = useMemo(
-    () => PRODUCT_MODELS.find((p) => p.value === productModel),
-    [productModel]
+    () => products.find((p) => p.value === productModel),
+    [products, productModel]
   );
 
   const isBatteryProduct = useMemo(
@@ -135,9 +137,9 @@ export default function RewardEditModal({
 
   // Memoize product groups for select dropdown
   const productGroups = useMemo(() => {
-    const map = new Map<string, ProductModels[]>();
+    const map = new Map<string, typeof products>();
 
-    for (const m of PRODUCT_MODELS as ProductModels[]) {
+    for (const m of products) {
       const key = m.isBattery ? "Batteries" : "Inverters";
       const arr = map.get(key);
       if (arr) arr.push(m);
@@ -163,7 +165,7 @@ export default function RewardEditModal({
           ),
         })),
     }));
-  }, []);
+  }, [products]);
 
   // Memoize payment method options
   const paymentMethodOptions = useMemo(
