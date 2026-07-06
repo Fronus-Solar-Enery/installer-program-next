@@ -6,6 +6,10 @@ import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { validateBody } from "@/lib/validateRequest";
 import { TeamRole } from "@/models/TeamMember";
+import { RewardStatus } from "@/types/rewards";
+import { getSettings } from "@/models/Settings";
+import { sendRewardPaymentMessage } from "@/lib/whatsappService";
+import { logger } from "@/lib/logger";
 
 const POPULATE = [
   {
@@ -52,6 +56,7 @@ export const PUT = withAuth(
       await dbConnect();
 
       const { id } = await context.params;
+      const previous = await InstallerReward.findById(id).select("rewardStatus");
       const reward = await InstallerReward.findByIdAndUpdate(
         id,
         { ...validation.data, updatedBy: session.user.id },
@@ -60,6 +65,38 @@ export const PUT = withAuth(
 
       if (!reward) {
         return ApiResponse.notFound("Reward not found");
+      }
+
+      // Notify installer via WhatsApp when reward transitions to PAID.
+      const installer = reward.installer as unknown as {
+        fullName?: string;
+        whatsappNumber?: string;
+      } | null;
+      if (
+        previous?.rewardStatus !== RewardStatus.PAID &&
+        reward.rewardStatus === RewardStatus.PAID &&
+        installer?.fullName &&
+        installer?.whatsappNumber
+      ) {
+        const { autoSendWhatsAppOnPaid } = await getSettings();
+        if (autoSendWhatsAppOnPaid) {
+          sendRewardPaymentMessage(
+            {
+              installer: {
+                fullName: installer.fullName,
+                whatsappNumber: installer.whatsappNumber,
+              },
+              serialNumber: reward.serialNumber,
+              productModel: reward.productModel,
+              rewardAmount: reward.rewardAmount,
+              transactionId: reward.transactionId,
+              sendingDate: reward.sendingDate,
+            },
+            session.user.id,
+          ).catch((e) =>
+            logger.error("Reward-paid WhatsApp failed", { error: String(e) }),
+          );
+        }
       }
 
       return ApiResponse.success(reward, "Reward updated successfully");

@@ -46,8 +46,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname() ?? "/dashboard";
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Don't show layout on auth pages
-  const isAuthPage = pathname.startsWith("/auth");
+  // Pages that render standalone (no sidebar/navbar, no NextAuth requirement):
+  // auth pages, the public landing page, and the installer portal
+  // (cookie-authed in their own server components, not via NextAuth).
+  const isAuthPage =
+    pathname.startsWith("/auth") ||
+    pathname === "/" ||
+    pathname.startsWith("/my-stats") ||
+    pathname.startsWith("/installer/"); // note: "/installers" (team) stays guarded
 
   useEffect(() => {
     if (status === "unauthenticated" && !isAuthPage) {

@@ -1,5 +1,8 @@
+import { randomInt } from "crypto";
+import bcrypt from "bcryptjs";
 import { HydratedDocument } from "mongoose";
 import Installer, { IInstaller } from "@/models/Installer";
+import { sendInstallerRegistrationMessage } from "@/lib/whatsappService";
 import InstallerReward from "@/models/InstallerReward";
 import {
   RegisterInstallerInput,
@@ -110,13 +113,50 @@ async function syncGoogleContactOnUpdate(
 }
 
 /**
+ * Generate a fresh 6-digit PIN for an installer, store its bcrypt hash, and
+ * deliver the plain-text PIN to the installer via WhatsApp. The plain PIN is
+ * never returned to callers — WhatsApp is the only delivery channel.
+ * Also clears any lockout state (covers manual unlock / reset).
+ */
+export async function regenerateAndSendPin(
+  installer: HydratedDocument<IInstaller>,
+  performedById: string
+): Promise<{ whatsappSent: boolean; error?: string; plainPin: string }> {
+  const plainPin = randomInt(0, 1_000_000).toString().padStart(6, "0");
+
+  installer.pin = await bcrypt.hash(plainPin, 10);
+  installer.pinPlain = plainPin;
+  installer.lastPinChangeAt = new Date();
+  installer.pinAttempts = 0;
+  installer.pinLockedUntil = undefined;
+  await installer.save();
+
+  const result = await sendInstallerRegistrationMessage(
+    {
+      fullName: installer.fullName,
+      whatsappNumber: installer.whatsappNumber,
+      installerCode: installer.installerCode,
+      pin: plainPin,
+    },
+    performedById
+  );
+
+  return { whatsappSent: result.success, error: result.error, plainPin };
+}
+
+/**
  * Register a new installer: enforce referral rules, persist, sync to Google
- * Contacts, and return the fully populated document.
+ * Contacts, generate + deliver a login PIN via WhatsApp, and return the fully
+ * populated document plus whether PIN delivery succeeded.
  */
 export async function createInstaller(
   input: RegisterInstallerInput,
   registeredById: string
-): Promise<HydratedDocument<IInstaller> | null> {
+): Promise<{
+  installer: HydratedDocument<IInstaller> | null;
+  whatsappFailed: boolean;
+  plainPin: string;
+}> {
   if (input.referrerCode) {
     await assertReferrerWithinLimit(input.referrerCode);
   }
@@ -128,10 +168,16 @@ export async function createInstaller(
 
   await createGoogleContactForInstaller(installer);
 
-  return findInstallerByIdOrCode(
-    String(installer._id),
-    INSTALLER_POPULATE_OPTIONS.full
-  );
+  const { whatsappSent, plainPin } = await regenerateAndSendPin(installer, registeredById);
+
+  return {
+    installer: await findInstallerByIdOrCode(
+      String(installer._id),
+      INSTALLER_POPULATE_OPTIONS.full
+    ),
+    whatsappFailed: !whatsappSent,
+    plainPin,
+  };
 }
 
 /**

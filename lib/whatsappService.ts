@@ -1,96 +1,129 @@
 /**
- * WhatsApp Service using WhatsApp Business API or Twilio
+ * WhatsApp Service using Meta WhatsApp Cloud API (official Graph API).
  *
- * FREE OPTIONS:
- * 1. WhatsApp Business API (Official) - Requires approval, limited free tier
- * 2. CallMeBot API - Free but limited, no registration required
- * 3. Waboxapp - Free tier available
+ * Requires env vars:
+ *   META_WHATSAPP_PHONE_NUMBER_ID  — Meta Business Suite → WhatsApp → Phone numbers
+ *   META_WHATSAPP_ACCESS_TOKEN     — System user token with whatsapp_business_messaging
  *
- * PAID BUT AFFORDABLE:
- * 1. Twilio WhatsApp API - Pay as you go
- * 2. MessageBird
- *
- * For this implementation, we'll use CallMeBot API (Free)
- * Setup instructions: https://www.callmebot.com/blog/free-api-whatsapp-messages/
- *
- * User needs to:
- * 1. Add the phone number +34 644 31 95 72 to their contacts (name: CallMeBot)
- * 2. Send message "I allow callmebot to send me messages" to that number
- * 3. Wait for the API key in response
- * 4. Add the API key to environment variables
+ * Messages are sent as pre-approved *templates* (Utility category), created in
+ * Meta Business Manager: installer_welcome, reward_paid, referral_earned.
+ * Template body placeholders ({{1}}, {{2}}, …) map to `bodyParams` in order.
  */
 
-import { logActivity } from './activityLogger';
-import { ActivityType } from '@/models/Activity';
+import { logActivity } from "./activityLogger";
+import { ActivityType } from "@/models/Activity";
+import { getSettings } from "@/models/Settings";
+import { logger } from "./logger";
 
-interface WhatsAppMessage {
-  phoneNumber: string; // Format: +92XXXXXXXXXX
-  message: string;
+const GRAPH_API_VERSION = "v22.0";
+
+interface WhatsAppTemplateMessage {
+  phoneNumber: string; // Any local/intl format; normalized to 92XXXXXXXXXX
+  templateName: string;
+  bodyParams: string[]; // Values for {{1}}, {{2}}, … in template body
   performedBy?: string; // For activity logging
 }
 
 /**
- * Send WhatsApp message using CallMeBot API (Free)
- * Note: Recipient must have set up CallMeBot on their WhatsApp first
+ * Normalize a Pakistani phone number to Meta's expected format: digits only,
+ * international prefix, no leading +. e.g. "0300-1234567" → "923001234567".
+ */
+export function normalizeWhatsAppNumber(phoneNumber: string): string {
+  let digits = phoneNumber.replace(/\D/g, "");
+  if (digits.startsWith("0")) digits = `92${digits.slice(1)}`;
+  return digits;
+}
+
+/**
+ * Send a WhatsApp template message via Meta Cloud API.
+ * Checks the enableWhatsAppNotifications setting before sending.
  */
 export async function sendWhatsAppMessage({
   phoneNumber,
-  message,
+  templateName,
+  bodyParams,
   performedBy,
-}: WhatsAppMessage): Promise<{ success: boolean; error?: string }> {
+}: WhatsAppTemplateMessage): Promise<{ success: boolean; error?: string }> {
   try {
-    // Check if WhatsApp is enabled
-    const apiKey = process.env.CALLMEBOT_API_KEY;
+    const phoneNumberId = process.env.META_WHATSAPP_PHONE_NUMBER_ID;
+    const accessToken = process.env.META_WHATSAPP_ACCESS_TOKEN;
 
-    if (!apiKey) {
-      console.warn('WhatsApp notifications disabled: CALLMEBOT_API_KEY not set');
-      return { success: false, error: 'WhatsApp service not configured' };
+    if (!phoneNumberId || !accessToken) {
+      logger.warn(
+        "WhatsApp notifications disabled: META_WHATSAPP_PHONE_NUMBER_ID / META_WHATSAPP_ACCESS_TOKEN not set"
+      );
+      return { success: false, error: "WhatsApp service not configured" };
     }
 
-    // Clean phone number - remove +92 prefix for CallMeBot
-    const cleanNumber = phoneNumber.replace('+92', '').replace(/\D/g, '');
+    const { enableWhatsAppNotifications } = await getSettings();
+    if (!enableWhatsAppNotifications) {
+      return { success: false, error: "WhatsApp notifications disabled in settings" };
+    }
 
-    // CallMeBot API endpoint
-    const url = `https://api.callmebot.com/whatsapp.php?phone=+92${cleanNumber}&text=${encodeURIComponent(message)}&apikey=${apiKey}`;
+    const to = normalizeWhatsAppNumber(phoneNumber);
 
-    const response = await fetch(url, {
-      method: 'GET',
-    });
+    const response = await fetch(
+      `https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneNumberId}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to,
+          type: "template",
+          template: {
+            name: templateName,
+            language: { code: "en" },
+            components: bodyParams.length
+              ? [
+                  {
+                    type: "body",
+                    parameters: bodyParams.map((text) => ({ type: "text", text })),
+                  },
+                ]
+              : undefined,
+          },
+        }),
+      }
+    );
 
     if (!response.ok) {
-      throw new Error(`WhatsApp API error: ${response.statusText}`);
+      const body = await response.text().catch(() => "");
+      throw new Error(`WhatsApp API error ${response.status}: ${body || response.statusText}`);
     }
 
-    // Log successful WhatsApp send
     if (performedBy) {
       await logActivity({
         type: ActivityType.WHATSAPP_SENT,
         performedBy,
-        targetType: 'Installer',
+        targetType: "Installer",
         targetId: performedBy, // Using performedBy as fallback
-        description: `WhatsApp message sent to ${phoneNumber}`,
+        description: `WhatsApp template "${templateName}" sent to ${phoneNumber}`,
         metadata: {
           whatsappNumber: phoneNumber,
-          messagePreview: message.substring(0, 100),
+          templateName,
         },
       });
     }
 
     return { success: true };
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Failed to send WhatsApp message:', error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    logger.error("Failed to send WhatsApp message", { error: errorMessage, templateName });
 
-    // Log failed WhatsApp send
     if (performedBy) {
       await logActivity({
         type: ActivityType.WHATSAPP_FAILED,
         performedBy,
-        targetType: 'Installer',
+        targetType: "Installer",
         targetId: performedBy,
-        description: `Failed to send WhatsApp to ${phoneNumber}`,
+        description: `Failed to send WhatsApp template "${templateName}" to ${phoneNumber}`,
         metadata: {
           whatsappNumber: phoneNumber,
+          templateName,
           errorMessage,
         },
       });
@@ -101,34 +134,29 @@ export async function sendWhatsAppMessage({
 }
 
 /**
- * Send installer registration confirmation
+ * Send installer registration welcome + credentials (installer code + PIN).
+ * Template: installer_welcome — {{1}} name, {{2}} installer code, {{3}} PIN.
  */
 export async function sendInstallerRegistrationMessage(
   installer: {
     fullName: string;
     whatsappNumber: string;
     installerCode: string;
+    pin?: string;
   },
   performedBy: string
-): Promise<void> {
-  const message = `🎉 *Welcome to Installer Program!*\n\n` +
-    `Dear ${installer.fullName},\n\n` +
-    `Your installer account has been successfully registered.\n\n` +
-    `*Installer Code:* ${installer.installerCode}\n\n` +
-    `You can now start installing products and earning rewards.\n\n` +
-    `For any queries, please contact our support team.\n\n` +
-    `Best regards,\n` +
-    `Installer Program Team`;
-
-  await sendWhatsAppMessage({
+): Promise<{ success: boolean; error?: string }> {
+  return sendWhatsAppMessage({
     phoneNumber: installer.whatsappNumber,
-    message,
+    templateName: "installer_welcome",
+    bodyParams: [installer.fullName, installer.installerCode, installer.pin ?? "-"],
     performedBy,
   });
 }
 
 /**
- * Send reward payment confirmation
+ * Send reward payment confirmation.
+ * Template: reward_paid — {{1}} name, {{2}} product, {{3}} serial, {{4}} amount.
  */
 export async function sendRewardPaymentMessage(
   reward: {
@@ -143,29 +171,23 @@ export async function sendRewardPaymentMessage(
     sendingDate?: Date;
   },
   performedBy: string
-): Promise<void> {
-  const message = `💰 *Reward Payment Confirmation*\n\n` +
-    `Dear ${reward.installer.fullName},\n\n` +
-    `Your reward payment has been processed!\n\n` +
-    `*Product:* ${reward.productModel}\n` +
-    `*Serial Number:* ${reward.serialNumber}\n` +
-    `*Reward Amount:* Rs. ${reward.rewardAmount.toLocaleString()}\n` +
-    (reward.transactionId ? `*Transaction ID:* ${reward.transactionId}\n` : '') +
-    (reward.sendingDate ? `*Payment Date:* ${new Date(reward.sendingDate).toLocaleDateString()}\n` : '') +
-    `\n` +
-    `Thank you for your service!\n\n` +
-    `Best regards,\n` +
-    `Installer Program Team`;
-
-  await sendWhatsAppMessage({
+): Promise<{ success: boolean; error?: string }> {
+  return sendWhatsAppMessage({
     phoneNumber: reward.installer.whatsappNumber,
-    message,
+    templateName: "reward_paid",
+    bodyParams: [
+      reward.installer.fullName,
+      reward.productModel,
+      reward.serialNumber,
+      `Rs. ${reward.rewardAmount.toLocaleString()}`,
+    ],
     performedBy,
   });
 }
 
 /**
- * Send referral reward notification
+ * Send referral reward notification to the referrer.
+ * Template: referral_earned — {{1}} referrer name, {{2}} referred name (code), {{3}} amount.
  */
 export async function sendReferralRewardMessage(
   referrer: {
@@ -178,55 +200,15 @@ export async function sendReferralRewardMessage(
   },
   rewardAmount: number,
   performedBy: string
-): Promise<void> {
-  const message = `🎁 *Referral Reward Earned!*\n\n` +
-    `Dear ${referrer.fullName},\n\n` +
-    `Congratulations! You've earned a referral reward.\n\n` +
-    `*Referred Installer:* ${referred.fullName} (${referred.installerCode})\n` +
-    `*Referral Reward:* Rs. ${rewardAmount.toLocaleString()}\n\n` +
-    `Keep referring more installers to earn more rewards!\n\n` +
-    `Best regards,\n` +
-    `Installer Program Team`;
-
-  await sendWhatsAppMessage({
+): Promise<{ success: boolean; error?: string }> {
+  return sendWhatsAppMessage({
     phoneNumber: referrer.whatsappNumber,
-    message,
+    templateName: "referral_earned",
+    bodyParams: [
+      referrer.fullName,
+      `${referred.fullName} (${referred.installerCode})`,
+      `Rs. ${rewardAmount.toLocaleString()}`,
+    ],
     performedBy,
   });
 }
-
-/**
- * ALTERNATIVE: Using Twilio (Paid but more reliable)
- * Uncomment and configure if you want to use Twilio instead
- */
-/*
-import twilio from 'twilio';
-
-export async function sendWhatsAppViaTwilio({
-  phoneNumber,
-  message,
-}: WhatsAppMessage): Promise<{ success: boolean; error?: string }> {
-  try {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const twilioWhatsAppNumber = process.env.TWILIO_WHATSAPP_NUMBER; // e.g., whatsapp:+14155238886
-
-    if (!accountSid || !authToken || !twilioWhatsAppNumber) {
-      return { success: false, error: 'Twilio not configured' };
-    }
-
-    const client = twilio(accountSid, authToken);
-
-    await client.messages.create({
-      body: message,
-      from: twilioWhatsAppNumber,
-      to: `whatsapp:${phoneNumber}`,
-    });
-
-    return { success: true };
-  } catch (error: any) {
-    console.error('Twilio WhatsApp error:', error);
-    return { success: false, error: error.message };
-  }
-}
-*/

@@ -97,6 +97,8 @@ export default function NewInstallerPage() {
     id?: string;
   } | null>(null);
   const [registrationError, setRegistrationError] = useState<string>("");
+  const [whatsappFailed, setWhatsappFailed] = useState(false);
+  const [registrationPin, setRegistrationPin] = useState<string | null>(null);
 
   const { copyToClipboard, copied } = useClipboard();
 
@@ -428,7 +430,10 @@ export default function NewInstallerPage() {
         setRegisteredInstaller({
           code: installerCode,
           name: fullName,
+          id: data.data?.installer?._id,
         });
+        setWhatsappFailed(Boolean(data.data?.whatsappFailed));
+        setRegistrationPin(data.data?.pin || null);
         setRegistrationStatus("success");
       } else {
         // Format error message with better readability
@@ -597,6 +602,28 @@ export default function NewInstallerPage() {
         installerCode={registeredInstaller?.code}
         installerName={registeredInstaller?.name}
         errorMessage={registrationError}
+        whatsappFailed={whatsappFailed}
+        pin={registrationPin}
+        onResendPin={async () => {
+          const target = registeredInstaller?.id || registeredInstaller?.code;
+          if (!target) return false;
+          try {
+            const res = await fetch(`/api/installers/${target}/resend-pin`, {
+              method: "POST",
+            });
+            const result = await res.json();
+            if (result.success) {
+              toast.success("New PIN sent via WhatsApp");
+              setWhatsappFailed(false);
+              return true;
+            }
+            toast.error(result.error || "Failed to resend PIN");
+            return false;
+          } catch {
+            toast.error("Failed to resend PIN");
+            return false;
+          }
+        }}
         onRedirect={handleRedirect}
         onViewInstaller={
           registeredInstaller?.code

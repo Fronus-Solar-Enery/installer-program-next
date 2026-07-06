@@ -23,6 +23,14 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -50,6 +58,7 @@ interface InstallerDetails {
   _id: string;
   installerCode: string;
   fullName: string;
+  pinPlain?: string;
   cnic: string;
   phoneNumber: string;
   whatsappNumber: string;
@@ -133,6 +142,30 @@ export default function InstallerDetailsPage() {
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [resendingPin, setResendingPin] = useState(false);
+
+  const [newPin, setNewPin] = useState<string | null>(null);
+  const [pinDialogOpen, setPinDialogOpen] = useState(false);
+
+  const handleResendPin = async () => {
+    setResendingPin(true);
+    try {
+      const res = await fetch(`/api/installers/${installerId}/resend-pin`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNewPin(data.data?.pin || null);
+        setPinDialogOpen(true);
+      } else {
+        toast.error(data.error || data.message || "Failed to resend PIN");
+      }
+    } catch {
+      toast.error("Failed to resend PIN");
+    } finally {
+      setResendingPin(false);
+    }
+  };
 
   const fetchInstaller = useCallback(async () => {
     try {
@@ -144,7 +177,10 @@ export default function InstallerDetailsPage() {
         throw new Error(data.error || "Failed to fetch installer");
       }
 
-      setInstaller(data.data.installer);
+      setInstaller({
+        ...data.data.installer,
+        pinPlain: data.data.pin || data.data.installer?.pinPlain,
+      });
       setStatistics(data.data.statistics);
     } catch (err: unknown) {
       setError(
@@ -374,6 +410,14 @@ export default function InstallerDetailsPage() {
         description={`Installer Code: ${installer.installerCode}`}
         action={
           <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={handleResendPin}
+              disabled={resendingPin}
+              title="Generate a new login PIN and send it to the installer via WhatsApp (also unlocks a locked account)"
+            >
+              {resendingPin ? "Sending…" : "Reset PIN"}
+            </Button>
             <Button onClick={() => setEditModalOpen(true)} variant="default">
               <IconEdit2 className="mr-2" />
               Edit
@@ -545,6 +589,15 @@ export default function InstallerDetailsPage() {
                               label="Installer Code"
                             />
                           </span>
+                          {installer.pinPlain && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-brand-400/30 dark:bg-brand-1100/30 font-mono text-xs font-bold tracking-widest">
+                              PIN: {installer.pinPlain}
+                              <CopyButton
+                                text={installer.pinPlain}
+                                label="PIN"
+                              />
+                            </span>
+                          )}
                           {installer.certified && (
                             <Badge variant="success" className="gap-1">
                               <Award className="h-3 w-3" />
@@ -1218,6 +1271,40 @@ export default function InstallerDetailsPage() {
         onConfirm={handleDelete}
         onClose={() => setDeleteDialogOpen(false)}
       />
+
+      {/* PIN Dialog */}
+      <Dialog open={pinDialogOpen} onOpenChange={setPinDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>New PIN Generated</DialogTitle>
+            <DialogDescription>
+              Share this PIN with the installer. It will also be sent via
+              WhatsApp.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-6">
+            <div className="text-4xl font-mono font-bold tracking-[0.25em] select-all">
+              {newPin}
+            </div>
+            <div className="flex gap-2">
+              <CopyButton text={newPin || ""} label="PIN" />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(newPin || "");
+                  toast.success("PIN copied to clipboard");
+                }}
+              >
+                Copy PIN
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setPinDialogOpen(false)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

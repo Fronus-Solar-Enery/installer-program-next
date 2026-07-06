@@ -9,7 +9,10 @@ export function proxy(request: NextRequest) {
   // so a prefix entry for it would make the entire app public.
   const publicPrefixes = [
     "/auth/signin",
+    "/auth/installer",
     "/auth/error",
+    "/my-stats",
+    "/installer/",
     "/_next",
     "/favicon.ico",
   ];
@@ -50,6 +53,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - static image files
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+     "/((?!api|_next/static|_next/image|favicon.ico|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

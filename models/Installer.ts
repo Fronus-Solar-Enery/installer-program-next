@@ -20,6 +20,12 @@ export interface IInstaller {
   registeredBy: Types.ObjectId;
   certified: boolean;
   googleContactId?: string;
+  pin?: string; // bcrypt hash, hidden from queries by default
+  pinPlain?: string; // plain text, visible to team members on profile
+  shareToken?: string;
+  lastPinChangeAt?: Date;
+  pinAttempts?: number;
+  pinLockedUntil?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -113,6 +119,29 @@ const InstallerSchema = new Schema<IInstaller>(
     },
     googleContactId: {
       type: String,
+    },
+    pin: {
+      type: String,
+      select: false, // Never returned unless explicitly .select('+pin')
+    },
+    pinPlain: {
+      type: String,
+    },
+    shareToken: {
+      type: String,
+      unique: true,
+      sparse: true, // Installers created before this field existed have none
+      default: () => crypto.randomUUID(),
+    },
+    lastPinChangeAt: {
+      type: Date,
+    },
+    pinAttempts: {
+      type: Number,
+      default: 0,
+    },
+    pinLockedUntil: {
+      type: Date,
     },
   },
   {

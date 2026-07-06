@@ -9,6 +9,12 @@ import { validateBody, getSearchParams } from "@/lib/validateRequest";
 import { QueryBuilder, parseSortParams } from "@/lib/queryBuilder";
 import { getPaginationParams, createPaginationMeta } from "@/lib/pagination";
 import { getSettings } from "@/models/Settings";
+import { RewardStatus } from "@/types/rewards";
+import {
+  sendRewardPaymentMessage,
+  sendReferralRewardMessage,
+} from "@/lib/whatsappService";
+import { logger } from "@/lib/logger";
 
 // GET all rewards with filtering
 export const GET = withAuth(
@@ -145,18 +151,51 @@ export const POST = withAuth(
       };
 
       // Handle referrer logic
+      let referrerDoc = null;
       if (installer.referrer) {
-        const referrer = await Installer.findById(installer.referrer);
-        if (referrer) {
+        referrerDoc = await Installer.findById(installer.referrer);
+        if (referrerDoc) {
           const { defaultReferralReward } = await getSettings();
-          rewardData.referrerCode = referrer.installerCode;
-          rewardData.referrer = referrer._id;
+          rewardData.referrerCode = referrerDoc.installerCode;
+          rewardData.referrer = referrerDoc._id;
           rewardData.referrerRewardAmount = defaultReferralReward;
         }
       }
 
       // Create reward
       const reward = await InstallerReward.create(rewardData);
+
+      // WhatsApp notifications — fire-and-forget, never block the response.
+      if (reward.rewardStatus === RewardStatus.PAID) {
+        sendRewardPaymentMessage(
+          {
+            installer: {
+              fullName: installer.fullName,
+              whatsappNumber: installer.whatsappNumber,
+            },
+            serialNumber: reward.serialNumber,
+            productModel: reward.productModel,
+            rewardAmount: reward.rewardAmount,
+            transactionId: reward.transactionId,
+            sendingDate: reward.sendingDate,
+          },
+          session.user.id
+        ).catch((e) => logger.error("Reward WhatsApp failed", { error: String(e) }));
+      }
+      if (referrerDoc && reward.referrerRewardAmount) {
+        sendReferralRewardMessage(
+          {
+            fullName: referrerDoc.fullName,
+            whatsappNumber: referrerDoc.whatsappNumber,
+          },
+          {
+            fullName: installer.fullName,
+            installerCode: installer.installerCode,
+          },
+          reward.referrerRewardAmount,
+          session.user.id
+        ).catch((e) => logger.error("Referral WhatsApp failed", { error: String(e) }));
+      }
 
       const populatedReward = await InstallerReward.findById(reward._id)
         .populate(
