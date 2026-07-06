@@ -90,6 +90,28 @@ Zod schemas in `lib/validation.ts` and `lib/validation-helpers.ts`. API routes p
 
 Tailwind CSS v4 with shadcn/ui components. Font: Saira (Google Fonts). Theme: `next-themes` with `ThemeProvider`. Toast notifications via `sonner`.
 
+### UI/UX & Frontend Design Implementation Protocol
+
+- **Design Quality:** ALWAYS produce production-ready, premium-quality interfaces that follow modern UI/UX principles. Prioritize clarity, usability, accessibility, visual hierarchy, consistency, and responsiveness over decorative elements.
+- **Component Philosophy:** Build reusable, composable, scalable, and maintainable components. Avoid duplication and ensure consistent spacing, typography, colors, states, and interaction patterns throughout the application.
+- **Frontend Standards:** Follow modern frontend best practices, emphasizing semantic HTML, accessibility (WCAG), responsive layouts, performance optimization, and clean component architecture.
+- **Visual Consistency:** Maintain a cohesive design language including spacing system, typography scale, color palette, border radius, shadows, elevation, icons, and interactive states across the entire application.
+- **Responsive First:** Design and implement mobile-first layouts that adapt gracefully across all screen sizes without breaking hierarchy, usability, or visual balance.
+- **Accessibility:** Ensure keyboard navigation, focus management, ARIA attributes where necessary, sufficient color contrast, reduced motion support, proper touch targets, and semantic structure by default.
+- **Interaction Design:** Design intuitive user flows with meaningful feedback, loading states, empty states, validation, skeleton loaders, hover/focus/active states, and graceful error handling.
+- **Performance:** Prefer lightweight implementations, minimize layout shifts, optimize rendering, lazy-load where appropriate, and avoid unnecessary complexity or excessive DOM depth.
+- **Design System Compliance:** Reuse existing design tokens, utilities, components, and patterns whenever possible instead of introducing new variations without justification.
+- **Review Requirement:** Before completing any frontend task, review the implementation for visual consistency, accessibility, responsiveness, maintainability, performance, and overall user experience.
+
+#### Required Skills
+
+You must actively reference and apply the principles from the following skill modules whenever designing, implementing, reviewing, or refactoring frontend or UI/UX code:
+
+- `@.agents/skills/gpt-taste/SKILL.md`
+- `@.agents/skills/high-end-visual-design/SKILL.md`
+- `/ui-ux-pro-max`
+- `/frontend-design`
+
 ### Animation Implementation Protocol
 
 - **Motion Mechanics:** ALWAYS implement physics-based animations (e.g., springs, inertia) instead of fixed-duration, time-based animations to ensure maximum fluidity and organic responsiveness.

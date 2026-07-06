@@ -15,6 +15,10 @@ import {
   User,
   Clock,
   AlertCircle,
+  Phone,
+  MapPin,
+  Landmark,
+  Calendar,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,11 +40,11 @@ import InstallerEditModal from "@/components/InstallerEditModal";
 import { useBreadcrumb } from "@/contexts/BreadcrumbContext";
 import IconUser from "@/components/icons/User";
 import Loading from "@/components/ui/loading";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CopyButton } from "@/components/CopyButton";
 import {
   IconArrowLeft,
   IconEdit2,
-  IconStar,
   IconTrashBin2,
 } from "@/components/icons";
 import { InstallerAvatar } from "@/components/UserAvatar";
@@ -292,9 +296,44 @@ export default function InstallerDetailsPage() {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-96">
-          <p className="text-muted-foreground">Loading installer details...</p>
+      <div className="flex-1 overflow-auto space-y-4 p-6">
+        <div className="flex items-center gap-4 py-6 ml-6">
+          <Skeleton round className="size-16" />
+          <div className="space-y-3">
+            <Skeleton className="h-7 w-64" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-32" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Skeleton className="h-12 w-full rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-5 w-36" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[...Array(3)].map((_, j) => (
+                  <div key={j} className="space-y-1">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-4 w-48" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     );
@@ -302,7 +341,7 @@ export default function InstallerDetailsPage() {
 
   if (error || !installer) {
     return (
-      <div className="p-6">
+      <div className="flex-1 overflow-auto">
         <div className="flex items-center justify-center h-96">
           <div className="text-center space-y-4">
             <Alert variant="destructive">
@@ -320,9 +359,19 @@ export default function InstallerDetailsPage() {
   }
 
   return (
-    <div className="flex-1 overflow-auto space-y-4">
+    <div className="flex-1 overflow-auto space-y-6">
       <PageHeader
-        title={installer.fullName}
+        title={
+          <span className="flex items-center gap-3">
+            {installer.fullName}
+            {installer.certified && (
+              <Badge variant="default" className="bg-brand-700 hover:bg-brand-800 gap-1.5 px-3 py-1">
+                <Award className="h-3.5 w-3.5" />
+                Certified
+              </Badge>
+            )}
+          </span>
+        }
         description={`Installer Code: ${installer.installerCode}`}
         action={
           <div className="flex gap-3">
@@ -356,97 +405,89 @@ export default function InstallerDetailsPage() {
           </>
         }
       />
-      {/* Certified Badge */}
-      {installer.certified && (
-        <Badge
-          variant="default"
-          className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700"
-        >
-          <Award className="h-4 w-4 mr-2" />
-          Certified Installer
-        </Badge>
-      )}
 
       {/* Statistics Cards */}
       {statistics && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="shrink-0">
-                  <TrendingUp className="h-8 w-8 text-blue-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
                     Total Rewards
                   </p>
-                  <p className="text-2xl font-semibold">
+                  <p className="text-2xl font-semibold tracking-tight">
                     Rs. {statistics.totalAmount?.toLocaleString() || 0}
                   </p>
+                  <p className="text-xs text-muted-foreground">
+                    {statistics.totalRewards} reward{statistics.totalRewards !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <div className="shrink-0 p-3 rounded-xl bg-muted">
+                  <TrendingUp className="h-5 w-5 text-foreground" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center">
-                    <span className="text-yellow-600 dark:text-yellow-400 font-bold">
-                      P
-                    </span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
                     Pending
                   </p>
-                  <p className="text-2xl font-semibold text-yellow-600 dark:text-yellow-500">
+                  <p className="text-2xl font-semibold tracking-tight text-muted-foreground">
                     Rs. {statistics.pendingAmount?.toLocaleString() || 0}
                   </p>
+                  <p className="text-xs text-muted-foreground">
+                    {statistics.pendingRewards} reward{statistics.pendingRewards !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <div className="shrink-0 p-3 rounded-xl bg-muted">
+                  <Clock className="h-5 w-5 text-muted-foreground" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                    <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
                     Paid
                   </p>
-                  <p className="text-2xl font-semibold text-green-600 dark:text-green-500">
+                  <p className="text-2xl font-semibold tracking-tight text-success-text">
                     Rs. {statistics.paidAmount?.toLocaleString() || 0}
                   </p>
+                  <p className="text-xs text-muted-foreground">
+                    {statistics.paidRewards} reward{statistics.paidRewards !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <div className="shrink-0 p-3 rounded-xl bg-muted">
+                  <Check className="h-5 w-5 text-success-text" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center">
-                    <span className="text-red-600 dark:text-red-400 font-bold">
-                      F
-                    </span>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
                     Failed
                   </p>
-                  <p className="text-2xl font-semibold text-red-600 dark:text-red-500">
+                  <p className="text-2xl font-semibold tracking-tight text-destructive-text">
                     Rs. {statistics.failedAmount?.toLocaleString() || 0}
                   </p>
+                  <p className="text-xs text-muted-foreground">
+                    {statistics.failedRewards} reward{statistics.failedRewards !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <div className="shrink-0 p-3 rounded-xl bg-muted">
+                  <AlertCircle className="h-5 w-5 text-destructive-text" />
                 </div>
               </div>
             </CardContent>
@@ -479,258 +520,226 @@ export default function InstallerDetailsPage() {
 
         {/* Details Tab */}
         <TabsContent value="details">
-          <div className="flex flex-wrap gap-4">
-            {/* Personal Information */}
-            <Card className="min-w-[350px] flex-1">
-              <CardHeader className="flex gap-4 flex-col items-center text-center">
-                <div className="relative">
+          <div className="space-y-4">
+            {/* Profile Header */}
+            <Card className="shadow-layered bg-muted/20">
+              <CardContent className="p-5 lg:p-6">
+                <div className="flex items-start gap-5">
                   <InstallerAvatar
                     user={installer.fullName}
-                    className="size-24 shrink-0 border-none bg-background"
+                    className="size-16 shrink-0"
                   />
-                  {installer.certified && (
-                    <div className="absolute top-0 right-0 p-1 flex items-center justify-center bg-card backdrop-blur-xl group-hover/row:bg-muted/30 rounded-full transition-colors duration-300">
-                      <IconStar
-                        fill
-                        className="size-5 text-cyan-500 group-hover:text-cyan-400 transition-colors duration-300"
-                      />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="text-lg font-semibold leading-tight">
+                          {installer.fullName}
+                        </h3>
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-muted font-mono text-xs font-bold">
+                            {installer.installerCode}
+                            <CopyButton text={installer.installerCode} label="Installer Code" />
+                          </span>
+                          {installer.certified && (
+                            <Badge variant="success" className="gap-1">
+                              <Award className="h-3 w-3" />
+                              Certified
+                            </Badge>
+                          )}
+                          <Badge variant="secondary" className="text-[10px]">
+                            CNIC: {installer.cnic}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground shrink-0 leading-relaxed">
+                        <div>Joined {new Date(installer.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                        {installer.registeredBy && (
+                          <div>by {installer.registeredBy.name}</div>
+                        )}
+                      </div>
                     </div>
-                  )}
+                    {/* Quick stats row */}
+                    {statistics && (
+                      <div className="mt-4 pt-4 border-t border-border flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1.5">
+                          <TrendingUp className="h-3.5 w-3.5" />
+                          <span className="font-medium text-foreground">{statistics.totalRewards}</span> total rewards
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Check className="h-3.5 w-3.5 text-success-text" />
+                          <span className="font-medium text-success-text">{statistics.paidRewards}</span> paid
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="font-medium text-muted-foreground">{statistics.pendingRewards}</span> pending
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <CardTitle className="text-lg font-semibold">
-                  {installer.fullName}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="grid grid-cols-2 gap-4">
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Full Name
-                    </dt>
-                    <dd className="mt-1 text-sm">{installer.fullName}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      CNIC
-                    </dt>
-                    <dd className="mt-1 text-sm flex items-center">
-                      {installer.cnic}
-                      <CopyButton text={installer.cnic} label="CNIC" />
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Phone Number
-                    </dt>
-                    <dd className="mt-1 text-sm flex items-center">
-                      {installer.phoneNumber}
-                      <CopyButton
-                        text={installer.phoneNumber}
-                        label="Phone Number"
-                      />
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      WhatsApp Number
-                    </dt>
-                    <dd className="mt-1 text-sm flex items-center">
-                      {installer.whatsappNumber}
-                      <CopyButton
-                        text={installer.whatsappNumber}
-                        label="WhatsApp Number"
-                      />
-                    </dd>
-                  </div>
-                </dl>
               </CardContent>
             </Card>
 
-            {/* Location Information */}
-            <Card className="min-w-[350px] flex-1">
-              <CardHeader>
-                <CardTitle>Location Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="space-y-3">
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      City
-                    </dt>
-                    <dd className="mt-1 text-sm">{installer.city}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      District
-                    </dt>
-                    <dd className="mt-1 text-sm">{installer.district}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Province
-                    </dt>
-                    <dd className="mt-1 text-sm">{installer.province}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Address
-                    </dt>
-                    <dd className="mt-1 text-sm">{installer.address}</dd>
-                  </div>
-                </dl>
-              </CardContent>
-            </Card>
-
-            {/* Banking Information */}
-            <Card className="min-w-[350px] flex-1">
-              <CardHeader>
-                <CardTitle>Banking Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="space-y-3">
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Bank Name
-                    </dt>
-                    <dd className="mt-1 text-sm">{installer.bankName}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Account Number
-                    </dt>
-                    <dd className="mt-1 text-sm flex items-center">
-                      {installer.accountNumber}
-                      <CopyButton
-                        text={installer.accountNumber}
-                        label="Account Number"
-                      />
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Account Title
-                    </dt>
-                    <dd className="mt-1 text-sm">{installer.accountTitle}</dd>
-                  </div>
-                </dl>
-              </CardContent>
-            </Card>
-
-            {/* Professional Information */}
-            <Card className="min-w-[350px] flex-1">
-              <CardHeader>
-                <CardTitle>Professional Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="space-y-3">
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Installer Code
-                    </dt>
-                    <dd className="mt-1 text-sm font-mono font-bold flex items-center">
-                      {installer.installerCode}
-                      <CopyButton
-                        text={installer.installerCode}
-                        label="Installer Code"
-                      />
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Certified
-                    </dt>
-                    <dd className="mt-1 text-sm">
-                      {installer.certified ? (
-                        <Badge variant="default" className="bg-green-600">
-                          Yes
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary">No</Badge>
-                      )}
-                    </dd>
-                  </div>
-                  {installer.companyName && (
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">
-                        Company Name
-                      </dt>
-                      <dd className="mt-1 text-sm">{installer.companyName}</dd>
-                    </div>
-                  )}
-                </dl>
-              </CardContent>
-            </Card>
-
-            {/* Referrer Information */}
-            {installer.referrer && (
-              <Card className="min-w-[350px] flex-1">
+            {/* Contact & Location */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <Card className="transition-all duration-300 hover:shadow-layered">
                 <CardHeader>
-                  <CardTitle>Referrer Information</CardTitle>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    Contact
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <a
+                    href={`tel:${installer.phoneNumber}`}
+                    className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors group"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-xs text-muted-foreground">Phone</div>
+                      <div className="text-sm font-medium group-hover:text-foreground transition-colors">
+                        {installer.phoneNumber}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <CopyButton text={installer.phoneNumber} label="Phone Number" />
+                    </div>
+                  </a>
+                  <a
+                    href={`https://wa.me/${installer.whatsappNumber?.replace(/\+/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors group"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-xs text-muted-foreground">WhatsApp</div>
+                      <div className="text-sm font-medium group-hover:text-foreground transition-colors">
+                        {installer.whatsappNumber}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <CopyButton text={installer.whatsappNumber} label="WhatsApp Number" />
+                    </div>
+                  </a>
+                </CardContent>
+              </Card>
+
+              <Card className="transition-all duration-300 hover:shadow-layered">
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    Location
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <dl className="space-y-3">
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">
-                        Referrer Code
-                      </dt>
-                      <dd className="mt-1 text-sm flex items-center">
-                        {installer.referrer.installerCode}
-                        <CopyButton
-                          text={installer.referrer.installerCode}
-                          label="Referrer Code"
-                        />
-                      </dd>
+                  <dl className="space-y-0 divide-y divide-border">
+                    <div className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
+                      <dt className="text-xs text-muted-foreground">City</dt>
+                      <dd className="text-sm font-medium">{installer.city}</dd>
                     </div>
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">
-                        Referrer Name
-                      </dt>
-                      <dd className="mt-1 text-sm">
-                        {installer.referrer.fullName}
-                      </dd>
+                    <div className="flex items-center justify-between py-2.5">
+                      <dt className="text-xs text-muted-foreground">District</dt>
+                      <dd className="text-sm font-medium">{installer.district}</dd>
+                    </div>
+                    <div className="flex items-center justify-between py-2.5">
+                      <dt className="text-xs text-muted-foreground">Province</dt>
+                      <dd className="text-sm font-medium">{installer.province}</dd>
+                    </div>
+                    <div className="flex items-center justify-between py-2.5 last:pb-0">
+                      <dt className="text-xs text-muted-foreground">Address</dt>
+                      <dd className="text-sm text-right max-w-[60%]">{installer.address}</dd>
                     </div>
                   </dl>
                 </CardContent>
               </Card>
-            )}
 
-            {/* Registration Information */}
-            <Card className="min-w-[350px] flex-1">
-              <CardHeader>
-                <CardTitle>Registration Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="space-y-3">
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Registered By
-                    </dt>
-                    <dd className="mt-1 text-sm">
-                      {installer.registeredBy?.name || "N/A"} (
-                      {installer.registeredBy?.email || "N/A"})
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">
-                      Created At
-                    </dt>
-                    <dd className="mt-1 text-sm">
-                      {new Date(installer.createdAt).toLocaleString()}
-                    </dd>
-                  </div>
-                  {installer.updatedAt && (
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">
-                        Last Updated
-                      </dt>
-                      <dd className="mt-1 text-sm">
-                        {new Date(installer.updatedAt).toLocaleString()}
+              {/* Banking */}
+              <Card className="transition-all duration-300 hover:shadow-layered">
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Landmark className="h-4 w-4 text-muted-foreground" />
+                    Banking
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <dl className="space-y-0 divide-y divide-border">
+                    <div className="flex items-center justify-between py-2.5 first:pt-0">
+                      <dt className="text-xs text-muted-foreground">Bank</dt>
+                      <dd className="text-sm font-medium">{installer.bankName}</dd>
+                    </div>
+                    <div className="flex items-center justify-between py-2.5">
+                      <dt className="text-xs text-muted-foreground">Account #</dt>
+                      <dd className="text-sm font-mono flex items-center gap-1.5">
+                        {installer.accountNumber}
+                        <CopyButton text={installer.accountNumber} label="Account Number" />
                       </dd>
                     </div>
-                  )}
-                </dl>
-              </CardContent>
-            </Card>
+                    <div className="flex items-center justify-between py-2.5 last:pb-0">
+                      <dt className="text-xs text-muted-foreground">Title</dt>
+                      <dd className="text-sm font-medium text-right max-w-[60%]">{installer.accountTitle}</dd>
+                    </div>
+                  </dl>
+                </CardContent>
+              </Card>
+
+              {/* Registration */}
+              <Card className="transition-all duration-300 hover:shadow-layered">
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    Registration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <dl className="space-y-0 divide-y divide-border">
+                    <div className="flex items-center justify-between py-2.5 first:pt-0">
+                      <dt className="text-xs text-muted-foreground">Registered By</dt>
+                      <dd className="text-sm text-right max-w-[60%]">
+                        {installer.registeredBy?.name || "N/A"}
+                        {installer.registeredBy?.email && (
+                          <span className="block text-xs text-muted-foreground">{installer.registeredBy.email}</span>
+                        )}
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between py-2.5">
+                      <dt className="text-xs text-muted-foreground">Created</dt>
+                      <dd className="text-sm">{new Date(installer.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</dd>
+                    </div>
+                    {installer.updatedAt && (
+                      <div className="flex items-center justify-between py-2.5 last:pb-0">
+                        <dt className="text-xs text-muted-foreground">Updated</dt>
+                        <dd className="text-sm">{new Date(installer.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </CardContent>
+              </Card>
+
+              {/* Referrer (if exists) */}
+              {installer.referrer && (
+                <Card className="lg:col-span-2 transition-all duration-300 hover:shadow-layered">
+                  <CardHeader>
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <UserPlus className="h-4 w-4 text-muted-foreground" />
+                      Referred By
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
+                      <div className="size-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                        <User className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium">{installer.referrer.fullName}</div>
+                        <div className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
+                          {installer.referrer.installerCode}
+                          <CopyButton text={installer.referrer.installerCode} label="Referrer Code" />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </div>
         </TabsContent>
 
@@ -743,10 +752,10 @@ export default function InstallerDetailsPage() {
                   <Card key={i}>
                     <CardContent className="p-4">
                       <div className="flex items-start gap-4">
-                        <div className="h-10 w-10 rounded-lg bg-muted shrink-0" />
+                        <Skeleton round className="h-10 w-10 shrink-0" />
                         <div className="flex-1 space-y-2">
-                          <div className="h-4 w-3/4 bg-muted rounded" />
-                          <div className="h-3 w-1/2 bg-muted rounded" />
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-3 w-1/2" />
                         </div>
                       </div>
                     </CardContent>
@@ -782,16 +791,20 @@ export default function InstallerDetailsPage() {
                   return <ActivityIcon className="h-4 w-4" />;
                 };
 
-                const getActivityBgColor = () => {
-                  if (isDeleted)
-                    return "bg-red-500/10 text-red-600 dark:text-red-400";
-                  if (isCreated || isPaid)
-                    return "bg-green-500/10 text-green-600 dark:text-green-400";
-                  if (isUpdated)
-                    return "bg-blue-500/10 text-blue-600 dark:text-blue-400";
-                  if (isFailed)
-                    return "bg-orange-500/10 text-orange-600 dark:text-orange-400";
+                const getActivityColorClass = () => {
+                  if (isDeleted) return "bg-destructive/10 text-destructive-text";
+                  if (isCreated || isPaid) return "bg-success/10 text-success-text";
+                  if (isUpdated) return "bg-brandsec-500/20 text-brandsec-800 dark:text-brandsec-300";
+                  if (isFailed) return "bg-destructive/10 text-destructive-text";
                   return "bg-muted text-muted-foreground";
+                };
+
+                const getActivityBorderClass = () => {
+                  if (isDeleted) return "border-l-destructive-text";
+                  if (isCreated || isPaid) return "border-l-success-text";
+                  if (isUpdated) return "border-l-brandsec-600";
+                  if (isFailed) return "border-l-destructive-text";
+                  return "border-l-muted-foreground";
                 };
 
                 const getActivityVariant = ():
@@ -850,19 +863,19 @@ export default function InstallerDetailsPage() {
                 return (
                   <Card
                     key={activity._id}
-                    className="transition-all hover:shadow-md"
+                    className={`transition-all hover:shadow-md border-l-4 ${getActivityBorderClass()}`}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start gap-4">
                         {/* Icon with Status Indicator */}
                         <div className="relative shrink-0">
                           <div
-                            className={`p-2 rounded-lg ${getActivityBgColor()}`}
+                            className={`p-2 rounded-lg ${getActivityColorClass()}`}
                           >
                             {getActivityIcon()}
                           </div>
                           {isCreated && (
-                            <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-green-500 flex items-center justify-center">
+                            <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-success flex items-center justify-center">
                               <Check className="h-3 w-3 text-white" />
                             </div>
                           )}
@@ -870,7 +883,7 @@ export default function InstallerDetailsPage() {
 
                         {/* Content */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-4 mb-2">
+                          <div className="flex items-start justify-between gap-3 mb-2">
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium">
                                 {getActivityTitle()}
@@ -973,11 +986,11 @@ export default function InstallerDetailsPage() {
                                               :
                                             </dt>
                                             <dd className="ml-4">
-                                              <span className="text-destructive line-through">
+                                              <span className="text-destructive-text line-through">
                                                 {String(value.before || "N/A")}
                                               </span>
                                               {" → "}
-                                              <span className="text-green-600 dark:text-green-400">
+                                              <span className="text-success-text">
                                                 {String(value.after || "N/A")}
                                               </span>
                                             </dd>
@@ -997,7 +1010,7 @@ export default function InstallerDetailsPage() {
                                 {String(activity.metadata.whatsappNumber)}
                               </Badge>
                               {activity.metadata.errorMessage && (
-                                <span className="ml-2 text-destructive">
+                                <span className="ml-2 text-destructive-text">
                                   Error:{" "}
                                   {String(activity.metadata.errorMessage)}
                                 </span>
@@ -1022,13 +1035,20 @@ export default function InstallerDetailsPage() {
             </CardHeader>
             <CardContent>
               {loadingProducts ? (
-                <p className="text-center text-muted-foreground py-8">
-                  Loading products...
-                </p>
+                <div className="space-y-3 py-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex gap-4">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-5 w-40" />
+                      <Skeleton className="h-5 w-24 ml-auto" />
+                    </div>
+                  ))}
+                </div>
               ) : products.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  No products found
-                </p>
+                <div className="text-center py-8">
+                  <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-muted-foreground">No products found</p>
+                </div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -1044,7 +1064,7 @@ export default function InstallerDetailsPage() {
                   </TableHeader>
                   <TableBody>
                     {products.map((product: Product) => (
-                      <TableRow key={product._id}>
+                      <TableRow key={product._id} className="transition-colors hover:bg-muted/30">
                         <TableCell className="font-medium">
                           {product.serialNumber}
                         </TableCell>
@@ -1054,24 +1074,17 @@ export default function InstallerDetailsPage() {
                         <TableCell className="text-muted-foreground">
                           {product.cityOfInstallation}
                         </TableCell>
-                        <TableCell className="font-semibold text-green-600 dark:text-green-500">
+                        <TableCell className="font-semibold text-success-text">
                           Rs. {product.rewardAmount?.toLocaleString()}
                         </TableCell>
                         <TableCell>
                           <Badge
                             variant={
                               product.rewardStatus === "PAID"
-                                ? "default"
+                                ? "success"
                                 : product.rewardStatus === "PENDING"
-                                ? "secondary"
+                                ? "warning"
                                 : "destructive"
-                            }
-                            className={
-                              product.rewardStatus === "PAID"
-                                ? "bg-green-600"
-                                : product.rewardStatus === "PENDING"
-                                ? "bg-yellow-600"
-                                : ""
                             }
                           >
                             {product.rewardStatus}
