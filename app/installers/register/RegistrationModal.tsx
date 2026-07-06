@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { IconCheck, IconClose, IconUserOctagon } from "@/components/icons";
 import Loading from "@/components/ui/loading";
 import { HyperText } from "@/components/ui/hypertext";
+import { CopyButton } from "@/components/CopyButton";
 
 interface RegistrationStep {
   id: string;
@@ -30,6 +31,7 @@ interface RegistrationModalProps {
   onRedirect: () => void;
   onViewInstaller?: () => void;
   whatsappFailed?: boolean;
+  pin?: string | null;
   onResendPin?: () => Promise<boolean>;
 }
 
@@ -50,6 +52,7 @@ export function RegistrationModal({
   onRedirect,
   onViewInstaller,
   whatsappFailed,
+  pin,
   onResendPin,
 }: RegistrationModalProps) {
   const [progress, setProgress] = useState(0);
@@ -300,6 +303,24 @@ export function RegistrationModal({
                     </HyperText>
                   </div>
                 </div>
+
+                {/* PIN display */}
+                {pin && (
+                  <div className="border border-brand-700/30 bg-brand-400/30 dark:bg-brand-1100/30 rounded-2xl p-4 space-y-2">
+                    <p className="text-xs text-muted-foreground tracking-wider">
+                      Login PIN
+                    </p>
+                    <div className="flex items-center justify-center gap-2">
+                      <p className="text-3xl font-mono font-bold tracking-[0.2em] select-all">
+                        {pin}
+                      </p>
+                      <CopyButton text={pin} label="PIN" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Save this PIN now — it won't be shown again.
+                    </p>
+                  </div>
+                )}
 
                 {/* PIN delivery warning */}
                 {whatsappFailed && !pinResent && (

@@ -121,10 +121,11 @@ async function syncGoogleContactOnUpdate(
 export async function regenerateAndSendPin(
   installer: HydratedDocument<IInstaller>,
   performedById: string
-): Promise<{ whatsappSent: boolean; error?: string }> {
+): Promise<{ whatsappSent: boolean; error?: string; plainPin: string }> {
   const plainPin = randomInt(0, 1_000_000).toString().padStart(6, "0");
 
   installer.pin = await bcrypt.hash(plainPin, 10);
+  installer.pinPlain = plainPin;
   installer.lastPinChangeAt = new Date();
   installer.pinAttempts = 0;
   installer.pinLockedUntil = undefined;
@@ -140,7 +141,7 @@ export async function regenerateAndSendPin(
     performedById
   );
 
-  return { whatsappSent: result.success, error: result.error };
+  return { whatsappSent: result.success, error: result.error, plainPin };
 }
 
 /**
@@ -154,6 +155,7 @@ export async function createInstaller(
 ): Promise<{
   installer: HydratedDocument<IInstaller> | null;
   whatsappFailed: boolean;
+  plainPin: string;
 }> {
   if (input.referrerCode) {
     await assertReferrerWithinLimit(input.referrerCode);
@@ -166,7 +168,7 @@ export async function createInstaller(
 
   await createGoogleContactForInstaller(installer);
 
-  const { whatsappSent } = await regenerateAndSendPin(installer, registeredById);
+  const { whatsappSent, plainPin } = await regenerateAndSendPin(installer, registeredById);
 
   return {
     installer: await findInstallerByIdOrCode(
@@ -174,6 +176,7 @@ export async function createInstaller(
       INSTALLER_POPULATE_OPTIONS.full
     ),
     whatsappFailed: !whatsappSent,
+    plainPin,
   };
 }
 

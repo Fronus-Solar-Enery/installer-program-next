@@ -33,6 +33,10 @@ export const GET = withAuth(
         return ApiResponse.notFound("Installer not found");
       }
 
+      // Include plain PIN for team members
+      const installerObj = installer.toObject();
+      const pinPlain = (installer as any).pinPlain || null;
+
       // Get reward statistics
       const installerId = installer._id;
       const [totalRewards, pendingRewards, paidRewards, failedRewards] =
@@ -77,6 +81,7 @@ export const GET = withAuth(
 
       return ApiResponse.success({
         installer,
+        pin: pinPlain,
         statistics: {
           totalRewards,
           pendingRewards,

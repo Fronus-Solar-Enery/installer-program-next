@@ -98,6 +98,7 @@ export default function NewInstallerPage() {
   } | null>(null);
   const [registrationError, setRegistrationError] = useState<string>("");
   const [whatsappFailed, setWhatsappFailed] = useState(false);
+  const [registrationPin, setRegistrationPin] = useState<string | null>(null);
 
   const { copyToClipboard, copied } = useClipboard();
 
@@ -432,6 +433,7 @@ export default function NewInstallerPage() {
           id: data.data?.installer?._id,
         });
         setWhatsappFailed(Boolean(data.data?.whatsappFailed));
+        setRegistrationPin(data.data?.pin || null);
         setRegistrationStatus("success");
       } else {
         // Format error message with better readability
@@ -601,6 +603,7 @@ export default function NewInstallerPage() {
         installerName={registeredInstaller?.name}
         errorMessage={registrationError}
         whatsappFailed={whatsappFailed}
+        pin={registrationPin}
         onResendPin={async () => {
           const target = registeredInstaller?.id || registeredInstaller?.code;
           if (!target) return false;

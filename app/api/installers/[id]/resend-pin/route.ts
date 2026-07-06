@@ -7,6 +7,8 @@ import { regenerateAndSendPin } from "@/services/installers";
 
 // POST - Regenerate installer PIN and re-send it via WhatsApp.
 // Also clears any failed-attempt lockout (doubles as manual unlock).
+// Returns the plain-text PIN so the team member can share it with the installer
+// if WhatsApp delivery fails.
 export const POST = withAuth(
   async (request: NextRequest, context: RouteContext, session: AuthSession) => {
     try {
@@ -18,7 +20,7 @@ export const POST = withAuth(
         return ApiResponse.notFound("Installer not found");
       }
 
-      const { whatsappSent, error } = await regenerateAndSendPin(
+      const { whatsappSent, error, plainPin } = await regenerateAndSendPin(
         installer,
         session.user.id
       );
@@ -30,7 +32,10 @@ export const POST = withAuth(
         );
       }
 
-      return ApiResponse.success(null, "New PIN sent via WhatsApp");
+      return ApiResponse.success(
+        { pin: plainPin },
+        "New PIN sent via WhatsApp"
+      );
     } catch (error) {
       return handleApiError(error);
     }

@@ -21,6 +21,7 @@ export interface IInstaller {
   certified: boolean;
   googleContactId?: string;
   pin?: string; // bcrypt hash, hidden from queries by default
+  pinPlain?: string; // plain text, visible to team members on profile
   shareToken?: string;
   lastPinChangeAt?: Date;
   pinAttempts?: number;
@@ -122,6 +123,9 @@ const InstallerSchema = new Schema<IInstaller>(
     pin: {
       type: String,
       select: false, // Never returned unless explicitly .select('+pin')
+    },
+    pinPlain: {
+      type: String,
     },
     shareToken: {
       type: String,

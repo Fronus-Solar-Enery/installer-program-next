@@ -26,7 +26,10 @@ export default function CTASection() {
         >
           Ready to start earning with Fronus?
         </motion.h2>
-        <motion.p variants={slideUp} className="text-muted-foreground text-balance">
+        <motion.p
+          variants={slideUp}
+          className="text-muted-foreground text-balance"
+        >
           Contact the Fronus team to join the installer program — registration
           takes minutes and your first reward is one installation away.
         </motion.p>
@@ -36,7 +39,7 @@ export default function CTASection() {
         >
           <Button size="lg" asChild>
             <a
-              href="https://wa.me/923000000000"
+              href="https://wa.me/923268280220"
               target="_blank"
               rel="noopener noreferrer"
             >
