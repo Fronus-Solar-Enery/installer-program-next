@@ -42,11 +42,7 @@ import IconUser from "@/components/icons/User";
 import Loading from "@/components/ui/loading";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CopyButton } from "@/components/CopyButton";
-import {
-  IconArrowLeft,
-  IconEdit2,
-  IconTrashBin2,
-} from "@/components/icons";
+import { IconArrowLeft, IconEdit2, IconTrashBin2 } from "@/components/icons";
 import { InstallerAvatar } from "@/components/UserAvatar";
 import { SimpleDeleteDialog } from "@/components/SimpleDeleteDialog";
 
@@ -152,7 +148,7 @@ export default function InstallerDetailsPage() {
       setStatistics(data.data.statistics);
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : "Failed to fetch installer"
+        err instanceof Error ? err.message : "Failed to fetch installer",
       );
     } finally {
       setLoading(false);
@@ -171,13 +167,13 @@ export default function InstallerDetailsPage() {
 
       // Fetch installer-specific activities using the MongoDB _id
       const installerActivitiesRes = await fetch(
-        `/api/activities?targetType=Installer&targetId=${installer._id}&limit=100`
+        `/api/activities?targetType=Installer&targetId=${installer._id}&limit=100`,
       );
       const installerActivitiesData = await installerActivitiesRes.json();
 
       // Fetch all reward activities for this installer's rewards
       const productsRes = await fetch(
-        `/api/rewards?installer=${installer._id}&limit=1000`
+        `/api/rewards?installer=${installer._id}&limit=1000`,
       );
       const productsData = await productsRes.json();
 
@@ -195,12 +191,12 @@ export default function InstallerDetailsPage() {
         // Fetch activities for all rewards
         const rewardActivitiesPromises = rewardIds.map((rewardId: string) =>
           fetch(
-            `/api/activities?targetType=InstallerReward&targetId=${rewardId}&limit=100`
-          ).then((res) => res.json())
+            `/api/activities?targetType=InstallerReward&targetId=${rewardId}&limit=100`,
+          ).then((res) => res.json()),
         );
 
         const rewardActivitiesResults = await Promise.all(
-          rewardActivitiesPromises
+          rewardActivitiesPromises,
         );
 
         rewardActivitiesResults.forEach((result) => {
@@ -213,7 +209,7 @@ export default function InstallerDetailsPage() {
       // Sort all activities by date (newest first)
       allActivities.sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
 
       setActivities(allActivities);
@@ -230,7 +226,7 @@ export default function InstallerDetailsPage() {
     try {
       setLoadingProducts(true);
       const response = await fetch(
-        `/api/rewards?installer=${installer._id}&limit=1000`
+        `/api/rewards?installer=${installer._id}&limit=1000`,
       );
       const data = await response.json();
 
@@ -296,7 +292,7 @@ export default function InstallerDetailsPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 overflow-auto space-y-4 p-6">
+      <div className="flex-1 overflow-auto space-y-4">
         <div className="flex items-center gap-4 py-6 ml-6">
           <Skeleton round className="size-16" />
           <div className="space-y-3">
@@ -365,7 +361,10 @@ export default function InstallerDetailsPage() {
           <span className="flex items-center gap-3">
             {installer.fullName}
             {installer.certified && (
-              <Badge variant="default" className="bg-brand-700 hover:bg-brand-800 gap-1.5 px-3 py-1">
+              <Badge
+                variant="default"
+                className="bg-brand-700 hover:bg-brand-800 gap-1.5 px-3 py-1"
+              >
                 <Award className="h-3.5 w-3.5" />
                 Certified
               </Badge>
@@ -420,7 +419,8 @@ export default function InstallerDetailsPage() {
                     Rs. {statistics.totalAmount?.toLocaleString() || 0}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {statistics.totalRewards} reward{statistics.totalRewards !== 1 ? "s" : ""}
+                    {statistics.totalRewards} reward
+                    {statistics.totalRewards !== 1 ? "s" : ""}
                   </p>
                 </div>
                 <div className="shrink-0 p-3 rounded-xl bg-muted">
@@ -441,7 +441,8 @@ export default function InstallerDetailsPage() {
                     Rs. {statistics.pendingAmount?.toLocaleString() || 0}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {statistics.pendingRewards} reward{statistics.pendingRewards !== 1 ? "s" : ""}
+                    {statistics.pendingRewards} reward
+                    {statistics.pendingRewards !== 1 ? "s" : ""}
                   </p>
                 </div>
                 <div className="shrink-0 p-3 rounded-xl bg-muted">
@@ -462,7 +463,8 @@ export default function InstallerDetailsPage() {
                     Rs. {statistics.paidAmount?.toLocaleString() || 0}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {statistics.paidRewards} reward{statistics.paidRewards !== 1 ? "s" : ""}
+                    {statistics.paidRewards} reward
+                    {statistics.paidRewards !== 1 ? "s" : ""}
                   </p>
                 </div>
                 <div className="shrink-0 p-3 rounded-xl bg-muted">
@@ -477,17 +479,17 @@ export default function InstallerDetailsPage() {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className="text-xs font-medium text-muted-foreground tracking-wide uppercase">
-                    Failed
+                    Total Products
                   </p>
-                  <p className="text-2xl font-semibold tracking-tight text-destructive-text">
-                    Rs. {statistics.failedAmount?.toLocaleString() || 0}
+                  <p className="text-2xl font-semibold tracking-tight">
+                    {statistics.totalRewards}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {statistics.failedRewards} reward{statistics.failedRewards !== 1 ? "s" : ""}
+                    product{statistics.totalRewards !== 1 ? "s" : ""} installed
                   </p>
                 </div>
                 <div className="shrink-0 p-3 rounded-xl bg-muted">
-                  <AlertCircle className="h-5 w-5 text-destructive-text" />
+                  <Package className="h-5 w-5 text-foreground" />
                 </div>
               </div>
             </CardContent>
@@ -506,7 +508,7 @@ export default function InstallerDetailsPage() {
             value="activity"
             onClick={() => activities.length === 0 && fetchActivities()}
           >
-            <ActivityIcon className="h-4 w-4 mr-2"/>
+            <ActivityIcon className="h-4 w-4 mr-2" />
             Activity
           </TabsTrigger>
           <TabsTrigger
@@ -538,7 +540,10 @@ export default function InstallerDetailsPage() {
                         <div className="flex flex-wrap items-center gap-2 mt-2">
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-muted font-mono text-xs font-bold">
                             {installer.installerCode}
-                            <CopyButton text={installer.installerCode} label="Installer Code" />
+                            <CopyButton
+                              text={installer.installerCode}
+                              label="Installer Code"
+                            />
                           </span>
                           {installer.certified && (
                             <Badge variant="success" className="gap-1">
@@ -552,7 +557,13 @@ export default function InstallerDetailsPage() {
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground shrink-0 leading-relaxed">
-                        <div>Joined {new Date(installer.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                        <div>
+                          Joined{" "}
+                          {new Date(installer.createdAt).toLocaleDateString(
+                            "en-US",
+                            { month: "short", day: "numeric", year: "numeric" },
+                          )}
+                        </div>
                         {installer.registeredBy && (
                           <div>by {installer.registeredBy.name}</div>
                         )}
@@ -563,15 +574,24 @@ export default function InstallerDetailsPage() {
                       <div className="mt-4 pt-4 border-t border-border flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1.5">
                           <TrendingUp className="h-3.5 w-3.5" />
-                          <span className="font-medium text-foreground">{statistics.totalRewards}</span> total rewards
+                          <span className="font-medium text-foreground">
+                            {statistics.totalRewards}
+                          </span>{" "}
+                          total rewards
                         </span>
                         <span className="flex items-center gap-1.5">
                           <Check className="h-3.5 w-3.5 text-success-text" />
-                          <span className="font-medium text-success-text">{statistics.paidRewards}</span> paid
+                          <span className="font-medium text-success-text">
+                            {statistics.paidRewards}
+                          </span>{" "}
+                          paid
                         </span>
                         <span className="flex items-center gap-1.5">
                           <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="font-medium text-muted-foreground">{statistics.pendingRewards}</span> pending
+                          <span className="font-medium text-muted-foreground">
+                            {statistics.pendingRewards}
+                          </span>{" "}
+                          pending
                         </span>
                       </div>
                     )}
@@ -601,7 +621,10 @@ export default function InstallerDetailsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <CopyButton text={installer.phoneNumber} label="Phone Number" />
+                      <CopyButton
+                        text={installer.phoneNumber}
+                        label="Phone Number"
+                      />
                     </div>
                   </a>
                   <a
@@ -611,13 +634,18 @@ export default function InstallerDetailsPage() {
                     className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors group"
                   >
                     <div className="min-w-0">
-                      <div className="text-xs text-muted-foreground">WhatsApp</div>
+                      <div className="text-xs text-muted-foreground">
+                        WhatsApp
+                      </div>
                       <div className="text-sm font-medium group-hover:text-foreground transition-colors">
                         {installer.whatsappNumber}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <CopyButton text={installer.whatsappNumber} label="WhatsApp Number" />
+                      <CopyButton
+                        text={installer.whatsappNumber}
+                        label="WhatsApp Number"
+                      />
                     </div>
                   </a>
                 </CardContent>
@@ -637,16 +665,26 @@ export default function InstallerDetailsPage() {
                       <dd className="text-sm font-medium">{installer.city}</dd>
                     </div>
                     <div className="flex items-center justify-between py-2.5">
-                      <dt className="text-xs text-muted-foreground">District</dt>
-                      <dd className="text-sm font-medium">{installer.district}</dd>
+                      <dt className="text-xs text-muted-foreground">
+                        District
+                      </dt>
+                      <dd className="text-sm font-medium">
+                        {installer.district}
+                      </dd>
                     </div>
                     <div className="flex items-center justify-between py-2.5">
-                      <dt className="text-xs text-muted-foreground">Province</dt>
-                      <dd className="text-sm font-medium">{installer.province}</dd>
+                      <dt className="text-xs text-muted-foreground">
+                        Province
+                      </dt>
+                      <dd className="text-sm font-medium">
+                        {installer.province}
+                      </dd>
                     </div>
                     <div className="flex items-center justify-between py-2.5 last:pb-0">
                       <dt className="text-xs text-muted-foreground">Address</dt>
-                      <dd className="text-sm text-right max-w-[60%]">{installer.address}</dd>
+                      <dd className="text-sm text-right max-w-[60%]">
+                        {installer.address}
+                      </dd>
                     </div>
                   </dl>
                 </CardContent>
@@ -664,18 +702,27 @@ export default function InstallerDetailsPage() {
                   <dl className="space-y-0 divide-y divide-border">
                     <div className="flex items-center justify-between py-2.5 first:pt-0">
                       <dt className="text-xs text-muted-foreground">Bank</dt>
-                      <dd className="text-sm font-medium">{installer.bankName}</dd>
+                      <dd className="text-sm font-medium">
+                        {installer.bankName}
+                      </dd>
                     </div>
                     <div className="flex items-center justify-between py-2.5">
-                      <dt className="text-xs text-muted-foreground">Account #</dt>
+                      <dt className="text-xs text-muted-foreground">
+                        Account #
+                      </dt>
                       <dd className="text-sm font-mono flex items-center gap-1.5">
                         {installer.accountNumber}
-                        <CopyButton text={installer.accountNumber} label="Account Number" />
+                        <CopyButton
+                          text={installer.accountNumber}
+                          label="Account Number"
+                        />
                       </dd>
                     </div>
                     <div className="flex items-center justify-between py-2.5 last:pb-0">
                       <dt className="text-xs text-muted-foreground">Title</dt>
-                      <dd className="text-sm font-medium text-right max-w-[60%]">{installer.accountTitle}</dd>
+                      <dd className="text-sm font-medium text-right max-w-[60%]">
+                        {installer.accountTitle}
+                      </dd>
                     </div>
                   </dl>
                 </CardContent>
@@ -692,22 +739,38 @@ export default function InstallerDetailsPage() {
                 <CardContent>
                   <dl className="space-y-0 divide-y divide-border">
                     <div className="flex items-center justify-between py-2.5 first:pt-0">
-                      <dt className="text-xs text-muted-foreground">Registered By</dt>
+                      <dt className="text-xs text-muted-foreground">
+                        Registered By
+                      </dt>
                       <dd className="text-sm text-right max-w-[60%]">
                         {installer.registeredBy?.name || "N/A"}
                         {installer.registeredBy?.email && (
-                          <span className="block text-xs text-muted-foreground">{installer.registeredBy.email}</span>
+                          <span className="block text-xs text-muted-foreground">
+                            {installer.registeredBy.email}
+                          </span>
                         )}
                       </dd>
                     </div>
                     <div className="flex items-center justify-between py-2.5">
                       <dt className="text-xs text-muted-foreground">Created</dt>
-                      <dd className="text-sm">{new Date(installer.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</dd>
+                      <dd className="text-sm">
+                        {new Date(installer.createdAt).toLocaleDateString(
+                          "en-US",
+                          { month: "short", day: "numeric", year: "numeric" },
+                        )}
+                      </dd>
                     </div>
                     {installer.updatedAt && (
                       <div className="flex items-center justify-between py-2.5 last:pb-0">
-                        <dt className="text-xs text-muted-foreground">Updated</dt>
-                        <dd className="text-sm">{new Date(installer.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</dd>
+                        <dt className="text-xs text-muted-foreground">
+                          Updated
+                        </dt>
+                        <dd className="text-sm">
+                          {new Date(installer.updatedAt).toLocaleDateString(
+                            "en-US",
+                            { month: "short", day: "numeric", year: "numeric" },
+                          )}
+                        </dd>
                       </div>
                     )}
                   </dl>
@@ -729,10 +792,15 @@ export default function InstallerDetailsPage() {
                         <User className="h-5 w-5 text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium">{installer.referrer.fullName}</div>
+                        <div className="text-sm font-medium">
+                          {installer.referrer.fullName}
+                        </div>
                         <div className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
                           {installer.referrer.installerCode}
-                          <CopyButton text={installer.referrer.installerCode} label="Referrer Code" />
+                          <CopyButton
+                            text={installer.referrer.installerCode}
+                            label="Referrer Code"
+                          />
                         </div>
                       </div>
                     </div>
@@ -792,10 +860,14 @@ export default function InstallerDetailsPage() {
                 };
 
                 const getActivityColorClass = () => {
-                  if (isDeleted) return "bg-destructive/10 text-destructive-text";
-                  if (isCreated || isPaid) return "bg-success/10 text-success-text";
-                  if (isUpdated) return "bg-brandsec-500/20 text-brandsec-800 dark:text-brandsec-300";
-                  if (isFailed) return "bg-destructive/10 text-destructive-text";
+                  if (isDeleted)
+                    return "bg-destructive/10 text-destructive-text";
+                  if (isCreated || isPaid)
+                    return "bg-success/10 text-success-text";
+                  if (isUpdated)
+                    return "bg-brandsec-500/20 text-brandsec-800 dark:text-brandsec-300";
+                  if (isFailed)
+                    return "bg-destructive/10 text-destructive-text";
                   return "bg-muted text-muted-foreground";
                 };
 
@@ -899,7 +971,7 @@ export default function InstallerDetailsPage() {
                                 .replace(/_/g, " ")
                                 .toLowerCase()
                                 .replace(/\b\w/g, (l: string) =>
-                                  l.toUpperCase()
+                                  l.toUpperCase(),
                                 )}
                             </Badge>
                           </div>
@@ -940,12 +1012,12 @@ export default function InstallerDetailsPage() {
                                   year: "numeric",
                                   hour: "2-digit",
                                   minute: "2-digit",
-                                }
+                                },
                               )}
                             </span>
                             {activity.targetName &&
                               !activity.type.includes(
-                                "INSTALLER_REGISTERED"
+                                "INSTALLER_REGISTERED",
                               ) && (
                                 <>
                                   <span className="text-muted-foreground/50">
@@ -969,14 +1041,14 @@ export default function InstallerDetailsPage() {
                                   <AlertDescription>
                                     <dl className="space-y-2">
                                       {Object.entries(
-                                        activity.metadata.changes
+                                        activity.metadata.changes,
                                       ).map(
                                         ([key, value]: [
                                           string,
                                           {
                                             before: unknown;
                                             after: unknown;
-                                          }
+                                          },
                                         ]) => (
                                           <div key={key} className="text-xs">
                                             <dt className="font-medium capitalize">
@@ -995,7 +1067,7 @@ export default function InstallerDetailsPage() {
                                               </span>
                                             </dd>
                                           </div>
-                                        )
+                                        ),
                                       )}
                                     </dl>
                                   </AlertDescription>
@@ -1064,7 +1136,10 @@ export default function InstallerDetailsPage() {
                   </TableHeader>
                   <TableBody>
                     {products.map((product: Product) => (
-                      <TableRow key={product._id} className="transition-colors hover:bg-muted/30">
+                      <TableRow
+                        key={product._id}
+                        className="transition-colors hover:bg-muted/30"
+                      >
                         <TableCell className="font-medium">
                           {product.serialNumber}
                         </TableCell>
@@ -1083,8 +1158,8 @@ export default function InstallerDetailsPage() {
                               product.rewardStatus === "PAID"
                                 ? "success"
                                 : product.rewardStatus === "PENDING"
-                                ? "warning"
-                                : "destructive"
+                                  ? "warning"
+                                  : "destructive"
                             }
                           >
                             {product.rewardStatus}
@@ -1093,7 +1168,7 @@ export default function InstallerDetailsPage() {
                         <TableCell className="text-muted-foreground">
                           {product.installationDate
                             ? new Date(
-                                product.installationDate
+                                product.installationDate,
                               ).toLocaleDateString()
                             : "N/A"}
                         </TableCell>

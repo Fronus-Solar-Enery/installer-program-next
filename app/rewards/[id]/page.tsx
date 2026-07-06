@@ -2,20 +2,27 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import {
+  Trash2,
+  Package,
+  User,
+  Clock,
+  Calendar,
+  UserPlus,
+  Award,
+  Check,
+  Landmark,
+  TrendingUp,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  IconArrowLeft,
-  IconEdit2,
-  IconInstaller,
-  IconSerialNumber,
-} from "@/components/icons";
+import { IconArrowLeft, IconEdit2 } from "@/components/icons";
 import PageHeader from "@/components/PageHeader";
 import { CopyButton } from "@/components/CopyButton";
 import { SimpleDeleteDialog } from "@/components/SimpleDeleteDialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function RewardDetailsPage() {
   const router = useRouter();
@@ -90,8 +97,6 @@ export default function RewardDetailsPage() {
         method: "DELETE",
       });
 
-      // const data = await response.json();
-
       if (response.ok) {
         router.push("/rewards");
       }
@@ -105,9 +110,31 @@ export default function RewardDetailsPage() {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-96">
-          <p className="text-muted-foreground">Loading reward details...</p>
+      <div className="flex-1 overflow-auto space-y-4">
+        <div className="flex items-center gap-4 py-6 ml-6">
+          <Skeleton round className="size-16" />
+          <div className="space-y-3">
+            <Skeleton className="h-7 w-64" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+        </div>
+        <Skeleton className="h-32 w-full rounded-3xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-5 w-36" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[...Array(3)].map((_, j) => (
+                  <div key={j} className="space-y-1">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-4 w-48" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     );
@@ -115,71 +142,45 @@ export default function RewardDetailsPage() {
 
   if (error || !reward) {
     return (
-      <div className="p-6">
+      <div className="flex-1 overflow-auto">
         <div className="flex items-center justify-center h-96">
-          <Card className="w-full max-w-md">
-            <CardContent className="text-center pt-6">
-              <Alert variant="destructive" className="mb-4">
-                <AlertDescription>
-                  {error || "Reward not found"}
-                </AlertDescription>
-              </Alert>
-              <Button onClick={() => router.push("/rewards")}>
-                Back to Rewards
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="text-center space-y-4">
+            <Alert variant="destructive">
+              <AlertDescription>{error || "Reward not found"}</AlertDescription>
+            </Alert>
+            <Button onClick={() => router.push("/rewards")}>
+              Back to Rewards
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div>
-      {/* Header */}
+    <div className="flex-1 overflow-auto space-y-6">
       <PageHeader
         title={
-          <div className="flex items-center gap-2">
+          <span className="flex items-center gap-3">
             {reward.productModel}
             <Badge
               variant={
                 reward.rewardStatus === "PAID"
                   ? "success"
                   : reward.rewardStatus === "PENDING"
-                  ? "warning"
-                  : "destructive"
+                    ? "warning"
+                    : "destructive"
               }
             >
               {reward.rewardStatus}
             </Badge>
-          </div>
+          </span>
         }
         description={
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <IconInstaller fill duotone opacity={0.1} className="size-6" />
-              <span className="space-y-1">
-                <p className="text-xs text-muted-foreground leading-none">
-                  Installer
-                </p>
-                <p className="leading-none text-xs text-foreground">
-                  {reward.installer?.fullName}
-                </p>
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <IconSerialNumber fill duotone opacity={0.1} className="size-6" />
-              <span className="space-y-1">
-                <p className="text-xs text-muted-foreground leading-none">
-                  Serial Number
-                </p>
-                <p className="leading-none text-xs text-foreground flex items-center">
-                  {reward.serialNumber}{" "}
-                  <CopyButton className="size-4" text={reward.serialNumber} />
-                </p>
-              </span>
-            </div>
-          </div>
+          <span className="flex items-center gap-2 text-muted-foreground">
+            <CopyButton text={reward.serialNumber} label="Serial Number" />
+            {reward.serialNumber}
+          </span>
         }
         action={
           <div className="flex gap-3">
@@ -195,304 +196,378 @@ export default function RewardDetailsPage() {
           </div>
         }
         Icon={
-          <>
-            <Button
-              onClick={() => router.push("/rewards")}
-              variant={"outline"}
-              className="flex items-center justify-center size-16 rounded-full nosquircle"
-            >
-              <IconArrowLeft className="size-5" />
-            </Button>
-          </>
+          <Button
+            onClick={() => router.push("/rewards")}
+            variant={"outline"}
+            className="flex items-center justify-center size-16 rounded-full nosquircle"
+          >
+            <IconArrowLeft className="size-5" />
+          </Button>
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        {/* Product Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Product Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">
-                Serial Number
-              </div>
-              <div className="mt-1 text-sm flex items-center">
-                {reward.serialNumber}
-                <CopyButton text={reward.serialNumber} label="Serial Number" />
-              </div>
+      {/* Overview Card */}
+      <Card className="shadow-layered bg-muted/20">
+        <CardContent className="p-5 lg:p-6">
+          <div className="flex items-start gap-5">
+            <div className="size-16 rounded-xl bg-muted flex items-center justify-center shrink-0">
+              <Package className="h-7 w-7 text-foreground" />
             </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">
-                Product Model
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-lg font-semibold leading-tight font-mono">
+                    {reward.serialNumber}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <span className="text-sm text-muted-foreground">
+                      {reward.productModel}
+                    </span>
+                    {reward.installer && (
+                      <Badge variant="secondary" className="gap-1">
+                        <User className="h-3 w-3" />
+                        {reward.installer.fullName}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-xl font-semibold text-success-text">
+                    Rs. {reward.rewardAmount?.toLocaleString() || 0}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Reward Amount
+                  </div>
+                </div>
               </div>
-              <div className="mt-1 text-sm">{reward.productModel}</div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">
-                Serial Number Status
-              </div>
-              <div className="mt-1 text-sm">{reward.serialNumberStatus}</div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">
-                Inverter Serial Number
-              </div>
-              <div className="mt-1 text-sm flex items-center">
-                {reward.inverterSerialNumber || "N/A"}
-                {reward.inverterSerialNumber && (
-                  <CopyButton
-                    text={reward.inverterSerialNumber}
-                    label="Inverter Serial Number"
-                  />
+              <div className="mt-4 pt-4 border-t border-border flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted-foreground">
+                {reward.cityOfInstallation && (
+                  <span className="flex items-center gap-1.5">
+                    <Package className="h-3.5 w-3.5" />
+                    {reward.cityOfInstallation}
+                  </span>
+                )}
+                {reward.installationDate && (
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {new Date(reward.installationDate).toLocaleDateString(
+                      "en-US",
+                      { month: "short", day: "numeric", year: "numeric" },
+                    )}
+                  </span>
+                )}
+                {reward.rewardStatus === "PAID" && reward.sendingDate && (
+                  <span className="flex items-center gap-1.5 text-success-text">
+                    <Check className="h-3.5 w-3.5" />
+                    Paid{" "}
+                    {new Date(reward.sendingDate).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
                 )}
               </div>
             </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">
-                City of Installation
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Detail Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Product Information */}
+        <Card className="transition-all duration-300 hover:shadow-layered">
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Package className="h-4 w-4 text-muted-foreground" />
+              Product
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="space-y-0 divide-y divide-border">
+              <div className="flex items-center justify-between py-2.5 first:pt-0">
+                <dt className="text-xs text-muted-foreground">Product Model</dt>
+                <dd className="text-sm font-medium">{reward.productModel}</dd>
               </div>
-              <div className="mt-1 text-sm">{reward.cityOfInstallation}</div>
-            </div>
-            {reward.installationDate && (
-              <div>
-                <div className="text-sm font-medium text-muted-foreground">
-                  Installation Date
-                </div>
-                <div className="mt-1 text-sm">
-                  {new Date(reward.installationDate).toLocaleDateString()}
-                </div>
+              <div className="flex items-center justify-between py-2.5">
+                <dt className="text-xs text-muted-foreground">Serial #</dt>
+                <dd className="text-sm font-mono flex items-center gap-1.5">
+                  {reward.serialNumber}
+                  <CopyButton
+                    text={reward.serialNumber}
+                    label="Serial Number"
+                  />
+                </dd>
               </div>
-            )}
+              <div className="flex items-center justify-between py-2.5">
+                <dt className="text-xs text-muted-foreground">Serial Status</dt>
+                <dd className="text-sm">
+                  {reward.serialNumberStatus || "N/A"}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between py-2.5 last:pb-0">
+                <dt className="text-xs text-muted-foreground">
+                  Inverter Serial
+                </dt>
+                <dd className="text-sm font-mono flex items-center gap-1.5">
+                  {reward.inverterSerialNumber || "N/A"}
+                  {reward.inverterSerialNumber && (
+                    <CopyButton
+                      text={reward.inverterSerialNumber}
+                      label="Inverter Serial Number"
+                    />
+                  )}
+                </dd>
+              </div>
+            </dl>
           </CardContent>
         </Card>
 
         {/* Installer Information */}
-        <Card>
+        <Card className="transition-all duration-300 hover:shadow-layered">
           <CardHeader>
-            <CardTitle>Installer Information</CardTitle>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <User className="h-4 w-4 text-muted-foreground" />
+              Installer
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">
-                Installer Code
+          <CardContent>
+            <dl className="space-y-0 divide-y divide-border">
+              <div className="flex items-center justify-between py-2.5 first:pt-0">
+                <dt className="text-xs text-muted-foreground">Name</dt>
+                <dd className="text-sm font-medium">
+                  {reward.installer?.fullName || "N/A"}
+                </dd>
               </div>
-              <div className="mt-1 text-sm flex items-center">
-                {reward.installerCode ||
-                  reward.installer?.installerCode ||
-                  "N/A"}
-                {(reward.installerCode || reward.installer?.installerCode) && (
-                  <CopyButton
-                    text={
-                      reward.installerCode ||
-                      reward.installer?.installerCode ||
-                      ""
-                    }
-                    label="Installer Code"
-                  />
-                )}
+              <div className="flex items-center justify-between py-2.5">
+                <dt className="text-xs text-muted-foreground">
+                  Installer Code
+                </dt>
+                <dd className="text-sm font-mono flex items-center gap-1.5">
+                  {reward.installerCode ||
+                    reward.installer?.installerCode ||
+                    "N/A"}
+                  {(reward.installerCode ||
+                    reward.installer?.installerCode) && (
+                    <CopyButton
+                      text={
+                        reward.installerCode ||
+                        reward.installer?.installerCode ||
+                        ""
+                      }
+                      label="Installer Code"
+                    />
+                  )}
+                </dd>
               </div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">
-                Installer Name
+              <div className="flex items-center justify-between py-2.5">
+                <dt className="text-xs text-muted-foreground">CNIC</dt>
+                <dd className="text-sm font-mono">
+                  {reward.installer?.cnic || "N/A"}
+                </dd>
               </div>
-              <div className="mt-1 text-sm">
-                {reward.installer?.fullName || "N/A"}
+              <div className="flex items-center justify-between py-2.5 last:pb-0">
+                <dt className="text-xs text-muted-foreground">Phone</dt>
+                <dd className="text-sm">
+                  {reward.installer?.phoneNumber || "N/A"}
+                </dd>
               </div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">
-                Installer CNIC
-              </div>
-              <div className="mt-1 text-sm">
-                {reward.installer?.cnic || "N/A"}
-              </div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">
-                Installer Phone
-              </div>
-              <div className="mt-1 text-sm">
-                {reward.installer?.phoneNumber || "N/A"}
-              </div>
-            </div>
+            </dl>
           </CardContent>
         </Card>
 
         {/* Payment Information */}
-        <Card>
+        <Card className="transition-all duration-300 hover:shadow-layered">
           <CardHeader>
-            <CardTitle>Payment Information</CardTitle>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Landmark className="h-4 w-4 text-muted-foreground" />
+              Payment
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">
-                Reward Amount
+          <CardContent>
+            <dl className="space-y-0 divide-y divide-border">
+              <div className="flex items-center justify-between py-2.5 first:pt-0">
+                <dt className="text-xs text-muted-foreground">Reward Amount</dt>
+                <dd className="text-base font-semibold text-success-text">
+                  Rs. {reward.rewardAmount?.toLocaleString() || 0}
+                </dd>
               </div>
-              <div className="mt-1 text-lg font-semibold text-green-600">
-                Rs. {reward.rewardAmount?.toLocaleString()}
+              <div className="flex items-center justify-between py-2.5">
+                <dt className="text-xs text-muted-foreground">Bank</dt>
+                <dd className="text-sm font-medium">
+                  {reward.bankName || "N/A"}
+                </dd>
               </div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">
-                Bank Name
+              <div className="flex items-center justify-between py-2.5">
+                <dt className="text-xs text-muted-foreground">Account #</dt>
+                <dd className="text-sm font-mono flex items-center gap-1.5">
+                  {reward.accountNumber || "N/A"}
+                  {reward.accountNumber && (
+                    <CopyButton
+                      text={reward.accountNumber}
+                      label="Account Number"
+                    />
+                  )}
+                </dd>
               </div>
-              <div className="mt-1 text-sm">{reward.bankName}</div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">
-                Account Number
+              <div className="flex items-center justify-between py-2.5">
+                <dt className="text-xs text-muted-foreground">Account Title</dt>
+                <dd className="text-sm text-right max-w-[60%]">
+                  {reward.accountTitle || "N/A"}
+                </dd>
               </div>
-              <div className="mt-1 text-sm flex items-center">
-                {reward.accountNumber || "N/A"}
-                {reward.accountNumber && (
-                  <CopyButton
-                    text={reward.accountNumber}
-                    label="Account Number"
-                  />
-                )}
-              </div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">
-                Account Title
-              </div>
-              <div className="mt-1 text-sm">{reward.accountTitle}</div>
-            </div>
-            {reward.transactionId && (
-              <div>
-                <div className="text-sm font-medium text-muted-foreground">
-                  Transaction ID
+              {reward.transactionId && (
+                <div className="flex items-center justify-between py-2.5">
+                  <dt className="text-xs text-muted-foreground">
+                    Transaction ID
+                  </dt>
+                  <dd className="text-sm font-mono flex items-center gap-1.5">
+                    {reward.transactionId}
+                    <CopyButton
+                      text={reward.transactionId}
+                      label="Transaction ID"
+                    />
+                  </dd>
                 </div>
-                <div className="mt-1 text-sm flex items-center">
-                  {reward.transactionId}
-                  <CopyButton
-                    text={reward.transactionId}
-                    label="Transaction ID"
-                  />
+              )}
+              {reward.paymentMethod && (
+                <div className="flex items-center justify-between py-2.5">
+                  <dt className="text-xs text-muted-foreground">
+                    Payment Method
+                  </dt>
+                  <dd className="text-sm">{reward.paymentMethod}</dd>
                 </div>
+              )}
+              {reward.sendingDate && (
+                <div className="flex items-center justify-between py-2.5 last:pb-0">
+                  <dt className="text-xs text-muted-foreground">
+                    Sending Date
+                  </dt>
+                  <dd className="text-sm">
+                    {new Date(reward.sendingDate).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </CardContent>
+        </Card>
+
+        {/* Registration Information */}
+        <Card className="transition-all duration-300 hover:shadow-layered">
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              Registration
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="space-y-0 divide-y divide-border">
+              <div className="flex items-center justify-between py-2.5 first:pt-0">
+                <dt className="text-xs text-muted-foreground">Registered By</dt>
+                <dd className="text-sm text-right max-w-[60%]">
+                  {reward.registeredBy?.name || "N/A"}
+                  {reward.registeredBy?.email && (
+                    <span className="block text-xs text-muted-foreground">
+                      {reward.registeredBy.email}
+                    </span>
+                  )}
+                </dd>
               </div>
-            )}
-            {reward.paymentMethod && (
-              <div>
-                <div className="text-sm font-medium text-muted-foreground">
-                  Payment Method
-                </div>
-                <div className="mt-1 text-sm">{reward.paymentMethod}</div>
+              <div className="flex items-center justify-between py-2.5">
+                <dt className="text-xs text-muted-foreground">Created</dt>
+                <dd className="text-sm">
+                  {reward.createdAt
+                    ? new Date(reward.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })
+                    : "N/A"}
+                </dd>
               </div>
-            )}
-            {reward.sendingDate && (
-              <div>
-                <div className="text-sm font-medium text-muted-foreground">
-                  Sending Date
+              {reward.updatedAt && (
+                <div className="flex items-center justify-between py-2.5 last:pb-0">
+                  <dt className="text-xs text-muted-foreground">Updated</dt>
+                  <dd className="text-sm">
+                    {new Date(reward.updatedAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </dd>
                 </div>
-                <div className="mt-1 text-sm">
-                  {new Date(reward.sendingDate).toLocaleDateString()}
-                </div>
-              </div>
-            )}
+              )}
+            </dl>
           </CardContent>
         </Card>
 
         {/* Referrer Information (if exists) */}
         {reward.referrer && (
-          <Card>
+          <Card className="lg:col-span-2 transition-all duration-300 hover:shadow-layered">
             <CardHeader>
-              <CardTitle>Referrer Information</CardTitle>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <UserPlus className="h-4 w-4 text-muted-foreground" />
+                Referrer
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <div className="text-sm font-medium text-muted-foreground">
-                  Referrer Code
+            <CardContent>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 flex-1">
+                  <div className="size-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <User className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium">
+                      {reward.referrer.fullName}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-mono flex items-center gap-1.5">
+                      {reward.referrerCode || reward.referrer.installerCode}
+                      <CopyButton
+                        text={
+                          reward.referrerCode ||
+                          reward.referrer.installerCode ||
+                          ""
+                        }
+                        label="Referrer Code"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-1 text-sm flex items-center">
-                  {reward.referrerCode ||
-                    reward.referrer?.installerCode ||
-                    "N/A"}
-                  {(reward.referrerCode || reward.referrer?.installerCode) && (
-                    <CopyButton
-                      text={
-                        reward.referrerCode ||
-                        reward.referrer?.installerCode ||
-                        ""
-                      }
-                      label="Referrer Code"
-                    />
-                  )}
-                </div>
-              </div>
-              <div>
-                <div className="text-sm font-medium text-muted-foreground">
-                  Referrer Name
-                </div>
-                <div className="mt-1 text-sm">{reward.referrer.fullName}</div>
-              </div>
-              <div>
-                <div className="text-sm font-medium text-muted-foreground">
-                  Referrer Reward Amount
-                </div>
-                <div className="mt-1 text-lg font-semibold text-green-600">
-                  Rs. {reward.referrerRewardAmount || 500}
+                <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 flex-1">
+                  <div className="size-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <Award className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-success-text">
+                      Rs. {reward.referrerRewardAmount?.toLocaleString() || 500}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Referrer Reward
+                    </div>
+                  </div>
                 </div>
               </div>
               {reward.referrerTransactionId && (
-                <div>
-                  <div className="text-sm font-medium text-muted-foreground">
-                    Referrer Transaction ID
-                  </div>
-                  <div className="mt-1 text-sm flex items-center">
+                <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>Transaction:</span>
+                  <span className="font-mono flex items-center gap-1">
                     {reward.referrerTransactionId}
                     <CopyButton
                       text={reward.referrerTransactionId}
                       label="Referrer Transaction ID"
                     />
-                  </div>
+                  </span>
                 </div>
               )}
             </CardContent>
           </Card>
         )}
-
-        {/* Registration Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Registration Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">
-                Registered By
-              </div>
-              <div className="mt-1 text-sm">
-                {reward.registeredBy?.name || "N/A"} (
-                {reward.registeredBy?.email || "N/A"})
-              </div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-muted-foreground">
-                Created At
-              </div>
-              <div className="mt-1 text-sm">
-                {reward.createdAt
-                  ? new Date(reward.createdAt).toLocaleString()
-                  : "N/A"}
-              </div>
-            </div>
-            {reward.updatedAt && (
-              <div>
-                <div className="text-sm font-medium text-muted-foreground">
-                  Last Updated
-                </div>
-                <div className="mt-1 text-sm">
-                  {new Date(reward.updatedAt).toLocaleString()}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
       </div>
+
       {/* Delete Confirmation Dialog */}
       <SimpleDeleteDialog
         open={deleteDialogOpen}
