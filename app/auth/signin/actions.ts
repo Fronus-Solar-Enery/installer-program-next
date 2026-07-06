@@ -29,7 +29,8 @@ export async function authenticate(email: string, password: string) {
     // For other unexpected errors
     return {
       success: false,
-      error: "Unable to connect to the server. Please check your internet connection.",
+      error:
+        "Unable to connect to the server. Please check your internet connection.",
     };
   }
 }

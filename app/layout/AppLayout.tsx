@@ -15,6 +15,7 @@ import { getRouteIcon } from "@/components/breadcrumbIcons";
 import { Skeleton } from "@/components/ui/skeleton";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { EASE_MOVE_REVERSE } from "@/lib/gsapEases";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(useGSAP);
@@ -45,8 +46,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname() ?? "/dashboard";
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Don't show layout on auth pages
-  const isAuthPage = pathname.startsWith("/auth");
+  // Pages that render standalone (no sidebar/navbar, no NextAuth requirement):
+  // auth pages, the public landing page, and the installer portal
+  // (cookie-authed in their own server components, not via NextAuth).
+  const isAuthPage =
+    pathname.startsWith("/auth") ||
+    pathname === "/" ||
+    pathname.startsWith("/my-stats") ||
+    pathname.startsWith("/installer/"); // note: "/installers" (team) stays guarded
 
   useEffect(() => {
     if (status === "unauthenticated" && !isAuthPage) {
@@ -60,10 +67,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
     const mainElem = mainRef?.current;
     if (!mainElem) return;
 
+    // Match the sidebar width tween exactly (same curve + duration) so the
+    // content edge tracks the sidebar edge instead of lagging on collapse.
     gsap.to(mainElem, {
       marginLeft: sidebarCollapsed ? "64px" : "256px",
-      duration: 0.4,
-      ease: "power1.inOut",
+      duration: 0.3,
+      ease: EASE_MOVE_REVERSE,
     });
   }, [sidebarCollapsed]);
 
@@ -117,22 +126,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
           collapsed={sidebarCollapsed}
           onCollapsedChange={setSidebarCollapsed}
         />
-
         {/* Main Content Area */}
         <div
           ref={mainRef}
-          className={`fixed top-0 right-0 left-0 bottom-0 flex flex-1 flex-col overflow-hidden transition-all duration-300 main-elem max-h-screen h-full ml-64`}
+          className={`fixed top-0 right-0 left-0 bottom-0 flex flex-1 flex-col overflow-hidden main-elem max-h-screen h-full ml-64`}
         >
           {/* Top Navbar */}
           <TopNavbar />
 
           {/* Page Content */}
-          <main className="flex-1 overflow-y-auto bg-muted/10 p-4">
+          <main className="flex-1 overflow-y-auto p-4 relative">
             <div className="container mx-auto">
-              <div className="flex h-14 items-center px-6 bg-card squircle rounded-2xl border border-border mb-4">
+              <div className="flex h-9 items-center pl-3 mb-4">
                 <BreadcrumbWithOverrides crumbs={breadcrumbItems} />
               </div>
-
               {children}
             </div>
           </main>

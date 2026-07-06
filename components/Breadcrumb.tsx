@@ -89,7 +89,7 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({
         return (
           <React.Fragment key={`${item.href ?? "-"}-${index}`}>
             {index > 0 && (
-              <ChevronRight className="w-4 h-4 text-muted-foreground/30 flex-shrink-0" />
+              <ChevronRight className="w-4 h-4 text-muted-foreground/30 shrink-0" />
             )}
 
             {isEllipsis && showTooltips ? (

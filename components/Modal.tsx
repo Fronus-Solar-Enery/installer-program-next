@@ -58,13 +58,17 @@ export default function Modal({
         ref={ref}
         aria-describedby={description}
         className={cn(
-          className,
           sizeClasses[size],
-          "p-0 flex flex-col max-h-[90vh]"
+          "p-0 flex flex-col max-h-[90vh] squircle rounded-3xl overflow-hidden light:border-primary/20",
         )}
         hideClose
       >
-        <div className="overflow-y-auto overflow-x-hidden flex-1 px-6 py-6">
+        <div
+          className={cn(
+            "overflow-y-auto overflow-x-hidden flex-1 px-6 py-6",
+            className,
+          )}
+        >
           {children}
         </div>
       </DialogContent>

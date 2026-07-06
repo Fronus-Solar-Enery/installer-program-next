@@ -133,7 +133,7 @@ export default function ProfileEditModal({
             <Label>Profile Picture</Label>
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center overflow-hidden">
+                <div className="w-20 h-20 rounded-full bg-linear-to-br from-primary to-primary/50 flex items-center justify-center overflow-hidden">
                   {imagePreview ? (
                     <Image
                       src={imagePreview}

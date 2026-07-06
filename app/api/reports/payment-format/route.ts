@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import dbConnect from "@/lib/mongodb";
 import InstallerReward, { IInstallerReward } from "@/models/InstallerReward";
 import { IInstaller } from "@/models/Installer";
@@ -8,9 +8,26 @@ import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { FilterQuery } from "mongoose";
 
 // Type for populated reward document
-interface PopulatedReward extends Omit<IInstallerReward, 'installer' | 'referrer'> {
-  installer: Pick<IInstaller, 'installerCode' | 'fullName' | 'phoneNumber' | 'bankName' | 'accountNumber' | 'accountTitle'>;
-  referrer?: Pick<IInstaller, 'installerCode' | 'fullName' | 'phoneNumber' | 'bankName' | 'accountNumber' | 'accountTitle'>;
+interface PopulatedReward
+  extends Omit<IInstallerReward, "installer" | "referrer"> {
+  installer: Pick<
+    IInstaller,
+    | "installerCode"
+    | "fullName"
+    | "phoneNumber"
+    | "bankName"
+    | "accountNumber"
+    | "accountTitle"
+  >;
+  referrer?: Pick<
+    IInstaller,
+    | "installerCode"
+    | "fullName"
+    | "phoneNumber"
+    | "bankName"
+    | "accountNumber"
+    | "accountTitle"
+  >;
 }
 
 // Type for payment row in Excel
@@ -63,13 +80,13 @@ export async function GET(request: NextRequest) {
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
-    const paymentStatus = searchParams.get("paymentStatus") || "PENDING";
+    const rewardStatus = searchParams.get("rewardStatus") || "PENDING";
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
     // Query for both PENDING and FAILED rewards
     const query: FilterQuery<IInstallerReward> = {
-      paymentStatus: { $in: ["PENDING", "FAILED"] },
+      rewardStatus: { $in: ["PENDING", "FAILED"] },
     };
 
     if (startDate || endDate) {
@@ -85,7 +102,7 @@ export async function GET(request: NextRequest) {
     const rewards = await InstallerReward.find(query)
       .populate(
         "installer",
-        "installerCode fullName phoneNumber bankName accountNumber accountTitle"
+        "installerCode fullName phoneNumber bankName accountNumber accountTitle rewardStatus"
       )
       .populate(
         "referrer",
@@ -131,44 +148,33 @@ export async function GET(request: NextRequest) {
     });
 
     // Create workbook
-    const workbook = XLSX.utils.book_new();
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Payment Format");
 
-    // Create worksheet from data
-    const worksheet = XLSX.utils.json_to_sheet(allPayments);
-
-    // Set all cells to text format
-    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-    for (let R = range.s.r; R <= range.e.r; ++R) {
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        const cell_address = XLSX.utils.encode_cell({ r: R, c: C });
-        const cell = worksheet[cell_address];
-        if (cell && cell.v !== null && cell.v !== undefined) {
-          // Set cell format to text
-          cell.t = 's'; // 's' means string/text type
-          cell.v = String(cell.v); // Convert value to string
-        }
-      }
-    }
-
-    // Set column widths for better readability
-    worksheet['!cols'] = [
-      { wch: 20 }, // To Account
-      { wch: 25 }, // Bank
-      { wch: 12 }, // Amount
-      { wch: 10 }, // Purpose
-      { wch: 15 }, // Phone No.
+    // Set columns and widths for better readability; numFmt '@' forces text format
+    worksheet.columns = [
+      { header: "To Account", key: "To Account", width: 20, style: { numFmt: "@" } },
+      { header: "Bank", key: "Bank", width: 25, style: { numFmt: "@" } },
+      { header: "Amount", key: "Amount", width: 12, style: { numFmt: "@" } },
+      { header: "Purpose", key: "Purpose", width: 10, style: { numFmt: "@" } },
+      { header: "Phone No.", key: "Phone No.", width: 15, style: { numFmt: "@" } },
     ];
 
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Payment Format");
-
-    // Generate Excel file
-    const excelBuffer = XLSX.write(workbook, {
-      type: "buffer",
-      bookType: "xlsx",
-      cellStyles: true,
+    // Convert every value to a string so cells store text, not numbers
+    allPayments.forEach((payment) => {
+      worksheet.addRow({
+        "To Account": String(payment["To Account"]),
+        Bank: String(payment.Bank),
+        Amount: String(payment.Amount),
+        Purpose: String(payment.Purpose),
+        "Phone No.": String(payment["Phone No."]),
+      });
     });
 
-    return new Response(excelBuffer, {
+    // Generate Excel file
+    const excelBuffer = await workbook.xlsx.writeBuffer();
+
+    return new Response(Buffer.from(excelBuffer), {
       headers: {
         "Content-Type":
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

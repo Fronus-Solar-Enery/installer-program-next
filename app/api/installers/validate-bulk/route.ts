@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import dbConnect from '@/lib/mongodb';
-import Installer from '@/models/Installer';
+import { NextRequest } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import Installer from "@/models/Installer";
+import { ApiResponse, handleApiError } from "@/lib/apiResponse";
+import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
+import { CITY_TO_DISTRICT, DISTRICT_CODES } from "@/lib/constants";
 
 interface InstallerUpload {
   installerCode: string;
@@ -13,7 +15,6 @@ interface InstallerUpload {
   address: string;
   city: string;
   province: string;
-  trainingCenter: string;
   companyName?: string;
   bankName: string;
   accountNumber: string;
@@ -23,148 +24,167 @@ interface InstallerUpload {
   isValid: boolean;
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
+export const POST = withAuth(
+  async (request: NextRequest, context: RouteContext, session: AuthSession) => {
+    try {
+      await dbConnect();
+
+      const { installers } = await request.json();
+
+      if (
+        !installers ||
+        !Array.isArray(installers) ||
+        installers.length === 0
+      ) {
+        return ApiResponse.badRequest("No installers provided");
+      }
+
+      // Fetch all existing installer codes and CNICs for validation
+      const existingInstallers = await Installer.find(
+        {},
+        { installerCode: 1, cnic: 1, _id: 0 }
+      ).lean();
+
+      const existingCodes = new Set(
+        existingInstallers.map((i: { installerCode: string; cnic: string }) =>
+          i.installerCode.toUpperCase()
+        )
       );
-    }
-
-    await dbConnect();
-
-    const { installers } = await req.json();
-
-    if (!installers || !Array.isArray(installers) || installers.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'No installers provided' },
-        { status: 400 }
+      const existingCNICs = new Set(
+        existingInstallers.map(
+          (i: { installerCode: string; cnic: string }) => i.cnic
+        )
       );
-    }
 
-    // Fetch all existing installer codes and CNICs for validation
-    const existingInstallers = await Installer.find(
-      {},
-      { installerCode: 1, cnic: 1, _id: 0 }
-    ).lean();
+      // Get all unique referrer codes from uploaded data
+      const referrerCodes = new Set(
+        installers
+          .map((i: InstallerUpload) => i.referrerCode)
+          .filter((code): code is string => !!code)
+          .map((code) => code.toUpperCase())
+      );
 
-    const existingCodes = new Set(
-      existingInstallers.map((i: { installerCode: string; cnic: string }) => i.installerCode.toUpperCase())
-    );
-    const existingCNICs = new Set(
-      existingInstallers.map((i: { installerCode: string; cnic: string }) => i.cnic)
-    );
+      // Fetch valid referrer codes from database
+      const validReferrers = await Installer.find(
+        { installerCode: { $in: Array.from(referrerCodes) } },
+        { installerCode: 1, _id: 0 }
+      ).lean();
 
-    // Get all unique referrer codes from uploaded data
-    const referrerCodes = new Set(
-      installers
-        .map((i: InstallerUpload) => i.referrerCode)
-        .filter((code): code is string => !!code)
-        .map(code => code.toUpperCase())
-    );
+      const validReferrerCodes = new Set(
+        validReferrers.map((r: { installerCode: string }) =>
+          r.installerCode.toUpperCase()
+        )
+      );
 
-    // Fetch valid referrer codes from database
-    const validReferrers = await Installer.find(
-      { installerCode: { $in: Array.from(referrerCodes) } },
-      { installerCode: 1, _id: 0 }
-    ).lean();
+      // Track codes and CNICs in the current upload batch for duplicate detection
+      const codesInBatch = new Map<string, number>();
+      const cnicsInBatch = new Map<string, number>();
 
-    const validReferrerCodes = new Set(
-      validReferrers.map((r: { installerCode: string }) => r.installerCode.toUpperCase())
-    );
+      // Validate each installer
+      const validatedInstallers: InstallerUpload[] = installers.map(
+        (installer: InstallerUpload, index: number) => {
+          const newIssues: string[] = [...installer.issues];
+          const code = installer.installerCode.toUpperCase();
+          const cnic = installer.cnic;
 
-    // Track codes and CNICs in the current upload batch for duplicate detection
-    const codesInBatch = new Map<string, number>();
-    const cnicsInBatch = new Map<string, number>();
-
-    // Validate each installer
-    const validatedInstallers: InstallerUpload[] = installers.map(
-      (installer: InstallerUpload, index: number) => {
-        const newIssues: string[] = [...installer.issues];
-        const code = installer.installerCode.toUpperCase();
-        const cnic = installer.cnic;
-
-        // Check for duplicate installer code in database
-        if (existingCodes.has(code)) {
-          newIssues.push(`Installer code "${installer.installerCode}" already exists in database`);
-        }
-
-        // Check for duplicate installer code in the upload batch
-        if (codesInBatch.has(code)) {
-          const firstOccurrence = codesInBatch.get(code)! + 1;
-          newIssues.push(
-            `Duplicate installer code in upload (first occurrence at row ${firstOccurrence})`
-          );
-        } else {
-          codesInBatch.set(code, index);
-        }
-
-        // Check for duplicate CNIC in database
-        if (existingCNICs.has(cnic)) {
-          newIssues.push(`CNIC "${installer.cnic}" already exists in database`);
-        }
-
-        // Check for duplicate CNIC in the upload batch
-        if (cnicsInBatch.has(cnic)) {
-          const firstOccurrence = cnicsInBatch.get(cnic)! + 1;
-          newIssues.push(
-            `Duplicate CNIC in upload (first occurrence at row ${firstOccurrence})`
-          );
-        } else {
-          cnicsInBatch.set(cnic, index);
-        }
-
-        // Validate referrer code if provided
-        if (installer.referrerCode) {
-          const refCode = installer.referrerCode.toUpperCase();
-
-          // Check if referrer code matches installer's own code
-          if (refCode === code) {
-            newIssues.push('Referrer code cannot be the same as installer code');
+          // Check for duplicate installer code in database
+          if (existingCodes.has(code)) {
+            newIssues.push(
+              `Installer code "${installer.installerCode}" already exists in database`
+            );
           }
-          // Check if referrer exists in database or in current batch
-          else if (!validReferrerCodes.has(refCode)) {
-            // Check if it's in the current batch and comes before this installer
-            const refIndexInBatch = Array.from(codesInBatch.entries())
-              .find(([c, _]) => c === refCode)?.[1];
 
-            if (refIndexInBatch === undefined || refIndexInBatch > index) {
+          // Check for duplicate installer code in the upload batch
+          if (codesInBatch.has(code)) {
+            const firstOccurrence = codesInBatch.get(code)! + 1;
+            newIssues.push(
+              `Duplicate installer code in upload (first occurrence at row ${firstOccurrence})`
+            );
+          } else {
+            codesInBatch.set(code, index);
+          }
+
+          // Check installer code prefix matches the district derived from city
+          const district = installer.city
+            ? CITY_TO_DISTRICT[installer.city]
+            : undefined;
+          if (installer.city && !district) {
+            newIssues.push(
+              `Unrecognized city "${installer.city}": cannot determine district`
+            );
+          } else if (district) {
+            const expectedPrefix = DISTRICT_CODES[district];
+            if (!code.startsWith(expectedPrefix)) {
               newIssues.push(
-                `Referrer code "${installer.referrerCode}" does not exist (or comes after this entry in the batch)`
+                `Installer code must start with "${expectedPrefix}" for district "${district}" (city: ${installer.city})`
               );
             }
           }
+
+          // Check for duplicate CNIC in database
+          if (existingCNICs.has(cnic)) {
+            newIssues.push(
+              `CNIC "${installer.cnic}" already exists in database`
+            );
+          }
+
+          // Check for duplicate CNIC in the upload batch
+          if (cnicsInBatch.has(cnic)) {
+            const firstOccurrence = cnicsInBatch.get(cnic)! + 1;
+            newIssues.push(
+              `Duplicate CNIC in upload (first occurrence at row ${firstOccurrence})`
+            );
+          } else {
+            cnicsInBatch.set(cnic, index);
+          }
+
+          // Validate referrer code if provided
+          if (installer.referrerCode) {
+            const refCode = installer.referrerCode.toUpperCase();
+
+            // Check if referrer code matches installer's own code
+            if (refCode === code) {
+              newIssues.push(
+                "Referrer code cannot be the same as installer code"
+              );
+            }
+            // Check if referrer exists in database or in current batch
+            else if (!validReferrerCodes.has(refCode)) {
+              // Check if it's in the current batch and comes before this installer
+              const refIndexInBatch = Array.from(codesInBatch.entries()).find(
+                ([c]) => c === refCode
+              )?.[1];
+
+              if (refIndexInBatch === undefined || refIndexInBatch > index) {
+                newIssues.push(
+                  `Referrer code "${installer.referrerCode}" does not exist (or comes after this entry in the batch)`
+                );
+              }
+            }
+          }
+
+          return {
+            ...installer,
+            issues: newIssues,
+            isValid: newIssues.length === 0,
+          };
         }
+      );
 
-        return {
-          ...installer,
-          issues: newIssues,
-          isValid: newIssues.length === 0,
-        };
-      }
-    );
+      const validCount = validatedInstallers.filter((i) => i.isValid).length;
+      const invalidCount = validatedInstallers.filter((i) => !i.isValid).length;
 
-    const validCount = validatedInstallers.filter(i => i.isValid).length;
-    const invalidCount = validatedInstallers.filter(i => !i.isValid).length;
-
-    return NextResponse.json({
-      success: true,
-      data: {
+      return ApiResponse.success({
         validatedInstallers,
         summary: {
           total: validatedInstallers.length,
           valid: validCount,
           invalid: invalidCount,
         },
-      },
-    });
-  } catch (error: unknown) {
-    console.error('Validation error:', error);
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Failed to validate installers' },
-      { status: 500 }
-    );
+      });
+    } catch (error) {
+      console.error("Validation error:", error);
+      return handleApiError(error);
+    }
   }
-}
+);

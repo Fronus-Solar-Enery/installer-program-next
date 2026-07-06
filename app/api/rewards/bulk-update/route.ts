@@ -1,96 +1,117 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import dbConnect from '@/lib/mongodb';
-import InstallerReward from '@/models/InstallerReward';
-import Activity from '@/models/Activity';
+import { NextRequest } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import InstallerReward from "@/models/InstallerReward";
+import Activity from "@/models/Activity";
+import { ApiResponse, handleApiError } from "@/lib/apiResponse";
+import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
+import { BUSINESS_RULES } from "@/lib/constants";
+import mongoose from "mongoose";
 
 interface RewardUpdateInput {
   serialNumber: string;
   transactionId: string;
   referrerTransactionId?: string;
-  paymentStatus: string;
+  rewardStatus: string;
   sendingDate?: string;
   paymentMethod?: string;
   isValid?: boolean;
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+interface BulkResults {
+  success: number;
+  failed: number;
+  errors: string[];
+  successfulSerials: string[];
+}
 
-    await dbConnect();
-
-    let body: { rewards: RewardUpdateInput[] };
+// POST - Bulk update rewards
+export const POST = withAuth(
+  async (request: NextRequest, context: RouteContext, session: AuthSession) => {
     try {
-      body = await req.json();
-    } catch (parseError: unknown) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid JSON in request body' },
-        { status: 400 }
-      );
-    }
+      await dbConnect();
 
-    const { rewards } = body;
-
-    if (!rewards || !Array.isArray(rewards) || rewards.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'No rewards provided' },
-        { status: 400 }
-      );
-    }
-
-    // Limit batch size to prevent timeout
-    if (rewards.length > 500) {
-      return NextResponse.json(
-        { success: false, error: 'Maximum 500 rewards per upload. Please split your file.' },
-        { status: 400 }
-      );
-    }
-
-    const results = {
-      success: 0,
-      failed: 0,
-      errors: [] as string[],
-      successfulSerials: [] as string[],
-    };
-
-    // Only process valid rewards (those without validation issues from frontend)
-    const validRewards = rewards.filter((r) => r.isValid !== false);
-
-    if (validRewards.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'No valid rewards to update', data: results },
-        { status: 400 }
-      );
-    }
-
-    // Process each reward update
-    for (const rewardUpdate of validRewards) {
+      let body: { rewards: RewardUpdateInput[] };
       try {
-        // Find reward by serial number
-        const reward = await InstallerReward.findOne({
-          serialNumber: rewardUpdate.serialNumber
-        });
+        body = await request.json();
+      } catch {
+        return ApiResponse.badRequest("Invalid JSON in request body");
+      }
 
-        if (!reward) {
+      const { rewards } = body;
+
+      if (!rewards || !Array.isArray(rewards) || rewards.length === 0) {
+        return ApiResponse.badRequest("No rewards provided");
+      }
+
+      // Limit batch size using centralized constant
+      if (rewards.length > BUSINESS_RULES.MAX_BULK_BATCH_SIZE) {
+        return ApiResponse.badRequest(
+          `Maximum ${BUSINESS_RULES.MAX_BULK_BATCH_SIZE} rewards per upload. Please split your file.`
+        );
+      }
+
+      const results: BulkResults = {
+        success: 0,
+        failed: 0,
+        errors: [],
+        successfulSerials: [],
+      };
+
+      // Only process valid rewards
+      const validRewards = rewards.filter((r) => r.isValid !== false);
+
+      if (validRewards.length === 0) {
+        return ApiResponse.badRequest("No valid rewards to update");
+      }
+
+      // Pre-fetch all rewards in one query (performance optimization)
+      const serialNumbers = validRewards.map((r) => r.serialNumber);
+      const existingRewards = await InstallerReward.find({
+        serialNumber: { $in: serialNumbers },
+      }).lean();
+
+      // Create a map for O(1) lookups
+      const rewardMap = new Map(
+        existingRewards.map((r) => [r.serialNumber, r])
+      );
+
+      // Build bulk write operations
+      type BulkWriteOp = {
+        updateOne: {
+          filter: { serialNumber: string };
+          update: { $set: Record<string, unknown> };
+        };
+      };
+      const bulkOps: BulkWriteOp[] = [];
+
+      // Activity logs to create
+      const activitiesToCreate: {
+        type: string;
+        description: string;
+        performedBy: string;
+        targetType: string;
+        targetId: mongoose.Types.ObjectId;
+        metadata: Record<string, unknown>;
+      }[] = [];
+
+      for (const rewardUpdate of validRewards) {
+        const existingReward = rewardMap.get(rewardUpdate.serialNumber);
+
+        if (!existingReward) {
           results.failed++;
-          results.errors.push(`Serial number ${rewardUpdate.serialNumber} not found`);
+          results.errors.push(
+            `Serial number ${rewardUpdate.serialNumber} not found`
+          );
           continue;
         }
 
-        // Build update object
+        // Build update data
         const updateData: Record<string, unknown> = {
           transactionId: rewardUpdate.transactionId,
-          paymentStatus: rewardUpdate.paymentStatus,
+          rewardStatus: rewardUpdate.rewardStatus,
+          updatedBy: session.user.id,
         };
 
-        // Add optional fields if provided
         if (rewardUpdate.referrerTransactionId) {
           updateData.referrerTransactionId = rewardUpdate.referrerTransactionId;
         }
@@ -101,73 +122,74 @@ export async function POST(req: NextRequest) {
           updateData.paymentMethod = rewardUpdate.paymentMethod;
         }
 
-        // Update reward
-        await InstallerReward.findByIdAndUpdate(
-          reward._id,
-          updateData,
-          { new: true }
-        );
+        // Add to bulk operations
+        bulkOps.push({
+          updateOne: {
+            filter: { serialNumber: rewardUpdate.serialNumber },
+            update: { $set: updateData },
+          },
+        });
 
-        // Log activity
-        await Activity.create({
-          type: 'REWARD_UPDATED',
-          description: `Updated reward payment status to ${rewardUpdate.paymentStatus} for serial ${rewardUpdate.serialNumber} via bulk upload`,
+        // Prepare activity log
+        activitiesToCreate.push({
+          type: "REWARD_UPDATED",
+          description: `Updated reward status to ${rewardUpdate.rewardStatus} for serial ${rewardUpdate.serialNumber} via bulk upload`,
           performedBy: session.user.id,
-          targetType: 'InstallerReward',
-          targetId: reward._id,
+          targetType: "InstallerReward",
+          targetId: new mongoose.Types.ObjectId(existingReward._id),
           metadata: {
             serialNumber: rewardUpdate.serialNumber,
-            paymentStatus: rewardUpdate.paymentStatus,
+            rewardStatus: rewardUpdate.rewardStatus,
             transactionId: rewardUpdate.transactionId,
-            method: 'bulk_update',
+            method: "bulk_update",
           },
         });
 
         results.success++;
         results.successfulSerials.push(rewardUpdate.serialNumber);
-      } catch (err: unknown) {
-        results.failed++;
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      }
 
-        // Provide more specific error messages
-        if (errorMessage.includes('validation failed')) {
-          results.errors.push(`Validation failed for ${rewardUpdate.serialNumber}: ${errorMessage}`);
-        } else {
-          results.errors.push(`Failed to update ${rewardUpdate.serialNumber}: ${errorMessage}`);
+      // Execute bulk update in a single operation
+      if (bulkOps.length > 0) {
+        try {
+          await InstallerReward.bulkWrite(bulkOps, { ordered: false });
+        } catch (err) {
+          console.error("Bulk write error:", err);
+          results.success = 0;
+          results.failed = validRewards.length;
+          results.errors.push("Bulk update failed. Please try again.");
+          results.successfulSerials = [];
+
+          return ApiResponse.serverError("Bulk update failed");
         }
       }
-    }
 
-    // Return results with detailed summary
-    const response = {
-      success: results.success > 0,
-      message: results.success > 0
-        ? `Successfully updated ${results.success} of ${validRewards.length} reward(s)`
-        : 'No rewards were updated successfully',
-      data: {
-        ...results,
-        summary: {
-          total: validRewards.length,
-          successful: results.success,
-          failed: results.failed,
-          successRate: validRewards.length > 0
-            ? Math.round((results.success / validRewards.length) * 100)
-            : 0,
+      // Batch insert activity logs (non-blocking)
+      if (activitiesToCreate.length > 0) {
+        try {
+          await Activity.insertMany(activitiesToCreate, { ordered: false });
+        } catch (activityErr) {
+          console.error("Failed to create some activity logs:", activityErr);
+        }
+      }
+
+      return ApiResponse.success(
+        {
+          ...results,
+          summary: {
+            total: validRewards.length,
+            successful: results.success,
+            failed: results.failed,
+            successRate:
+              validRewards.length > 0
+                ? Math.round((results.success / validRewards.length) * 100)
+                : 0,
+          },
         },
-      },
-    };
-
-    if (results.success === 0) {
-      return NextResponse.json(response, { status: 400 });
+        `Successfully updated ${results.success} of ${validRewards.length} reward(s)`
+      );
+    } catch (error) {
+      return handleApiError(error);
     }
-
-    return NextResponse.json(response);
-  } catch (error: unknown) {
-    console.error('Bulk update error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update rewards';
-    return NextResponse.json(
-      { success: false, error: errorMessage },
-      { status: 500 }
-    );
   }
-}
+);

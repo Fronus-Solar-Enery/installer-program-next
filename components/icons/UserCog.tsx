@@ -5,15 +5,19 @@ const IconUserCog: FC<IconProps> = ({
   fill = false,
   duotone = false,
   width = "1.5",
+  opacity = "0.4",
 }) => {
   return (
     <>
       {!fill ? (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <circle
             cx="12"
             cy="6"
@@ -29,7 +33,7 @@ const IconUserCog: FC<IconProps> = ({
             strokeLinejoin="round"
           />
           <path
-            opacity={duotone ? "0.5" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M12.957 20.8423C12.6304 20.869 12.2966 20.8828 11.957 20.8828C8.09104 20.8828 4.95703 19.092 4.95703 16.8828C4.95703 14.6737 8.09104 12.8828 11.957 12.8828C12.8378 12.8828 13.6806 12.9758 14.457 13.1455"
             stroke="currentColor"
             strokeWidth={width}
@@ -37,14 +41,17 @@ const IconUserCog: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <circle cx="10.6262" cy="5.96169" r="4.27931" fill="currentColor" />
           <path
-            opacity={duotone ? "0.5" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M16.2062 14.8761C14.3933 15.2618 13.0334 16.8721 13.0334 18.8001C13.0334 19.8509 13.4374 20.8075 14.0986 21.5227C13.0607 21.8337 11.8794 22.0096 10.6263 22.0096C6.4903 22.0096 3.13745 20.0936 3.13745 17.7302C3.13745 15.3668 6.4903 13.4509 10.6263 13.4509C12.8431 13.4509 14.835 14.0014 16.2062 14.8761Z"
             fill="currentColor"
           />
@@ -56,14 +63,17 @@ const IconUserCog: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <circle cx="10.6262" cy="5.96169" r="4.27931" fill="currentColor" />
           <path
-            opacity={duotone ? "0.5" : "1"}
+            opacity={duotone ? opacity : "1"}
             d="M16.2062 14.8761C14.3933 15.2618 13.0334 16.8721 13.0334 18.8001C13.0334 19.8509 13.4374 20.8075 14.0986 21.5227C13.0607 21.8337 11.8794 22.0096 10.6263 22.0096C6.4903 22.0096 3.13745 20.0936 3.13745 17.7302C3.13745 15.3668 6.4903 13.4509 10.6263 13.4509C12.8431 13.4509 14.835 14.0014 16.2062 14.8761Z"
             fill="currentColor"
           />

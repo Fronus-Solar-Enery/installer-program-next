@@ -3,16 +3,25 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { TeamRole } from "@/types/roles";
-import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FC, useMemo, useCallback, memo, useRef, forwardRef } from "react";
+import {
+  FC,
+  useMemo,
+  useCallback,
+  memo,
+  useRef,
+  forwardRef,
+  useEffect,
+  useState,
+} from "react";
 import IconDashboard from "@/components/icons/Dashboard";
 import IconUsersGroupRounded from "@/components/icons/UsersGroupRounded";
 import IconSettings from "@/components/icons/Settings";
 import IconDocument from "@/components/icons/Document";
 import IconActivity from "@/components/icons/Activity";
 import IconGift from "@/components/icons/Gift";
+import IconClipboardCheck from "@/components/icons/ClipboardCheck";
 import ProgramLogo from "@/components/ProgramLogo";
 import { UserAvatar } from "@/components/UserAvatar";
 import { Badge } from "@/components/ui/badge";
@@ -22,18 +31,37 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordian";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
+import { EASE_MOVE, EASE_MOVE_REVERSE, EASE_ENTER } from "@/lib/gsapEases";
 import { IconAltArrowLeft, IconInstaller } from "@/components/icons";
 
 // Types
-export interface NavItem {
+export interface SubNavItem {
   title: string;
   href: string;
+  show?: boolean | ((role?: TeamRole) => boolean);
+}
+
+export interface NavItem {
+  title: string;
+  href?: string;
   Icon: FC<IconProps>;
   show?: boolean | ((role?: TeamRole) => boolean);
   badge?: string | number;
+  subItems?: SubNavItem[];
 }
 
 export interface SidebarBranding {
@@ -52,7 +80,7 @@ interface SidebarProps {
   showUserInfo?: boolean;
   collapsible?: boolean;
   sectionLabel?: string;
-  user?: SidebarUser;
+  user?: TeamUser;
 }
 
 // Default navigation items
@@ -65,15 +93,52 @@ const DEFAULT_NAV_ITEMS: NavItem[] = [
   },
   {
     title: "Installers",
-    href: "/installers",
     Icon: IconInstaller,
     show: true,
+    subItems: [
+      {
+        title: "Installers List",
+        href: "/installers",
+        show: true,
+      },
+      {
+        title: "Register",
+        href: "/installers/register",
+        show: true,
+      },
+      {
+        title: "Bulk Register",
+        href: "/installers/bulk-register",
+        show: true,
+      },
+    ],
   },
   {
     title: "Rewards",
-    href: "/rewards",
     Icon: IconGift,
     show: true,
+    subItems: [
+      {
+        title: "Rewards List",
+        href: "/rewards",
+        show: true,
+      },
+      {
+        title: "Register",
+        href: "/rewards/register",
+        show: true,
+      },
+      {
+        title: "Bulk Register",
+        href: "/rewards/bulk-register",
+        show: true,
+      },
+      {
+        title: "Bulk Update",
+        href: "/rewards/bulk-update",
+        show: true,
+      },
+    ],
   },
   {
     title: "Reports",
@@ -86,6 +151,12 @@ const DEFAULT_NAV_ITEMS: NavItem[] = [
     href: "/activity",
     Icon: IconActivity,
     show: true,
+  },
+  {
+    title: "Batch Jobs",
+    href: "/batch-jobs",
+    Icon: IconClipboardCheck,
+    show: (role) => role === TeamRole.ADMIN,
   },
   {
     title: "Team",
@@ -125,15 +196,33 @@ function Sidebar({
   // Use provided user or session user
   const currentUser = useMemo(
     () => user || session?.user,
-    [user, session?.user]
+    [user, session?.user],
   );
+
+  // State to manage accordion open/close
+  const [openAccordion, setOpenAccordion] = useState<string>("");
+
+  // Close accordion when sidebar collapses
+  useEffect(() => {
+    if (collapsed) {
+      setOpenAccordion("");
+    }
+  }, [collapsed]);
 
   // Memoize active path checker
   const isActive = useCallback(
     (path: string) => {
       return pathname === path || pathname?.startsWith(path + "/");
     },
-    [pathname]
+    [pathname],
+  );
+
+  // Exact match for sub-items to avoid false positives
+  const isExactActive = useCallback(
+    (path: string) => {
+      return pathname === path;
+    },
+    [pathname],
   );
 
   // Memoize filtered nav items based on user role
@@ -151,7 +240,7 @@ function Sidebar({
   // Memoize branding config
   const brandingConfig = useMemo(
     () => ({ ...DEFAULT_BRANDING, ...branding }),
-    [branding]
+    [branding],
   );
 
   const sideBarRef = useRef<HTMLDivElement>(null);
@@ -162,18 +251,25 @@ function Sidebar({
     onCollapsedChange?.(!collapsed);
   }, [collapsed, onCollapsedChange]);
 
+  const [hideArrow, setHideArrow] = useState(false);
+
   useGSAP(() => {
     const sidebar = sideBarRef.current;
     const logo = logoRef.current;
     const navItems = gsap.utils.toArray<HTMLElement>(".navitem-link");
     const navTitles = gsap.utils.toArray<HTMLElement>(".navlink-title");
     const navIcons = gsap.utils.toArray<HTMLElement>(".navitem-icon");
-    const profileContainer = document.querySelector(".profile-container");
-    const profileName = document.querySelector(".profile-name");
-    const profileBadge = document.querySelector(".profile-badge");
-    const profileAvatar = document.querySelector(".profile-avatar");
 
     if (!sidebar || !logo || !navIcons || !navTitles || !navItems) return;
+
+    const profileContainer = sidebar.querySelector(".profile-container");
+    const profileName = sidebar.querySelector(".profile-name");
+    const profileBadge = sidebar.querySelector(".profile-badge");
+    const profileAvatar = sidebar.querySelector(".profile-avatar");
+
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const ctx = gsap.context(() => {
       // helpers must return void, not a Tween
@@ -200,14 +296,15 @@ function Sidebar({
       };
 
       const tl = gsap.timeline();
+      tl.timeScale(prefersReducedMotion ? 40 : 1);
 
       if (collapsed) {
         tl.to(navTitles, {
           x: -20,
           opacity: 0,
-          duration: 0.36,
-          stagger: 0.04,
-          ease: "power2.inOut",
+          duration: 0.3,
+          stagger: 0.035,
+          ease: EASE_ENTER,
           onComplete: () => {
             hideTitles();
           },
@@ -218,11 +315,11 @@ function Sidebar({
           {
             width: "3rem",
             height: "3rem",
-            duration: 0.36,
-            ease: "power2.inOut",
-            stagger: 0.03,
+            duration: 0.3,
+            ease: EASE_MOVE,
+            stagger: 0.025,
           },
-          0
+          0,
         );
 
         tl.to(
@@ -230,11 +327,11 @@ function Sidebar({
           {
             width: "1.5rem",
             height: "1.5rem",
-            duration: 0.6,
-            ease: "power2.inOut",
-            stagger: 0.03,
+            duration: 0.45,
+            ease: EASE_MOVE,
+            stagger: 0.025,
           },
-          "<"
+          "<",
         );
 
         tl.to(
@@ -242,10 +339,10 @@ function Sidebar({
           {
             padding: 0,
             border: 0,
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_MOVE,
           },
-          "<"
+          "<",
         );
 
         tl.to(
@@ -253,13 +350,13 @@ function Sidebar({
           {
             x: -20,
             opacity: 0,
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_ENTER,
             onComplete: () => {
               hideProfile();
             },
           },
-          "<"
+          "<",
         );
 
         tl.to(
@@ -267,13 +364,13 @@ function Sidebar({
           {
             x: 20,
             opacity: 0,
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_ENTER,
             onComplete: () => {
               hideProfile();
             },
           },
-          "<"
+          "<",
         );
 
         tl.to(
@@ -281,49 +378,49 @@ function Sidebar({
           {
             height: "3rem",
             width: "3rem",
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_MOVE,
           },
-          "<"
+          "<",
         );
 
         tl.to(
           logo,
           {
             width: "3.5rem",
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_MOVE,
           },
-          "<"
+          "<",
         );
 
         tl.to(
           sidebar,
           {
             width: "72px",
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_MOVE_REVERSE,
           },
-          "-=0.739"
+          0, // start with main-elem's margin tween (AppLayout), not offset into the timeline
         );
       } else {
         tl.to(
           sidebar,
           {
             width: "256px",
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_MOVE_REVERSE,
           },
-          "+=0.05"
+          0, // start with main-elem's margin tween (AppLayout), not offset into the timeline
         );
         tl.to(
           logo,
           {
             width: "6rem",
-            duration: 0.36,
-            ease: "power2.inOut",
+            duration: 0.3,
+            ease: EASE_MOVE,
           },
-          0
+          0,
         );
 
         tl.to(
@@ -331,23 +428,23 @@ function Sidebar({
           {
             width: "1.25rem",
             height: "1.25rem",
-            duration: 0.45,
-            ease: "power2.inOut",
-            stagger: 0.03,
+            duration: 0.35,
+            ease: EASE_MOVE,
+            stagger: 0.025,
           },
-          "<"
+          "<",
         );
 
         tl.to(
           navItems,
           {
-            height: "atuo",
+            height: "auto",
             width: "100%",
-            duration: 0.36,
-            ease: "power2.inOut",
-            stagger: 0.03,
+            duration: 0.3,
+            ease: EASE_MOVE,
+            stagger: 0.025,
           },
-          0
+          0,
         );
 
         // add a callback (returns void) to set display before animating titles
@@ -359,11 +456,11 @@ function Sidebar({
           {
             x: 0,
             opacity: 1,
-            duration: 0.22,
-            stagger: 0.04,
-            ease: "power2.out",
+            duration: 0.2,
+            stagger: 0.035,
+            ease: EASE_ENTER,
           },
-          "-=0.08"
+          "-=0.07",
         );
 
         tl.to(
@@ -371,10 +468,10 @@ function Sidebar({
           {
             height: "2.25rem",
             width: "2.25rem",
-            duration: 0.56,
-            ease: "power2.inOut",
+            duration: 0.45,
+            ease: EASE_MOVE,
           },
-          0
+          0,
         );
 
         // add a callback (returns void) to set display before animating titles
@@ -386,10 +483,10 @@ function Sidebar({
           {
             x: 0,
             opacity: 1,
-            duration: 0.22,
-            ease: "power2.out",
+            duration: 0.2,
+            ease: EASE_ENTER,
           },
-          "-=0.15"
+          "-=0.13",
         );
 
         tl.fromTo(
@@ -398,10 +495,10 @@ function Sidebar({
           {
             x: 0,
             opacity: 1,
-            duration: 0.22,
-            ease: "power2.out",
+            duration: 0.2,
+            ease: EASE_ENTER,
           },
-          "-=0.15"
+          "-=0.13",
         );
 
         tl.to(
@@ -409,10 +506,10 @@ function Sidebar({
           {
             padding: "0.75rem",
             border: 1,
-            duration: 0.6,
-            ease: "power2.inOut",
+            duration: 0.48,
+            ease: EASE_MOVE,
           },
-          "-=1.05"
+          "-=0.85",
         );
       }
     }, sidebar);
@@ -420,11 +517,19 @@ function Sidebar({
     return () => ctx.revert();
   }, [collapsed]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setHideArrow(collapsed);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [collapsed]);
+
   return (
     <div
       ref={sideBarRef}
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen border-r border-border bg-sidebar transition-[width] duration-300 flex flex-col w-64"
+        "fixed left-0 top-0 z-40 h-screen border-r border-border bg-sidebar flex flex-col w-64",
       )}
     >
       {/* Logo Section */}
@@ -435,10 +540,7 @@ function Sidebar({
         >
           <ProgramLogo
             ref={logoRef}
-            className={cn(
-              "transition-[width] duration-300 ease-fluid shrink-0 !m-0 !h-max w-24",
-              collapsed ? "w-14" : "w-24"
-            )}
+            className={cn("shrink-0 m-0! w-24", collapsed ? "w-14" : "w-24")}
           />
         </Link>
         {/* Collapse Toggle */}
@@ -447,13 +549,13 @@ function Sidebar({
             <Button
               variant="outline"
               size="icon"
-              className="h-6 w-6 rounded-full border border-border bg-background active:!translate-y-0 shadow-sm"
+              className="h-6 w-6 rounded-full border border-border bg-background shadow-sm"
               onClick={handleToggle}
             >
               <IconAltArrowLeft
                 className={cn(
-                  "h-3 w-3 transition-transform duration-700 ease-fluid",
-                  collapsed && "rotate-180"
+                  "h-3 w-3 transition-transform duration-300 ease-fluid",
+                  collapsed && "rotate-180",
                 )}
               />
             </Button>
@@ -462,7 +564,11 @@ function Sidebar({
       </div>
 
       {/* Navigation */}
-      <div className={cn("flex flex-col gap-1 px-3 py-4")}>
+      <div
+        className={cn(
+          "flex flex-col gap-1 px-3 py-4 overflow-y-auto overflow-x-hidden",
+        )}
+      >
         {sectionLabel && (
           <div className="mb-2 px-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -471,24 +577,164 @@ function Sidebar({
           </div>
         )}
 
-        {visibleNavItems.map((item) => (
-          <NavItem
-            ref={navItemRef}
-            key={item.href}
-            to={item.href}
-            Icon={item.Icon}
-            label={item.title}
-            badge={item.badge}
-            isExpanded={!collapsed}
-            isActive={isActive(item.href)}
-          />
-        ))}
+        <Accordion
+          type="single"
+          collapsible
+          className="w-full space-y-1"
+          value={openAccordion}
+          onValueChange={setOpenAccordion}
+        >
+          {visibleNavItems.map((item) => {
+            if (item.subItems && item.subItems.length > 0) {
+              // Filter visible sub-items
+              const visibleSubItems = item.subItems.filter((subItem) => {
+                const userRole = currentUser?.role as TeamRole | undefined;
+                if (subItem.show === undefined || subItem.show === true)
+                  return true;
+                if (subItem.show === false) return false;
+                if (typeof subItem.show === "function")
+                  return subItem.show(userRole);
+                return subItem.show;
+              });
+
+              const isAnySubItemActive = visibleSubItems.some((subItem) =>
+                isExactActive(subItem.href),
+              );
+
+              // Render accordion item with popover for collapsed state
+              return (
+                <AccordionItem
+                  key={item.title}
+                  value={item.title}
+                  className="border-none"
+                >
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <AccordionTrigger
+                        hideArrow={hideArrow}
+                        className={cn(
+                          // Only color/transform transition here — GSAP owns width/height,
+                          // so `transition-all` would fight it every frame.
+                          "navitem-link flex items-center gap-2 px-3 py-3 rounded-2xl transition-[color,background-color,transform] duration-200 ease-fluid hover:no-underline active:scale-[0.98] w-full",
+                          collapsed ? "squircle-icon" : "squircle",
+                          isAnySubItemActive
+                            ? "bg-sidebar-primary text-primary font-medium"
+                            : "[@media(hover:hover)]:hover:bg-sidebar-primary text-sidebar-accent-foreground/70 [@media(hover:hover)]:hover:text-sidebar-accent-foreground",
+                        )}
+                      >
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className="flex items-center justify-center transition-all">
+                            <item.Icon
+                              className={cn("navitem-icon shrink-0 w-5 h-5")}
+                              fill={isAnySubItemActive}
+                              duotone
+                            />
+                          </div>
+                          <span
+                            className={cn(
+                              "text-sm transition-all whitespace-nowrap navlink-title",
+                              isAnySubItemActive
+                                ? "font-semibold"
+                                : "font-medium",
+                            )}
+                          >
+                            {item.title}
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                    </PopoverTrigger>
+                    {collapsed && (
+                      <PopoverContent
+                        side="right"
+                        align="start"
+                        className="w-40 p-1 rounded-2xl"
+                      >
+                        <div className="p-2 pb-1 pt-1 text-xs text-muted-foreground">
+                          {item.title}
+                        </div>
+                        <div className="space-y-1 relative">
+                          {visibleSubItems.map((subItem) => (
+                            <div
+                              key={subItem.href}
+                              className={cn(
+                                "before-wrapper relative before:left-2 after:left-2",
+                                isExactActive(subItem.href)
+                                  ? "before:w-2"
+                                  : "before:w-4 hover:before:w-2",
+                              )}
+                            >
+                              <Link
+                                key={subItem.href}
+                                href={subItem.href}
+                                className={cn(
+                                  "before-content relative mt-1 ml-5 px-3 py-2 rounded-2xl text-sm transition-[color,background-color,transform] duration-200 ease-fluid active:scale-[0.98] squircle flex items-center z-10",
+                                  isExactActive(subItem.href)
+                                    ? "bg-sidebar-primary text-primary"
+                                    : "[@media(hover:hover)]:hover:bg-sidebar-primary text-sidebar-accent-foreground/70 [@media(hover:hover)]:hover:text-sidebar-accent-foreground",
+                                )}
+                              >
+                                {subItem.title}
+                              </Link>
+                            </div>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    )}
+                  </Popover>
+                  {!collapsed && (
+                    <AccordionContent className="pb-0 pt-1 relative">
+                      <div className="relative pl-6">
+                        {visibleSubItems.map((subItem) => (
+                          <div
+                            key={subItem.href}
+                            className={cn(
+                              "before-wrapper relative",
+                              isExactActive(subItem.href)
+                                ? "before:w-2"
+                                : "before:w-4 hover:before:w-2",
+                            )}
+                          >
+                            <Link
+                              href={subItem.href}
+                              className={cn(
+                                "before-content relative mt-1 ml-1 px-3 py-2 rounded-2xl text-sm transition-[color,background-color,transform] duration-200 ease-fluid active:scale-[0.98] squircle flex items-center z-10",
+                                isExactActive(subItem.href)
+                                  ? "bg-sidebar-primary text-primary"
+                                  : "[@media(hover:hover)]:hover:bg-sidebar-primary text-sidebar-accent-foreground/70 [@media(hover:hover)]:hover:text-sidebar-accent-foreground",
+                              )}
+                            >
+                              {subItem.title}
+                            </Link>
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  )}
+                </AccordionItem>
+              );
+            }
+
+            // Render regular nav item (outside accordion)
+            return (
+              <NavItem
+                ref={navItemRef}
+                key={item.href!}
+                to={item.href!}
+                Icon={item.Icon}
+                label={item.title}
+                badge={item.badge}
+                isExpanded={!collapsed}
+                isActive={isActive(item.href!)}
+              />
+            );
+          })}
+        </Accordion>
       </div>
 
       {/* User Profile */}
       {showUserInfo && currentUser && (
         <div className="mt-auto p-3 justify-center flex">
-          <div className="profile-container p-3 bg-card border shadow-lg rounded-4xl border-border w-full flex items-center gap-2 [corner-shape:squircle]">
+          <div className="profile-container p-3 bg-card border shadow-lg rounded-4xl border-border w-full flex items-center gap-2 squircle">
             <UserAvatar
               user={currentUser}
               className="profile-avatar rounded-2xl flex items-center justify-center size-9 shadow-sm"
@@ -501,13 +747,13 @@ function Sidebar({
             <Badge
               variant="outline"
               className={cn(
-                "profile-badge px-2.5 py-1 text-[10px] border-none rounded-md font-semibold !bg-background relative",
+                "profile-badge px-2.5 py-1 text-[10px] border-none rounded-md font-semibold bg-background! relative",
                 // collapsed && "hidden",
                 currentUser?.role === "ADMIN"
                   ? "dark:bg-zinc-950/40 dark:text-rose-400"
                   : currentUser?.role === "MANAGER"
-                  ? "dark:bg-zinc-950/40 dark:text-cyan-400"
-                  : "dark:bg-zinc-950/40 dark:text-zinc-400"
+                    ? "dark:bg-zinc-950/40 dark:text-cyan-400"
+                    : "dark:bg-zinc-950/40 dark:text-zinc-400",
               )}
             >
               {currentUser?.role || "USER"}
@@ -543,7 +789,7 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
           isExpanded ? "squircle" : "squircle-icon",
           isActive
             ? "bg-sidebar-primary text-primary font-medium"
-            : "hover:bg-sidebar-primary text-sidebar-accent-foreground/70 hover:text-sidebar-accent-foreground"
+            : "[@media(hover:hover)]:hover:bg-sidebar-primary text-sidebar-accent-foreground/70 [@media(hover:hover)]:hover:text-sidebar-accent-foreground",
         )}
       >
         <div className="flex items-center justify-center transition-all">
@@ -557,7 +803,7 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
           <span
             className={cn(
               "text-sm transition-all whitespace-nowrap",
-              isActive ? "font-semibold translate-x-0.5" : "font-medium"
+              isActive ? "translate-x-0.5" : "",
             )}
           >
             {label}
@@ -575,7 +821,7 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
             side="right"
             className={cn(
               "flex items-center gap-2 py-1",
-              isExpanded && "hidden"
+              isExpanded && "hidden",
             )}
           >
             <span className="font-medium">{label}</span>
@@ -583,7 +829,7 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
         </Tooltip>
       </TooltipProvider>
     );
-  }
+  },
 );
 
 NavItemBase.displayName = "NavItemBase";

@@ -1,63 +1,60 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
+require("dotenv").config({ path: ".env.local" });
+const dns = require("dns");
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
 const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
-require("dotenv").config({ path: ".env.local" });
+
+const email = process.argv[2] || "admin@example.com";
+const password = process.argv[3] || "admin123";
 
 async function resetAdmin() {
-  try {
-    // Connect to MongoDB
-    const MONGODB_URI =
-      process.env.MONGODB_URI || "mongodb://localhost:27017/installer_program";
-    await mongoose.connect(MONGODB_URI);
-    console.log("📦 Connected to MongoDB");
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    console.error("MONGODB_URI not set in .env.local");
+    process.exit(1);
+  }
 
-    // Define schema
-    const TeamMember = mongoose.model(
-      "TeamMember",
-      new mongoose.Schema({
+  await mongoose.connect(uri);
+
+  const TeamMember = mongoose.model(
+    "TeamMember",
+    new mongoose.Schema(
+      {
         name: String,
-        email: String,
+        email: { type: String, unique: true, lowercase: true, trim: true },
         password: String,
         role: String,
-        createdAt: { type: Date, default: Date.now },
-        updatedAt: { type: Date, default: Date.now },
-      })
-    );
+      },
+      { timestamps: true }
+    )
+  );
 
-    // Delete existing admin
-    const deleted = await TeamMember.deleteOne({ email: "remi@fronus.com" });
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const normalizedEmail = email.toLowerCase();
 
-    if (deleted.deletedCount > 0) {
-      console.log("🗑️  Deleted existing admin user");
-    } else {
-      console.log("ℹ️  No existing admin user found");
-    }
+  const existing = await TeamMember.findOne({ email: normalizedEmail });
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash("ItsRemi.Pro786", 10);
-
-    // Create new admin user
+  if (existing) {
+    existing.password = hashedPassword;
+    existing.role = "ADMIN";
+    await existing.save();
+    console.log(`Admin password reset: ${normalizedEmail}`);
+  } else {
     await TeamMember.create({
       name: "Admin User",
-      email: "remi@fronus.com",
+      email: normalizedEmail,
       password: hashedPassword,
       role: "ADMIN",
     });
-
-    console.log("\n✅ New admin user created successfully!");
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log("📧 Email: remi@fronus.com");
-    console.log("🔑 Password: ItsRemi.Pro786");
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log("⚠️  Please change this password after first login!\n");
-
-    await mongoose.disconnect();
-    process.exit(0);
-  } catch (error) {
-    console.error("❌ Error:", error.message);
-    await mongoose.disconnect().catch(() => {});
-    process.exit(1);
+    console.log(`Admin user created: ${normalizedEmail}`);
   }
+
+  console.log(`Email: ${normalizedEmail}`);
+  console.log(`Password: ${password}`);
+  process.exit(0);
 }
 
-resetAdmin();
+resetAdmin().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

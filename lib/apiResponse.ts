@@ -1,7 +1,44 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { logger } from "@/lib/logger";
 
+/**
+ * Standardized API response utility class.
+ *
+ * Provides consistent response formatting across all API routes.
+ * All methods return NextResponse objects with a standard structure:
+ *
+ * Success responses:
+ * ```json
+ * { "success": true, "message": "Success", "data": { ... } }
+ * ```
+ *
+ * Error responses:
+ * ```json
+ * { "success": false, "message": "Error message", "errors": { ... } }
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Success response with data
+ * return ApiResponse.success({ user: userData }, "User created");
+ *
+ * // Error with field-level errors
+ * return ApiResponse.badRequest("Validation failed", {
+ *   email: ["Invalid email format"],
+ * });
+ *
+ * // 404 Not Found
+ * return ApiResponse.notFound("User not found");
+ * ```
+ */
 export class ApiResponse {
+  /**
+   * Create a success response.
+   * @param data - Response payload data
+   * @param message - Optional success message (default: "Success")
+   * @param status - HTTP status code (default: 200)
+   */
   static success(data: unknown, message?: string, status = 200) {
     return NextResponse.json(
       {
@@ -13,6 +50,12 @@ export class ApiResponse {
     );
   }
 
+  /**
+   * Create a generic error response.
+   * @param message - Error message
+   * @param status - HTTP status code (default: 400)
+   * @param errors - Optional field-level errors or additional error details
+   */
   static error(
     message: string,
     status = 400,
@@ -28,6 +71,12 @@ export class ApiResponse {
     );
   }
 
+  /**
+   * Create a validation error response (400) with field-level errors.
+   * Automatically formats Zod validation errors into a field-error map.
+   * @param errors - Array of validation issues or pre-formatted field errors
+   * @param message - Optional error message (default: "Please check the form for errors")
+   */
   static validationError(
     errors:
       | Array<{ path?: PropertyKey[]; message: string }>
@@ -40,9 +89,10 @@ export class ApiResponse {
     if (Array.isArray(errors)) {
       errors.forEach((error) => {
         // Filter path to only include strings and numbers
-        const filteredPath = error.path
-          ?.filter((p): p is string | number => typeof p !== "symbol")
-          .join(".") || "general";
+        const filteredPath =
+          error.path
+            ?.filter((p): p is string | number => typeof p !== "symbol")
+            .join(".") || "general";
 
         if (!formattedErrors[filteredPath]) {
           formattedErrors[filteredPath] = [];
@@ -64,32 +114,60 @@ export class ApiResponse {
     );
   }
 
+  /**
+   * Create an unauthorized response (401).
+   * Use when user is not authenticated.
+   * @param message - Optional error message
+   */
   static unauthorized(
     message = "You must be signed in to access this resource"
   ) {
     return this.error(message, 401);
   }
 
+  /**
+   * Create a forbidden response (403).
+   * Use when user is authenticated but lacks permissions.
+   * @param message - Optional error message
+   */
   static forbidden(
     message = "You do not have permission to perform this action"
   ) {
     return this.error(message, 403);
   }
 
+  /**
+   * Create a not found response (404).
+   * @param message - Optional error message
+   */
   static notFound(message = "The requested resource was not found") {
     return this.error(message, 404);
   }
 
+  /**
+   * Create a conflict response (409).
+   * Use for duplicate resource errors.
+   * @param message - Optional error message
+   */
   static conflict(message = "This resource already exists") {
     return this.error(message, 409);
   }
 
+  /**
+   * Create a server error response (500).
+   * @param message - Optional error message
+   */
   static serverError(
     message = "An unexpected error occurred. Please try again later."
   ) {
     return this.error(message, 500);
   }
 
+  /**
+   * Create a bad request response (400) with optional field errors.
+   * @param message - Error message
+   * @param fieldErrors - Optional field-level errors
+   */
   static badRequest(message: string, fieldErrors?: Record<string, string[]>) {
     return this.error(message, 400, fieldErrors);
   }
@@ -117,11 +195,15 @@ interface MongoError {
 }
 
 export function handleApiError(error: unknown) {
-  console.error("API Error:", error);
+  // Central choke point for every API route error — structured + forwarded to
+  // the error tracker (if configured) via the logger.
+  logger.error("API error", { err: error });
 
   // Handle Zod validation errors
   if (error instanceof ZodError) {
-    return ApiResponse.validationError(error.issues as Array<{ path?: PropertyKey[]; message: string }>);
+    return ApiResponse.validationError(
+      error.issues as Array<{ path?: PropertyKey[]; message: string }>
+    );
   }
 
   const mongoError = error as MongoError;

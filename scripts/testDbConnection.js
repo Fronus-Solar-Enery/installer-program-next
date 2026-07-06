@@ -1,302 +1,156 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-const mongoose = require('mongoose');
-const { performance } = require('perf_hooks');
+require("dotenv").config({ path: ".env.local" });
+const dns = require("dns");
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+const mongoose = require("mongoose");
 
-// Color codes for terminal output
-const colors = {
-  reset: '\x1b[0m',
-  bright: '\x1b[1m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  cyan: '\x1b[36m',
-};
+const RESET = "\x1b[0m";
+const GREEN = "\x1b[32m";
+const RED = "\x1b[31m";
+const YELLOW = "\x1b[33m";
+const CYAN = "\x1b[36m";
 
-function colorize(text, color) {
-  return `${colors[color]}${text}${colors.reset}`;
+function ok(msg) {
+  console.log(`${GREEN}✅ ${msg}${RESET}`);
+}
+function fail(msg) {
+  console.log(`${RED}❌ ${msg}${RESET}`);
+}
+function warn(msg) {
+  console.log(`${YELLOW}⚠️  ${msg}${RESET}`);
+}
+function info(msg) {
+  console.log(`${CYAN}${msg}${RESET}`);
 }
 
-function parseMongoUri(uri) {
-  try {
-    const isAtlas = uri.includes('mongodb+srv://');
-    const isLocal = uri.includes('localhost') || uri.includes('127.0.0.1');
+function maskUri(uri) {
+  return uri.replace(/\/\/([^:]+):([^@]+)@/, "//$1:****@");
+}
 
-    // Extract database name
-    const dbMatch = uri.match(/\/([^/?]+)(\?|$)/);
-    const database = dbMatch ? dbMatch[1] : 'unknown';
+function diagnose(error) {
+  const msg = error instanceof Error ? error.message : String(error);
 
-    // Extract host
-    let host = 'unknown';
-    if (isAtlas) {
-      const hostMatch = uri.match(/@([^/]+)/);
-      host = hostMatch ? hostMatch[1] : 'unknown';
-    } else {
-      const hostMatch = uri.match(/\/\/([^/]+)/);
-      host = hostMatch ? hostMatch[1] : 'localhost:27017';
-    }
-
-    // Extract username
-    const userMatch = uri.match(/\/\/([^:]+):/);
-    const username = userMatch ? userMatch[1] : 'none';
-
-    // Mask password
-    const masked = uri.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@');
-
-    return {
-      type: isAtlas ? 'MongoDB Atlas (Cloud)' : isLocal ? 'MongoDB Local' : 'MongoDB Remote',
-      host,
-      database,
-      username,
-      masked,
-      isAtlas,
+  if (msg.includes("ECONNREFUSED")) {
+    const isLocal =
+      msg.includes("127.0.0.1") || msg.includes("::1") || msg.includes("localhost");
+    console.log("\n🔴 ROOT CAUSE:");
+    console.log(
       isLocal
-    };
-  } catch (error) {
-    return null;
-  }
-}
-
-function diagnoseError(error, uriInfo) {
-  const errorMsg = error.message || String(error);
-
-  console.log(colorize('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'red'));
-  console.log(colorize('❌ CONNECTION FAILED - DIAGNOSIS', 'red'));
-  console.log(colorize('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n', 'red'));
-
-  // ECONNREFUSED - MongoDB not running
-  if (errorMsg.includes('ECONNREFUSED')) {
-    if (uriInfo?.isLocal) {
-      console.log(colorize('🔴 ROOT CAUSE:', 'red'));
-      console.log('   MongoDB is NOT running on your local machine\n');
-
-      console.log(colorize('📋 SOLUTION 1 (Recommended - No Installation):', 'green'));
-      console.log('   Use MongoDB Atlas (Cloud Database):');
-      console.log('   1. Sign up: https://www.mongodb.com/cloud/atlas/register');
-      console.log('   2. Create FREE M0 cluster (512MB forever free)');
-      console.log('   3. Get connection string');
-      console.log('   4. Update MONGODB_URI in .env.local');
-      console.log(colorize('   📖 Guide: SETUP_GUIDE_COMPLETE.md#mongodb-setup\n', 'cyan'));
-
-      console.log(colorize('📋 SOLUTION 2 (Install Local MongoDB):', 'yellow'));
-      console.log('   Windows: Download from mongodb.com → Install → Run: net start MongoDB');
-      console.log('   Mac:     brew install mongodb-community → brew services start mongodb-community');
-      console.log('   Linux:   sudo apt-get install mongodb-org → sudo systemctl start mongod\n');
+        ? "   MongoDB is not running on your local machine"
+        : "   Cannot connect to the MongoDB server"
+    );
+    console.log("\n📋 SOLUTIONS:");
+    if (isLocal) {
+      console.log("   1. Use MongoDB Atlas (cloud, no install):");
+      console.log("      https://www.mongodb.com/cloud/atlas/register");
+      console.log("   2. Or start MongoDB locally:");
+      console.log("      Windows: net start MongoDB");
+      console.log("      Mac:     brew services start mongodb-community");
+      console.log("      Linux:   sudo systemctl start mongod");
     } else {
-      console.log(colorize('🔴 ROOT CAUSE:', 'red'));
-      console.log('   Cannot connect to remote MongoDB server\n');
-
-      console.log(colorize('📋 SOLUTIONS:', 'yellow'));
-      console.log('   1. Verify the server is running');
-      console.log('   2. Check firewall settings');
-      console.log('   3. Verify host/port in MONGODB_URI');
-      console.log('   4. Check network connectivity\n');
+      console.log("   1. Check if the MongoDB server is running");
+      console.log("   2. Verify host/port in MONGODB_URI");
+      console.log("   3. Check firewall settings");
+      console.log("   4. If using Atlas, verify IP whitelist");
     }
     return;
   }
 
-  // Authentication errors
-  if (errorMsg.includes('Authentication failed') || errorMsg.includes('auth failed')) {
-    console.log(colorize('🔴 ROOT CAUSE:', 'red'));
-    console.log('   Wrong username or password\n');
-
-    console.log(colorize('📋 SOLUTIONS:', 'yellow'));
-    console.log(`   Current username: ${uriInfo?.username || 'unknown'}`);
-    console.log('   1. Verify username and password in MONGODB_URI');
-    console.log('   2. For Atlas: Reset password in MongoDB Atlas console');
-    console.log('   3. Check if user exists in database');
-    console.log('   4. Special characters must be URL encoded:');
-    console.log('      @ → %40, # → %23, : → %3A, / → %2F\n');
+  if (msg.includes("Authentication failed") || msg.includes("auth failed")) {
+    console.log("\n🔴 ROOT CAUSE:");
+    console.log("   MongoDB authentication failed - wrong username or password");
+    console.log("\n📋 SOLUTIONS:");
+    console.log("   1. Verify username/password in MONGODB_URI");
+    console.log("   2. Confirm the user exists in MongoDB");
+    console.log("   3. For Atlas: reset the password in the Atlas console");
+    console.log("   4. URL-encode special characters: @ → %40, # → %23, : → %3A, / → %2F");
     return;
   }
 
-  // DNS/Network errors
-  if (errorMsg.includes('getaddrinfo') || errorMsg.includes('ENOTFOUND')) {
-    console.log(colorize('🔴 ROOT CAUSE:', 'red'));
-    console.log('   Cannot resolve hostname (DNS error)\n');
-
-    console.log(colorize('📋 SOLUTIONS:', 'yellow'));
-    console.log('   1. Check internet connection');
-    console.log('   2. Verify hostname in MONGODB_URI is correct');
-    console.log('   3. Try using IP address instead of hostname');
-    console.log('   4. Check VPN/proxy settings');
-    console.log('   5. Flush DNS cache:\n');
-    console.log('      Windows: ipconfig /flushdns');
-    console.log('      Mac:     sudo dscacheutil -flushcache');
-    console.log('      Linux:   sudo systemd-resolve --flush-caches\n');
+  if (msg.includes("getaddrinfo") || msg.includes("ENOTFOUND")) {
+    console.log("\n🔴 ROOT CAUSE:");
+    console.log("   Cannot resolve MongoDB hostname - DNS or network issue");
+    console.log("\n📋 SOLUTIONS:");
+    console.log("   1. Check internet connection");
+    console.log("   2. Verify hostname in MONGODB_URI");
+    console.log("   3. Check VPN/proxy/DNS settings");
     return;
   }
 
-  // Timeout errors
-  if (errorMsg.includes('timeout') || errorMsg.includes('ETIMEDOUT')) {
-    console.log(colorize('🔴 ROOT CAUSE:', 'red'));
-    console.log('   Connection timeout - Server not responding\n');
-
-    console.log(colorize('📋 SOLUTIONS:', 'yellow'));
-    console.log('   1. Check internet connection speed');
-    console.log('   2. For Atlas: Verify IP is whitelisted');
-    console.log('   3. Try different network (e.g., mobile hotspot)');
-    console.log('   4. Disable VPN temporarily');
-    console.log('   5. Check firewall settings\n');
+  if (msg.includes("timeout") || msg.includes("ETIMEDOUT")) {
+    console.log("\n🔴 ROOT CAUSE:");
+    console.log("   Connection timeout - server took too long to respond");
+    console.log("\n📋 SOLUTIONS:");
+    console.log("   1. For Atlas: verify your IP is whitelisted");
+    console.log("   2. Check connection speed / try a different network");
+    console.log("   3. Disable VPN temporarily");
     return;
   }
 
-  // IP whitelist (Atlas specific)
-  if (errorMsg.includes('IP address') || errorMsg.includes('not in whitelist') || errorMsg.includes('not authorized')) {
-    console.log(colorize('🔴 ROOT CAUSE:', 'red'));
-    console.log('   Your IP address is not whitelisted in MongoDB Atlas\n');
-
-    console.log(colorize('📋 SOLUTIONS:', 'green'));
-    console.log('   1. Go to: MongoDB Atlas → Security → Network Access');
-    console.log('   2. Click "Add IP Address"');
-    console.log('   3. Options:');
-    console.log('      • Click "Add Current IP Address" (recommended for dev)');
-    console.log('      • Or add 0.0.0.0/0 to allow from anywhere (less secure)');
-    console.log('   4. Click "Confirm"');
-    console.log('   5. Wait 1-2 minutes for changes to apply\n');
+  if (msg.includes("not in whitelist") || msg.includes("IP address")) {
+    console.log("\n🔴 ROOT CAUSE:");
+    console.log("   IP address not whitelisted in MongoDB Atlas");
+    console.log("\n📋 SOLUTIONS:");
+    console.log("   1. Atlas → Security → Network Access → Add IP Address");
+    console.log("   2. Use 0.0.0.0/0 for development");
+    console.log("   3. Wait 1-2 minutes for changes to apply");
     return;
   }
 
-  // Invalid connection string
-  if (errorMsg.includes('Invalid connection string') || errorMsg.includes('Invalid scheme')) {
-    console.log(colorize('🔴 ROOT CAUSE:', 'red'));
-    console.log('   MongoDB URI format is invalid\n');
-
-    console.log(colorize('📋 CORRECT FORMATS:', 'green'));
-    console.log('   Atlas:  mongodb+srv://username:password@host.mongodb.net/database?options');
-    console.log('   Local:  mongodb://localhost:27017/database');
-    console.log('   Remote: mongodb://username:password@host:27017/database\n');
-
-    console.log(colorize('📋 YOUR URI:', 'yellow'));
-    console.log(`   ${uriInfo?.masked || 'Could not parse'}\n`);
-    return;
-  }
-
-  // Generic error
-  console.log(colorize('🔴 ROOT CAUSE:', 'red'));
-  console.log(`   ${errorMsg}\n`);
-
-  console.log(colorize('📋 GENERAL SOLUTIONS:', 'yellow'));
-  console.log('   1. Check MONGODB_URI in .env.local');
-  console.log('   2. Verify MongoDB server is accessible');
-  console.log('   3. Check network/firewall settings');
-  console.log('   4. See: SETUP_GUIDE_COMPLETE.md\n');
+  console.log("\n🔴 ROOT CAUSE:");
+  console.log(`   ${msg}`);
+  console.log("\n📋 SOLUTIONS:");
+  console.log("   1. Check MONGODB_URI in .env.local");
+  console.log("   2. See https://docs.mongodb.com/manual/reference/connection-string/");
 }
 
-async function testDbConnection() {
-  console.log(colorize('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'cyan'));
-  console.log(colorize('🧪 MONGODB CONNECTION TEST', 'cyan'));
-  console.log(colorize('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n', 'cyan'));
+async function testConnection() {
+  const uri = process.env.MONGODB_URI;
 
-  // Check for .env.local
-  require('dotenv').config({ path: '.env.local' });
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("🗄️  MongoDB Connection Test");
+  console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
 
-  const MONGODB_URI = process.env.MONGODB_URI;
-
-  if (!MONGODB_URI) {
-    console.log(colorize('❌ MONGODB_URI not found in .env.local', 'red'));
-    console.log(colorize('\n📋 SOLUTION:', 'yellow'));
-    console.log('   1. Make sure .env.local file exists in project root');
-    console.log('   2. Add this line to .env.local:');
-    console.log('      MONGODB_URI=mongodb://localhost:27017/installer_program');
-    console.log('   3. Or see SETUP_GUIDE_COMPLETE.md for MongoDB Atlas setup\n');
+  if (!uri) {
+    fail("MONGODB_URI not set in .env.local");
     process.exit(1);
   }
 
-  // Parse URI
-  const uriInfo = parseMongoUri(MONGODB_URI);
+  info(`URI: ${maskUri(uri)}`);
 
-  console.log(colorize('📋 CONNECTION DETAILS:', 'bright'));
-  console.log(`   Type:     ${colorize(uriInfo.type, 'cyan')}`);
-  console.log(`   Host:     ${colorize(uriInfo.host, 'cyan')}`);
-  console.log(`   Database: ${colorize(uriInfo.database, 'cyan')}`);
-  console.log(`   Username: ${colorize(uriInfo.username, 'cyan')}`);
-  console.log(`   URI:      ${colorize(uriInfo.masked, 'cyan')}\n`);
-
-  // Test connection
-  console.log(colorize('🔌 Testing connection...', 'yellow'));
-  const startTime = performance.now();
-
+  const start = Date.now();
   try {
-    await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 10000, // 10 second timeout
-      socketTimeoutMS: 45000,
-    });
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
+    const elapsed = Date.now() - start;
+    ok(`Connected in ${elapsed}ms`);
 
-    const endTime = performance.now();
-    const duration = ((endTime - startTime) / 1000).toFixed(2);
-
-    console.log(colorize(`✅ Connection successful! (${duration}s)\n`, 'green'));
-
-    // Test database access
-    console.log(colorize('📊 DATABASE INFORMATION:', 'bright'));
     const db = mongoose.connection.db;
-    const dbName = db.databaseName;
-    console.log(`   Database:    ${colorize(dbName, 'green')}`);
-    console.log(`   Host:        ${colorize(mongoose.connection.host, 'green')}`);
-    console.log(`   Port:        ${colorize(String(mongoose.connection.port || 'N/A'), 'green')}`);
-    console.log(`   Ready State: ${colorize('Connected', 'green')}\n`);
+    ok(`Database: ${db.databaseName}`);
 
-    // List collections
-    console.log(colorize('📦 COLLECTIONS:', 'bright'));
     const collections = await db.listCollections().toArray();
-    if (collections.length > 0) {
-      collections.forEach(col => {
-        console.log(`   • ${colorize(col.name, 'cyan')}`);
-      });
+    if (collections.length === 0) {
+      warn("No collections found (empty database)");
     } else {
-      console.log(`   ${colorize('(No collections yet - database is empty)', 'yellow')}`);
+      ok(`Collections (${collections.length}): ${collections.map((c) => c.name).join(", ")}`);
     }
-    console.log('');
 
-    // Test read/write
-    console.log(colorize('🧪 Testing read/write operations...', 'yellow'));
+    // Read/write smoke test against a throwaway collection
+    const testCollection = db.collection("__connection_test__");
+    await testCollection.insertOne({ ts: new Date() });
+    ok("Write test passed");
+    await testCollection.deleteMany({});
+    ok("Read/delete test passed");
 
-    const TestModel = mongoose.model('_test', new mongoose.Schema({ timestamp: Date }), '_connection_test');
-
-    // Write test
-    const testDoc = await TestModel.create({ timestamp: new Date() });
-    console.log(colorize('   ✓ Write operation successful', 'green'));
-
-    // Read test
-    const found = await TestModel.findById(testDoc._id);
-    console.log(colorize('   ✓ Read operation successful', 'green'));
-
-    // Delete test
-    await TestModel.deleteOne({ _id: testDoc._id });
-    console.log(colorize('   ✓ Delete operation successful', 'green'));
-
-    // Cleanup test collection
-    await db.dropCollection('_connection_test').catch(() => {});
-
-    console.log(colorize('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'green'));
-    console.log(colorize('✅ ALL TESTS PASSED!', 'green'));
-    console.log(colorize('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'green'));
-    console.log(colorize('\n💡 Your MongoDB connection is working perfectly!', 'bright'));
-    console.log(colorize('   You can now run: npm run dev\n', 'bright'));
-
-    await mongoose.disconnect();
+    console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    ok("All checks passed");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     process.exit(0);
-
   } catch (error) {
-    const endTime = performance.now();
-    const duration = ((endTime - startTime) / 1000).toFixed(2);
-
-    console.log(colorize(`❌ Connection failed after ${duration}s\n`, 'red'));
-
-    diagnoseError(error, uriInfo);
-
-    console.log(colorize('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'red'));
-    console.log(colorize('💡 NEXT STEPS:', 'bright'));
-    console.log(colorize('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n', 'red'));
-    console.log('   1. Follow the solutions above');
-    console.log('   2. Run this test again: npm run test:db');
-    console.log('   3. See detailed guide: SETUP_GUIDE_COMPLETE.md');
-    console.log('   4. For Atlas setup: https://www.mongodb.com/cloud/atlas/register\n');
-
-    await mongoose.disconnect().catch(() => {});
+    console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    fail("CONNECTION FAILED - DIAGNOSIS");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    diagnose(error);
     process.exit(1);
   }
 }
 
-testDbConnection();
+testConnection();

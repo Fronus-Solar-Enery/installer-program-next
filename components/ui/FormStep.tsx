@@ -26,7 +26,7 @@ export function FormStep({
         "relative flex flex-col items-center group",
         isLast
           ? "flex-1"
-          : "flex-1 after:content-[''] after:w-full after:h-[1px] after:absolute after:top-4 after:left-1/2 after:bg-muted"
+          : "flex-1 after:content-[''] after:w-full after:h-px after:absolute after:top-4 after:left-1/2 after:bg-border/70"
       )}
     >
       <div
@@ -37,7 +37,7 @@ export function FormStep({
           isCompleted && "border-primary bg-primary text-primary-foreground",
           !isActive &&
             !isCompleted &&
-            "border-muted bg-card/10 backdrop-blur-2xl text-muted-foreground/60"
+            "border-border bg-card/10 backdrop-blur-2xl text-muted-foreground/60"
         )}
       >
         {isCompleted ? <IconCheck className="h-5 w-5" /> : step + 1}

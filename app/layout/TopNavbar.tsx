@@ -2,6 +2,7 @@
 
 import { signOut, useSession } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -19,7 +20,12 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import IconArrowUpDown from "@/components/icons/ArrowUpDown";
 import IconMagnifer from "@/components/icons/Magnifer";
-import GlobalSearchModal from "@/components/GlobalSearchModal";
+// Dynamic import: GlobalSearchModal is 26KB - only loaded when search is opened
+const GlobalSearchModal = dynamic(
+  () => import("@/components/GlobalSearchModal"),
+  { ssr: false },
+);
+import { IconCommand } from "@/components/icons";
 
 export default function TopNavbar() {
   const { data: session } = useSession();
@@ -63,7 +69,7 @@ export default function TopNavbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-sidebar px-6 shadow-md">
+      <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-sidebar px-6">
         <div className="flex-1"></div>
 
         {/* Right Side Actions */}
@@ -73,14 +79,17 @@ export default function TopNavbar() {
             variant="secondary"
             size="sm"
             onClick={() => setSearchOpen(true)}
-            className="max-w-xs w- h-10 justify-start text-left font-normal rounded-full border border-border"
+            className="squircle-icon max-w-xs w- h-10 justify-start text-left font-normal rounded-full border border-border"
             aria-label="Open search"
           >
             <IconMagnifer className="shrink-0 w-4.5 h-4.5 text-zinc-500 dark:text-zinc-400" />
             <span className="hidden sm:inline-flex items-center justify-between w-full ml-2 text-sm text-zinc-500 dark:text-zinc-400/60 leading-none">
               Search...
               <kbd className="flex items-center px-2 py-1 text-xs font-bold bg-card dark:bg-background rounded-full ml-3 leading-none text-foreground">
-                <span className="text-[10px] mr-1">⌘</span> K
+                <span className="text-[10px] mr-1">
+                  <IconCommand className="size-2.5!" width={2} />
+                </span>{" "}
+                K
               </kbd>
             </span>
           </Button>
@@ -110,14 +119,14 @@ export default function TopNavbar() {
             <DropdownTrigger asChild>
               <Button
                 variant="secondary"
-                className="gap-2 pl-1 pr-3 text-left font-normal rounded-full border border-border"
+                className="squircle-icon gap-2 pl-1 pr-3 text-left font-normal border border-border"
               >
                 <UserAvatar
                   user={session?.user}
                   size="small"
                   className="w-8 h-8 bg-card dark:bg-background"
                 />
-                <span className="hidden sm:inline-block text-sm font-medium">
+                <span className="hidden sm:inline-block text-sm font-medium leading-none">
                   {session?.user?.name || "User"}
                 </span>
                 <IconArrowUpDown className="h-5 w-5 text-muted-foreground" />
@@ -136,12 +145,12 @@ export default function TopNavbar() {
                 <Badge
                   variant="outline"
                   className={cn(
-                    "px-2.5 py-1 text-[10px] border-none rounded-md font-semibold !bg-background",
+                    "px-2.5 py-1 text-[10px] border-none rounded-md font-semibold bg-background!",
                     session?.user?.role === "ADMIN"
                       ? "dark:bg-zinc-950/40 dark:text-rose-400"
                       : session?.user?.role === "MANAGER"
-                      ? "dark:bg-zinc-950/40 dark:text-cyan-400"
-                      : "dark:bg-zinc-950/40 dark:text-zinc-400"
+                        ? "dark:bg-zinc-950/40 dark:text-cyan-400"
+                        : "dark:bg-zinc-950/40 dark:text-zinc-400",
                   )}
                 >
                   {session?.user?.role || "USER"}
@@ -157,7 +166,7 @@ export default function TopNavbar() {
                   <IconUserRounded className="mr-2" />
                   Profile
                 </Button>
-                <Button
+                {/* <Button
                   variant="ghost"
                   size="sm"
                   className="w-full justify-start px-2 py-2 text-sm bg-transparent rounded-lg"
@@ -165,7 +174,7 @@ export default function TopNavbar() {
                 >
                   <IconSettings className="mr-2" />
                   Settings
-                </Button>
+                </Button> */}
               </div>
 
               <div className="border-t mt-2 border-zinc-200 dark:border-muted p-2">

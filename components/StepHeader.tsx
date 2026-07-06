@@ -34,7 +34,7 @@ export function StepHeader({
   description,
 }: StepHeaderProps) {
   return (
-    <CardHeader className="p-6 rounded-3xl border text-card-foreground bg-card border-border">
+    <CardHeader className="p-6 rounded-3xl border text-card-foreground bg-card border-border squircle">
       <CardTitle className="text-base flex items-center gap-2">
         <Icon
           className="h-12 w-12 mr-2 text-primary"

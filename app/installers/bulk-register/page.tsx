@@ -1,7 +1,10 @@
 "use client";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import * as XLSX from "xlsx";
+import { useRoleGuard } from "@/hooks/useRoleGuard";
+import ExcelJS from "exceljs";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useBatchJobs } from "@/contexts/BatchJobContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -17,14 +20,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   AlertCircle,
   CheckCircle2,
   Download,
@@ -34,15 +29,49 @@ import {
   Loader2,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import { BANKS } from "@/lib/constants";
+import { BANKS, CITY_TO_DISTRICT, DISTRICT_CODES } from "@/lib/constants";
 import BulkUploadProgressModal, {
   UploadStep,
 } from "@/components/BulkUploadProgressModal";
 import { toast } from "sonner";
 import { FileDropzone } from "@/components/ui/drop-zone";
-import { IconTrashBin2 } from "@/components/icons";
+import { IconLayer, IconTrashBin2 } from "@/components/icons";
 import IconExcel from "@/components/icons/Excel";
 import IconDownloadMinimalistic from "@/components/icons/DownloadMinimalistic";
+
+function worksheetToJson(worksheet: ExcelJS.Worksheet): Record<string, unknown>[] {
+  const headers: string[] = [];
+  worksheet.getRow(1).eachCell((cell, colNumber) => {
+    headers[colNumber] = cell.value != null ? String(cell.value) : "";
+  });
+
+  const rows: Record<string, unknown>[] = [];
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const obj: Record<string, unknown> = {};
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const header = headers[colNumber];
+      if (header) obj[header] = cell.value;
+    });
+    rows.push(obj);
+  });
+  return rows;
+}
+
+async function downloadWorkbook(workbook: ExcelJS.Workbook, filename: string) {
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
 
 interface InstallerUpload {
   installerCode: string;
@@ -54,7 +83,6 @@ interface InstallerUpload {
   address: string;
   city: string;
   province: string;
-  trainingCenter: string;
   companyName?: string;
   bankName: string;
   accountNumber: string;
@@ -66,6 +94,8 @@ interface InstallerUpload {
 
 export default function BulkUploadInstallersPage() {
   const router = useRouter();
+  const { isAuthorized, isAuthLoading } = useRoleGuard();
+  const { startJob } = useBatchJobs();
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
@@ -86,6 +116,13 @@ export default function BulkUploadInstallersPage() {
   const [fileReadProgress, setFileReadProgress] = useState(0);
   const [terminateDialogOpen, setTerminateDialogOpen] = useState(false);
 
+  // Abort controller for canceling operations
+  const [abortController, setAbortController] =
+    useState<AbortController | null>(null);
+
+  // Virtual scrolling ref for large datasets
+  const parentRef = useRef<HTMLDivElement>(null);
+
   type TemplateRow = {
     "Installer Code": string;
     "Full Name": string;
@@ -96,7 +133,6 @@ export default function BulkUploadInstallersPage() {
     Address: string;
     City: string;
     Province: string;
-    "Training Center": string;
     "Company Name": string;
     "Bank Name": string;
     "Account Number": string;
@@ -109,61 +145,50 @@ export default function BulkUploadInstallersPage() {
   ): void => {
     setDownloadingTemplate(true);
 
-    const generationPromise: Promise<{ name: string }> = new Promise(
-      (resolve, reject) => {
-        try {
-          const template: TemplateRow[] = [
-            {
-              "Installer Code": "IP-0001",
-              "Full Name": "John Doe",
-              "Referrer Code": "IP-0000 (optional)",
-              CNIC: "12345-1234567-1",
-              "Phone Number": "03001234567",
-              "WhatsApp Number": "03001234567",
-              Address: "123 Main Street",
-              City: "Karachi",
-              Province: "Sindh",
-              "Training Center": "Center A",
-              "Company Name": "ABC Company (optional)",
-              "Bank Name": "HBL/KONNECT",
-              "Account Number": "12345678901234",
-              "Account Title": "John Doe",
-              Certified: "true",
-            },
-          ];
+    const generationPromise: Promise<{ name: string }> = (async () => {
+      const template: TemplateRow[] = [
+        {
+          "Installer Code": "IP-0001",
+          "Full Name": "John Doe",
+          "Referrer Code": "IP-0000 (optional)",
+          CNIC: "12345-1234567-1",
+          "Phone Number": "03001234567",
+          "WhatsApp Number": "03001234567",
+          Address: "123 Main Street",
+          City: "Karachi",
+          Province: "Sindh",
+          "Company Name": "ABC Company (optional)",
+          "Bank Name": "HBL/KONNECT",
+          "Account Number": "12345678901234",
+          "Account Title": "John Doe",
+          Certified: "true",
+        },
+      ];
 
-          const ws = XLSX.utils.json_to_sheet(template);
-          const wb = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(wb, ws, "Installers Template");
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Installers Template");
+      ws.columns = [
+        { header: "Installer Code", key: "Installer Code", width: 15 },
+        { header: "Full Name", key: "Full Name", width: 20 },
+        { header: "Referrer Code", key: "Referrer Code", width: 15 },
+        { header: "CNIC", key: "CNIC", width: 18 },
+        { header: "Phone Number", key: "Phone Number", width: 15 },
+        { header: "WhatsApp Number", key: "WhatsApp Number", width: 15 },
+        { header: "Address", key: "Address", width: 30 },
+        { header: "City", key: "City", width: 15 },
+        { header: "Province", key: "Province", width: 12 },
+        { header: "Company Name", key: "Company Name", width: 20 },
+        { header: "Bank Name", key: "Bank Name", width: 12 },
+        { header: "Account Number", key: "Account Number", width: 20 },
+        { header: "Account Title", key: "Account Title", width: 20 },
+        { header: "Certified", key: "Certified", width: 10 },
+      ];
+      ws.addRows(template);
 
-          // Set column widths
-          ws["!cols"] = [
-            { wch: 15 },
-            { wch: 20 },
-            { wch: 15 },
-            { wch: 18 },
-            { wch: 15 },
-            { wch: 15 },
-            { wch: 30 },
-            { wch: 15 },
-            { wch: 12 },
-            { wch: 15 },
-            { wch: 20 },
-            { wch: 12 },
-            { wch: 20 },
-            { wch: 20 },
-            { wch: 10 },
-          ];
+      await downloadWorkbook(wb, "installers_bulk_upload_template.xlsx");
 
-          // writeFile is synchronous in browser contexts (triggers download)
-          XLSX.writeFile(wb, "installers_bulk_upload_template.xlsx");
-
-          resolve({ name: "Installers Template" });
-        } catch (error) {
-          reject(error);
-        }
-      }
-    );
+      return { name: "Installers Template" };
+    })();
 
     toast.promise(generationPromise, {
       loading: "Generating template...",
@@ -176,7 +201,6 @@ export default function BulkUploadInstallersPage() {
     generationPromise
       .catch((err) => {
         // optional console logging for debugging; keep UI errors handled by toast
-        // eslint-disable-next-line no-console
         console.error("downloadTemplate error:", err);
       })
       .finally(() => {
@@ -197,7 +221,7 @@ export default function BulkUploadInstallersPage() {
       )}`;
     }
 
-    return cnic; // Return original if not 13 digits
+    return cnic;
   };
 
   const formatPhoneNumber = (phone: string): string => {
@@ -301,8 +325,20 @@ export default function BulkUploadInstallersPage() {
       if (!installer.province || installer.province.length < 2) {
         issues.push("Province is required");
       }
-      if (!installer.trainingCenter || installer.trainingCenter.length < 2) {
-        issues.push("Training center is required");
+      const district = installer.city
+        ? CITY_TO_DISTRICT[installer.city]
+        : undefined;
+      if (installer.city && !district) {
+        issues.push(`Unrecognized city "${installer.city}": cannot determine district`);
+      } else if (district) {
+        const expectedPrefix = DISTRICT_CODES[district];
+        if (
+          !installer.installerCode?.toUpperCase().startsWith(expectedPrefix)
+        ) {
+          issues.push(
+            `Installer code must start with "${expectedPrefix}" for district "${district}" (city: ${installer.city})`
+          );
+        }
       }
       if (!installer.bankName || installer.bankName.length < 2) {
         issues.push("Bank name is required");
@@ -386,38 +422,55 @@ export default function BulkUploadInstallersPage() {
           // Allow UI to update
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const data = e.target?.result as ArrayBuffer;
 
           setFileReadProgress(75);
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const workbook = XLSX.read(data, { type: "array" });
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(data);
 
           setFileReadProgress(80);
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
+          const worksheet = workbook.worksheets[0];
 
           setFileReadProgress(85);
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<
-            string,
-            unknown
-          >[];
+          const jsonData = worksheetToJson(worksheet);
 
           setFileReadProgress(90);
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          // Process data in chunks to avoid blocking
+          // Process data in optimized chunks to avoid blocking (increased from 50 to 200)
           const parsedInstallers: InstallerUpload[] = [];
-          const chunkSize = 50;
+          const chunkSize = 200; // Optimized for better performance
+
+          // Use requestIdleCallback for even smoother processing (fallback to requestAnimationFrame)
+          const scheduleWork = (callback: () => void): Promise<void> => {
+            return new Promise((resolve) => {
+              if ("requestIdleCallback" in window) {
+                requestIdleCallback(() => {
+                  callback();
+                  resolve();
+                });
+              } else {
+                requestAnimationFrame(() => {
+                  callback();
+                  resolve();
+                });
+              }
+            });
+          };
 
           for (let i = 0; i < jsonData.length; i += chunkSize) {
             const chunk = jsonData.slice(i, i + chunkSize);
             const chunkProgress = 90 + Math.round((i / jsonData.length) * 8);
-            setFileReadProgress(chunkProgress);
+
+            await scheduleWork(() => {
+              setFileReadProgress(chunkProgress);
+            });
 
             // Process chunk
             const processedChunk = chunk.map((row) => {
@@ -426,8 +479,6 @@ export default function BulkUploadInstallersPage() {
               const rawAddress = row["Address"]?.toString().trim() || "";
               const rawCity = row["City"]?.toString().trim() || "";
               const rawProvince = row["Province"]?.toString().trim() || "";
-              const rawTrainingCenter =
-                row["Training Center"]?.toString().trim() || "";
               const rawCompanyName =
                 row["Company Name"]?.toString().trim() || "";
               const rawAccountTitle =
@@ -453,9 +504,6 @@ export default function BulkUploadInstallersPage() {
                 address: rawAddress ? capitalizeEachWord(rawAddress) : "",
                 city: rawCity ? capitalizeEachWord(rawCity) : "",
                 province: rawProvince ? capitalizeEachWord(rawProvince) : "",
-                trainingCenter: rawTrainingCenter
-                  ? capitalizeEachWord(rawTrainingCenter)
-                  : "",
                 companyName: rawCompanyName
                   ? capitalizeEachWord(rawCompanyName)
                   : undefined,
@@ -487,8 +535,8 @@ export default function BulkUploadInstallersPage() {
 
             parsedInstallers.push(...processedChunk);
 
-            // Allow UI to update between chunks
-            await new Promise((resolve) => requestAnimationFrame(resolve));
+            // Allow UI to update between chunks using idle callback for better performance
+            await scheduleWork(() => {});
           }
 
           setFileReadProgress(98);
@@ -562,7 +610,7 @@ export default function BulkUploadInstallersPage() {
     toast.success("Form reset successfully");
   };
 
-  const downloadInvalidRecords = () => {
+  const downloadInvalidRecords = async () => {
     setDownloadingInvalid(true);
     const toastId = toast.loading("Generating invalid records file...");
     try {
@@ -584,7 +632,6 @@ export default function BulkUploadInstallersPage() {
         Address: record.address,
         City: record.city,
         Province: record.province,
-        "Training Center": record.trainingCenter,
         "Company Name": record.companyName || "",
         "Bank Name": record.bankName,
         "Account Number": record.accountNumber,
@@ -593,43 +640,39 @@ export default function BulkUploadInstallersPage() {
         ISSUES: record.issues.join(" | "),
       }));
 
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Invalid Records");
-
-      // Set column widths
-      ws["!cols"] = [
-        { wch: 15 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 18 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 30 },
-        { wch: 15 },
-        { wch: 12 },
-        { wch: 15 },
-        { wch: 20 },
-        { wch: 12 },
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 10 },
-        { wch: 60 },
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Invalid Records");
+      ws.columns = [
+        { header: "Installer Code", key: "Installer Code", width: 15 },
+        { header: "Full Name", key: "Full Name", width: 20 },
+        { header: "Referrer Code", key: "Referrer Code", width: 15 },
+        { header: "CNIC", key: "CNIC", width: 18 },
+        { header: "Phone Number", key: "Phone Number", width: 15 },
+        { header: "WhatsApp Number", key: "WhatsApp Number", width: 15 },
+        { header: "Address", key: "Address", width: 30 },
+        { header: "City", key: "City", width: 15 },
+        { header: "Province", key: "Province", width: 12 },
+        { header: "Company Name", key: "Company Name", width: 20 },
+        { header: "Bank Name", key: "Bank Name", width: 12 },
+        { header: "Account Number", key: "Account Number", width: 20 },
+        { header: "Account Title", key: "Account Title", width: 20 },
+        { header: "Certified", key: "Certified", width: 10 },
+        { header: "ISSUES", key: "ISSUES", width: 60 },
       ];
+      ws.addRows(excelData);
 
       // Style the header row
-      const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
-      for (let col = range.s.c; col <= range.e.c; col++) {
-        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
-        if (!ws[cellAddress]) continue;
-        ws[cellAddress].s = {
-          font: { bold: true },
-          fill: { fgColor: { rgb: "FFE0E0E0" } },
+      ws.getRow(1).eachCell((cell) => {
+        cell.font = { bold: true };
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFE0E0E0" },
         };
-      }
+      });
 
       const timestamp = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `invalid_installers_${timestamp}.xlsx`);
+      await downloadWorkbook(wb, `invalid_installers_${timestamp}.xlsx`);
       toast.dismiss(toastId);
       toast.success(`Downloaded ${invalidRecords.length} invalid record(s)`);
     } catch (err) {
@@ -712,13 +755,6 @@ export default function BulkUploadInstallersPage() {
         progress: 0,
       },
       {
-        id: "google",
-        title: "Creating Google Contacts",
-        description: "Syncing installer data with Google Contacts",
-        status: "pending",
-        progress: 0,
-      },
-      {
         id: "activity",
         title: "Logging Activities",
         description: "Recording installation activities",
@@ -759,50 +795,146 @@ export default function BulkUploadInstallersPage() {
         )
       );
 
-      // Process in chunks for real-time progress
-      const CHUNK_SIZE = 10; // Process 10 installers at a time
+      // Process in optimized chunks for real-time progress
+      const CHUNK_SIZE = 50; // Increased from 10 to 50 for better performance
       let totalSuccess = 0;
       let totalFailed = 0;
-      let totalGoogleContacts = 0;
+      const allInstallerIds: string[] = []; // Collect all installer IDs across chunks
       const allErrors: string[] = [];
+      const failedChunks: { chunk: typeof validInstallers; error: string }[] =
+        [];
+
+      // Create abort controller for cancellation
+      const controller = new AbortController();
+      setAbortController(controller);
 
       for (let i = 0; i < validInstallers.length; i += CHUNK_SIZE) {
-        const chunk = validInstallers.slice(i, i + CHUNK_SIZE);
-        const currentBatch = Math.min(i + CHUNK_SIZE, validInstallers.length);
-
-        try {
-          const response = await fetch("/api/installers/bulk-register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ installers: chunk }),
-          });
-
-          const data = await response.json();
-
-          if (response.ok) {
-            totalSuccess += data.data.success || 0;
-            totalFailed += data.data.failed || 0;
-            totalGoogleContacts += data.data.googleContactsCreated || 0;
-
-            if (data.data.errors && data.data.errors.length > 0) {
-              allErrors.push(...data.data.errors);
-            }
-          } else {
-            totalFailed += chunk.length;
-            allErrors.push(data.error || "Chunk upload failed");
-          }
-        } catch (err) {
-          totalFailed += chunk.length;
-          allErrors.push(
-            `Chunk ${i / CHUNK_SIZE + 1} failed: ${
-              err instanceof Error ? err.message : "Unknown error"
-            }`
-          );
+        // Check if operation was cancelled
+        if (controller.signal.aborted) {
+          toast.info("Upload cancelled by user");
+          break;
         }
 
-        // Update progress in real-time
-        const progress = Math.round((currentBatch / totalRecords) * 100);
-        setProcessedRecords(currentBatch);
+        const chunk = validInstallers.slice(i, i + CHUNK_SIZE);
+        const chunkStartIndex = i;
+        const chunkEndIndex = Math.min(i + CHUNK_SIZE, validInstallers.length);
+        let retryCount = 0;
+        const maxRetries = 2;
+
+        // Simulate granular progress within chunk during API call
+        const simulateChunkProgress = () => {
+          let currentInChunk = 0;
+          const progressInterval = setInterval(() => {
+            if (currentInChunk < chunk.length - 1) {
+              currentInChunk++;
+              const estimatedProcessed = chunkStartIndex + currentInChunk;
+              const estimatedProgress = Math.round(
+                (estimatedProcessed / totalRecords) * 100
+              );
+
+              setProcessedRecords(estimatedProcessed);
+              setUploadSteps((prev) =>
+                prev.map((step) =>
+                  step.id === "register"
+                    ? {
+                        ...step,
+                        status: "processing",
+                        progress: estimatedProgress,
+                        description: `Processing ${estimatedProcessed} of ${totalRecords} installer(s)`,
+                        details: `Registering item ${currentInChunk + 1}/${
+                          chunk.length
+                        } in current batch...`,
+                      }
+                    : step
+                )
+              );
+            }
+          }, 100); // Update every 100ms for smooth progress
+
+          return progressInterval;
+        };
+
+        // Start simulated progress
+        const progressInterval = simulateChunkProgress();
+
+        // Retry logic for failed chunks
+        while (retryCount <= maxRetries) {
+          try {
+            const response = await fetch("/api/installers/bulk-register", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ installers: chunk }),
+              signal: controller.signal,
+            });
+
+            const data = await response.json();
+
+            // Clear simulated progress
+            clearInterval(progressInterval);
+
+            if (response.ok) {
+              totalSuccess += data.data.success || 0;
+              totalFailed += data.data.failed || 0;
+
+              // Collect installer IDs from this chunk
+              if (data.data.installerIds && data.data.installerIds.length > 0) {
+                allInstallerIds.push(...data.data.installerIds);
+              }
+
+              if (data.data.errors && data.data.errors.length > 0) {
+                allErrors.push(...data.data.errors);
+              }
+              break; // Success, exit retry loop
+            } else {
+              if (retryCount === maxRetries) {
+                totalFailed += chunk.length;
+                allErrors.push(
+                  data.error ||
+                    `Chunk ${
+                      Math.floor(i / CHUNK_SIZE) + 1
+                    } failed after ${maxRetries} retries`
+                );
+                failedChunks.push({
+                  chunk,
+                  error: data.error || "Unknown error",
+                });
+              } else {
+                // Wait before retry (exponential backoff)
+                await new Promise((resolve) =>
+                  setTimeout(resolve, 1000 * (retryCount + 1))
+                );
+                retryCount++;
+              }
+            }
+          } catch (err) {
+            clearInterval(progressInterval);
+
+            if (err instanceof Error && err.name === "AbortError") {
+              toast.info("Upload cancelled by user");
+              break;
+            }
+
+            if (retryCount === maxRetries) {
+              totalFailed += chunk.length;
+              const errorMsg = `Chunk ${
+                Math.floor(i / CHUNK_SIZE) + 1
+              } failed: ${
+                err instanceof Error ? err.message : "Unknown error"
+              }`;
+              allErrors.push(errorMsg);
+              failedChunks.push({ chunk, error: errorMsg });
+            } else {
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * (retryCount + 1))
+              );
+              retryCount++;
+            }
+          }
+        }
+
+        // Update progress with actual results
+        const actualProgress = Math.round((chunkEndIndex / totalRecords) * 100);
+        setProcessedRecords(chunkEndIndex);
         setSuccessCount(totalSuccess);
         setFailedCount(totalFailed);
 
@@ -812,8 +944,8 @@ export default function BulkUploadInstallersPage() {
               ? {
                   ...step,
                   status: "processing",
-                  progress: progress,
-                  description: `Processing ${currentBatch} of ${totalRecords} installer(s)`,
+                  progress: actualProgress,
+                  description: `Processing ${chunkEndIndex} of ${totalRecords} installer(s)`,
                   details: `Registered: ${totalSuccess} | Failed: ${totalFailed}`,
                 }
               : step
@@ -855,29 +987,7 @@ export default function BulkUploadInstallersPage() {
         return;
       }
 
-      // Step 3: Google Contacts (already created during registration)
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      setUploadSteps((prev) =>
-        prev.map((step) =>
-          step.id === "google" ? { ...step, status: "processing" } : step
-        )
-      );
-
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setUploadSteps((prev) =>
-        prev.map((step) =>
-          step.id === "google"
-            ? {
-                ...step,
-                status: "completed",
-                progress: 100,
-                details: `Created ${totalGoogleContacts} Google contacts`,
-              }
-            : step
-        )
-      );
-
-      // Step 4: Activity Logging (already done during registration)
+      // Step 3: Activity Logging (already done during registration)
       await new Promise((resolve) => setTimeout(resolve, 300));
       setUploadSteps((prev) =>
         prev.map((step) =>
@@ -899,7 +1009,7 @@ export default function BulkUploadInstallersPage() {
         )
       );
 
-      // Step 5: Complete
+      // Step 4: Complete
       await new Promise((resolve) => setTimeout(resolve, 300));
       setUploadSteps((prev) =>
         prev.map((step) =>
@@ -908,7 +1018,10 @@ export default function BulkUploadInstallersPage() {
                 ...step,
                 status: "completed",
                 progress: 100,
-                details: `Upload completed: ${totalSuccess} successful, ${totalFailed} failed`,
+                details:
+                  allInstallerIds.length > 0
+                    ? `${totalSuccess} installer(s) registered. Google Contacts creation starting in background...`
+                    : `Upload completed: ${totalSuccess} successful, ${totalFailed} failed`,
               }
             : {
                 ...step,
@@ -918,12 +1031,48 @@ export default function BulkUploadInstallersPage() {
       );
 
       setSuccess(`Successfully uploaded ${totalSuccess} installer(s)!`);
+      toast.success(`Successfully uploaded ${totalSuccess} installer(s)!`);
 
       if (totalFailed > 0) {
         setError(
           `${totalFailed} installer(s) failed. Check the logs for details.`
         );
       }
+
+      // Create and start background job for Google Contacts creation
+      if (allInstallerIds.length > 0) {
+        try {
+          // Create batch job with all installer IDs
+          const batchJobResponse = await fetch("/api/batch-jobs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "GOOGLE_CONTACTS_CREATE",
+              installerIds: allInstallerIds,
+            }),
+          });
+
+          if (!batchJobResponse.ok) {
+            throw new Error("Failed to create batch job");
+          }
+
+          const batchJobData = await batchJobResponse.json();
+          const batchJobId = batchJobData.data.jobId;
+
+          // Start the batch job in background
+          await startJob(batchJobId);
+        } catch (jobError) {
+          console.error("Failed to create/start batch job:", jobError);
+          toast.error("Failed to start Google Contacts creation");
+        }
+      }
+
+      // Close modal and redirect after short delay
+      setTimeout(() => {
+        setShowProgressModal(false);
+        // router.push("/installers");
+        window.location.href = "/installers";
+      }, 500); // 1.5 second delay to show completion message
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setUploadSteps((prev) =>
@@ -936,6 +1085,14 @@ export default function BulkUploadInstallersPage() {
       setError("Failed to upload installers: " + errorMessage);
     } finally {
       setLoading(false);
+      setAbortController(null);
+    }
+  };
+
+  const handleCancelUpload = () => {
+    if (abortController) {
+      abortController.abort();
+      toast.info("Cancelling upload...");
     }
   };
 
@@ -948,17 +1105,56 @@ export default function BulkUploadInstallersPage() {
     [preview]
   );
 
+  // Virtual scrolling for large datasets (performance optimization)
+  const rowVirtualizer = useVirtualizer({
+    count: preview.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 60, // Estimated row height in pixels
+    overscan: 10, // Number of items to render outside of visible area
+  });
+
+  // Check for admin role
+  if (isAuthLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null; // useAdminGuard handles redirect
+  }
+
+  // Check for admin role
+  if (isAuthLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAuthorized) {
+    return null; // useAdminGuard handles redirect
+  }
+
   return (
     <div className="flex-1 overflow-auto space-y-4">
       <PageHeader
-        title="Bulk Upload Installers"
-        description="Upload multiple installers at once using an Excel file"
+        title="Bulk Register Installers"
+        description="Bulk register multiple installers at once using an Excel file"
         action={
-          <Button variant="ghost" onClick={() => router.push("/installers")}>
+          <Button
+            variant="ghost"
+            onClick={() => (window.location.href = "/installers")}
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Installers
           </Button>
         }
+        iconFill
+        Icon={IconLayer}
       />
       {/* Instructions Card */}
       <Card className="grid grid-cols-1 lg:grid-cols-2 ">
@@ -1012,6 +1208,7 @@ export default function BulkUploadInstallersPage() {
               <h3 className="mb-3">File Upload</h3>
               <div className="space-y-2">
                 <FileDropzone
+                  id="bulkRegisterInstallersDropzone"
                   label={
                     file
                       ? "FILE ALREADY SELECTED"
@@ -1084,10 +1281,10 @@ export default function BulkUploadInstallersPage() {
                       </div>
                       <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden shadow-inner">
                         <div
-                          className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-200 ease-out rounded-full relative overflow-hidden"
+                          className="h-full bg-linear-to-r from-primary to-primary/80 transition-all duration-200 ease-out rounded-full relative overflow-hidden"
                           style={{ width: `${fileReadProgress}%` }}
                         >
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
+                          <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent animate-pulse" />
                         </div>
                       </div>
                     </div>
@@ -1182,26 +1379,37 @@ export default function BulkUploadInstallersPage() {
 
         {preview.length > 0 && (
           <div className="flex gap-2">
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={
-                loading || invalidCount > 0 || validating || fileReading
-              }
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4 mr-2" />
-              )}
-              {loading
-                ? "Uploading..."
-                : validating
-                ? "Validating..."
-                : fileReading
-                ? "Reading file..."
-                : `Upload ${validCount} Valid Record(s)`}
-            </Button>
+            {loading && abortController ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleCancelUpload}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Cancel Upload
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={
+                  loading || invalidCount > 0 || validating || fileReading
+                }
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4 mr-2" />
+                )}
+                {loading
+                  ? "Uploading..."
+                  : validating
+                  ? "Validating..."
+                  : fileReading
+                  ? "Reading file..."
+                  : `Upload ${validCount} Valid Record(s)`}
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -1214,96 +1422,154 @@ export default function BulkUploadInstallersPage() {
           </div>
         )}
       </div>
-      {/* Preview Table */}
+      {/* Preview Table with Virtual Scrolling */}
       {preview.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Preview Data ({preview.length} records)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Installer Code</TableHead>
-                    <TableHead>Full Name</TableHead>
-                    <TableHead>CNIC</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>City</TableHead>
-                    <TableHead>Province</TableHead>
-                    <TableHead>Bank</TableHead>
-                    <TableHead>Issues</TableHead>
-                    <TableHead className="w-12">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {preview.map((installer, index) => (
-                    <TableRow
-                      key={index}
-                      className={!installer.isValid ? "bg-destructive/10" : ""}
-                    >
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        {installer.isValid ? (
-                          <Badge variant="default" className="bg-green-600">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Valid
-                          </Badge>
-                        ) : (
-                          <Badge variant="destructive">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Invalid
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {installer.installerCode}
-                      </TableCell>
-                      <TableCell>{installer.fullName}</TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {installer.cnic}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {installer.phoneNumber}
-                      </TableCell>
-                      <TableCell>{installer.city}</TableCell>
-                      <TableCell>{installer.province}</TableCell>
-                      <TableCell>{installer.bankName}</TableCell>
-                      <TableCell>
-                        {installer.issues.length > 0 ? (
-                          <div className="space-y-1">
-                            {installer.issues.map((issue, i) => (
-                              <div
-                                key={i}
-                                className="text-xs text-destructive flex items-start gap-1"
-                              >
-                                <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                                <span>{issue}</span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            No issues
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteRow(index)}
-                          title="Delete row"
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+            <div className="border border-border rounded-lg overflow-hidden">
+              {/* Table Header - Fixed */}
+              <div className="bg-muted/50 border-b border-border sticky top-0 z-10">
+                <div className="flex min-w-max">
+                  <div className="w-16 px-4 py-3 text-sm font-medium shrink-0">
+                    #
+                  </div>
+                  <div className="w-28 px-4 py-3 text-sm font-medium shrink-0">
+                    Status
+                  </div>
+                  <div className="w-36 px-4 py-3 text-sm font-medium shrink-0">
+                    Installer Code
+                  </div>
+                  <div className="w-48 px-4 py-3 text-sm font-medium shrink-0">
+                    Full Name
+                  </div>
+                  <div className="w-40 px-4 py-3 text-sm font-medium shrink-0">
+                    CNIC
+                  </div>
+                  <div className="w-36 px-4 py-3 text-sm font-medium shrink-0">
+                    Phone
+                  </div>
+                  <div className="w-32 px-4 py-3 text-sm font-medium shrink-0">
+                    City
+                  </div>
+                  <div className="w-32 px-4 py-3 text-sm font-medium shrink-0">
+                    Province
+                  </div>
+                  <div className="w-36 px-4 py-3 text-sm font-medium shrink-0">
+                    Bank
+                  </div>
+                  <div className="flex-1 min-w-80 px-4 py-3 text-sm font-medium">
+                    Issues
+                  </div>
+                  <div className="w-20 px-4 py-3 text-sm font-medium shrink-0">
+                    Action
+                  </div>
+                </div>
+              </div>
+
+              {/* Virtual Scrolling Container */}
+              <div
+                ref={parentRef}
+                className="overflow-auto"
+                style={{ height: "600px" }}
+              >
+                <div
+                  style={{
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    width: "100%",
+                    position: "relative",
+                  }}
+                >
+                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const installer = preview[virtualRow.index];
+                    return (
+                      <div
+                        key={virtualRow.index}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: `${virtualRow.size}px`,
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                        className={`flex min-w-max border-b border-border ${
+                          !installer.isValid ? "bg-destructive/10" : ""
+                        }`}
+                      >
+                        <div className="w-16 px-4 py-3 text-sm shrink-0 flex items-center">
+                          {virtualRow.index + 1}
+                        </div>
+                        <div className="w-28 px-4 py-3 text-sm shrink-0 flex items-center">
+                          {installer.isValid ? (
+                            <Badge variant="default" className="bg-green-600">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Valid
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Invalid
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="w-36 px-4 py-3 text-sm font-mono shrink-0 flex items-center">
+                          {installer.installerCode}
+                        </div>
+                        <div className="w-48 px-4 py-3 text-sm shrink-0 flex items-center">
+                          {installer.fullName}
+                        </div>
+                        <div className="w-40 px-4 py-3 text-sm font-mono shrink-0 flex items-center">
+                          {installer.cnic}
+                        </div>
+                        <div className="w-36 px-4 py-3 text-sm font-mono shrink-0 flex items-center">
+                          {installer.phoneNumber}
+                        </div>
+                        <div className="w-32 px-4 py-3 text-sm shrink-0 flex items-center">
+                          {installer.city}
+                        </div>
+                        <div className="w-32 px-4 py-3 text-sm shrink-0 flex items-center">
+                          {installer.province}
+                        </div>
+                        <div className="w-36 px-4 py-3 text-sm shrink-0 flex items-center">
+                          {installer.bankName}
+                        </div>
+                        <div className="flex-1 min-w-80 px-4 py-3 text-sm flex items-center">
+                          {installer.issues.length > 0 ? (
+                            <div className="space-y-1">
+                              {installer.issues.map((issue, i) => (
+                                <div
+                                  key={i}
+                                  className="text-xs text-destructive flex items-start gap-1"
+                                >
+                                  <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
+                                  <span>{issue}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              No issues
+                            </span>
+                          )}
+                        </div>
+                        <div className="w-20 px-4 py-3 text-sm shrink-0 flex items-center justify-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteRow(virtualRow.index)}
+                            title="Delete row"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -1344,7 +1610,7 @@ export default function BulkUploadInstallersPage() {
         open={terminateDialogOpen}
         onOpenChange={setTerminateDialogOpen}
       >
-        <AlertDialogContent className="rounded-4xl !min-w-sm">
+        <AlertDialogContent className="rounded-4xl min-w-sm!">
           <AlertDialogHeader className="flex flex-col items-center">
             <IconTrashBin2
               className="size-32 text-destructive-text"
@@ -1362,25 +1628,33 @@ export default function BulkUploadInstallersPage() {
           <AlertDialogFooter className="mt-4">
             <AlertDialogAction
               onClick={terminateInvalidRecords}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              variant="destructive"
+              className="squircle-icon rounded-full"
             >
               <IconTrashBin2 className="mr-2" /> Just Terminate
             </AlertDialogAction>
             <Button
               variant="outline"
               onClick={downloadAndTerminateInvalid}
-              className="rounded-full"
+              className="squircle-icon rounded-full"
             >
               <IconDownloadMinimalistic className="mr-2" />
               Download & Terminate
             </Button>
-            <AlertDialogCancel className="w-full">Cancel</AlertDialogCancel>
+            <AlertDialogCancel
+              className="squircle-icon rounded-full"
+              variant="ghost"
+            >
+              Cancel
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Progress Modal */}
       <BulkUploadProgressModal
+        title="Installers Bulk Register"
+        description="Installers Bulk Registeration in process"
         isOpen={showProgressModal}
         steps={uploadSteps}
         totalRecords={preview.filter((p) => p.isValid).length}
@@ -1390,7 +1664,7 @@ export default function BulkUploadInstallersPage() {
         onClose={() => {
           setShowProgressModal(false);
           if (success) {
-            setTimeout(() => router.push("/installers"), 500);
+            setTimeout(() => (window.location.href = "/installers"), 500);
           }
         }}
       />

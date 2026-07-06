@@ -1,4 +1,11 @@
 import mongoose from "mongoose";
+import dns from "dns";
+
+// System DNS resolver can't resolve mongodb+srv SRV records on this
+// network (router/ISP limitation). Force a public resolver that can.
+if (process.env.NODE_ENV === "development") {
+  dns.setServers(["8.8.8.8", "1.1.1.1"]);
+}
 
 const MONGODB_URI = process.env.MONGODB_URI!;
 
@@ -76,7 +83,10 @@ function parseMongoUri(uri: string): {
 }
 
 // Helper function to classify and explain errors
-function classifyMongoError(error: unknown): { cause: string; solution: string } {
+function classifyMongoError(error: unknown): {
+  cause: string;
+  solution: string;
+} {
   const errorMsg = error instanceof Error ? error.message : String(error);
 
   // Connection refused errors
@@ -210,6 +220,12 @@ async function dbConnect(): Promise<typeof mongoose> {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      // Connection pool optimization for production
+      maxPoolSize: 10, // Reduced from default 100 for serverless environments
+      minPoolSize: 2, // Keep minimum warm connections
+      maxIdleTimeMS: 30000, // Close idle connections after 30 seconds
+      serverSelectionTimeoutMS: 10000, // Fail fast if no server available
+      socketTimeoutMS: 45000, // Socket timeout for operations
     };
 
     const uriInfo = parseMongoUri(MONGODB_URI);

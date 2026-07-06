@@ -1,299 +1,211 @@
-import { useReducer, Dispatch } from "react";
+import { useReducer, Dispatch, useMemo } from "react";
 import type { DateRange } from "react-day-picker";
+import {
+  BaseEntityListState,
+  BaseEntityListAction,
+  EntityListConfig,
+  BaseDateFilters,
+  createEntityListReducer,
+  createInitialState,
+} from "./useEntityListState";
 
-export interface ColumnVisibility {
+// Installer-specific column visibility
+export interface InstallerColumnVisibility {
   installerCode: boolean;
   fullName: boolean;
   cnic: boolean;
   phoneNumber: boolean;
   city: boolean;
   province: boolean;
-  trainingCenter: boolean;
+  district: boolean;
   companyName: boolean;
   certified: boolean;
   bankName: boolean;
   accountNumber: boolean;
 }
 
-export interface Filters {
+// Installer-specific filters extending base date filters
+export interface InstallerFilters extends BaseDateFilters {
   city: string;
   province: string;
-  trainingCenter: string;
+  district: string;
   certified: string;
-  dateRange: "all" | "today" | "week" | "month" | "year" | "custom";
-  customStartDate: string;
-  customEndDate: string;
 }
 
-export interface InstallersState {
-  // Search and filtering
-  search: string;
-  filters: Filters;
-  showFilters: boolean;
-  dateRange: DateRange | undefined;
-  isCustomDateOpen: boolean;
-
-  // Sorting
-  sortField: string;
-  sortDirection: "asc" | "desc";
-
-  // Pagination
-  currentPage: number;
-  rowsPerPage: number;
-
-  // Column visibility
-  visibleColumns: ColumnVisibility;
-
-  // Selection
-  selectedInstallers: Set<string>;
-
-  // Modal state
-  editModalOpen: boolean;
-  selectedInstallerId: string;
-}
-
-export type InstallersAction =
-  | { type: "SET_SEARCH"; payload: string }
-  | { type: "SET_FILTER"; payload: { key: keyof Filters; value: string } }
-  | { type: "SET_FILTERS"; payload: Partial<Filters> }
-  | { type: "RESET_FILTERS" }
-  | { type: "TOGGLE_FILTERS" }
-  | { type: "SET_DATE_RANGE"; payload: DateRange | undefined }
-  | { type: "SET_CUSTOM_DATE_OPEN"; payload: boolean }
-  | { type: "SET_SORT"; payload: { field: string; direction: "asc" | "desc" } }
-  | { type: "TOGGLE_SORT"; payload: string }
-  | { type: "SET_PAGE"; payload: number }
-  | { type: "SET_ROWS_PER_PAGE"; payload: number }
-  | { type: "TOGGLE_COLUMN"; payload: keyof ColumnVisibility }
-  | { type: "SET_COLUMNS"; payload: Partial<ColumnVisibility> }
-  | { type: "SELECT_INSTALLER"; payload: string }
-  | { type: "DESELECT_INSTALLER"; payload: string }
-  | { type: "SELECT_ALL_INSTALLERS"; payload: string[] }
-  | { type: "CLEAR_SELECTION" }
-  | { type: "TOGGLE_INSTALLER_SELECTION"; payload: string }
-  | { type: "OPEN_EDIT_MODAL"; payload: string }
-  | { type: "CLOSE_EDIT_MODAL" }
-  | { type: "RESET_TO_PAGE_ONE" };
-
-const initialFilters: Filters = {
+// Initial values
+const initialFilters: InstallerFilters = {
   city: "",
   province: "",
-  trainingCenter: "",
+  district: "",
   certified: "",
   dateRange: "all",
   customStartDate: "",
   customEndDate: "",
 };
 
-const initialColumnVisibility: ColumnVisibility = {
+const initialColumnVisibility: InstallerColumnVisibility = {
   installerCode: true,
   fullName: true,
   cnic: true,
   phoneNumber: true,
   city: true,
   province: false,
-  trainingCenter: false,
+  district: false,
   companyName: false,
   certified: true,
   bankName: false,
   accountNumber: false,
 };
 
-export const initialState: InstallersState = {
-  search: "",
-  filters: initialFilters,
-  showFilters: false,
-  dateRange: undefined,
-  isCustomDateOpen: false,
-  sortField: "createdAt",
-  sortDirection: "desc",
-  currentPage: 1,
-  rowsPerPage: 10,
-  visibleColumns: initialColumnVisibility,
-  selectedInstallers: new Set(),
-  editModalOpen: false,
-  selectedInstallerId: "",
+// Configuration for installers entity list
+const installersConfig: EntityListConfig<
+  InstallerFilters,
+  InstallerColumnVisibility
+> = {
+  initialFilters,
+  initialColumns: initialColumnVisibility,
+  defaultSortField: "createdAt",
+  defaultSortDirection: "desc",
+  defaultItemsPerPage: 10,
 };
 
+// Extended state type with installer-specific additions
+export interface InstallersState
+  extends BaseEntityListState<InstallerFilters, InstallerColumnVisibility> {
+  // Additional installer-specific state
+  search: string;
+  showFilters: boolean;
+  dateRangePicker: DateRange | undefined;
+  isCustomDateOpen: boolean;
+}
+
+// Installer-specific action types (not in base)
+type InstallerSpecificAction =
+  | { type: "SET_SEARCH"; payload: string }
+  | { type: "TOGGLE_FILTERS" }
+  | { type: "SET_DATE_RANGE_PICKER"; payload: DateRange | undefined }
+  | { type: "SET_CUSTOM_DATE_OPEN"; payload: boolean }
+  // Legacy action aliases for backwards compatibility
+  | { type: "SET_ROWS_PER_PAGE"; payload: number }
+  | { type: "SELECT_INSTALLER"; payload: string }
+  | { type: "DESELECT_INSTALLER"; payload: string }
+  | { type: "SELECT_ALL_INSTALLERS"; payload: string[] }
+  | { type: "TOGGLE_INSTALLER_SELECTION"; payload: string };
+
+// Extended action type combining base and installer-specific actions
+export type InstallersAction =
+  | BaseEntityListAction<InstallerFilters, InstallerColumnVisibility>
+  | InstallerSpecificAction;
+
+// Initial installer-specific state additions
+const installerSpecificInitialState = {
+  search: "",
+  showFilters: false,
+  dateRangePicker: undefined as DateRange | undefined,
+  isCustomDateOpen: false,
+};
+
+// Create initial state by combining base state with installer-specific state
+export const initialState: InstallersState = {
+  ...createInitialState(installersConfig),
+  ...installerSpecificInitialState,
+};
+
+// Get the base reducer
+const baseReducer = createEntityListReducer(installersConfig);
+
+/**
+ * Reducer that composes base entity list reducer with installer-specific actions.
+ * This eliminates duplication by delegating common actions to the base reducer.
+ */
 function installersReducer(
   state: InstallersState,
   action: InstallersAction
 ): InstallersState {
+  // Handle installer-specific actions first
   switch (action.type) {
+    // Installer-specific actions
     case "SET_SEARCH":
       return {
         ...state,
         search: action.payload,
-        currentPage: 1, // Reset to first page on search
-      };
-
-    case "SET_FILTER":
-      return {
-        ...state,
-        filters: {
-          ...state.filters,
-          [action.payload.key]: action.payload.value,
-        },
-        currentPage: 1, // Reset to first page on filter
-      };
-
-    case "SET_FILTERS":
-      return {
-        ...state,
-        filters: {
-          ...state.filters,
-          ...action.payload,
-        },
-        currentPage: 1,
-      };
-
-    case "RESET_FILTERS":
-      return {
-        ...state,
-        filters: initialFilters,
-        dateRange: undefined,
         currentPage: 1,
       };
 
     case "TOGGLE_FILTERS":
-      return {
-        ...state,
-        showFilters: !state.showFilters,
-      };
+      return { ...state, showFilters: !state.showFilters };
 
-    case "SET_DATE_RANGE":
-      return {
-        ...state,
-        dateRange: action.payload,
-      };
+    case "SET_DATE_RANGE_PICKER":
+      return { ...state, dateRangePicker: action.payload };
 
     case "SET_CUSTOM_DATE_OPEN":
-      return {
-        ...state,
-        isCustomDateOpen: action.payload,
-      };
+      return { ...state, isCustomDateOpen: action.payload };
 
-    case "SET_SORT":
-      return {
-        ...state,
-        sortField: action.payload.field,
-        sortDirection: action.payload.direction,
-      };
-
-    case "TOGGLE_SORT":
-      if (state.sortField === action.payload) {
-        // Toggle direction if same field
-        return {
-          ...state,
-          sortDirection: state.sortDirection === "asc" ? "desc" : "asc",
-        };
-      } else {
-        // New field, default to ascending
-        return {
-          ...state,
-          sortField: action.payload,
-          sortDirection: "asc",
-        };
-      }
-
-    case "SET_PAGE":
-      return {
-        ...state,
-        currentPage: action.payload,
-      };
-
+    // Legacy action aliases (map to base actions for backwards compatibility)
     case "SET_ROWS_PER_PAGE":
-      return {
-        ...state,
-        rowsPerPage: action.payload,
-        currentPage: 1, // Reset to first page when changing rows per page
-      };
-
-    case "TOGGLE_COLUMN":
-      return {
-        ...state,
-        visibleColumns: {
-          ...state.visibleColumns,
-          [action.payload]: !state.visibleColumns[action.payload],
-        },
-      };
-
-    case "SET_COLUMNS":
-      return {
-        ...state,
-        visibleColumns: {
-          ...state.visibleColumns,
-          ...action.payload,
-        },
-      };
+      return { ...state, itemsPerPage: action.payload, currentPage: 1 };
 
     case "SELECT_INSTALLER":
       return {
         ...state,
-        selectedInstallers: new Set([
-          ...state.selectedInstallers,
-          action.payload,
-        ]),
+        selectedItems: new Set([...state.selectedItems, action.payload]),
       };
 
     case "DESELECT_INSTALLER": {
-      const newSelection = new Set(state.selectedInstallers);
+      const newSelection = new Set(state.selectedItems);
       newSelection.delete(action.payload);
-      return {
-        ...state,
-        selectedInstallers: newSelection,
-      };
+      return { ...state, selectedItems: newSelection };
     }
 
     case "SELECT_ALL_INSTALLERS":
-      return {
-        ...state,
-        selectedInstallers: new Set(action.payload),
-      };
-
-    case "CLEAR_SELECTION":
-      return {
-        ...state,
-        selectedInstallers: new Set(),
-      };
+      return { ...state, selectedItems: new Set(action.payload) };
 
     case "TOGGLE_INSTALLER_SELECTION": {
-      const newSelection = new Set(state.selectedInstallers);
+      const newSelection = new Set(state.selectedItems);
       if (newSelection.has(action.payload)) {
         newSelection.delete(action.payload);
       } else {
         newSelection.add(action.payload);
       }
+      return { ...state, selectedItems: newSelection };
+    }
+
+    // Special handling for RESET_FILTERS to also reset dateRangePicker
+    case "RESET_FILTERS": {
+      const baseResult = baseReducer(state, action);
       return {
         ...state,
-        selectedInstallers: newSelection,
+        ...baseResult,
+        dateRangePicker: undefined,
       };
     }
 
-    case "OPEN_EDIT_MODAL":
+    // Delegate all other actions to the base reducer
+    default: {
+      // Cast to base action type for the base reducer
+      const baseAction = action as BaseEntityListAction<
+        InstallerFilters,
+        InstallerColumnVisibility
+      >;
+      const baseResult = baseReducer(state, baseAction);
+      // Preserve installer-specific state when base reducer handles the action
       return {
-        ...state,
-        editModalOpen: true,
-        selectedInstallerId: action.payload,
+        ...baseResult,
+        search: state.search,
+        showFilters: state.showFilters,
+        dateRangePicker: state.dateRangePicker,
+        isCustomDateOpen: state.isCustomDateOpen,
       };
-
-    case "CLOSE_EDIT_MODAL":
-      return {
-        ...state,
-        editModalOpen: false,
-        selectedInstallerId: "",
-      };
-
-    case "RESET_TO_PAGE_ONE":
-      return {
-        ...state,
-        currentPage: 1,
-      };
-
-    default:
-      return state;
+    }
   }
 }
+
+// Export types for backwards compatibility
+export type { InstallerColumnVisibility as ColumnVisibility };
+export type { InstallerFilters as Filters };
+
+// Alias for backwards compatibility
+export { initialState as installersInitialState };
 
 export function useInstallersState(): [
   InstallersState,

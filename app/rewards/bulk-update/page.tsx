@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -37,18 +37,54 @@ import {
 import PageHeader from "@/components/PageHeader";
 import { PAYMENT_METHOD } from "@/lib/constants";
 import { FileDropzone } from "@/components/ui/drop-zone";
-import { IconTrashBin2 } from "@/components/icons";
+import { IconLayer, IconReward, IconTrashBin2 } from "@/components/icons";
 import IconExcel from "@/components/icons/Excel";
 import { toast } from "sonner";
 import BulkUploadProgressModal, {
   UploadStep,
 } from "@/components/BulkUploadProgressModal";
+import Loading from "@/components/ui/loading";
+import IconDownloadMinimalistic from "@/components/icons/DownloadMinimalistic";
+
+function worksheetToJson(worksheet: ExcelJS.Worksheet): Record<string, unknown>[] {
+  const headers: string[] = [];
+  worksheet.getRow(1).eachCell((cell, colNumber) => {
+    headers[colNumber] = cell.value != null ? String(cell.value) : "";
+  });
+
+  const rows: Record<string, unknown>[] = [];
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const obj: Record<string, unknown> = {};
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const header = headers[colNumber];
+      if (header) obj[header] = cell.value;
+    });
+    rows.push(obj);
+  });
+  return rows;
+}
+
+async function downloadWorkbook(workbook: ExcelJS.Workbook, filename: string) {
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
 
 interface RewardUpdate {
   serialNumber: string;
   transactionId: string;
   referrerTransactionId?: string;
-  paymentStatus: string;
+  rewardStatus: string;
   sendingDate?: string;
   paymentMethod?: string;
   issues: string[];
@@ -65,6 +101,8 @@ export default function BulkUploadRewardsPage() {
   const [preview, setPreview] = useState<RewardUpdate[]>([]);
   const [downloadingTemplate, setDownloadingTemplate] = useState(false);
   const [downloadingInvalid, setDownloadingInvalid] = useState(false);
+  const [downloadingPaymentFormat, setDownloadingPaymentFormat] =
+    useState(false);
   const [fileReading, setFileReading] = useState(false);
   const [fileReadProgress, setFileReadProgress] = useState(0);
   const [terminateDialogOpen, setTerminateDialogOpen] = useState(false);
@@ -76,7 +114,7 @@ export default function BulkUploadRewardsPage() {
   const [successCount, setSuccessCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
 
-  const downloadTemplate = () => {
+  const downloadTemplate = async () => {
     setDownloadingTemplate(true);
     try {
       const template = [
@@ -88,25 +126,50 @@ export default function BulkUploadRewardsPage() {
         },
       ];
 
-      const ws = XLSX.utils.json_to_sheet(template);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Rewards Template");
-
-      // Set column widths
-      ws["!cols"] = [
-        { wch: 15 }, // Serial Number
-        { wch: 25 }, // Installer Transaction ID
-        { wch: 25 }, // Referrer Transaction ID
-        { wch: 25 }, // Payment Method
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Rewards Template");
+      ws.columns = [
+        { header: "Serial Number", key: "Serial Number", width: 15 },
+        { header: "Installer Transaction ID", key: "Installer Transaction ID", width: 25 },
+        { header: "Referrer Transaction ID", key: "Referrer Transaction ID", width: 25 },
+        { header: "Payment Method", key: "Payment Method", width: 25 },
       ];
+      ws.addRows(template);
 
-      XLSX.writeFile(wb, "rewards_bulk_update_template.xlsx");
+      await downloadWorkbook(wb, "rewards_bulk_update_template.xlsx");
     } finally {
       setTimeout(() => setDownloadingTemplate(false), 500);
     }
   };
 
-  const validatePaymentStatus = (status: string): boolean => {
+  const downloadPaymentFormat = async () => {
+    setDownloadingPaymentFormat(true);
+    try {
+      const response = await fetch("/api/reports/payment-format?format=excel");
+
+      if (!response.ok) {
+        throw new Error("Failed to download payment format report");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `payment_format_${Date.now()}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Payment format downloaded successfully");
+    } catch (error) {
+      console.error("Failed to download payment format:", error);
+      toast.error("Failed to download payment format report");
+    } finally {
+      setTimeout(() => setDownloadingPaymentFormat(false), 500);
+    }
+  };
+
+  const validateRewardStatus = (status: string): boolean => {
     const validStatuses = ["PAID", "PENDING", "FAILED"];
     return validStatuses.includes(status.toUpperCase());
   };
@@ -151,11 +214,11 @@ export default function BulkUploadRewardsPage() {
         issues.push("Installer transaction ID is required");
       }
 
-      if (!reward.paymentStatus) {
+      if (!reward.rewardStatus) {
         issues.push("Payment status is required");
-      } else if (!validatePaymentStatus(reward.paymentStatus)) {
+      } else if (!validateRewardStatus(reward.rewardStatus)) {
         issues.push(
-          `Invalid payment status "${reward.paymentStatus}" (must be: PAID, PENDING, or FAILED)`
+          `Invalid reward status "${reward.rewardStatus}" (must be: PAID, PENDING, or FAILED)`
         );
       }
 
@@ -226,26 +289,23 @@ export default function BulkUploadRewardsPage() {
           // Allow UI to update
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const data = e.target?.result as ArrayBuffer;
 
           setFileReadProgress(75);
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const workbook = XLSX.read(data, { type: "array" });
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(data);
 
           setFileReadProgress(80);
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
+          const worksheet = workbook.worksheets[0];
 
           setFileReadProgress(85);
           await new Promise((resolve) => requestAnimationFrame(resolve));
 
-          const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<
-            string,
-            unknown
-          >[];
+          const jsonData = worksheetToJson(worksheet);
 
           setFileReadProgress(90);
           await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -277,7 +337,7 @@ export default function BulkUploadRewardsPage() {
               serialNumber,
               transactionId,
               referrerTransactionId,
-              paymentStatus: "PAID", // Temporary, will be overwritten
+              rewardStatus: "PAID", // Temporary, will be overwritten
               sendingDate: rawSendingDate || defaultSendingDate,
               paymentMethod: normalizePaymentMethod(rawPaymentMethod),
             };
@@ -285,23 +345,23 @@ export default function BulkUploadRewardsPage() {
             const issues = validateReward(tempReward);
 
             // Determine payment status based on validation and transaction ID
-            let paymentStatus: string;
+            let rewardStatus: string;
             if (issues.length > 0) {
               // If there are validation errors, mark as FAILED
-              paymentStatus = "FAILED";
+              rewardStatus = "FAILED";
             } else if (transactionId) {
               // If validation passes and transaction ID is provided, mark as PAID
-              paymentStatus = "PAID";
+              rewardStatus = "PAID";
             } else {
               // If validation passes but no transaction ID, mark as PENDING
-              paymentStatus = "PENDING";
+              rewardStatus = "PENDING";
             }
 
             const reward = {
               serialNumber,
               transactionId,
               referrerTransactionId,
-              paymentStatus,
+              rewardStatus,
               sendingDate: rawSendingDate || defaultSendingDate,
               paymentMethod: normalizePaymentMethod(rawPaymentMethod),
             };
@@ -380,22 +440,22 @@ export default function BulkUploadRewardsPage() {
         // Update payment status based on the validation results from backend
         const updatedRewards = data.data.validatedRewards.map(
           (reward: RewardUpdate) => {
-            let paymentStatus: string;
+            let rewardStatus: string;
 
             if (reward.issues && reward.issues.length > 0) {
               // If there are validation errors (including from backend), mark as FAILED
-              paymentStatus = "FAILED";
+              rewardStatus = "FAILED";
             } else if (reward.transactionId) {
               // If validation passes and transaction ID is provided, mark as PAID
-              paymentStatus = "PAID";
+              rewardStatus = "PAID";
             } else {
               // If validation passes but no transaction ID, mark as PENDING
-              paymentStatus = "PENDING";
+              rewardStatus = "PENDING";
             }
 
             return {
               ...reward,
-              paymentStatus,
+              rewardStatus,
               isValid: !reward.issues || reward.issues.length === 0,
             };
           }
@@ -454,7 +514,7 @@ export default function BulkUploadRewardsPage() {
     }, 500);
   };
 
-  const downloadInvalidRecords = () => {
+  const downloadInvalidRecords = async () => {
     setDownloadingInvalid(true);
     try {
       const invalidRecords = preview.filter((p) => !p.isValid);
@@ -471,21 +531,19 @@ export default function BulkUploadRewardsPage() {
         ISSUES: record.issues.join(" | "),
       }));
 
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Invalid Records");
-
-      // Set column widths
-      ws["!cols"] = [
-        { wch: 15 }, // Serial Number
-        { wch: 25 }, // Installer Transaction ID
-        { wch: 25 }, // Referrer Transaction ID
-        { wch: 25 }, // Payment Method
-        { wch: 60 }, // ISSUES
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Invalid Records");
+      ws.columns = [
+        { header: "Serial Number", key: "Serial Number", width: 15 },
+        { header: "Installer Transaction ID", key: "Installer Transaction ID", width: 25 },
+        { header: "Referrer Transaction ID", key: "Referrer Transaction ID", width: 25 },
+        { header: "Payment Method", key: "Payment Method", width: 25 },
+        { header: "ISSUES", key: "ISSUES", width: 60 },
       ];
+      ws.addRows(excelData);
 
       const timestamp = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `invalid_rewards_${timestamp}.xlsx`);
+      await downloadWorkbook(wb, `invalid_rewards_${timestamp}.xlsx`);
     } finally {
       setTimeout(() => setDownloadingInvalid(false), 500);
     }
@@ -591,7 +649,7 @@ export default function BulkUploadRewardsPage() {
           serialNumber: reward.serialNumber,
           transactionId: reward.transactionId,
           referrerTransactionId: reward.referrerTransactionId,
-          paymentStatus: reward.paymentStatus,
+          rewardStatus: reward.rewardStatus,
           sendingDate: reward.sendingDate,
           paymentMethod: reward.paymentMethod,
         }));
@@ -748,6 +806,8 @@ export default function BulkUploadRewardsPage() {
   return (
     <div className="flex-1 overflow-auto space-y-4">
       <PageHeader
+        iconFill
+        Icon={IconLayer}
         title="Bulk Update Rewards"
         description="Update multiple reward records at once using an Excel file"
         action={
@@ -777,18 +837,32 @@ export default function BulkUploadRewardsPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 4. Click &quot;Update All Valid Records&quot; to finalize
               </p>
-              <Button
-                onClick={downloadTemplate}
-                variant="outline"
-                disabled={downloadingTemplate}
-              >
-                {downloadingTemplate ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4 mr-2" />
-                )}
-                {downloadingTemplate ? "Downloading..." : "Download Template"}
-              </Button>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  onClick={downloadTemplate}
+                  variant="outline"
+                  disabled={downloadingTemplate}
+                  className="gap-2"
+                >
+                  {downloadingTemplate ? (
+                    <Loading />
+                  ) : (
+                    <IconDownloadMinimalistic />
+                  )}
+                  {downloadingTemplate ? "Downloading..." : "Download Template"}
+                </Button>
+                <Button
+                  onClick={downloadPaymentFormat}
+                  variant="outline"
+                  className="gap-2"
+                  disabled={downloadingPaymentFormat}
+                >
+                  {downloadingPaymentFormat ? <Loading /> : <IconReward />}
+                  {downloadingPaymentFormat
+                    ? "Downloading..."
+                    : "Payment Format"}
+                </Button>
+              </div>
             </div>
 
             {/* <div className="pt-4 border-t border-border">
@@ -810,6 +884,7 @@ export default function BulkUploadRewardsPage() {
               <h3 className="mb-3">File Upload</h3>
               <div className="space-y-2">
                 <FileDropzone
+                  id="bulkUpdateRewardsDropzone"
                   label={
                     file
                       ? "FILE ALREADY SELECTED"
@@ -883,10 +958,10 @@ export default function BulkUploadRewardsPage() {
                       </div>
                       <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden shadow-inner">
                         <div
-                          className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-200 ease-out rounded-full relative overflow-hidden"
+                          className="h-full bg-linear-to-r from-primary to-primary/80 transition-all duration-200 ease-out rounded-full relative overflow-hidden"
                           style={{ width: `${fileReadProgress}%` }}
                         >
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
+                          <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent animate-pulse" />
                         </div>
                       </div>
                     </div>
@@ -919,7 +994,7 @@ export default function BulkUploadRewardsPage() {
 
         {fileReading && (
           <Alert>
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loading />
             <AlertDescription>
               Reading and parsing Excel file...
             </AlertDescription>
@@ -928,7 +1003,7 @@ export default function BulkUploadRewardsPage() {
 
         {validating && (
           <Alert>
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loading />
             <AlertDescription>Validating against database...</AlertDescription>
           </Alert>
         )}
@@ -1023,7 +1098,7 @@ export default function BulkUploadRewardsPage() {
                     <TableHead>Serial Number</TableHead>
                     <TableHead>Transaction ID</TableHead>
                     <TableHead>Ref. Transaction</TableHead>
-                    <TableHead>Payment Status</TableHead>
+                    <TableHead>Reward Status</TableHead>
                     <TableHead>Method</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Issues</TableHead>
@@ -1062,14 +1137,14 @@ export default function BulkUploadRewardsPage() {
                       <TableCell>
                         <Badge
                           variant={
-                            reward.paymentStatus === "PAID"
+                            reward.rewardStatus === "PAID"
                               ? "default"
-                              : reward.paymentStatus === "FAILED"
+                              : reward.rewardStatus === "FAILED"
                               ? "destructive"
                               : "secondary"
                           }
                         >
-                          {reward.paymentStatus}
+                          {reward.rewardStatus}
                         </Badge>
                       </TableCell>
                       <TableCell>{reward.paymentMethod || "-"}</TableCell>
@@ -1084,7 +1159,7 @@ export default function BulkUploadRewardsPage() {
                                 key={i}
                                 className="text-xs text-destructive flex items-start gap-1"
                               >
-                                <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
                                 <span>{issue}</span>
                               </div>
                             ))}

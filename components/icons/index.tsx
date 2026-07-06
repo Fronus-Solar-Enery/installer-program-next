@@ -27,6 +27,7 @@ export { default as IconClipboardTick } from "./ClipboardTick";
 export { default as IconClock } from "./Clock";
 export { default as IconClockCircle } from "./ClockCircle";
 export { default as IconClose } from "./Close";
+export { default as IconCloseCircle } from "./CloseCircle";
 export { default as IconCloudUpload } from "./CloudUpload";
 export { default as IconCommand } from "./Command";
 export { default as IconCopy } from "./Copy";
@@ -103,6 +104,7 @@ export { default as IconWarning2 } from "./Warning2";
 export { default as IconWhatsapp } from "./Whatsapp";
 export { default as IconWidget } from "./Widget";
 export { default as IconPackage } from "./BoxMinimalistic";
+export { default as IconSave } from "./Diskette";
 
 // INSTALLER ICONS
 export { default as IconInstallerCode } from "./QRCode";
@@ -112,5 +114,4 @@ export { default as IconCompany } from "./Buildings";
 export { default as IconReward } from "./Money";
 export { default as IconProduct } from "./BoxMinimalistic";
 export { default as IconSerialNumber } from "./Barcode";
-export { default as IconTrainingCenter } from "./Teacher";
 export { default as IconInstaller } from "./UserCog";

@@ -82,11 +82,11 @@ export default function TeamRegisterModal({
       const data = await response.json();
 
       if (data.success) {
-        toast.success("Team member created successfully");
+        toast.success(data.message || "Team member created successfully");
         onSuccess();
         onOpenChange(false);
       } else {
-        toast.error(data.error || "Failed to create team member");
+        toast.error(data.message || "Failed to create team member");
       }
     } catch (error) {
       console.error("Error creating team member:", error);

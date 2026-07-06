@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -17,14 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import IconDownloadMinimalistic from "@/components/icons/DownloadMinimalistic";
 import {
   AlertCircle,
   CheckCircle2,
@@ -35,19 +29,50 @@ import {
   Loader2,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import {
-  PAYMENT_METHOD,
-  PRODUCT_MODELS,
-  BANKS,
-  SERIAL_STATUSES,
-} from "@/lib/constants";
+import { PAYMENT_METHOD, BANKS, SERIAL_STATUSES } from "@/lib/constants";
+import { useProducts } from "@/hooks/useProducts";
 import { FileDropzone } from "@/components/ui/drop-zone";
-import { IconTrashBin2 } from "@/components/icons";
+import { IconLayer, IconTrashBin2 } from "@/components/icons";
 import IconExcel from "@/components/icons/Excel";
 import { toast } from "sonner";
 import BulkUploadProgressModal, {
   UploadStep,
 } from "@/components/BulkUploadProgressModal";
+import Loading from "@/components/ui/loading";
+
+function worksheetToJson(worksheet: ExcelJS.Worksheet): Record<string, unknown>[] {
+  const headers: string[] = [];
+  worksheet.getRow(1).eachCell((cell, colNumber) => {
+    headers[colNumber] = cell.value != null ? String(cell.value) : "";
+  });
+
+  const rows: Record<string, unknown>[] = [];
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
+    const obj: Record<string, unknown> = {};
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const header = headers[colNumber];
+      if (header) obj[header] = cell.value;
+    });
+    rows.push(obj);
+  });
+  return rows;
+}
+
+async function downloadWorkbook(workbook: ExcelJS.Workbook, filename: string) {
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+}
 
 interface RewardCreate {
   timestamp: string;
@@ -64,7 +89,7 @@ interface RewardCreate {
   bankName: string;
   accountNumber: string;
   accountTitle: string;
-  paymentStatus: string;
+  rewardStatus: string;
   transactionId?: string;
   rewardAmount: string;
   referrerRewardAmount?: string;
@@ -77,6 +102,7 @@ interface RewardCreate {
 
 export default function BulkCreateRewardsPage() {
   const router = useRouter();
+  const { data: products = [] } = useProducts();
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
   const [error, setError] = useState("");
@@ -96,7 +122,14 @@ export default function BulkCreateRewardsPage() {
   const [successCount, setSuccessCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
 
-  const downloadTemplate = () => {
+  // Abort controller for canceling operations
+  const [abortController, setAbortController] =
+    useState<AbortController | null>(null);
+
+  // Virtual scrolling ref for large datasets
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const downloadTemplate = async () => {
     setDownloadingTemplate(true);
     try {
       const template = [
@@ -114,7 +147,7 @@ export default function BulkCreateRewardsPage() {
           "Bank Name": "Habib Bank Ltd",
           "Account Number": "1234567890",
           "Account Title": "John Doe",
-          "Payment Status": "PENDING",
+          "Reward Status": "PENDING",
           "Transaction ID": "TXN123456 (optional)",
           "Reward Amount": "6500",
           "Referrer Reward Amount": "1000 (required if installer has referrer)",
@@ -125,39 +158,38 @@ export default function BulkCreateRewardsPage() {
         },
       ];
 
-      const ws = XLSX.utils.json_to_sheet(template);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Rewards Template");
-
-      ws["!cols"] = [
-        { wch: 20 },
-        { wch: 25 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 35 },
-        { wch: 15 },
-        { wch: 35 },
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 25 },
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 25 },
-        { wch: 15 },
-        { wch: 40 },
-        { wch: 35 },
-        { wch: 25 },
-        { wch: 15 },
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Rewards Template");
+      ws.columns = [
+        { header: "Timestamp", key: "Timestamp", width: 20 },
+        { header: "Team Member Email", key: "Team Member Email", width: 25 },
+        { header: "Installer Name", key: "Installer Name", width: 20 },
+        { header: "Installer Code", key: "Installer Code", width: 15 },
+        { header: "Product Model", key: "Product Model", width: 35 },
+        { header: "Serial Number", key: "Serial Number", width: 15 },
+        { header: "Inverter Serial Number", key: "Inverter Serial Number", width: 35 },
+        { header: "Serial Number Status", key: "Serial Number Status", width: 20 },
+        { header: "City of Installation", key: "City of Installation", width: 20 },
+        { header: "Bank Name", key: "Bank Name", width: 25 },
+        { header: "Account Number", key: "Account Number", width: 20 },
+        { header: "Account Title", key: "Account Title", width: 20 },
+        { header: "Reward Status", key: "Reward Status", width: 15 },
+        { header: "Transaction ID", key: "Transaction ID", width: 25 },
+        { header: "Reward Amount", key: "Reward Amount", width: 15 },
+        { header: "Referrer Reward Amount", key: "Referrer Reward Amount", width: 40 },
+        { header: "Referrer Transaction ID", key: "Referrer Transaction ID", width: 35 },
+        { header: "Sending Date", key: "Sending Date", width: 25 },
+        { header: "Payment Method", key: "Payment Method", width: 15 },
       ];
+      ws.addRows(template);
 
-      XLSX.writeFile(wb, "rewards_bulk_register_template.xlsx");
+      await downloadWorkbook(wb, "rewards_bulk_register_template.xlsx");
     } finally {
       setTimeout(() => setDownloadingTemplate(false), 500);
     }
   };
 
-  const validatePaymentStatus = (status: string): boolean => {
+  const validateRewardStatus = (status: string): boolean => {
     const validStatuses = ["PAID", "PENDING", "FAILED"];
     return validStatuses.includes(status.toUpperCase());
   };
@@ -168,7 +200,7 @@ export default function BulkCreateRewardsPage() {
     return PAYMENT_METHOD.some(
       (pm) =>
         pm.value.toUpperCase() === normalizedMethod ||
-        pm.label.toUpperCase() === normalizedMethod
+        pm.label.toUpperCase() === normalizedMethod,
     );
   };
 
@@ -178,20 +210,18 @@ export default function BulkCreateRewardsPage() {
     const matched = PAYMENT_METHOD.find(
       (pm) =>
         pm.value.toUpperCase() === normalizedInput ||
-        pm.label.toUpperCase() === normalizedInput
+        pm.label.toUpperCase() === normalizedInput,
     );
     return matched ? matched.value : method;
   };
 
   const validateProductModel = (model: string): boolean => {
-    return PRODUCT_MODELS.some(
-      (pm) => pm.value === model || pm.label === model
-    );
+    return products.some((pm) => pm.value === model || pm.label === model);
   };
 
   const normalizeProductModel = (model: string): string => {
-    const matched = PRODUCT_MODELS.find(
-      (pm) => pm.value === model || pm.label === model
+    const matched = products.find(
+      (pm) => pm.value === model || pm.label === model,
     );
     return matched ? matched.value : model;
   };
@@ -203,7 +233,7 @@ export default function BulkCreateRewardsPage() {
       (bank) =>
         bank.label.toLowerCase() === normalizedInput ||
         bank.value.toLowerCase() === normalizedInput ||
-        bank.shortcut.toLowerCase() === normalizedInput
+        bank.shortcut.toLowerCase() === normalizedInput,
     );
     return matchedBank ? matchedBank.label : bankName;
   };
@@ -215,7 +245,7 @@ export default function BulkCreateRewardsPage() {
       (bank) =>
         bank.label.toLowerCase() === normalizedInput ||
         bank.value.toLowerCase() === normalizedInput ||
-        bank.shortcut.toLowerCase() === normalizedInput
+        bank.shortcut.toLowerCase() === normalizedInput,
     );
   };
 
@@ -223,7 +253,7 @@ export default function BulkCreateRewardsPage() {
     if (!status) return false;
     const normalizedInput = status.trim();
     return SERIAL_STATUSES.some(
-      (s) => s.value === normalizedInput || s.label === normalizedInput
+      (s) => s.value === normalizedInput || s.label === normalizedInput,
     );
   };
 
@@ -260,7 +290,7 @@ export default function BulkCreateRewardsPage() {
   };
 
   const validateReward = (
-    reward: Omit<RewardCreate, "issues" | "isValid">
+    reward: Omit<RewardCreate, "issues" | "isValid">,
   ): string[] => {
     const issues: string[] = [];
 
@@ -292,12 +322,12 @@ export default function BulkCreateRewardsPage() {
       issues.push("Product model is required");
     } else if (!validateProductModel(reward.productModel)) {
       issues.push(
-        `Product model "${reward.productModel}" is not in the approved list`
+        `Product model "${reward.productModel}" is not in the approved list`,
       );
     } else {
       // Check if inverter serial is required based on product configuration
-      const productConfig = PRODUCT_MODELS.find(
-        (pm) => pm.value === reward.productModel
+      const productConfig = products.find(
+        (pm) => pm.value === reward.productModel,
       );
       if (productConfig?.requiresInverter && !reward.inverterSerialNumber) {
         issues.push("Inverter serial number is required for this product");
@@ -314,7 +344,7 @@ export default function BulkCreateRewardsPage() {
       issues.push("Serial number status is required");
     } else if (!validateSerialStatus(reward.serialNumberStatus)) {
       issues.push(
-        `Invalid serial number status "${reward.serialNumberStatus}" (must be: 2025, 2025 - Not Found, 2024, or Not Found)`
+        `Invalid serial number status "${reward.serialNumberStatus}" (must be: 2025, 2025 - Not Found, 2024, or Not Found)`,
       );
     }
 
@@ -340,12 +370,12 @@ export default function BulkCreateRewardsPage() {
       issues.push("Account title is required");
     }
 
-    // Payment status validation
-    if (!reward.paymentStatus) {
-      issues.push("Payment status is required");
-    } else if (!validatePaymentStatus(reward.paymentStatus)) {
+    // Reward status validation
+    if (!reward.rewardStatus) {
+      issues.push("Reward status is required");
+    } else if (!validateRewardStatus(reward.rewardStatus)) {
       issues.push(
-        `Invalid payment status "${reward.paymentStatus}" (must be: PAID, PENDING, or FAILED)`
+        `Invalid reward status "${reward.rewardStatus}" (must be: PAID, PENDING, or FAILED)`,
       );
     }
 
@@ -359,7 +389,7 @@ export default function BulkCreateRewardsPage() {
       issues.push("Payment method is required");
     } else if (!validatePaymentMethod(reward.paymentMethod)) {
       issues.push(
-        `Invalid payment method "${reward.paymentMethod}" (must be: UBANK, UPaisa, or NayaPay)`
+        `Invalid payment method "${reward.paymentMethod}" (must be: UBANK, UPaisa, or NayaPay)`,
       );
     }
 
@@ -419,76 +449,124 @@ export default function BulkCreateRewardsPage() {
         // Allow UI to update
         await new Promise((resolve) => requestAnimationFrame(resolve));
 
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const data = e.target?.result as ArrayBuffer;
 
         setFileReadProgress(75);
         await new Promise((resolve) => requestAnimationFrame(resolve));
 
-        const workbook = XLSX.read(data, { type: "array" });
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(data);
 
         setFileReadProgress(80);
         await new Promise((resolve) => requestAnimationFrame(resolve));
 
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
+        const worksheet = workbook.worksheets[0];
 
         setFileReadProgress(85);
         await new Promise((resolve) => requestAnimationFrame(resolve));
 
-        const jsonData = XLSX.utils.sheet_to_json(worksheet) as Record<
-          string,
-          unknown
-        >[];
+        const jsonData = worksheetToJson(worksheet);
 
         setFileReadProgress(90);
         await new Promise((resolve) => requestAnimationFrame(resolve));
 
-        const parsedRewards: RewardCreate[] = jsonData.map((row) => {
-          const rawPaymentMethod =
-            row["Payment Method"]?.toString().trim() || "";
-          const rawProductModel = row["Product Model"]?.toString().trim() || "";
-          const rawBankName = row["Bank Name"]?.toString().trim() || "";
-          const reward = {
-            timestamp: parseTimestamp(row["Timestamp"]?.toString() || ""),
-            teamMemberEmail: row["Team Member Email"]?.toString().trim() || "",
-            installerName: row["Installer Name"]?.toString().trim() || "",
-            installerCode:
-              row["Installer Code"]?.toString().trim().toUpperCase() || "",
-            productModel: normalizeProductModel(rawProductModel),
-            serialNumber: row["Serial Number"]?.toString().trim() || "",
-            inverterSerialNumber:
-              row["Inverter Serial Number"]?.toString().trim() || undefined,
-            serialNumberStatus:
-              row["Serial Number Status"]?.toString().trim() || "",
-            cityOfInstallation:
-              row["City of Installation"]?.toString().trim() || "",
-            bankName: normalizeBankName(rawBankName),
-            accountNumber: row["Account Number"]?.toString().trim() || "",
-            accountTitle: row["Account Title"]?.toString().trim() || "",
-            paymentStatus:
-              row["Payment Status"]?.toString().toUpperCase().trim() ||
-              "PENDING",
-            transactionId:
-              row["Transaction ID"]?.toString().trim() || undefined,
-            rewardAmount: row["Reward Amount"]?.toString().trim() || "",
-            referrerRewardAmount:
-              row["Referrer Reward Amount"]?.toString().trim() || undefined,
-            referrerTransactionId:
-              row["Referrer Transaction ID"]?.toString().trim() || undefined,
-            sendingDate: parseSendingDate(
-              row["Sending Date"]?.toString() || ""
-            ),
-            paymentMethod: normalizePaymentMethod(rawPaymentMethod),
-          };
+        // Process data in optimized chunks to avoid blocking (increased from 50 to 200)
+        const parsedRewards: RewardCreate[] = [];
+        const chunkSize = 200; // Optimized for better performance
 
-          const issues = validateReward(reward);
+        // Use requestIdleCallback for even smoother processing (fallback to requestAnimationFrame)
+        const scheduleWork = (callback: () => void): Promise<void> => {
+          return new Promise((resolve) => {
+            if ("requestIdleCallback" in window) {
+              requestIdleCallback(() => {
+                callback();
+                resolve();
+              });
+            } else {
+              requestAnimationFrame(() => {
+                callback();
+                resolve();
+              });
+            }
+          });
+        };
 
-          return {
-            ...reward,
-            issues,
-            isValid: issues.length === 0,
-          };
-        });
+        for (let i = 0; i < jsonData.length; i += chunkSize) {
+          const chunk = jsonData.slice(i, i + chunkSize);
+          const chunkProgress = 90 + Math.round((i / jsonData.length) * 8);
+
+          await scheduleWork(() => {
+            setFileReadProgress(chunkProgress);
+          });
+
+          // Process chunk
+          const processedChunk = chunk.map((row) => {
+            const rawPaymentMethod =
+              row["Payment Method"]?.toString().trim() || "";
+            const rawProductModel =
+              row["Product Model"]?.toString().trim() || "";
+            const rawBankName = row["Bank Name"]?.toString().trim() || "";
+            const normalizedProductModel =
+              normalizeProductModel(rawProductModel);
+
+            // Check if product requires inverter (same logic as register page)
+            const productConfig = products.find(
+              (pm) => pm.value === normalizedProductModel,
+            );
+            const requiresInverter = productConfig?.requiresInverter || false;
+
+            const rawInverterSerial =
+              row["Inverter Serial Number"]?.toString().trim() || "";
+
+            const reward = {
+              timestamp: parseTimestamp(row["Timestamp"]?.toString() || ""),
+              teamMemberEmail:
+                row["Team Member Email"]?.toString().trim() || "",
+              installerName: row["Installer Name"]?.toString().trim() || "",
+              installerCode:
+                row["Installer Code"]?.toString().trim().toUpperCase() || "",
+              productModel: normalizedProductModel,
+              serialNumber: row["Serial Number"]?.toString().trim() || "",
+              inverterSerialNumber: requiresInverter
+                ? rawInverterSerial || undefined
+                : "N/A",
+              serialNumberStatus:
+                row["Serial Number Status"]?.toString().trim() || "",
+              cityOfInstallation:
+                row["City of Installation"]?.toString().trim() || "",
+              bankName: normalizeBankName(rawBankName),
+              accountNumber: row["Account Number"]?.toString().trim() || "",
+              accountTitle: row["Account Title"]?.toString().trim() || "",
+              rewardStatus:
+                row["Reward Status"]?.toString().toUpperCase().trim() ||
+                "PENDING",
+              transactionId:
+                row["Transaction ID"]?.toString().trim() || undefined,
+              rewardAmount: row["Reward Amount"]?.toString().trim() || "",
+              referrerRewardAmount:
+                row["Referrer Reward Amount"]?.toString().trim() || undefined,
+              referrerTransactionId:
+                row["Referrer Transaction ID"]?.toString().trim() || undefined,
+              sendingDate: parseSendingDate(
+                row["Sending Date"]?.toString() || "",
+              ),
+              paymentMethod: normalizePaymentMethod(rawPaymentMethod),
+            };
+
+            const issues = validateReward(reward);
+
+            return {
+              ...reward,
+              issues,
+              isValid: issues.length === 0,
+            };
+          });
+
+          parsedRewards.push(...processedChunk);
+
+          // Allow UI to update between chunks using idle callback for better performance
+          await scheduleWork(() => {});
+        }
 
         setFileReadProgress(98);
         await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -581,7 +659,7 @@ export default function BulkCreateRewardsPage() {
     setPreview(validRecords);
     setTerminateDialogOpen(false);
     toast.success(
-      `Terminated ${invalidCount} invalid record(s). ${validRecords.length} valid record(s) remaining.`
+      `Terminated ${invalidCount} invalid record(s). ${validRecords.length} valid record(s) remaining.`,
     );
   };
 
@@ -594,7 +672,7 @@ export default function BulkCreateRewardsPage() {
     }, 500);
   };
 
-  const downloadInvalidRecords = () => {
+  const downloadInvalidRecords = async () => {
     setDownloadingInvalid(true);
     try {
       const invalidRecords = preview.filter((p) => !p.isValid);
@@ -617,7 +695,7 @@ export default function BulkCreateRewardsPage() {
         "Bank Name": record.bankName,
         "Account Number": record.accountNumber,
         "Account Title": record.accountTitle,
-        "Payment Status": record.paymentStatus,
+        "Reward Status": record.rewardStatus,
         "Transaction ID": record.transactionId || "",
         "Reward Amount": record.rewardAmount,
         "Referrer Reward Amount": record.referrerRewardAmount || "",
@@ -627,25 +705,36 @@ export default function BulkCreateRewardsPage() {
         ISSUES: record.issues.join(" | "),
       }));
 
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Invalid Records");
-
-      ws["!cols"] = [
-        { wch: 15 },
-        { wch: 30 },
-        { wch: 15 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 25 },
-        { wch: 25 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 60 },
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Invalid Records");
+      // Only the first 10 columns had widths set in the original template
+      ws.columns = [
+        { header: "Timestamp", key: "Timestamp", width: 15 },
+        { header: "Team Member Email", key: "Team Member Email", width: 30 },
+        { header: "Installer Name", key: "Installer Name", width: 15 },
+        { header: "Installer Code", key: "Installer Code", width: 20 },
+        { header: "Referrer Code", key: "Referrer Code", width: 15 },
+        { header: "Product Model", key: "Product Model", width: 25 },
+        { header: "Serial Number", key: "Serial Number", width: 25 },
+        { header: "Inverter Serial Number", key: "Inverter Serial Number", width: 20 },
+        { header: "Serial Number Status", key: "Serial Number Status", width: 15 },
+        { header: "City of Installation", key: "City of Installation", width: 60 },
+        { header: "Bank Name", key: "Bank Name" },
+        { header: "Account Number", key: "Account Number" },
+        { header: "Account Title", key: "Account Title" },
+        { header: "Reward Status", key: "Reward Status" },
+        { header: "Transaction ID", key: "Transaction ID" },
+        { header: "Reward Amount", key: "Reward Amount" },
+        { header: "Referrer Reward Amount", key: "Referrer Reward Amount" },
+        { header: "Referrer Transaction ID", key: "Referrer Transaction ID" },
+        { header: "Sending Date", key: "Sending Date" },
+        { header: "Payment Method", key: "Payment Method" },
+        { header: "ISSUES", key: "ISSUES" },
       ];
+      ws.addRows(excelData);
 
       const timestamp = new Date().toISOString().slice(0, 10);
-      XLSX.writeFile(wb, `invalid_rewards_register_${timestamp}.xlsx`);
+      await downloadWorkbook(wb, `invalid_rewards_register_${timestamp}.xlsx`);
     } finally {
       setTimeout(() => setDownloadingInvalid(false), 500);
     }
@@ -660,13 +749,24 @@ export default function BulkCreateRewardsPage() {
     const invalidRows = preview.filter((p) => !p.isValid);
     if (invalidRows.length > 0) {
       toast.error(
-        `Cannot upload: ${invalidRows.length} row(s) have validation issues. Please fix them first.`
+        `Cannot upload: ${invalidRows.length} row(s) have validation issues. Please fix them first.`,
       );
       return;
     }
 
     const validRewards = preview.filter((p) => p.isValid);
     const totalRecords = validRewards.length;
+
+    console.log(`Total records in preview: ${preview.length}`);
+    console.log(`Valid records to upload: ${validRewards.length}`);
+    console.log(`Invalid records: ${invalidRows.length}`);
+
+    if (totalRecords === 0) {
+      toast.error("No valid records to upload.");
+      return;
+    }
+
+    toast.info(`Uploading ${totalRecords} valid record(s)...`);
 
     // Initialize progress modal
     setShowProgressModal(true);
@@ -723,54 +823,130 @@ export default function BulkCreateRewardsPage() {
                 progress: 100,
                 details: `Validated ${totalRecords} records`,
               }
-            : step
-        )
+            : step,
+        ),
       );
 
       // Step 2: Start registering rewards in chunks
       setUploadSteps((prev) =>
         prev.map((step) =>
-          step.id === "register" ? { ...step, status: "processing" } : step
-        )
+          step.id === "register" ? { ...step, status: "processing" } : step,
+        ),
       );
 
-      // Process in chunks for real-time progress
-      const CHUNK_SIZE = 10; // Process 10 rewards at a time
+      // Process in optimized chunks for real-time progress
+      const CHUNK_SIZE = 50; // Increased from 10 to 50 for better performance
       let totalSuccess = 0;
       let totalFailed = 0;
       const allErrors: string[] = [];
+      const failedChunks: { chunk: typeof validRewards; error: string }[] = [];
+
+      // Create abort controller for cancellation
+      const controller = new AbortController();
+      setAbortController(controller);
+
+      console.log(
+        `Starting bulk upload of ${totalRecords} rewards in ${Math.ceil(
+          totalRecords / CHUNK_SIZE,
+        )} chunks`,
+      );
 
       for (let i = 0; i < validRewards.length; i += CHUNK_SIZE) {
+        // Check if operation was cancelled
+        if (controller.signal.aborted) {
+          toast.info("Upload cancelled by user");
+          break;
+        }
+
         const chunk = validRewards.slice(i, i + CHUNK_SIZE);
         const currentBatch = Math.min(i + CHUNK_SIZE, validRewards.length);
+        const chunkNumber = Math.floor(i / CHUNK_SIZE) + 1;
+        let retryCount = 0;
+        const maxRetries = 2;
 
-        try {
-          const response = await fetch("/api/rewards/bulk-register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ rewards: chunk }),
-          });
+        console.log(
+          `Processing chunk ${chunkNumber}: rewards ${i + 1} to ${currentBatch}`,
+        );
 
-          const data = await response.json();
+        // Retry logic for failed chunks
+        while (retryCount <= maxRetries) {
+          try {
+            const response = await fetch("/api/rewards/bulk-register", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ rewards: chunk }),
+              signal: controller.signal,
+            });
 
-          if (response.ok) {
-            totalSuccess += data.data?.success || 0;
-            totalFailed += data.data?.failed || 0;
+            const data = await response.json();
 
-            if (data.data?.errors && data.data.errors.length > 0) {
-              allErrors.push(...data.data.errors);
+            console.log(`Chunk ${chunkNumber} response:`, {
+              ok: response.ok,
+              success: data.data?.success,
+              failed: data.data?.failed,
+              errors: data.data?.errors?.length || 0,
+            });
+
+            if (response.ok) {
+              const chunkSuccess = data.data?.success || 0;
+              const chunkFailed = data.data?.failed || 0;
+
+              totalSuccess += chunkSuccess;
+              totalFailed += chunkFailed;
+
+              console.log(
+                `Chunk ${chunkNumber}: ${chunkSuccess} succeeded, ${chunkFailed} failed. Total: ${totalSuccess}/${currentBatch}`,
+              );
+
+              if (data.data?.errors && data.data.errors.length > 0) {
+                allErrors.push(...data.data.errors);
+              }
+              break; // Success, exit retry loop
+            } else {
+              if (retryCount === maxRetries) {
+                console.error(
+                  `Chunk ${chunkNumber} failed with error:`,
+                  data.error,
+                );
+                totalFailed += chunk.length;
+                allErrors.push(
+                  `Chunk ${chunkNumber}: ${
+                    data.error || "Chunk registration failed"
+                  } after ${maxRetries} retries`,
+                );
+                failedChunks.push({
+                  chunk,
+                  error: data.error || "Unknown error",
+                });
+              } else {
+                // Wait before retry (exponential backoff)
+                await new Promise((resolve) =>
+                  setTimeout(resolve, 1000 * (retryCount + 1)),
+                );
+                retryCount++;
+              }
             }
-          } else {
-            totalFailed += chunk.length;
-            allErrors.push(data.error || "Chunk registration failed");
+          } catch (err) {
+            if (err instanceof Error && err.name === "AbortError") {
+              toast.info("Upload cancelled by user");
+              break;
+            }
+
+            if (retryCount === maxRetries) {
+              console.error(`Chunk ${chunkNumber} exception:`, err);
+              totalFailed += chunk.length;
+              const errorMsg = `Chunk ${chunkNumber} failed: ${
+                err instanceof Error ? err.message : "Unknown error"
+              }`;
+              allErrors.push(errorMsg);
+              failedChunks.push({ chunk, error: errorMsg });
+            } else {
+              await new Promise((resolve) =>
+                setTimeout(resolve, 1000 * (retryCount + 1)),
+              );
+              retryCount++;
+            }
           }
-        } catch (err) {
-          totalFailed += chunk.length;
-          allErrors.push(
-            `Chunk ${i / CHUNK_SIZE + 1} failed: ${
-              err instanceof Error ? err.message : "Unknown error"
-            }`
-          );
         }
 
         // Update progress in real-time
@@ -789,13 +965,17 @@ export default function BulkCreateRewardsPage() {
                   description: `Processing ${currentBatch} of ${totalRecords} reward(s)`,
                   details: `Registered: ${totalSuccess} | Failed: ${totalFailed}`,
                 }
-              : step
-          )
+              : step,
+          ),
         );
 
         // Small delay between chunks to allow UI updates
         await new Promise((resolve) => requestAnimationFrame(resolve));
       }
+
+      console.log(
+        `Upload complete. Total processed: ${validRewards.length}, Success: ${totalSuccess}, Failed: ${totalFailed}`,
+      );
 
       // Step 2: Complete registration
       setUploadSteps((prev) =>
@@ -808,8 +988,8 @@ export default function BulkCreateRewardsPage() {
                 details: `Registered ${totalSuccess} out of ${totalRecords} rewards`,
                 error: totalFailed > 0 ? `${totalFailed} failed` : undefined,
               }
-            : step
-        )
+            : step,
+        ),
       );
 
       if (totalSuccess === 0) {
@@ -821,8 +1001,8 @@ export default function BulkCreateRewardsPage() {
                   status: "error",
                   error: "No rewards were registered successfully",
                 }
-              : step
-          )
+              : step,
+          ),
         );
         setError(`Registration failed. Errors: ${allErrors.join(", ")}`);
         return;
@@ -832,8 +1012,8 @@ export default function BulkCreateRewardsPage() {
       await new Promise((resolve) => setTimeout(resolve, 300));
       setUploadSteps((prev) =>
         prev.map((step) =>
-          step.id === "activity" ? { ...step, status: "processing" } : step
-        )
+          step.id === "activity" ? { ...step, status: "processing" } : step,
+        ),
       );
 
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -846,8 +1026,8 @@ export default function BulkCreateRewardsPage() {
                 progress: 100,
                 details: `Logged ${totalSuccess} activities`,
               }
-            : step
-        )
+            : step,
+        ),
       );
 
       // Step 4: Complete
@@ -864,15 +1044,15 @@ export default function BulkCreateRewardsPage() {
             : {
                 ...step,
                 status: step.status === "pending" ? "completed" : step.status,
-              }
-        )
+              },
+        ),
       );
 
       setSuccess(`Successfully created ${totalSuccess} reward(s)!`);
 
       if (totalFailed > 0) {
         setError(
-          `${totalFailed} reward(s) failed. Check the logs for details.`
+          `${totalFailed} reward(s) failed. Check the logs for details.`,
         );
       }
     } catch (err: unknown) {
@@ -881,21 +1061,45 @@ export default function BulkCreateRewardsPage() {
         prev.map((step) =>
           step.status === "processing"
             ? { ...step, status: "error", error: errorMessage }
-            : step
-        )
+            : step,
+        ),
       );
       setError("Failed to create rewards: " + errorMessage);
     } finally {
       setLoading(false);
+      setAbortController(null);
     }
   };
 
-  const validCount = preview.filter((p) => p.isValid).length;
-  const invalidCount = preview.filter((p) => !p.isValid).length;
+  const handleCancelUpload = () => {
+    if (abortController) {
+      abortController.abort();
+      toast.info("Cancelling upload...");
+    }
+  };
+
+  const validCount = useMemo(
+    () => preview.filter((p) => p.isValid).length,
+    [preview],
+  );
+  const invalidCount = useMemo(
+    () => preview.filter((p) => !p.isValid).length,
+    [preview],
+  );
+
+  // Virtual scrolling for large datasets (performance optimization)
+  const rowVirtualizer = useVirtualizer({
+    count: preview.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 80, // Estimated row height in pixels (larger for rewards table)
+    overscan: 10, // Number of items to render outside of visible area
+  });
 
   return (
     <div className="flex-1 overflow-auto space-y-4">
       <PageHeader
+        Icon={IconLayer}
+        iconFill
         title="Bulk Register Rewards"
         description="Create multiple reward records at once using an Excel file"
         action={
@@ -929,11 +1133,12 @@ export default function BulkCreateRewardsPage() {
                 onClick={downloadTemplate}
                 variant="outline"
                 disabled={downloadingTemplate}
+                className="gap-2"
               >
                 {downloadingTemplate ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loading />
                 ) : (
-                  <Download className="h-4 w-4 mr-2" />
+                  <IconDownloadMinimalistic />
                 )}
                 {downloadingTemplate ? "Downloading..." : "Download Template"}
               </Button>
@@ -989,14 +1194,15 @@ export default function BulkCreateRewardsPage() {
             <h3 className="mb-3">File Upload</h3>
             <div className="space-y-2">
               <FileDropzone
+                id="bulkRegisterRewardsDropzone"
                 label={
                   file
                     ? "FILE ALREADY SELECTED"
                     : fileReading
-                    ? "READING FILE..."
-                    : preview.length > 0
-                    ? "RECORDS IN PROGRESS"
-                    : "UPLOAD EXCEL FILE"
+                      ? "READING FILE..."
+                      : preview.length > 0
+                        ? "RECORDS IN PROGRESS"
+                        : "UPLOAD EXCEL FILE"
                 }
                 accept={{
                   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
@@ -1047,14 +1253,14 @@ export default function BulkCreateRewardsPage() {
                         {fileReadProgress < 25
                           ? "Starting file upload..."
                           : fileReadProgress < 65
-                          ? "Reading file data..."
-                          : fileReadProgress < 80
-                          ? "Parsing Excel workbook..."
-                          : fileReadProgress < 90
-                          ? "Extracting records..."
-                          : fileReadProgress < 98
-                          ? "Processing and validating..."
-                          : "Finalizing..."}
+                            ? "Reading file data..."
+                            : fileReadProgress < 80
+                              ? "Parsing Excel workbook..."
+                              : fileReadProgress < 90
+                                ? "Extracting records..."
+                                : fileReadProgress < 98
+                                  ? "Processing and validating..."
+                                  : "Finalizing..."}
                       </span>
                       <span className="font-semibold text-primary tabular-nums">
                         {fileReadProgress}%
@@ -1062,10 +1268,10 @@ export default function BulkCreateRewardsPage() {
                     </div>
                     <div className="w-full bg-muted rounded-full h-2.5 overflow-hidden shadow-inner">
                       <div
-                        className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-200 ease-out rounded-full relative overflow-hidden"
+                        className="h-full bg-linear-to-r from-primary to-primary/80 transition-all duration-200 ease-out rounded-full relative overflow-hidden"
                         style={{ width: `${fileReadProgress}%` }}
                       >
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
+                        <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent animate-pulse" />
                       </div>
                     </div>
                   </div>
@@ -1152,26 +1358,37 @@ export default function BulkCreateRewardsPage() {
 
         {preview.length > 0 && (
           <div className="flex gap-2">
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              disabled={
-                loading || invalidCount > 0 || validating || fileReading
-              }
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4 mr-2" />
-              )}
-              {loading
-                ? "Creating..."
-                : validating
-                ? "Validating..."
-                : fileReading
-                ? "Reading file..."
-                : `Create ${validCount} Valid Record(s)`}
-            </Button>
+            {loading && abortController ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleCancelUpload}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Cancel Upload
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={handleSubmit}
+                disabled={
+                  loading || invalidCount > 0 || validating || fileReading
+                }
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4 mr-2" />
+                )}
+                {loading
+                  ? "Creating..."
+                  : validating
+                    ? "Validating..."
+                    : fileReading
+                      ? "Reading file..."
+                      : `Create ${validCount} Valid Record(s)`}
+              </Button>
+            )}
             <Button
               type="button"
               variant="outline"
@@ -1185,137 +1402,190 @@ export default function BulkCreateRewardsPage() {
         )}
       </div>
 
+      {/* Preview Table with Virtual Scrolling */}
       {preview.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Preview Data ({preview.length} records)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Timestamp</TableHead>
-                    <TableHead>Team Member</TableHead>
-                    <TableHead>Installer</TableHead>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Serial #</TableHead>
-                    <TableHead>Bank</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead>Issues</TableHead>
-                    <TableHead className="w-12">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {preview.map((reward, index) => (
-                    <TableRow
-                      key={index}
-                      className={!reward.isValid ? "bg-destructive/10" : ""}
-                    >
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        {reward.isValid ? (
-                          <Badge variant="default" className="bg-green-600">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Valid
-                          </Badge>
-                        ) : (
-                          <Badge variant="destructive">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Invalid
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {reward.timestamp
-                          ? new Date(reward.timestamp).toLocaleString()
-                          : "-"}
-                      </TableCell>
-                      <TableCell
-                        className="text-sm max-w-[150px] truncate"
-                        title={reward.teamMemberEmail}
+            <div className="border border-border rounded-lg overflow-hidden">
+              {/* Table Header - Fixed */}
+              <div className="bg-muted/50 border-b border-border sticky top-0 z-10">
+                <div className="flex min-w-max">
+                  <div className="w-16 px-4 py-3 text-sm font-medium shrink-0">
+                    #
+                  </div>
+                  <div className="w-24 px-4 py-3 text-sm font-medium shrink-0">
+                    Status
+                  </div>
+                  <div className="w-40 px-4 py-3 text-sm font-medium shrink-0">
+                    Timestamp
+                  </div>
+                  <div className="w-48 px-4 py-3 text-sm font-medium shrink-0">
+                    Team Member
+                  </div>
+                  <div className="w-48 px-4 py-3 text-sm font-medium shrink-0">
+                    Installer
+                  </div>
+                  <div className="w-56 px-4 py-3 text-sm font-medium shrink-0">
+                    Product
+                  </div>
+                  <div className="w-32 px-4 py-3 text-sm font-medium shrink-0">
+                    Serial #
+                  </div>
+                  <div className="w-40 px-4 py-3 text-sm font-medium shrink-0">
+                    Bank
+                  </div>
+                  <div className="w-24 px-4 py-3 text-sm font-medium shrink-0">
+                    Amount
+                  </div>
+                  <div className="w-28 px-4 py-3 text-sm font-medium shrink-0">
+                    Payment
+                  </div>
+                  <div className="flex-1 min-w-80 px-4 py-3 text-sm font-medium">
+                    Issues
+                  </div>
+                  <div className="w-20 px-4 py-3 text-sm font-medium shrink-0">
+                    Action
+                  </div>
+                </div>
+              </div>
+
+              {/* Virtual Scrolling Container */}
+              <div
+                ref={parentRef}
+                className="overflow-auto"
+                style={{ height: "600px" }}
+              >
+                <div
+                  style={{
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    width: "100%",
+                    position: "relative",
+                  }}
+                >
+                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const reward = preview[virtualRow.index];
+                    return (
+                      <div
+                        key={virtualRow.index}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: `${virtualRow.size}px`,
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                        className={`flex min-w-max border-b border-border ${
+                          !reward.isValid ? "bg-destructive/10" : ""
+                        }`}
                       >
-                        {reward.teamMemberEmail}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <div>{reward.installerName}</div>
-                        <div className="font-mono text-xs text-muted-foreground">
-                          {reward.installerCode}
+                        <div className="w-16 px-4 py-3 text-sm shrink-0 flex items-center">
+                          {virtualRow.index + 1}
                         </div>
-                        {reward.autoExtractedReferrer && (
-                          <div className="text-xs text-blue-600 mt-0.5 flex items-center gap-1">
-                            <CheckCircle2 className="h-3 w-3" />
-                            <span>Referrer: {reward.referrerCode}</span>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell
-                        className="text-sm max-w-[200px] truncate"
-                        title={reward.productModel}
-                      >
-                        {reward.productModel}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {reward.serialNumber}
-                      </TableCell>
-                      <TableCell
-                        className="text-sm max-w-[150px] truncate"
-                        title={reward.bankName}
-                      >
-                        {reward.bankName}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {reward.rewardAmount}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            reward.paymentStatus === "PAID"
-                              ? "default"
-                              : reward.paymentStatus === "FAILED"
-                              ? "destructive"
-                              : "secondary"
-                          }
+                        <div className="w-24 px-4 py-3 text-sm shrink-0 flex items-center">
+                          {reward.isValid ? (
+                            <Badge variant="default" className="bg-green-600">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Valid
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Invalid
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="w-40 px-4 py-3 text-xs shrink-0 flex items-center">
+                          {reward.timestamp
+                            ? new Date(reward.timestamp).toLocaleString()
+                            : "-"}
+                        </div>
+                        <div
+                          className="w-48 px-4 py-3 text-sm shrink-0 flex items-center truncate"
+                          title={reward.teamMemberEmail}
                         >
-                          {reward.paymentStatus}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {reward.issues.length > 0 ? (
-                          <div className="space-y-1">
-                            {reward.issues.map((issue, i) => (
-                              <div
-                                key={i}
-                                className="text-xs text-destructive flex items-start gap-1"
-                              >
-                                <AlertCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                                <span>{issue}</span>
-                              </div>
-                            ))}
+                          {reward.teamMemberEmail}
+                        </div>
+                        <div className="w-48 px-4 py-3 text-sm shrink-0 flex flex-col justify-center">
+                          <div>{reward.installerName}</div>
+                          <div className="font-mono text-xs text-muted-foreground">
+                            {reward.installerCode}
                           </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">
-                            No issues
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteRow(index)}
-                          title="Delete row"
+                          {reward.autoExtractedReferrer && (
+                            <div className="text-xs text-blue-600 mt-0.5 flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              <span>Referrer: {reward.referrerCode}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div
+                          className="w-56 px-4 py-3 text-sm shrink-0 flex items-center truncate"
+                          title={reward.productModel}
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                          {reward.productModel}
+                        </div>
+                        <div className="w-32 px-4 py-3 text-sm font-mono shrink-0 flex items-center">
+                          {reward.serialNumber}
+                        </div>
+                        <div
+                          className="w-40 px-4 py-3 text-sm shrink-0 flex items-center truncate"
+                          title={reward.bankName}
+                        >
+                          {reward.bankName}
+                        </div>
+                        <div className="w-24 px-4 py-3 text-sm font-mono shrink-0 flex items-center">
+                          {reward.rewardAmount}
+                        </div>
+                        <div className="w-28 px-4 py-3 text-sm shrink-0 flex items-center">
+                          <Badge
+                            variant={
+                              reward.rewardStatus === "PAID"
+                                ? "default"
+                                : reward.rewardStatus === "FAILED"
+                                  ? "destructive"
+                                  : "secondary"
+                            }
+                          >
+                            {reward.rewardStatus}
+                          </Badge>
+                        </div>
+                        <div className="flex-1 min-w-80 px-4 py-3 text-sm flex items-center">
+                          {reward.issues.length > 0 ? (
+                            <div className="space-y-1">
+                              {reward.issues.map((issue, i) => (
+                                <div
+                                  key={i}
+                                  className="text-xs text-destructive flex items-start gap-1"
+                                >
+                                  <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
+                                  <span>{issue}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              No issues
+                            </span>
+                          )}
+                        </div>
+                        <div className="w-20 px-4 py-3 text-sm shrink-0 flex items-center justify-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteRow(virtualRow.index)}
+                            title="Delete row"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -1354,6 +1624,8 @@ export default function BulkCreateRewardsPage() {
 
       {/* Progress Modal */}
       <BulkUploadProgressModal
+        title="Rewards Bulk Register"
+        description="Rewards Bulk Registeration in process"
         isOpen={showProgressModal}
         steps={uploadSteps}
         totalRecords={preview.filter((p) => p.isValid).length}

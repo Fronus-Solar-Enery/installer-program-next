@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import dbConnect from '@/lib/mongodb';
-import Installer from '@/models/Installer';
-import InstallerReward from '@/models/InstallerReward';
-import TeamMember from '@/models/TeamMember';
-import Activity from '@/models/Activity';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import dbConnect from "@/lib/mongodb";
+import Installer from "@/models/Installer";
+import InstallerReward from "@/models/InstallerReward";
+import TeamMember from "@/models/TeamMember";
+import Activity from "@/models/Activity";
 
 interface RewardDataInput {
   timestamp: string;
@@ -16,7 +16,7 @@ interface RewardDataInput {
   bankName: string;
   accountNumber: string;
   accountTitle: string;
-  paymentStatus: string;
+  rewardStatus: string;
   rewardAmount: string | number;
   paymentMethod: string;
   cityOfInstallation?: string;
@@ -38,12 +38,38 @@ interface TeamMemberLean {
   email: string;
 }
 
+// Interface for inserted reward documents
+interface InsertedReward {
+  _id: string;
+  installerCode: string;
+  productModel: string;
+  serialNumber: string;
+  rewardAmount: number;
+}
+
+// Interface for Mongoose bulk write error
+interface BulkWriteError {
+  writeErrors?: Array<{
+    err?: { op?: { serialNumber?: string }; errmsg?: string; code?: number };
+    op?: { serialNumber?: string };
+    errmsg?: string;
+    code?: number;
+  }>;
+  insertedDocs?: InsertedReward[];
+  result?: {
+    insertedDocs?: InsertedReward[];
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
 
     if (!session?.user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
     await dbConnect();
@@ -56,7 +82,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid JSON format. Please ensure your data is properly formatted.',
+          error:
+            "Invalid JSON format. Please ensure your data is properly formatted.",
         },
         { status: 400 }
       );
@@ -64,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     if (!Array.isArray(rewards) || rewards.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'No rewards data provided' },
+        { success: false, error: "No rewards data provided" },
         { status: 400 }
       );
     }
@@ -72,7 +99,10 @@ export async function POST(request: NextRequest) {
     // Limit batch size
     if (rewards.length > 500) {
       return NextResponse.json(
-        { success: false, error: 'Maximum 500 rewards per upload. Please split your file.' },
+        {
+          success: false,
+          error: "Maximum 500 rewards per upload. Please split your file.",
+        },
         { status: 400 }
       );
     }
@@ -84,16 +114,29 @@ export async function POST(request: NextRequest) {
     };
 
     // Fetch all installers once
-    const installers = await Installer.find({}, { installerCode: 1, _id: 1 }).lean<InstallerLean[]>();
+    const installers = await Installer.find(
+      {},
+      { installerCode: 1, _id: 1 }
+    ).lean<InstallerLean[]>();
     const installerMap = new Map(
       installers.map((i) => [i.installerCode.toUpperCase(), i._id.toString()])
     );
 
     // Fetch all team members once
-    const teamMembers = await TeamMember.find({}, { email: 1, _id: 1 }).lean<TeamMemberLean[]>();
+    const teamMembers = await TeamMember.find({}, { email: 1, _id: 1 }).lean<
+      TeamMemberLean[]
+    >();
     const teamMemberMap = new Map(
       teamMembers.map((tm) => [tm.email.toLowerCase(), tm._id.toString()])
     );
+
+    // Prepare reward documents for batch insert
+    const rewardsToInsert = [];
+    const rewardValidationErrors: {
+      row: number;
+      serial: string;
+      error: string;
+    }[] = [];
 
     for (let i = 0; i < rewards.length; i++) {
       const rewardData = rewards[i];
@@ -101,35 +144,47 @@ export async function POST(request: NextRequest) {
       try {
         // Required field validation
         const requiredFields: (keyof RewardDataInput)[] = [
-          'timestamp',
-          'teamMemberEmail',
-          'installerCode',
-          'productModel',
-          'serialNumber',
-          'serialNumberStatus',
-          'bankName',
-          'accountNumber',
-          'accountTitle',
-          'paymentStatus',
-          'rewardAmount',
-          'paymentMethod',
+          "timestamp",
+          "teamMemberEmail",
+          "installerCode",
+          "productModel",
+          "serialNumber",
+          "serialNumberStatus",
+          "bankName",
+          "accountNumber",
+          "accountTitle",
+          "rewardStatus",
+          "rewardAmount",
+          "paymentMethod",
         ];
-        const missingFields = requiredFields.filter(field => !rewardData[field]);
+        const missingFields = requiredFields.filter(
+          (field) => !rewardData[field]
+        );
 
         if (missingFields.length > 0) {
-          throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+          throw new Error(
+            `Missing required fields: ${missingFields.join(", ")}`
+          );
         }
 
         // Find team member ID
-        const teamMemberId = teamMemberMap.get(rewardData.teamMemberEmail.toLowerCase());
+        const teamMemberId = teamMemberMap.get(
+          rewardData.teamMemberEmail.toLowerCase()
+        );
         if (!teamMemberId) {
-          throw new Error(`Team member email "${rewardData.teamMemberEmail}" not found`);
+          throw new Error(
+            `Team member email "${rewardData.teamMemberEmail}" not found`
+          );
         }
 
         // Find installer ID
-        const installerId = installerMap.get(rewardData.installerCode.toUpperCase());
+        const installerId = installerMap.get(
+          rewardData.installerCode.toUpperCase()
+        );
         if (!installerId) {
-          throw new Error(`Installer code "${rewardData.installerCode}" not found`);
+          throw new Error(
+            `Installer code "${rewardData.installerCode}" not found`
+          );
         }
 
         // Find referrer ID if referrer code is provided
@@ -137,7 +192,9 @@ export async function POST(request: NextRequest) {
         if (rewardData.referrerCode) {
           referrerId = installerMap.get(rewardData.referrerCode.toUpperCase());
           if (!referrerId) {
-            throw new Error(`Referrer code "${rewardData.referrerCode}" not found`);
+            throw new Error(
+              `Referrer code "${rewardData.referrerCode}" not found`
+            );
           }
         }
 
@@ -161,34 +218,36 @@ export async function POST(request: NextRequest) {
         // Parse reward amounts
         const rewardAmount = parseFloat(String(rewardData.rewardAmount));
         if (isNaN(rewardAmount)) {
-          throw new Error('Invalid reward amount');
+          throw new Error("Invalid reward amount");
         }
 
         let referrerRewardAmount: number | undefined;
         if (rewardData.referrerRewardAmount) {
-          referrerRewardAmount = parseFloat(String(rewardData.referrerRewardAmount));
+          referrerRewardAmount = parseFloat(
+            String(rewardData.referrerRewardAmount)
+          );
           if (isNaN(referrerRewardAmount)) {
-            throw new Error('Invalid referrer reward amount');
+            throw new Error("Invalid referrer reward amount");
           }
         }
 
-        // Create new reward
-        const newReward = await InstallerReward.create({
+        // Prepare reward document
+        rewardsToInsert.push({
           registeredBy: teamMemberId,
           installer: installerId,
           installerCode: rewardData.installerCode.toUpperCase(),
           referrerCode: rewardData.referrerCode?.toUpperCase() || undefined,
           referrer: referrerId,
-          cityOfInstallation: rewardData.cityOfInstallation || 'Not Specified',
+          cityOfInstallation: rewardData.cityOfInstallation || "Not Specified",
           productModel: rewardData.productModel,
           serialNumber: rewardData.serialNumber,
-          inverterSerialNumber: rewardData.inverterSerialNumber || '',
+          inverterSerialNumber: rewardData.inverterSerialNumber || "",
           serialNumberStatus: rewardData.serialNumberStatus,
           installationDate: installationDate,
           bankName: rewardData.bankName,
           accountNumber: rewardData.accountNumber,
           accountTitle: rewardData.accountTitle,
-          paymentStatus: rewardData.paymentStatus,
+          rewardStatus: rewardData.rewardStatus,
           transactionId: rewardData.transactionId || undefined,
           rewardAmount: rewardAmount,
           referrerRewardAmount: referrerRewardAmount || 0,
@@ -196,30 +255,120 @@ export async function POST(request: NextRequest) {
           sendingDate: sendingDate,
           paymentMethod: rewardData.paymentMethod,
         });
-
-        // Log activity
-        await Activity.create({
-          type: 'REWARD_REGISTERED',
-          description: `Registered reward for installer ${rewardData.installerCode} (Product: ${rewardData.productModel}, Serial: ${rewardData.serialNumber}) via bulk upload`,
-          performedBy: session.user.id,
-          targetType: 'InstallerReward',
-          targetId: newReward._id,
-          metadata: {
-            installerCode: rewardData.installerCode,
-            productModel: rewardData.productModel,
-            serialNumber: rewardData.serialNumber,
-            rewardAmount: rewardAmount,
-            method: 'bulk_register',
-          },
-        });
-
-        results.successful++;
       } catch (error: unknown) {
-        results.failed++;
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        results.errors.push(
-          `Row ${i + 1} (Serial: ${rewardData.serialNumber || 'N/A'}): ${errorMessage}`
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        rewardValidationErrors.push({
+          row: i + 1,
+          serial: rewardData.serialNumber || "N/A",
+          error: errorMessage,
+        });
+      }
+    }
+
+    // Add validation errors to results
+    rewardValidationErrors.forEach(({ row, serial, error }) => {
+      results.errors.push(`Row ${row} (Serial: ${serial}): ${error}`);
+      results.failed++;
+    });
+
+    // Batch insert rewards (ordered: false to continue on duplicates)
+    let insertedRewards: InsertedReward[] = [];
+    if (rewardsToInsert.length > 0) {
+      console.log(`Attempting to insert ${rewardsToInsert.length} rewards`);
+      try {
+        // Without rawResult, insertMany returns the inserted documents directly
+        insertedRewards = (await InstallerReward.insertMany(rewardsToInsert, {
+          ordered: false,
+        })) as unknown as InsertedReward[];
+
+        console.log(`Successfully inserted ${insertedRewards.length} rewards`);
+        results.successful += insertedRewards.length;
+      } catch (err: unknown) {
+        console.error("Bulk insert error:", err);
+
+        // Handle Mongoose bulk write errors
+        if (err && typeof err === "object" && "writeErrors" in err) {
+          // Get the successfully inserted documents from the error
+          const bulkError = err as BulkWriteError;
+
+          if (Array.isArray(bulkError.insertedDocs)) {
+            insertedRewards = bulkError.insertedDocs;
+          } else if (
+            bulkError.result &&
+            Array.isArray(bulkError.result.insertedDocs)
+          ) {
+            insertedRewards = bulkError.result.insertedDocs;
+          }
+
+          results.successful += insertedRewards.length;
+
+          // Process write errors
+          if (Array.isArray(bulkError.writeErrors)) {
+            bulkError.writeErrors.forEach((writeErr) => {
+              const failedDoc = writeErr.err?.op || writeErr.op;
+              const serialNumber = failedDoc?.serialNumber || "unknown";
+              const errorMessage =
+                writeErr.err?.errmsg || writeErr.errmsg || "Unknown error";
+              const errorCode = writeErr.err?.code || writeErr.code;
+
+              if (
+                errorMessage.includes("duplicate key") ||
+                errorCode === 11000
+              ) {
+                if (errorMessage.includes("serialNumber")) {
+                  results.errors.push(
+                    `Serial number "${serialNumber}" already exists`
+                  );
+                } else {
+                  results.errors.push(
+                    `Duplicate entry for serial number ${serialNumber}`
+                  );
+                }
+              } else {
+                results.errors.push(
+                  `Failed to create reward for serial ${serialNumber}: ${errorMessage}`
+                );
+              }
+              results.failed++;
+            });
+          }
+        } else {
+          // Fallback for unexpected errors
+          const errorMessage =
+            err instanceof Error ? err.message : "Unknown error";
+          results.errors.push(`Batch insert failed: ${errorMessage}`);
+          results.failed += rewardsToInsert.length;
+        }
+
+        console.log(
+          `After error handling - successful: ${results.successful}, failed: ${results.failed}`
         );
+      }
+    }
+
+    // Batch create activities for successfully inserted rewards
+    if (insertedRewards.length > 0) {
+      const activities = insertedRewards.map((reward) => ({
+        type: "REWARD_REGISTERED",
+        description: `Registered reward for installer ${reward.installerCode} (Product: ${reward.productModel}, Serial: ${reward.serialNumber}) via bulk upload`,
+        performedBy: session.user.id,
+        targetType: "InstallerReward",
+        targetId: reward._id,
+        metadata: {
+          installerCode: reward.installerCode,
+          productModel: reward.productModel,
+          serialNumber: reward.serialNumber,
+          rewardAmount: reward.rewardAmount,
+          method: "bulk_register",
+        },
+      }));
+
+      try {
+        await Activity.insertMany(activities, { ordered: false });
+      } catch (activityErr) {
+        console.error("Failed to create some activity logs:", activityErr);
+        // Don't fail the operation if activity logging fails
       }
     }
 
@@ -228,7 +377,7 @@ export async function POST(request: NextRequest) {
         ? `Successfully created ${results.successful} reward(s)`
         : `Created ${results.successful} reward(s), ${results.failed} failed`;
 
-    return NextResponse.json({
+    const responseData = {
       success: results.failed === 0,
       message,
       data: {
@@ -236,10 +385,17 @@ export async function POST(request: NextRequest) {
         failed: results.failed,
         errors: results.errors,
       },
-    });
+    };
+
+    console.log("API Response:", JSON.stringify(responseData, null, 2));
+
+    return NextResponse.json(responseData);
   } catch (error: unknown) {
-    console.error('Error in bulk reward creation:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred during bulk upload';
+    console.error("Error in bulk reward creation:", error);
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "An unexpected error occurred during bulk upload";
     return NextResponse.json(
       {
         success: false,

@@ -1,68 +1,52 @@
-// ICON PROPS
-// // # Use this Node.js script (save as remove-iconprops.js and run with `node remove-iconprops.js`)
-// import fs from "fs";
-// import path from "path";
-
-// const targetDir = "./components/icons"; // change if needed
-
-// function removeIconPropsInterfaces(dir) {
-//   const files = fs.readdirSync(dir);
-//   for (const file of files) {
-//     const fullPath = path.join(dir, file);
-//     const stat = fs.statSync(fullPath);
-
-//     if (stat.isDirectory()) {
-//       removeIconPropsInterfaces(fullPath);
-//     } else if (/\.(ts|tsx)$/.test(file)) {
-//       let content = fs.readFileSync(fullPath, "utf8");
-//       const newContent = content.replace(
-//         /interface\s+IconProps\s*{[^}]*}/gs,
-//         ""
-//       );
-//       if (newContent !== content) {
-//         fs.writeFileSync(fullPath, newContent, "utf8");
-//         console.log(`Removed IconProps interface from: ${fullPath}`);
-//       }
-//     }
-//   }
-// }
-
-// removeIconPropsInterfaces(targetDir);
-
-// remove-icon-keywords.ts
-// Script: removes `(IconName as IconComponent).keywords = [ ... ];` + the following `export default IconName as IconComponent;`
-// and replaces them with `export default IconName;` (keeps only the export). — Run with the CLI commands below.
-
-// remove-icon-keywords.js
-// Removes all `(IconName as IconComponent).keywords = [...]` + `export default IconName as IconComponent;`
-// and replaces with `export default IconName;`
+#!/usr/bin/env node
+/**
+ * node scripts/remove-iconprops.js
+ *
+ * Reverses iconrep.js: strips the `className,` prop and the
+ * `className={`size-4 ${className}`}` attribute injected into
+ * components/icons/*.tsx svg tags.
+ *
+ * Run from project root. Backup (git) recommended.
+ */
 
 import fs from "fs";
 import path from "path";
 
-const TARGET_DIR = "./components/icons"; // change if needed
-const FILE_EXT_REGEX = /\.(ts|tsx)$/i;
-const KEYWORD_BLOCK_REGEX =
-  /(?:(?:\(\s*([A-Za-z_$][A-Za-z0-9_$]*)\s+as\s+IconComponent\s*\))|(?:([A-Za-z_$][A-Za-z0-9_$]*)\s+as\s+IconComponent))\.keywords\s*=\s*\[[\s\S]*?\];\s*export\s+default\s+(?:\1|\2)(?:\s+as\s+IconComponent)?\s*;?/g;
+const iconsDir = path.resolve(process.cwd(), "components/icons");
+if (!fs.existsSync(iconsDir)) {
+  console.error("Directory not found:", iconsDir);
+  process.exit(1);
+}
 
 function processFile(filePath) {
-  const raw = fs.readFileSync(filePath, "utf8");
-  const replaced = raw.replace(KEYWORD_BLOCK_REGEX, (_, g1, g2) => {
-    const name = g1 || g2;
-    console.log(`Cleaned: ${filePath}`);
-    return `export default ${name};`;
-  });
-  if (replaced !== raw) fs.writeFileSync(filePath, replaced, "utf8");
+  let content = fs.readFileSync(filePath, "utf8");
+  const original = content;
+
+  // 1) Remove our injected className attribute from <svg> tags
+  content = content.replace(
+    /\s*className=\{`size-4 \$\{className\}`\}/g,
+    ""
+  );
+
+  // 2) Remove the `className,` prop line from destructured props
+  content = content.replace(/\n?\s*className,\n?/, "\n");
+
+  if (content !== original) {
+    fs.writeFileSync(filePath, content, "utf8");
+    console.log("Updated:", filePath);
+  } else {
+    console.log("No changes:", filePath);
+  }
 }
 
 function walkDir(dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory()) walkDir(fullPath);
-    else if (FILE_EXT_REGEX.test(entry.name)) processFile(fullPath);
+  for (const e of entries) {
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) walkDir(full);
+    else if (e.isFile() && full.endsWith(".tsx")) processFile(full);
   }
 }
 
-walkDir(TARGET_DIR);
-console.log("✅ Cleanup complete.");
+walkDir(iconsDir);
+console.log("Done.");

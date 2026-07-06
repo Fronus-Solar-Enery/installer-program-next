@@ -1,26 +1,55 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Settings as SettingsIcon, Save, RefreshCw } from "lucide-react";
+import { EditSettingDialog } from "./edit-setting-dialog";
 import { toast } from "sonner";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useAdminGuard } from "@/hooks/useRoleGuard";
+import PageHeader from "@/components/PageHeader";
+import {
+  IconEdit2,
+  IconProduct,
+  IconAdd,
+  IconTrashBin2,
+  IconSave,
+  IconSettings,
+} from "@/components/icons";
+import IconReset from "@/components/icons/Reset";
+import { DashboardCardHeader } from "../dashboard/page";
+import { AnimatePresence, motion } from "framer-motion";
+import { Badge } from "@/components/ui/badge";
+import {
+  useProducts,
+  useCreateProduct,
+  useUpdateProduct,
+  useDeleteProduct,
+  type ProductWithId,
+  type ProductInput,
+} from "@/hooks/useProducts";
+import { ProductFormDialog } from "./product-form-dialog";
+import {
+  DeleteConfirmationDialog,
+  type DeleteDialogState,
+} from "@/components/DeleteConfirmationDialog";
+import { SETTINGS_CARDS } from "./settings-config";
+import { SwitchRow, ValueRow } from "./setting-row";
 
-interface SettingsData {
+export interface SettingsData {
   allowInstallerCodeEdit?: boolean;
-  allowTrainingCenterEdit?: boolean;
   maxReferralsPerInstaller?: number;
   requireCertificationForRewards?: boolean;
   autoVerifyInstallers?: boolean;
@@ -45,14 +74,153 @@ interface SettingsData {
   updatedAt?: string;
 }
 
+// List of switch (boolean) settings keys
+const SWITCH_SETTINGS_KEYS: (keyof SettingsData)[] = [
+  "allowInstallerCodeEdit",
+  "requireCertificationForRewards",
+  "autoVerifyInstallers",
+  "requireTransactionIdForPaid",
+  "autoSendWhatsAppOnPaid",
+  "allowUserSelfRegistration",
+  "requireEmailVerification",
+  "enableActivityLogging",
+  "enableWhatsAppNotifications",
+  "maintenanceMode",
+  "notifyAdminOnNewInstaller",
+  "notifyAdminOnRewardSubmission",
+  "allowBulkRewardUpload",
+  "autoDeleteOldActivities",
+];
+
+// Default settings values
+const DEFAULT_SETTINGS: SettingsData = {
+  allowInstallerCodeEdit: false,
+  maxReferralsPerInstaller: 5,
+  requireCertificationForRewards: false,
+  autoVerifyInstallers: false,
+  defaultReferralReward: 1000,
+  maxRewardProcessingDays: 30,
+  requireTransactionIdForPaid: true,
+  autoSendWhatsAppOnPaid: false,
+  allowUserSelfRegistration: true,
+  requireEmailVerification: true,
+  sessionTimeoutMinutes: 480,
+  enableActivityLogging: true,
+  enableWhatsAppNotifications: false,
+  maintenanceMode: false,
+  systemNotificationMessage: "",
+  notifyAdminOnNewInstaller: true,
+  notifyAdminOnRewardSubmission: true,
+  adminNotificationEmail: "",
+  allowBulkRewardUpload: true,
+  maxBulkUploadSize: 1000,
+  activityLogRetentionDays: 90,
+  autoDeleteOldActivities: false,
+};
+
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [dialogSaving, setDialogSaving] = useState(false);
   const [settings, setSettings] = useState<SettingsData | null>(null);
+  const [originalSettings, setOriginalSettings] = useState<SettingsData | null>(
+    null,
+  );
+  const [dialogConfig, setDialogConfig] = useState<{
+    isOpen: boolean;
+    key: keyof SettingsData | null;
+    title: string;
+    description?: string;
+    type: "text" | "number" | "email" | "textarea";
+  }>({
+    isOpen: false,
+    key: null,
+    title: "",
+    description: "",
+    type: "text",
+  });
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
+  // Products (admin-editable, backed by the Product collection)
+  const { data: products = [], isLoading: productsLoading } = useProducts(true);
+  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+  const deleteProduct = useDeleteProduct();
+  const [productDialog, setProductDialog] = useState<{
+    isOpen: boolean;
+    product: ProductWithId | null;
+  }>({ isOpen: false, product: null });
+  const [deleteDialogState, setDeleteDialogState] = useState<
+    DeleteDialogState & { productId?: string; productName?: string }
+  >({ open: false, status: "confirm" });
+
+  const handleProductSave = async (input: ProductInput) => {
+    try {
+      if (productDialog.product) {
+        await updateProduct.mutateAsync({
+          id: productDialog.product._id,
+          input,
+        });
+        toast.success("Product updated successfully");
+      } else {
+        await createProduct.mutateAsync(input);
+        toast.success("Product created successfully");
+      }
+      setProductDialog({ isOpen: false, product: null });
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save product",
+      );
+    }
+  };
+
+  const openDeleteDialog = (product: ProductWithId) => {
+    setDeleteDialogState({
+      open: true,
+      status: "confirm",
+      productId: product._id,
+      productName: product.name,
+    });
+  };
+
+  const closeDeleteDialog = () => {
+    setDeleteDialogState({ open: false, status: "confirm" });
+  };
+
+  const handleProductDelete = async () => {
+    const { productId, productName } = deleteDialogState;
+    if (!productId) return;
+
+    setDeleteDialogState((prev) => ({ ...prev, status: "deleting" }));
+
+    try {
+      await deleteProduct.mutateAsync(productId);
+      setDeleteDialogState({
+        open: true,
+        status: "success",
+        message: `Product "${productName}" has been deleted successfully!`,
+        productName,
+      });
+    } catch (error) {
+      setDeleteDialogState({
+        open: true,
+        status: "error",
+        message:
+          error instanceof Error ? error.message : "Failed to delete product",
+        productName,
+      });
+    }
+  };
+
+  // Only check switch settings for hasChanges
+  const hasChanges = SWITCH_SETTINGS_KEYS.some(
+    (key) => settings?.[key] !== originalSettings?.[key],
+  );
+
+  const { isAuthorized } = useAdminGuard({
+    autoRedirect: true,
+  });
 
   const fetchSettings = async () => {
     try {
@@ -62,6 +230,7 @@ export default function SettingsPage() {
 
       if (data.success) {
         setSettings(data.data);
+        setOriginalSettings(data.data);
       }
     } catch (error) {
       console.error("Failed to fetch settings:", error);
@@ -70,6 +239,12 @@ export default function SettingsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isAuthorized) {
+      fetchSettings();
+    }
+  }, [isAuthorized]);
 
   const handleSave = async () => {
     try {
@@ -84,6 +259,7 @@ export default function SettingsPage() {
 
       if (response.ok) {
         toast.success("Settings saved successfully");
+        setOriginalSettings(settings);
         fetchSettings();
       } else {
         toast.error(data.error || "Failed to save settings");
@@ -98,529 +274,385 @@ export default function SettingsPage() {
 
   const updateSetting = (
     key: keyof SettingsData,
-    value: string | number | boolean
+    value: string | number | boolean,
   ) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
-  if (loading) {
-    return (
-      <div className="p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="space-y-6">
-            <Skeleton className="h-12 w-64" />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <Skeleton key={i} className="h-64" />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  const openEditDialog = (
+    key: keyof SettingsData,
+    title: string,
+    description: string,
+    type: "text" | "number" | "email" | "textarea" = "text",
+  ) => {
+    setDialogConfig({
+      isOpen: true,
+      key,
+      title,
+      description,
+      type,
+    });
+  };
+
+  const handleDialogSave = async (value: string | number) => {
+    if (!dialogConfig.key || !settings || !originalSettings) return;
+
+    const key = dialogConfig.key;
+    // Use originalSettings to ensure we don't save pending switch changes
+    const payload = { ...originalSettings, [key]: value };
+
+    try {
+      setDialogSaving(true);
+      const response = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(`${dialogConfig.title} updated successfully`);
+        // Update both settings (UI) and originalSettings (Server state)
+        // We use function update for settings to preserve any other pending changes (like switches)
+        setSettings((prev) => (prev ? { ...prev, [key]: value } : prev));
+        setOriginalSettings(payload);
+        // Close the dialog after successful save
+        setDialogConfig((prev) => ({ ...prev, isOpen: false }));
+      } else {
+        toast.error(data.error || "Failed to save setting");
+      }
+    } catch (error) {
+      console.error("Failed to save setting:", error);
+      toast.error("An error occurred while saving");
+    } finally {
+      setDialogSaving(false);
+    }
+  };
+
+  const handleResetToDefaults = async () => {
+    try {
+      setResetting(true);
+      const response = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(DEFAULT_SETTINGS),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Settings reset to defaults successfully");
+        setSettings(DEFAULT_SETTINGS);
+        setOriginalSettings(DEFAULT_SETTINGS);
+        setShowResetConfirm(false);
+      } else {
+        toast.error(data.error || "Failed to reset settings");
+      }
+    } catch (error) {
+      console.error("Failed to reset settings:", error);
+      toast.error("An error occurred while resetting");
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  if (!isAuthorized) {
+    return null;
   }
 
   return (
     <>
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <SettingsIcon className="h-8 w-8" />
-            System Settings
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Configure system-wide settings and preferences
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Button onClick={fetchSettings} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Reset
+      <PageHeader
+        title="System Settings"
+        description="Configure system-wide settings and preferences"
+        iconFill
+        Icon={IconSettings}
+        action={
+          <Button
+            onClick={() => setShowResetConfirm(true)}
+            variant="outline"
+            className="gap-1"
+          >
+            <IconReset className="size-3.5!" />
+            Reset Defaults
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            <Save className="h-4 w-4 mr-2" />
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
+        }
+      />
+      {loading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i}>
+                <div className="flex flex-row items-center gap-4 p-6 pb-2">
+                  <Skeleton className="h-10 w-10 rounded-lg" />
+                  <div className="flex-1 space-y-1">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                </div>
+                <CardContent className="space-y-6 pt-6">
+                  {[...Array(4)].map((_, j) => (
+                    <div
+                      key={j}
+                      className="flex items-center justify-between space-x-2"
+                    >
+                      <div className="flex-1 space-y-1">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-3 w-48" />
+                      </div>
+                      <Skeleton className="h-6 w-10 rounded-full" />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {SETTINGS_CARDS.map((card) => (
+              <Card key={card.id}>
+                <DashboardCardHeader
+                  title={card.title}
+                  description={card.description}
+                  Icon={card.Icon}
+                  iconBadge={false}
+                />
+                <CardContent className="p-4! space-y-2">
+                  {card.rows.map((row) =>
+                    row.kind === "switch" ? (
+                      <SwitchRow
+                        key={row.key}
+                        id={row.key}
+                        label={row.label}
+                        description={row.description}
+                        checked={Boolean(settings?.[row.key])}
+                        onCheckedChange={(checked) =>
+                          updateSetting(row.key, checked)
+                        }
+                      />
+                    ) : (
+                      <ValueRow
+                        key={row.key}
+                        label={row.label}
+                        value={row.format(settings)}
+                        onEdit={() =>
+                          openEditDialog(
+                            row.key,
+                            row.dialogTitle,
+                            row.dialogDescription,
+                            row.type,
+                          )
+                        }
+                      />
+                    ),
+                  )}
+                </CardContent>
+              </Card>
+            ))}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Installer Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Installer Settings</CardTitle>
-            <CardDescription>
-              Configure installer-related preferences
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="allowInstallerCodeEdit">
-                  Allow Installer Code Edit
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Allow editing installer codes after creation
-                </p>
+            {/* Products & Reward Amounts */}
+            <Card className="lg:col-span-2">
+              <DashboardCardHeader
+                title="Products & Reward Amounts"
+                description="Manage the product list and each product's installer reward"
+                Icon={IconProduct}
+                iconBadge={false}
+                actions={
+                  <Button
+                    size="sm"
+                    className="gap-1"
+                    onClick={() =>
+                      setProductDialog({ isOpen: true, product: null })
+                    }
+                  >
+                    <IconAdd className="size-3.5!" />
+                    Add Product
+                  </Button>
+                }
+              />
+              <CardContent className="space-y-4 p-4">
+                {productsLoading ? (
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                      <Skeleton key={i} className="h-14 w-full rounded-xl" />
+                    ))}
+                  </div>
+                ) : products.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    No products yet. Add one to get started.
+                  </p>
+                ) : (
+                  <div className="grid lg:grid-cols-2 gap-2 max-h-[480px] overflow-y-auto pr-1">
+                    {products.map((product) => (
+                      <div
+                        key={product._id}
+                        className="flex items-center justify-between gap-4 squircle rounded-2xl border border-border pl-4 p-3 transition-colors duration-150 ease-fluid hover:bg-muted/50"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            <p className="text-sm font-medium truncate">
+                              {product.name}
+                            </p>
+                            <Badge variant="dark">Rs. {product.reward}</Badge>
+                            {product.isBattery && (
+                              <Badge variant="secondary">Battery</Badge>
+                            )}
+                            {product.requiresInverter && (
+                              <Badge variant="secondary">
+                                Requires Inverter Serial
+                              </Badge>
+                            )}
+                            {!product.active && (
+                              <Badge variant="warning">Inactive</Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Switch
+                            checked={product.active}
+                            aria-label={`${product.active ? "Deactivate" : "Activate"} ${product.name}`}
+                            onCheckedChange={(checked) =>
+                              updateProduct.mutate({
+                                id: product._id,
+                                input: { active: checked },
+                              })
+                            }
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            aria-label={`Edit ${product.name}`}
+                            onClick={() =>
+                              setProductDialog({ isOpen: true, product })
+                            }
+                          >
+                            <IconEdit2 aria-hidden />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            aria-label={`Delete ${product.name}`}
+                            onClick={() => openDeleteDialog(product)}
+                          >
+                            <IconTrashBin2 aria-hidden />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Last Updated Info */}
+          {settings?.updatedAt && (
+            <Alert className="mt-6 squircle rounded-2xl py-6">
+              <AlertDescription>
+                Last updated: {new Date(settings.updatedAt).toLocaleString()}
+              </AlertDescription>
+            </Alert>
+          )}
+          {hasChanges && (
+            <AnimatePresence>
+              <div className="w-xl fixed left-1/2 bottom-8 -translate-x-1/2">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="bg-background/70 border border-border backdrop-blur-xl p-6 squircle rounded-2xl shadow-lg flex items-center justify-between"
+                >
+                  <p className="text-center text-sm text-muted-foreground">
+                    Careful — you have unsaved changes
+                  </p>
+
+                  <div className="flex items-center justify-center gap-2">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setSettings(originalSettings)}
+                    >
+                      Discard
+                    </Button>
+
+                    <Button
+                      onClick={handleSave}
+                      disabled={saving || !hasChanges}
+                      className="gap-2"
+                    >
+                      <IconSave width={2} />
+                      {saving ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                </motion.div>
               </div>
-              <Switch
-                id="allowInstallerCodeEdit"
-                checked={settings?.allowInstallerCodeEdit || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("allowInstallerCodeEdit", checked)
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="allowInstallerCodeEdit">
-                  Allow Training Center Edit
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Allow editing Training Center after creation
-                </p>
-              </div>
-              <Switch
-                id="allowInstallerCodeEdit"
-                checked={settings?.allowTrainingCenterEdit || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("allowTrainingCenterEdit", checked)
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="maxReferralsPerInstaller">
-                Max Referrals Per Installer
-              </Label>
-              <Input
-                id="maxReferralsPerInstaller"
-                type="number"
-                min="0"
-                max="100"
-                value={settings?.maxReferralsPerInstaller || 5}
-                onChange={(e) =>
-                  updateSetting(
-                    "maxReferralsPerInstaller",
-                    parseInt(e.target.value)
-                  )
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="requireCertificationForRewards">
-                  Require Certification for Rewards
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Only certified installers can receive rewards
-                </p>
-              </div>
-              <Switch
-                id="requireCertificationForRewards"
-                checked={settings?.requireCertificationForRewards || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("requireCertificationForRewards", checked)
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="autoVerifyInstallers">
-                  Auto Verify Installers
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Automatically verify new installers
-                </p>
-              </div>
-              <Switch
-                id="autoVerifyInstallers"
-                checked={settings?.autoVerifyInstallers || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("autoVerifyInstallers", checked)
-                }
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Reward Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Reward Settings</CardTitle>
-            <CardDescription>
-              Configure reward and payment preferences
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="defaultReferralReward">
-                Default Referral Reward (Rs.)
-              </Label>
-              <Input
-                id="defaultReferralReward"
-                type="number"
-                min="0"
-                value={settings?.defaultReferralReward || 500}
-                onChange={(e) =>
-                  updateSetting(
-                    "defaultReferralReward",
-                    parseInt(e.target.value)
-                  )
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="maxRewardProcessingDays">
-                Max Reward Processing Days
-              </Label>
-              <Input
-                id="maxRewardProcessingDays"
-                type="number"
-                min="1"
-                value={settings?.maxRewardProcessingDays || 30}
-                onChange={(e) =>
-                  updateSetting(
-                    "maxRewardProcessingDays",
-                    parseInt(e.target.value)
-                  )
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="requireTransactionIdForPaid">
-                  Require Transaction ID for Paid
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Transaction ID required to mark as PAID
-                </p>
-              </div>
-              <Switch
-                id="requireTransactionIdForPaid"
-                checked={settings?.requireTransactionIdForPaid || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("requireTransactionIdForPaid", checked)
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="autoSendWhatsAppOnPaid">
-                  Auto Send WhatsApp on Paid
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Automatically send WhatsApp when marked as PAID
-                </p>
-              </div>
-              <Switch
-                id="autoSendWhatsAppOnPaid"
-                checked={settings?.autoSendWhatsAppOnPaid || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("autoSendWhatsAppOnPaid", checked)
-                }
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Team Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Team Settings</CardTitle>
-            <CardDescription>
-              Manage team and user access settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="allowUserSelfRegistration">
-                  Allow User Self Registration
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Users can register without admin approval
-                </p>
-              </div>
-              <Switch
-                id="allowUserSelfRegistration"
-                checked={settings?.allowUserSelfRegistration || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("allowUserSelfRegistration", checked)
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="requireEmailVerification">
-                  Require Email Verification
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Verify email before account activation
-                </p>
-              </div>
-              <Switch
-                id="requireEmailVerification"
-                checked={settings?.requireEmailVerification || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("requireEmailVerification", checked)
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sessionTimeoutMinutes">
-                Session Timeout (Minutes)
-              </Label>
-              <Input
-                id="sessionTimeoutMinutes"
-                type="number"
-                min="30"
-                value={settings?.sessionTimeoutMinutes || 480}
-                onChange={(e) =>
-                  updateSetting(
-                    "sessionTimeoutMinutes",
-                    parseInt(e.target.value)
-                  )
-                }
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* System Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>System Settings</CardTitle>
-            <CardDescription>Configure system-level options</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="enableActivityLogging">
-                  Enable Activity Logging
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Track all user actions
-                </p>
-              </div>
-              <Switch
-                id="enableActivityLogging"
-                checked={settings?.enableActivityLogging || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("enableActivityLogging", checked)
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="enableWhatsAppNotifications">
-                  Enable WhatsApp Notifications
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Send WhatsApp messages to installers
-                </p>
-              </div>
-              <Switch
-                id="enableWhatsAppNotifications"
-                checked={settings?.enableWhatsAppNotifications || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("enableWhatsAppNotifications", checked)
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
-                <p className="text-xs text-muted-foreground">
-                  Disable access for non-admin users
-                </p>
-              </div>
-              <Switch
-                id="maintenanceMode"
-                checked={settings?.maintenanceMode || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("maintenanceMode", checked)
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="systemNotificationMessage">
-                System Notification Message
-              </Label>
-              <Textarea
-                id="systemNotificationMessage"
-                value={settings?.systemNotificationMessage || ""}
-                onChange={(e) =>
-                  updateSetting("systemNotificationMessage", e.target.value)
-                }
-                rows={3}
-                placeholder="Display a message to all users..."
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Notification Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Notification Settings</CardTitle>
-            <CardDescription>
-              Configure email and notification preferences
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="notifyAdminOnNewInstaller">
-                  Notify Admin on New Installer
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Email admin when installer registers
-                </p>
-              </div>
-              <Switch
-                id="notifyAdminOnNewInstaller"
-                checked={settings?.notifyAdminOnNewInstaller || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("notifyAdminOnNewInstaller", checked)
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="notifyAdminOnRewardSubmission">
-                  Notify Admin on Reward Submission
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Email admin on new reward submission
-                </p>
-              </div>
-              <Switch
-                id="notifyAdminOnRewardSubmission"
-                checked={settings?.notifyAdminOnRewardSubmission || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("notifyAdminOnRewardSubmission", checked)
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="adminNotificationEmail">
-                Admin Notification Email
-              </Label>
-              <Input
-                id="adminNotificationEmail"
-                type="email"
-                value={settings?.adminNotificationEmail || ""}
-                onChange={(e) =>
-                  updateSetting("adminNotificationEmail", e.target.value)
-                }
-                placeholder="admin@example.com"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Data Management */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Data Management</CardTitle>
-            <CardDescription>
-              Configure bulk operations and data retention
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="allowBulkRewardUpload">
-                  Allow Bulk Reward Upload
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Enable Excel bulk upload feature
-                </p>
-              </div>
-              <Switch
-                id="allowBulkRewardUpload"
-                checked={settings?.allowBulkRewardUpload || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("allowBulkRewardUpload", checked)
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="maxBulkUploadSize">
-                Max Bulk Upload Size (rows)
-              </Label>
-              <Input
-                id="maxBulkUploadSize"
-                type="number"
-                min="1"
-                value={settings?.maxBulkUploadSize || 1000}
-                onChange={(e) =>
-                  updateSetting("maxBulkUploadSize", parseInt(e.target.value))
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="activityLogRetentionDays">
-                Activity Log Retention (Days)
-              </Label>
-              <Input
-                id="activityLogRetentionDays"
-                type="number"
-                min="30"
-                value={settings?.activityLogRetentionDays || 90}
-                onChange={(e) =>
-                  updateSetting(
-                    "activityLogRetentionDays",
-                    parseInt(e.target.value)
-                  )
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between space-x-2">
-              <div className="flex-1">
-                <Label htmlFor="autoDeleteOldActivities">
-                  Auto Delete Old Activities
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Automatically clean up old activity logs
-                </p>
-              </div>
-              <Switch
-                id="autoDeleteOldActivities"
-                checked={settings?.autoDeleteOldActivities || false}
-                onCheckedChange={(checked) =>
-                  updateSetting("autoDeleteOldActivities", checked)
-                }
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Last Updated Info */}
-      {settings?.updatedAt && (
-        <Alert className="mt-6">
-          <AlertDescription>
-            Last updated: {new Date(settings.updatedAt).toLocaleString()}
-          </AlertDescription>
-        </Alert>
+            </AnimatePresence>
+          )}
+          {settings && (
+            <EditSettingDialog
+              isOpen={dialogConfig.isOpen}
+              onClose={() =>
+                setDialogConfig((prev) => ({ ...prev, isOpen: false }))
+              }
+              onSave={handleDialogSave}
+              title={dialogConfig.title}
+              description={dialogConfig.description}
+              currentValue={
+                dialogConfig.key
+                  ? (settings[dialogConfig.key] as string | number)
+                  : ""
+              }
+              type={dialogConfig.type}
+              isSaving={dialogSaving}
+            />
+          )}
+        </>
       )}
+
+      <ProductFormDialog
+        isOpen={productDialog.isOpen}
+        onClose={() => setProductDialog({ isOpen: false, product: null })}
+        onSave={handleProductSave}
+        product={productDialog.product}
+        isSaving={createProduct.isPending || updateProduct.isPending}
+      />
+
+      <DeleteConfirmationDialog
+        open={deleteDialogState.open}
+        status={deleteDialogState.status}
+        itemName={deleteDialogState.productName}
+        message={deleteDialogState.message}
+        entityType="product"
+        warningMessage="If any rewards reference this product, deletion will be refused — deactivate it instead."
+        onConfirm={handleProductDelete}
+        onClose={closeDeleteDialog}
+      />
+
+      {/* Reset to Defaults Confirmation Dialog */}
+      <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset to Default Settings?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset all settings to their default values. This action
+              cannot be undone and will overwrite all your current settings.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resetting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetToDefaults}
+              disabled={resetting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {resetting ? "Resetting..." : "Reset to Defaults"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

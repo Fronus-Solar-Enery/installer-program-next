@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import IconArrowUpDown from "../icons/ArrowUpDown";
+import { IconCheck } from "../icons";
 
 export interface SearchableSelectOption {
   value: string;
@@ -23,7 +24,7 @@ export interface SearchableSelectOption {
 }
 
 export interface SearchableSelectGroup {
-  label: string;
+  label?: string;
   options: SearchableSelectOption[];
 }
 
@@ -73,7 +74,7 @@ export function SearchableSelect({
           id={id}
           disabled={disabled}
           className={cn(
-            "w-full justify-between h-11 rounded-xl border-border bg-background hover:bg-background px-3",
+            "w-full justify-between h-11 rounded-xl border-border bg-muted/40 hover:bg-muted dark:bg-background dark:hover:bg-muted/40 px-3",
             !value && "text-muted-foreground",
             className
           )}
@@ -117,9 +118,9 @@ export function SearchableSelect({
                       )}
                     >
                       {option.label}
-                      <Check
+                      <IconCheck
                         className={cn(
-                          "h-4 w-4",
+                          "shrink-0",
                           value === option.value ? "opacity-100" : "opacity-0"
                         )}
                       />

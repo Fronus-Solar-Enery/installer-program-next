@@ -9,7 +9,7 @@ declare global {
     onClick?: React.MouseEventHandler<SVGSVGElement>;
   }
 
-  interface SidebarUser {
+  interface TeamUser {
     id?: string;
     name?: string | null | undefined;
     role?: TeamRole;

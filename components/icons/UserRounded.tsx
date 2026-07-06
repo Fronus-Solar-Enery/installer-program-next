@@ -9,11 +9,14 @@ const IconUserRounded: FC<IconProps> = ({
   return (
     <>
       {!fill ? (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <circle
             cx="12"
             cy="6.00049"
@@ -32,11 +35,14 @@ const IconUserRounded: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <circle cx="12" cy="6.00049" r="4" fill="currentColor" />
           <ellipse
             opacity={duotone ? "0.5" : "1"}
@@ -48,11 +54,14 @@ const IconUserRounded: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <circle cx="12" cy="6.00049" r="4" fill="currentColor" />
           <ellipse cx="12" cy="17.0005" rx="7" ry="4" fill="currentColor" />
         </svg>

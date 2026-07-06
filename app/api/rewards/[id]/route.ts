@@ -1,215 +1,128 @@
-import { NextRequest } from 'next/server';
-import { auth } from '@/lib/auth';
-import dbConnect from '@/lib/mongodb';
-import InstallerReward, { IInstallerReward } from '@/models/InstallerReward';
-import { updateRewardSchema } from '@/lib/validation';
-import { ApiResponse, handleApiError } from '@/lib/apiResponse';
-import { logActivity, getChanges } from '@/lib/activityLogger';
-import { ActivityType } from '@/models/Activity';
-import { sendRewardPaymentMessage } from '@/lib/whatsappService';
-import { PaymentStatus } from '@/types/rewards';
-import { ZodError } from 'zod';
+import { NextRequest } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import InstallerReward from "@/models/InstallerReward";
+import { updateRewardSchema } from "@/lib/validation";
+import { ApiResponse, handleApiError } from "@/lib/apiResponse";
+import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
+import { validateBody } from "@/lib/validateRequest";
+import { TeamRole } from "@/models/TeamMember";
+import { RewardStatus } from "@/types/rewards";
+import { getSettings } from "@/models/Settings";
+import { sendRewardPaymentMessage } from "@/lib/whatsappService";
+import { logger } from "@/lib/logger";
 
-import { TeamRole } from '@/models/TeamMember';
-
-interface PopulatedInstaller {
-  _id: string;
-  installerCode: string;
-  fullName: string;
-  phoneNumber?: string;
-  whatsappNumber?: string;
-  bankName?: string;
-  accountNumber?: string;
-  accountTitle?: string;
-}
-
-interface PopulatedReward {
-  installer: PopulatedInstaller;
-  referrer?: PopulatedInstaller;
-  serialNumber: string;
-  productModel: string;
-  rewardAmount: number;
-  transactionId?: string;
-  sendingDate?: Date;
-}
+const POPULATE = [
+  {
+    path: "installer",
+    select:
+      "installerCode fullName cnic phoneNumber whatsappNumber district bankName accountNumber accountTitle",
+  },
+  {
+    path: "referrer",
+    select:
+      "installerCode fullName phoneNumber bankName accountNumber accountTitle",
+  },
+  { path: "registeredBy", select: "name email role" },
+  { path: "updatedBy", select: "name email role" },
+] as const;
 
 // GET single reward
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const session = await auth();
+export const GET = withAuth(
+  async (request: NextRequest, context: RouteContext, session: AuthSession) => {
+    try {
+      await dbConnect();
 
-    if (!session) {
-      return ApiResponse.unauthorized();
+      const { id } = await context.params;
+      const reward = await InstallerReward.findById(id).populate([...POPULATE]);
+
+      if (!reward) {
+        return ApiResponse.notFound("Reward not found");
+      }
+
+      return ApiResponse.success(reward);
+    } catch (error) {
+      return handleApiError(error);
     }
-
-    await dbConnect();
-
-    const { id } = await params;
-    const reward = await InstallerReward.findById(id)
-      .populate('installer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')
-      .populate('referrer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')
-      .populate('registeredBy', 'name email role');
-
-    if (!reward) {
-      return ApiResponse.notFound('Reward not found');
-    }
-
-    return ApiResponse.success(reward);
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  },
+);
 
 // PUT - Update reward
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const session = await auth();
+export const PUT = withAuth(
+  async (request: NextRequest, context: RouteContext, session: AuthSession) => {
+    try {
+      const validation = await validateBody(request, updateRewardSchema);
+      if (!validation.success) return validation.response;
 
-    if (!session) {
-      return ApiResponse.unauthorized();
-    }
+      await dbConnect();
 
-    const body = await request.json();
-    const validatedData = updateRewardSchema.parse(body);
+      const { id } = await context.params;
+      const previous = await InstallerReward.findById(id).select("rewardStatus");
+      const reward = await InstallerReward.findByIdAndUpdate(
+        id,
+        { ...validation.data, updatedBy: session.user.id },
+        { new: true, runValidators: true },
+      ).populate([...POPULATE]);
 
-    await dbConnect();
-
-    const { id } = await params;
-    const reward = await InstallerReward.findById(id).populate('referrer');
-
-    if (!reward) {
-      return ApiResponse.notFound('Reward not found');
-    }
-
-    // Check for duplicate serial number if it's being updated
-    if (validatedData.serialNumber && validatedData.serialNumber !== reward.serialNumber) {
-      const existingReward = await InstallerReward.findOne({
-        serialNumber: validatedData.serialNumber,
-        _id: { $ne: id }
-      });
-
-      if (existingReward) {
-        return ApiResponse.error('Serial number already exists', 400);
+      if (!reward) {
+        return ApiResponse.notFound("Reward not found");
       }
+
+      // Notify installer via WhatsApp when reward transitions to PAID.
+      const installer = reward.installer as unknown as {
+        fullName?: string;
+        whatsappNumber?: string;
+      } | null;
+      if (
+        previous?.rewardStatus !== RewardStatus.PAID &&
+        reward.rewardStatus === RewardStatus.PAID &&
+        installer?.fullName &&
+        installer?.whatsappNumber
+      ) {
+        const { autoSendWhatsAppOnPaid } = await getSettings();
+        if (autoSendWhatsAppOnPaid) {
+          sendRewardPaymentMessage(
+            {
+              installer: {
+                fullName: installer.fullName,
+                whatsappNumber: installer.whatsappNumber,
+              },
+              serialNumber: reward.serialNumber,
+              productModel: reward.productModel,
+              rewardAmount: reward.rewardAmount,
+              transactionId: reward.transactionId,
+              sendingDate: reward.sendingDate,
+            },
+            session.user.id,
+          ).catch((e) =>
+            logger.error("Reward-paid WhatsApp failed", { error: String(e) }),
+          );
+        }
+      }
+
+      return ApiResponse.success(reward, "Reward updated successfully");
+    } catch (error) {
+      return handleApiError(error);
     }
-
-    // Track changes for activity log
-    const changes = getChanges(reward.toObject() as unknown as Record<string, unknown>, validatedData);
-    const oldPaymentStatus = reward.paymentStatus;
-
-    // Update reward
-    Object.assign(reward, validatedData);
-    await reward.save();
-
-    const updatedReward = await InstallerReward.findById(reward._id)
-      .populate('installer', 'installerCode fullName phoneNumber whatsappNumber bankName accountNumber accountTitle')
-      .populate('referrer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')
-      .populate('registeredBy', 'name email role');
-
-    if (!updatedReward) {
-      return ApiResponse.error('Failed to fetch updated reward', 500);
-    }
-
-    // Log activity
-    const populatedReward = updatedReward as unknown as PopulatedReward;
-    await logActivity({
-      type: ActivityType.REWARD_UPDATED,
-      performedBy: session.user.id,
-      targetType: 'InstallerReward',
-      targetId: reward._id,
-      targetName: `${populatedReward.installer.installerCode} - ${updatedReward.serialNumber}`,
-      description: `Updated reward for ${populatedReward.installer.fullName}`,
-      metadata: { changes },
-      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
-      userAgent: request.headers.get('user-agent') || undefined,
-    });
-
-    // Check if payment status changed to PAID
-    if (oldPaymentStatus !== PaymentStatus.PAID && validatedData.paymentStatus === PaymentStatus.PAID) {
-      // Send WhatsApp notification (non-blocking)
-      sendRewardPaymentMessage(
-        {
-          installer: {
-            fullName: populatedReward.installer.fullName,
-            whatsappNumber: populatedReward.installer.whatsappNumber || '',
-          },
-          serialNumber: updatedReward.serialNumber,
-          productModel: updatedReward.productModel,
-          rewardAmount: updatedReward.rewardAmount,
-          transactionId: updatedReward.transactionId,
-          sendingDate: updatedReward.sendingDate,
-        },
-        session.user.id
-      ).catch(err => console.error('WhatsApp notification failed:', err));
-
-      // Log the status change specifically
-      await logActivity({
-        type: ActivityType.REWARD_MARKED_PAID,
-        performedBy: session.user.id,
-        targetType: 'InstallerReward',
-        targetId: reward._id,
-        targetName: `${populatedReward.installer.installerCode} - ${updatedReward.serialNumber}`,
-        description: `Marked reward as PAID for ${populatedReward.installer.fullName} - Rs. ${updatedReward.rewardAmount.toLocaleString()}`,
-      });
-    }
-
-    return ApiResponse.success(updatedReward, 'Reward updated successfully');
-  } catch (error: unknown) {
-    if (error instanceof ZodError) {
-      return ApiResponse.validationError(error.issues as Array<{ path?: PropertyKey[]; message: string }>);
-    }
-    return handleApiError(error);
-  }
-}
+  },
+);
 
 // DELETE reward (ADMIN/MANAGER only)
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const session = await auth();
+export const DELETE = withAuth(
+  async (request: NextRequest, context: RouteContext, session: AuthSession) => {
+    try {
+      await dbConnect();
 
-    if (!session) {
-      return ApiResponse.unauthorized();
+      const { id } = await context.params;
+      const reward = await InstallerReward.findByIdAndDelete(id);
+
+      if (!reward) {
+        return ApiResponse.notFound("Reward not found");
+      }
+
+      return ApiResponse.success(null, "Reward deleted successfully");
+    } catch (error) {
+      return handleApiError(error);
     }
-
-    // Only ADMIN and MANAGER can delete
-    if (session.user.role !== TeamRole.ADMIN && session.user.role !== TeamRole.MANAGER) {
-      return ApiResponse.forbidden('Only admins and managers can delete rewards');
-    }
-
-    await dbConnect();
-
-    const { id } = await params;
-    const reward = await InstallerReward.findById(id)
-      .populate('installer', 'installerCode fullName');
-
-    if (!reward) {
-      return ApiResponse.notFound('Reward not found');
-    }
-
-    // Store info before deletion
-    const installerData = reward.installer as unknown as PopulatedInstaller;
-    const rewardInfo = {
-      serialNumber: reward.serialNumber,
-      installerCode: reward.installerCode,
-      installerName: installerData?.fullName,
-    };
-
-    await reward.deleteOne();
-
-    // Log activity
-    await logActivity({
-      type: ActivityType.REWARD_DELETED,
-      performedBy: session.user.id,
-      targetType: 'InstallerReward',
-      targetId: reward._id,
-      targetName: `${rewardInfo.installerCode} - ${rewardInfo.serialNumber}`,
-      description: `Deleted reward for ${rewardInfo.installerName} (Serial: ${rewardInfo.serialNumber})`,
-      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
-      userAgent: request.headers.get('user-agent') || undefined,
-    });
-
-    return ApiResponse.success(null, 'Reward deleted successfully');
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  },
+  { roles: [TeamRole.ADMIN, TeamRole.MANAGER] },
+);

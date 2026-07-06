@@ -7,20 +7,9 @@
   font-style: normal;
 }
 
-@font-face {
-  font-family: "ClashDisplay";
-  src: url("/fonts/ClashDisplay.woff2") format("woff2"),
-    url("/fonts/ClashDisplay.woff") format("woff"),
-    url("/fonts/ClashDisplay.ttf") format("truetype");
-  font-weight: 200 700;
-  font-display: swap;
-  font-style: normal;
-  unicode-range: U+0000-001F, U+0021-007F;
-}
-
 :root {
   --radius: 0.65rem;
-  --background: oklch(0.95 0 0);
+  --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -30,19 +19,19 @@
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted: oklch(0.95 0 0);
+  --muted-foreground: oklch(0.4 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(45.4% 0.222 16.935);
-  --destructive-hover: oklch(58.6% 0.253 17.585);
+  --destructive: oklch(44.4% 0.177 26.899);
+  --destructive-hover: oklch(50.5% 0.213 27.518);
   --destructive-text: oklch(60.4% 0.191 22.216);
   --destructive-text-hover: oklch(70.4% 0.191 22.216);
   --success: oklch(45% 0.145 163.225);
   --success-hover: oklch(50.6% 0.145 163.225);
   --success-text: oklch(59.6% 0.145 163.225);
   --success-text-hover: oklch(69.6% 0.145 163.225);
-  --border: oklch(0.922 0 0);
+  --border: oklch(0.9 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
   --radius: 0.625rem;
@@ -93,11 +82,11 @@
 }
 
 @variant dark (&:where(.dark, .dark *));
+@variant light (&:where(.light, .light *));
 
 @theme inline {
-  /* Base variables mapped to Tailwind theme tokens */
   --font-number: "Bloxat", sans-serif;
-  --font-clash: "ClashDisplay", sans-serif;
+  --font-mono: var(--font-saira);
 
   --radius: var(--radius);
   --color-background: var(--background);
@@ -176,6 +165,12 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  /* Shadows */
+  --shadow-layered:
+    0px 1px 1px oklch(0% 0 0 / 0.02), 0px 5px 4px oklch(0% 0 0 / 0.03),
+    0px 12px 9px oklch(0% 0 0 / 0.05), 0px 20px 15px oklch(0% 0 0 / 0.06),
+    0px 32px 24px oklch(0% 0 0 / 0.08);
+
   /* Radius tokens */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -184,43 +179,164 @@
   --radius-2xl: calc(var(--radius) + 0.375rem);
 
   --ease-fluid: cubic-bezier(0.7, 0, 0.2, 1);
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* Accordion animations */
+  --animate-accordion-down: accordion-down 0.3s ease-out;
+  --animate-accordion-up: accordion-up 0.3s ease-out;
+
+  /* Dialog / AlertDialog animations */
+  --animate-dialog-overlay-in: dialog-overlay-in 200ms var(--ease-out-strong);
+  --animate-dialog-overlay-out: dialog-overlay-out 150ms var(--ease-out-strong);
+  --animate-dialog-content-in: dialog-content-in 220ms var(--ease-out-strong);
+  --animate-dialog-content-out: dialog-content-out 150ms var(--ease-out-strong);
+  --animate-status-in: status-content-in 200ms var(--ease-out-strong);
 }
-/* 
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+    opacity: 1;
+  }
+  to {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes dialog-content-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dialog-content-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes status-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @keyframes dialog-content-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes dialog-content-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes status-content-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+/*
 ::-webkit-scrollbar {
   display: none;
 } */
 
+/* Hide scrollbar for specific elements */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 body {
   /* background: var(--background); */
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  @apply bg-background;
+  @apply bg-background text-foreground;
 }
 
 ol:has(li.my-toast) {
-  @apply !flex !justify-center;
+  @apply flex! justify-center!;
 }
 
 [data-expanded="true"].my-toast,
 [data-type="error"].my-toast,
 [data-type="loading"].my-toast,
 [data-type="success"].my-toast {
-  @apply !border-none !rounded-full !shadow-none !ease-fluid !py-3 !px-6 !flex !items-center !justify-center !w-max whitespace-nowrap;
+  @apply border-none! rounded-full! shadow-none! ease-fluid! py-3! px-6! flex! items-center! justify-center! w-max! whitespace-nowrap;
 }
 
 [data-type="success"].my-toast {
-  @apply !bg-emerald-50 !text-emerald-700 dark:!bg-emerald-950 dark:!text-emerald-100 shadow-background;
+  @apply bg-emerald-50! text-emerald-700! dark:bg-emerald-950! dark:text-emerald-100! shadow-background;
 }
 
 [data-type="loading"].my-toast {
-  @apply !bg-muted !text-muted-foreground shadow-background;
+  @apply bg-muted! text-muted-foreground! shadow-background;
 }
 
 [data-type="error"].my-toast {
-  @apply !bg-red-50 !text-red-700 dark:!bg-red-950 dark:!text-red-100 shadow-background;
+  @apply bg-red-50! text-red-700! dark:bg-red-950! dark:text-red-100! shadow-background;
 }
 .my-toas > [data-content] {
-  @apply !flex !items-center;
+  @apply flex! items-center!;
 }
 
 @supports (corner-shape: squircle) {
@@ -251,4 +367,44 @@ ol:has(li.my-toast) {
 .squircle.nosquircle {
   corner-shape: unset !important;
   border-radius: 50%;
+}
+
+@layer components {
+  .before-wrapper {
+    @apply relative;
+    --sidebar-tail-left: -6px;
+  }
+
+  .before-wrapper::before {
+    content: "";
+    position: absolute;
+    left: var(--sidebar-tail-left);
+    top: 50%;
+    transform: translateY(-50%);
+    height: 2px;
+    @apply bg-muted transition-[width] duration-300 ease-fluid;
+    z-index: 0;
+  }
+
+  .before-wrapper::after {
+    content: "";
+    position: absolute;
+    left: var(--sidebar-tail-left);
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    height: calc(100% + 4px);
+    @apply bg-muted;
+    z-index: 0;
+  }
+
+  .before-content {
+    position: relative;
+    z-index: 10;
+  }
+
+  .before-wrapper:last-of-type::after {
+    height: 52%;
+    top: 0;
+  }
 }

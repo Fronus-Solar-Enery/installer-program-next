@@ -2,6 +2,11 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     // Only run on server-side in development
     if (process.env.NODE_ENV === "development") {
+      // System DNS resolver on this machine can't resolve mongodb+srv SRV
+      // records (router/ISP limitation). Force a public resolver that can.
+      const dns = await import("dns");
+      dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
       const mongoose = await import("mongoose");
 
       const MONGODB_URI = process.env.MONGODB_URI;
@@ -33,8 +38,8 @@ export async function register() {
       const type = isAtlas
         ? "MongoDB Atlas (Cloud)"
         : isLocal
-        ? "MongoDB Local"
-        : "MongoDB Remote";
+          ? "MongoDB Local"
+          : "MongoDB Remote";
 
       console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       console.log("🗄️  DATABASE CONFIGURATION");

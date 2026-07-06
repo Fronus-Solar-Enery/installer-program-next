@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import dbConnect from '@/lib/mongodb';
 import GoogleAuth from '@/models/GoogleAuth';
+import { encryptSecret } from '@/lib/encryption';
 
 export async function GET(request: NextRequest) {
   try {
@@ -65,11 +66,19 @@ export async function GET(request: NextRequest) {
       { accountEmail }, // Use email as unique identifier
       {
         accountEmail,
-        refreshToken: tokens.refresh_token,
-        accessToken: tokens.access_token,
+        // Encrypt durable OAuth credentials before they touch the database.
+        refreshToken: tokens.refresh_token
+          ? encryptSecret(tokens.refresh_token)
+          : undefined,
+        accessToken: tokens.access_token
+          ? encryptSecret(tokens.access_token)
+          : undefined,
         expiryDate: tokens.expiry_date ? new Date(tokens.expiry_date) : undefined,
         scope: 'https://www.googleapis.com/auth/contacts',
         isActive: true,
+        needsReauth: false, // Fresh token — clear any prior invalid_grant flag
+        lastError: null,
+        lastErrorAt: null,
         authenticatedBy: state, // Track which user authenticated (audit trail)
       },
       { upsert: true, new: true }

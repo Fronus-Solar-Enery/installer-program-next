@@ -1,138 +1,89 @@
-import { NextRequest } from 'next/server';
-import { auth } from '@/lib/auth';
-import dbConnect from '@/lib/mongodb';
-import TeamMember, { TeamRole, ITeamMember } from '@/models/TeamMember';
-import { ApiResponse, handleApiError } from '@/lib/apiResponse';
-import bcrypt from 'bcryptjs';
-import { FilterQuery } from 'mongoose';
-
+import { NextRequest } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import TeamMember, { TeamRole } from "@/models/TeamMember";
+import { ApiResponse, handleApiError } from "@/lib/apiResponse";
+import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
+import { validateBody } from "@/lib/validateRequest";
+import { registerTeamMemberSchema } from "@/lib/validation";
+import bcrypt from "bcryptjs";
 
 // GET all team members (ADMIN/MANAGER only)
-export async function GET(request: NextRequest) {
-  try {
-    const session = await auth();
+export const GET = withAuth(
+  async (request: NextRequest, context: RouteContext, session: AuthSession) => {
+    try {
+      await dbConnect();
 
-    if (!session) {
-      return ApiResponse.unauthorized();
+      const teamMembers = await TeamMember.find({})
+        .select("-password")
+        .sort({ createdAt: -1 });
+
+      return ApiResponse.success({
+        members: teamMembers,
+        total: teamMembers.length,
+      });
+    } catch (error) {
+      return handleApiError(error);
     }
-
-    const userRole = session.user.role;
-
-    if (userRole !== TeamRole.ADMIN && userRole !== TeamRole.MANAGER) {
-      return ApiResponse.forbidden('Only admins and managers can view team members');
-    }
-
-    await dbConnect();
-
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const role = searchParams.get('role');
-    const search = searchParams.get('search');
-
-    const query: FilterQuery<ITeamMember> = {};
-
-    if (role) {
-      query.role = role;
-    }
-
-    if (search) {
-      query.$or = [{ name: { $regex: search, $options: 'i' } }, { email: { $regex: search, $options: 'i' } }];
-    }
-
-    const skip = (page - 1) * limit;
-
-    const [teamMembers, total] = await Promise.all([
-      TeamMember.find(query).select('-password').sort({ createdAt: -1 }).skip(skip).limit(limit),
-      TeamMember.countDocuments(query),
-    ]);
-
-    return ApiResponse.success({
-      members: teamMembers,
-      pagination: {
-        total,
-        page,
-        limit,
-        pages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  },
+  { roles: [TeamRole.ADMIN, TeamRole.MANAGER] }
+);
 
 // POST - Create new team member (ADMIN/MANAGER only)
-export async function POST(request: NextRequest) {
-  try {
-    const session = await auth();
+export const POST = withAuth(
+  async (request: NextRequest, context: RouteContext, session: AuthSession) => {
+    try {
+      const validation = await validateBody(request, registerTeamMemberSchema);
+      if (!validation.success) return validation.response;
+      const { name, email, password, role } = validation.data;
 
-    if (!session) {
-      return ApiResponse.unauthorized();
+      await dbConnect();
+
+      // Check if user can create this role
+      const userRole = session.user.role;
+      if (role === TeamRole.ADMIN && userRole !== TeamRole.ADMIN) {
+        return ApiResponse.forbidden("Only admins can create admin accounts");
+      }
+
+      const normalizedEmail = email.toLowerCase();
+
+      // Check if email already exists
+      const existingMember = await TeamMember.findOne({
+        email: normalizedEmail,
+      });
+      if (existingMember) {
+        return ApiResponse.conflict(
+          "A team member with this email already exists"
+        );
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 12);
+
+      // Create team member
+      const teamMember = await TeamMember.create({
+        name,
+        email: normalizedEmail,
+        password: hashedPassword,
+        role,
+      });
+
+      // Return member without password
+      const memberResponse = {
+        _id: teamMember._id,
+        name: teamMember.name,
+        email: teamMember.email,
+        role: teamMember.role,
+        createdAt: teamMember.createdAt,
+      };
+
+      return ApiResponse.success(
+        memberResponse,
+        "Team member created successfully",
+        201
+      );
+    } catch (error) {
+      return handleApiError(error);
     }
-
-    const userRole = session.user.role;
-
-    // Only ADMIN and MANAGER can create team members
-    if (userRole !== TeamRole.ADMIN && userRole !== TeamRole.MANAGER) {
-      return ApiResponse.forbidden('Only admins and managers can create team members');
-    }
-
-    const body = await request.json();
-    const { name, email, password, role } = body;
-
-    // Validate required fields
-    if (!name || !email || !password || !role) {
-      return ApiResponse.validationError([
-        { path: ['required'], message: 'Name, email, password, and role are required' },
-      ]);
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return ApiResponse.validationError([{ path: ['email'], message: 'Invalid email format' }]);
-    }
-
-    // Validate password length
-    if (password.length < 6) {
-      return ApiResponse.validationError([
-        { path: ['password'], message: 'Password must be at least 6 characters' },
-      ]);
-    }
-
-    // Check role permissions
-    // MANAGER cannot create ADMIN
-    if (userRole === TeamRole.MANAGER && role === TeamRole.ADMIN) {
-      return ApiResponse.forbidden('Managers cannot create admin accounts');
-    }
-
-    await dbConnect();
-
-    // Check if email already exists
-    const existingUser = await TeamMember.findOne({ email });
-    if (existingUser) {
-      return ApiResponse.error('Email already exists', 400);
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create new team member
-    const newTeamMember = await TeamMember.create({
-      name,
-      email,
-      password: hashedPassword,
-      role,
-    });
-
-    // Return without password
-    const { password: _, ...teamMemberWithoutPassword } = newTeamMember.toObject();
-
-    return ApiResponse.success(teamMemberWithoutPassword, 'Team member created successfully');
-  } catch (error: unknown) {
-    if (error && typeof error === 'object' && 'code' in error && error.code === 11000) {
-      return ApiResponse.error('Email already exists', 400);
-    }
-    return handleApiError(error);
-  }
-}
+  },
+  { roles: [TeamRole.ADMIN, TeamRole.MANAGER] }
+);

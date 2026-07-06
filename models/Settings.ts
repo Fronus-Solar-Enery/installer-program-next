@@ -1,11 +1,10 @@
-import mongoose, { Schema, Model } from 'mongoose';
+import mongoose, { Schema, Model } from "mongoose";
 
 export interface ISettings {
   _id?: string;
 
   // Installer Settings
   allowInstallerCodeEdit: boolean;
-  allowTrainingCenterEdit: boolean;
   maxReferralsPerInstaller: number;
   requireCertificationForRewards: boolean;
   autoVerifyInstallers: boolean;
@@ -49,11 +48,6 @@ const SettingsSchema = new Schema<ISettings>(
   {
     // Installer Settings
     allowInstallerCodeEdit: {
-      type: Boolean,
-      default: false,
-      required: true,
-    },
-    allowTrainingCenterEdit: {
       type: Boolean,
       default: false,
       required: true,
@@ -167,12 +161,12 @@ const SettingsSchema = new Schema<ISettings>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const Settings: Model<ISettings> =
   mongoose.models.Settings ||
-  mongoose.model<ISettings>('Settings', SettingsSchema);
+  mongoose.model<ISettings>("Settings", SettingsSchema);
 
 export default Settings;
 

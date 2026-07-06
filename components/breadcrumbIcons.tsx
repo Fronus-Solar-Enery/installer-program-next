@@ -32,7 +32,7 @@ export const routeIconMap: Record<string, React.FC<IconProps>> = {
   settings: (props) => <IconWrapper Icon={IconSettings} {...props} />,
   team: (props) => <IconWrapper Icon={IconUsersGroupRounded} {...props} />,
   activity: (props) => <IconWrapper Icon={IconActivity} {...props} />,
-  new: (props) => <IconWrapper Icon={IconAdd} {...props} />,
+  register: (props) => <IconWrapper Icon={IconAdd} {...props} />,
   edit: (props) => <IconWrapper Icon={IconEdit} {...props} />,
   "bulk-register": (props) => (
     <IconWrapper Icon={IconUploadMinimalistic} {...props} />

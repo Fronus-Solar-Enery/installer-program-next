@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useCallback, useMemo, FC } from "react";
+import { useEffect, useState, useCallback, useMemo, FC, ReactNode } from "react";
 import {
   Card,
   CardContent,
@@ -14,14 +14,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Users,
-  Package,
-  DollarSign,
-  Target,
-  ArrowUpRight,
-  RefreshCw,
-} from "lucide-react";
+import { Users, Package, DollarSign, Target, ArrowUpRight } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -54,13 +47,18 @@ import {
   IconArrowRightUp,
   IconCheck,
   IconCity,
+  IconClose,
   IconCopy,
+  IconDangerCircle,
   IconDiagramUp,
   IconGift,
   IconInstaller,
   IconPackage,
   IconProduct,
+  IconReferrer,
   IconRefresh2,
+  IconReward,
+  IconTeacher,
   IconUser,
 } from "@/components/icons";
 import IconFileSmile from "@/components/icons/FileSmile";
@@ -73,6 +71,14 @@ import { InstallerAvatar } from "@/components/UserAvatar";
 import { formatNumber } from "@/lib/formatNumber";
 import { useClipboard } from "@/hooks/useCopyToClipboard";
 import Link from "next/link";
+import { CopyButton } from "@/components/CopyButton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Stats {
   totalInstallers: number;
@@ -113,16 +119,16 @@ interface ActiveInstaller {
   referralRewardAmount: number;
 }
 
-interface TrainingCenterActive {
-  trainingCenter: string;
+interface DistrictActive {
+  district: string;
   activeInstallersCount: number;
   totalInstallations: number;
 }
 
-interface InstallerByCenter {
+interface InstallersByDistrict {
   installerName: string;
   installerCode: string;
-  trainingCenter: string;
+  district: string;
   city: string;
   totalProducts: number;
   rewardAmount: number;
@@ -158,7 +164,7 @@ interface DashboardReward extends ItemWithDate {
   _id: string;
   rewardAmount: number;
   referrerRewardAmount?: number;
-  paymentStatus: "PENDING" | "PAID" | "FAILED";
+  rewardStatus: "PENDING" | "PAID" | "FAILED";
   productModel: string;
   cityOfInstallation: string;
   createdAt: string;
@@ -224,20 +230,18 @@ export default function DashboardPage() {
     ActiveInstallersData[]
   >([]);
   const [activeInstallers, setActiveInstallers] = useState<ActiveInstaller[]>(
-    []
+    [],
   );
-  const [trainingCenterActive, setTrainingCenterActive] = useState<
-    TrainingCenterActive[]
+  const [districtActive, setDistrictActive] = useState<DistrictActive[]>([]);
+  const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
+  const [districtInstallers, setDistrictInstallers] = useState<
+    InstallersByDistrict[]
   >([]);
-  const [selectedCenter, setSelectedCenter] = useState<string | null>(null);
-  const [centerInstallers, setCenterInstallers] = useState<InstallerByCenter[]>(
-    []
-  );
   const [recentInstallations, setRecentInstallations] = useState<
     RecentInstallation[]
   >([]);
   const [recentInstallers, setRecentInstallers] = useState<RecentInstaller[]>(
-    []
+    [],
   );
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -276,7 +280,7 @@ export default function DashboardPage() {
             0,
             23,
             59,
-            59
+            59,
           );
           return { startDate: prevMonthStart, endDate: prevMonthEnd };
 
@@ -302,13 +306,13 @@ export default function DashboardPage() {
           return { startDate: null, endDate: null };
       }
     },
-    [customStartDate, customEndDate]
+    [customStartDate, customEndDate],
   );
 
   const filterByDateRange = useCallback(
     <T extends ItemWithDate>(
       items: T[],
-      dateField: keyof T = "createdAt" as keyof T
+      dateField: keyof T = "createdAt" as keyof T,
     ): T[] => {
       const { startDate, endDate } = getDateRange(timePeriod);
 
@@ -320,7 +324,7 @@ export default function DashboardPage() {
         return itemDate >= startDate && itemDate <= endDate;
       });
     },
-    [timePeriod, getDateRange]
+    [timePeriod, getDateRange],
   );
 
   const fetchStats = useCallback(async () => {
@@ -341,14 +345,14 @@ export default function DashboardPage() {
         allRewardsRes,
         allInstallersRes,
         activeInstallersRes,
-        trainingCenterRes,
+        districtRes,
       ] = await Promise.all([
         fetch("/api/installers?limit=5&sortBy=createdAt&sortOrder=desc"),
         fetch("/api/rewards?limit=5&sortBy=createdAt&sortOrder=desc"),
         fetch("/api/rewards?limit=5000"),
         fetch("/api/installers?limit=5000"),
         fetch(`/api/dashboard/active-installers${dateParams}`),
-        fetch(`/api/dashboard/active-by-training-center${dateParams}`),
+        fetch(`/api/dashboard/active-by-district${dateParams}`),
       ]);
 
       // Parse all responses in parallel
@@ -358,22 +362,22 @@ export default function DashboardPage() {
         allRewards,
         allInstallers,
         activeInstallersData,
-        trainingCenterData,
+        districtData,
       ] = await Promise.all([
         installersRes.json(),
         rewardsRes.json(),
         allRewardsRes.json(),
         allInstallersRes.json(),
         activeInstallersRes.json(),
-        trainingCenterRes.json(),
+        districtRes.json(),
       ]);
 
       // Filter data by date range
       const filteredRewards = filterByDateRange(
-        allRewards.data?.rewards || []
+        allRewards.data?.rewards || [],
       ) as DashboardReward[];
       const filteredInstallers = filterByDateRange(
-        allInstallers.data?.installers || []
+        allInstallers.data?.installers || [],
       ) as DashboardInstaller[];
 
       // Optimize calculations using a single reduce pass
@@ -385,13 +389,13 @@ export default function DashboardPage() {
           acc.totalAmount += rewardAmount;
           acc.referrerRewardsTotal += referrerAmount;
 
-          if (reward.paymentStatus === "PENDING") {
+          if (reward.rewardStatus === "PENDING") {
             acc.pendingAmount += rewardAmount;
             acc.referrerRewardsPending += referrerAmount;
-          } else if (reward.paymentStatus === "PAID") {
+          } else if (reward.rewardStatus === "PAID") {
             acc.paidAmount += rewardAmount;
             acc.referrerRewardsPaid += referrerAmount;
-          } else if (reward.paymentStatus === "FAILED") {
+          } else if (reward.rewardStatus === "FAILED") {
             acc.failedAmount += rewardAmount;
           }
 
@@ -405,7 +409,7 @@ export default function DashboardPage() {
           referrerRewardsTotal: 0,
           referrerRewardsPending: 0,
           referrerRewardsPaid: 0,
-        }
+        },
       );
 
       // Calculate grand totals (installer rewards + referrer rewards)
@@ -470,14 +474,14 @@ export default function DashboardPage() {
       // Calculate Active Installers for different time periods
       const calculateActiveInstallers = (
         startDate: Date | null,
-        endDate: Date | null
+        endDate: Date | null,
       ) => {
         if (!startDate || !endDate) {
           // For "All Time", use all rewards
           const uniqueInstallers = new Set(
             allRewards.data?.rewards
               ?.map((r: DashboardReward) => r.installer?._id)
-              .filter(Boolean)
+              .filter(Boolean),
           );
           return uniqueInstallers.size;
         }
@@ -491,7 +495,7 @@ export default function DashboardPage() {
         const uniqueInstallers = new Set(
           periodRewards
             .map((r: DashboardReward) => r.installer?._id)
-            .filter(Boolean)
+            .filter(Boolean),
         );
         return uniqueInstallers.size;
       };
@@ -510,7 +514,7 @@ export default function DashboardPage() {
       const prevMonthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59);
       const prevMonthCount = calculateActiveInstallers(
         prevMonthStart,
-        prevMonthEnd
+        prevMonthEnd,
       );
 
       // Last 6 months
@@ -523,7 +527,7 @@ export default function DashboardPage() {
       const previousYearEnd = new Date(currentYear - 1, 11, 31, 23, 59, 59);
       const previousYearCount = calculateActiveInstallers(
         previousYearStart,
-        previousYearEnd
+        previousYearEnd,
       );
 
       const activeInstallersArray: ActiveInstallersData[] = [
@@ -553,8 +557,8 @@ export default function DashboardPage() {
       // Set active installers from API
       setActiveInstallers(activeInstallersData.data || []);
 
-      // Set training center active data
-      setTrainingCenterActive(trainingCenterData.data || []);
+      // Set district active data
+      setDistrictActive(districtData.data || []);
 
       setRecentInstallations(rewardsData.data?.rewards || []);
       setRecentInstallers(installersData.data?.installers || []);
@@ -569,10 +573,10 @@ export default function DashboardPage() {
     () =>
       stats.totalRewards > 0
         ? Math.round(
-            (stats.paidAmount / stats.totalAmount) * stats.totalRewards
+            (stats.paidAmount / stats.totalAmount) * stats.totalRewards,
           )
         : 0,
-    [stats.totalRewards, stats.paidAmount, stats.totalAmount]
+    [stats.totalRewards, stats.paidAmount, stats.totalAmount],
   );
 
   const avgPerProduct = useMemo(
@@ -580,7 +584,7 @@ export default function DashboardPage() {
       productData.length > 0
         ? Math.round(stats.totalRewards / productData.length)
         : 0,
-    [productData.length, stats.totalRewards]
+    [productData.length, stats.totalRewards],
   );
 
   const grandTotalPaidPercentage = useMemo(
@@ -588,7 +592,7 @@ export default function DashboardPage() {
       stats.grandTotal > 0
         ? Math.round((stats.grandTotalPaid / stats.grandTotal) * 100)
         : 0,
-    [stats.grandTotal, stats.grandTotalPaid]
+    [stats.grandTotal, stats.grandTotalPaid],
   );
 
   const grandTotalPendingPercentage = useMemo(
@@ -596,7 +600,7 @@ export default function DashboardPage() {
       stats.grandTotal > 0
         ? Math.round((stats.grandTotalPending / stats.grandTotal) * 100)
         : 0,
-    [stats.grandTotal, stats.grandTotalPending]
+    [stats.grandTotal, stats.grandTotalPending],
   );
 
   useEffect(() => {
@@ -621,6 +625,7 @@ export default function DashboardPage() {
       <PageHeader
         title="Dashboard"
         Icon={IconDiagramUp}
+        // iconFill
         description="Overview of installer activity, rewards, and performance metrics"
         action={
           <div className="flex items-center gap-3">
@@ -636,13 +641,26 @@ export default function DashboardPage() {
                 }
                 setTimePeriod(value as TimePeriod);
               }}
+              className="h-10"
             >
-              <ToggleGroupItem value="all">ALL</ToggleGroupItem>
-              <ToggleGroupItem value="lastWeek">1W</ToggleGroupItem>
-              <ToggleGroupItem value="last30days">30D</ToggleGroupItem>
-              <ToggleGroupItem value="previousMonth">1M</ToggleGroupItem>
-              <ToggleGroupItem value="thisYear">1Y</ToggleGroupItem>
-              <ToggleGroupItem value="previousYear">PY</ToggleGroupItem>
+              <ToggleGroupItem className="h-8" value="all">
+                ALL
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-8" value="lastWeek">
+                1W
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-8" value="last30days">
+                30D
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-8" value="previousMonth">
+                1M
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-8" value="thisYear">
+                1Y
+              </ToggleGroupItem>
+              <ToggleGroupItem className="h-8" value="previousYear">
+                PY
+              </ToggleGroupItem>
 
               <Popover
                 open={isCustomDateOpen}
@@ -654,10 +672,10 @@ export default function DashboardPage() {
                     disabled={loading}
                     size="sm"
                     className={cn(
-                      "hidden sm:flex gap-2 rounded-xl text-zinc-400 px-2"
+                      "hidden h-8 sm:flex gap-2 rounded-xl text-zinc-400 px-2",
                     )}
                   >
-                    <IconClockCircle className="h-5 w-5" />
+                    <IconClockCircle />
                   </Button>
                 </PopoverTrigger>
 
@@ -748,26 +766,47 @@ export default function DashboardPage() {
           <Card className="relative overflow-hidden border-border">
             <CardContent>
               <div className="grid gap-6 md:grid-cols-3">
-                {[1, 2, 3].map((i) => (
+                {[
+                  { title: "Total Rewards", icon: <IconGift /> },
+                  { title: "Total Paid", icon: <IconReward /> },
+                  { title: "Total Pending", icon: <IconDangerCircle /> },
+                ].map((item, i) => (
                   <div key={i} className="space-y-2">
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-10 w-40" />
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground/40">
+                      {item.icon}
+                      <span>{item.title}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-4xl font-bold text-muted-foreground/40">
+                      Rs.
+                      <Skeleton className="h-10 w-20" />
+                    </div>
                     <div className="flex items-center gap-4">
-                      <Skeleton className="h-3 w-32" />
-                      <Skeleton className="h-3 w-32" />
+                      <div className="flex items-center gap-1">
+                        <IconInstaller className="text-blue-400/40" />
+                        <Skeleton className="h-4 w-6" />
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <IconReferrer className="text-purple-400/40" />
+                        <Skeleton className="h-4 w-6" />
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
               <div className="mt-6 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Skeleton className="h-3 w-32" />
-                  <Skeleton className="h-3 w-24" />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground w-full">
+                    <span>Payment Progress</span>
+                    <span className="flex items-center gap-1">
+                      <Skeleton className="h-4 w-6" /> Completed
+                    </span>
+                  </div>
                 </div>
-                <Skeleton className="h-3 w-full rounded-full" />
-                <div className="flex items-center gap-4">
-                  <Skeleton className="h-3 w-20" />
-                  <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-8 w-full rounded-full progressbar" />
+                <div className="flex items-center gap-4 px-1">
+                  <Skeleton className="h-4 w-14" />
+                  <Skeleton className="h-4 w-18" />
                 </div>
               </div>
             </CardContent>
@@ -775,15 +814,37 @@ export default function DashboardPage() {
 
           {/* Stats Grid Skeleton */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[1, 2, 3, 4].map((i) => (
+            {[
+              {
+                title: "Total Installers",
+                icon: <IconInstaller className="size-5" />,
+              },
+              {
+                title: "Total Installations",
+                icon: <IconProduct className="size-5" />,
+              },
+              {
+                title: "Paid Rewards",
+                icon: <IconReward className="size-5" />,
+              },
+              {
+                title: "Total Rewards",
+                icon: <IconGift className="size-5" />,
+              },
+            ].map(({ title, icon }, i) => (
               <Card key={i}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <CardTitle className="text-sm font-medium text-muted-foreground">
+                    {title}
+                  </CardTitle>
+
+                  <div className="size-12 rounded-full bg-muted flex items-center justify-center text-muted-foreground/60">
+                    {icon}
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-9 w-20 mb-2" />
-                  <Skeleton className="h-3 w-full" />
+                <CardContent className="pt-0!">
+                  <Skeleton className="h-9 w-20 mb-2 rounded-xl" />
+                  <Skeleton className="h-4 w-1/2" />
                 </CardContent>
               </Card>
             ))}
@@ -806,17 +867,17 @@ export default function DashboardPage() {
                   <Skeleton className="h-[280px] w-full" />
                 </CardContent>
                 <CardFooter className="pt-4 border-t border-border">
-                  <Skeleton className="h-4 w-32" />
-                  <div className="ml-auto">
-                    <Skeleton className="h-7 w-16 mb-1" />
-                    <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-5 w-32" />
+                  <div className="ml-auto flex flex-col items-end">
+                    <Skeleton className="h-7.5 w-14 mb-1" />
+                    <Skeleton className="h-4 w-24" />
                   </div>
                 </CardFooter>
               </Card>
             ))}
           </div>
 
-          {/* Active Installers by Training Center Skeleton */}
+          {/* Active Installers by District Skeleton */}
           <Card>
             <CardHeader className="border-b border-border">
               <div className="flex items-center gap-4">
@@ -959,24 +1020,23 @@ export default function DashboardPage() {
                 {/* Grand Total */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Target className="h-4 w-4" />
-                    <span>Total Rewards (Installer + Referrer)</span>
+                    <IconGift />
+                    <span>Total Rewards</span>
                   </div>
                   <div className="text-4xl font-bold text-primary">
-                    Rs. {stats.grandTotal.toLocaleString()}
+                    Rs. {formatNumber(stats.grandTotal)}
                   </div>
                   <div className="flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-blue-500" />
+                      <IconInstaller className="text-blue-400" />
                       <span className="text-muted-foreground">
-                        Installer: Rs. {stats.totalAmount.toLocaleString()}
+                        Rs. {formatNumber(stats.totalAmount)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-purple-500" />
+                      <IconReferrer className="text-purple-400" />
                       <span className="text-muted-foreground">
-                        Referrer: Rs.{" "}
-                        {stats.referrerRewardsTotal.toLocaleString()}
+                        Rs. {formatNumber(stats.referrerRewardsTotal)}
                       </span>
                     </div>
                   </div>
@@ -985,24 +1045,23 @@ export default function DashboardPage() {
                 {/* Paid Amount */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <DollarSign className="h-4 w-4" />
+                    <IconReward />
                     <span>Total Paid</span>
                   </div>
                   <div className="text-4xl font-bold text-emerald-600 dark:text-emerald-500">
-                    Rs. {stats.grandTotalPaid.toLocaleString()}
+                    Rs. {formatNumber(stats.grandTotalPaid)}
                   </div>
                   <div className="flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                      <IconInstaller className="text-blue-400" />
                       <span className="text-muted-foreground">
-                        Installer: Rs. {stats.paidAmount.toLocaleString()}
+                        Rs. {formatNumber(stats.paidAmount)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                      <IconReferrer className="text-purple-400" />
                       <span className="text-muted-foreground">
-                        Referrer: Rs.{" "}
-                        {stats.referrerRewardsPaid.toLocaleString()}
+                        Rs. {formatNumber(stats.referrerRewardsPaid)}
                       </span>
                     </div>
                   </div>
@@ -1011,24 +1070,23 @@ export default function DashboardPage() {
                 {/* Pending Amount */}
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Package className="h-4 w-4" />
+                    <IconDangerCircle />
                     <span>Total Pending</span>
                   </div>
-                  <div className="text-4xl font-bold text-orange-600 dark:text-orange-500">
-                    Rs. {stats.grandTotalPending.toLocaleString()}
+                  <div className="text-4xl font-bold text-yellow-600 dark:text-yellow-500">
+                    Rs. {formatNumber(stats.grandTotalPending)}
                   </div>
                   <div className="flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-orange-500" />
+                      <IconInstaller className="text-blue-400" />
                       <span className="text-muted-foreground">
-                        Installer: Rs. {stats.pendingAmount.toLocaleString()}
+                        Rs. {formatNumber(stats.pendingAmount)}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-orange-500" />
+                      <IconReferrer className="text-purple-400" />
                       <span className="text-muted-foreground">
-                        Referrer: Rs.{" "}
-                        {stats.referrerRewardsPending.toLocaleString()}
+                        Rs. {formatNumber(stats.referrerRewardsPending)}
                       </span>
                     </div>
                   </div>
@@ -1041,14 +1099,14 @@ export default function DashboardPage() {
                   <span>Payment Progress</span>
                   <span>{grandTotalPaidPercentage}% Completed</span>
                 </div>
-                <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
+                <div className="w-full bg-muted rounded-full h-8 overflow-hidden">
                   <div className="flex h-full">
                     <div
-                      className="bg-emerald-500 transition-all duration-500"
+                      className="bg-primary transition-all duration-500 rounded-full shadow-lg"
                       style={{ width: `${grandTotalPaidPercentage}%` }}
                     />
                     <div
-                      className="bg-orange-500 transition-all duration-500"
+                      className="bg-primary/50 transition-all duration-500 rounded-full shadow-lg"
                       style={{ width: `${grandTotalPendingPercentage}%` }}
                     />
                   </div>
@@ -1061,7 +1119,7 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <div className="h-2 w-2 rounded-full bg-orange-500" />
+                    <div className="h-2 w-2 rounded-full bg-yellow-500" />
                     <span className="text-muted-foreground">
                       Pending {grandTotalPendingPercentage}%
                     </span>
@@ -1087,11 +1145,11 @@ export default function DashboardPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Total Installers
                 </CardTitle>
-                <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-blue-500" />
+                <div className="size-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+                  <IconInstaller className="size-5 text-blue-500" />
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0!">
                 <div className="text-3xl font-bold">
                   {stats.totalInstallers}
                 </div>
@@ -1109,11 +1167,11 @@ export default function DashboardPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Total Installations
                 </CardTitle>
-                <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                  <Package className="h-5 w-5 text-green-500" />
+                <div className="size-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <IconProduct className="size-5 text-green-500" />
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0!">
                 <div className="text-3xl font-bold">{stats.totalRewards}</div>
                 <div className="flex items-center gap-1 mt-2 text-xs">
                   <ArrowUpRight className="h-3 w-3 text-green-500" />
@@ -1129,11 +1187,11 @@ export default function DashboardPage() {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   Paid Rewards
                 </CardTitle>
-                <div className="h-10 w-10 rounded-full bg-orange-500/10 flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 text-orange-500" />
+                <div className="size-12 rounded-full bg-yellow-500/10 flex items-center justify-center">
+                  <IconReward className="size-5 text-yellow-500" />
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0!">
                 <div className="text-3xl font-bold">{paidCount}</div>
                 <div className="flex items-center gap-1 mt-2 text-xs">
                   <ArrowUpRight className="h-3 w-3 text-green-500" />
@@ -1147,13 +1205,13 @@ export default function DashboardPage() {
             <Card className="relative overflow-hidden transition-all hover:shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Amount
+                  Total Rewards
                 </CardTitle>
-                <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-                  <Target className="h-5 w-5 text-purple-500" />
+                <div className="size-12 rounded-full bg-purple-500/10 flex items-center justify-center">
+                  <IconGift className="size-5 text-purple-500" />
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0!">
                 <div className="text-3xl font-bold">
                   Rs. {(stats.totalAmount / 1000).toFixed(0)}K
                 </div>
@@ -1175,7 +1233,7 @@ export default function DashboardPage() {
                 description={`Installation count by product type in ${timeLabels[timePeriod]}`}
                 Icon={IconChart}
               />
-              <CardContent>
+              <CardContent className="w-full">
                 {productData.length > 0 ? (
                   <>
                     <ChartContainer
@@ -1200,12 +1258,10 @@ export default function DashboardPage() {
                           tickFormatter={(value) => value.slice(0, 3)}
                           hide
                         />
-                        <XAxis dataKey="installations" type="number" hide />
+                        <XAxis dataKey="installations" type="number" />
                         <ChartTooltip
                           cursor={false}
-                          content={
-                            <ChartTooltipContent indicator="line" hideLabel />
-                          }
+                          content={<ChartTooltipContent indicator="line" />}
                         />
                         <Bar
                           dataKey="installations"
@@ -1216,14 +1272,14 @@ export default function DashboardPage() {
                             dataKey="model"
                             position="insideLeft"
                             offset={14}
-                            className="fill-primary-foreground font-semibold"
+                            className="fill-primary-foreground font-semibold whitespace-nowrap"
                             fontSize={12}
                           />
                           <LabelList
                             dataKey="installations"
                             position="right"
                             offset={8}
-                            className="fill-foreground"
+                            className="fill-foreground "
                             fontSize={12}
                           />
                         </Bar>
@@ -1245,7 +1301,7 @@ export default function DashboardPage() {
                         You haven&rsquo;t registered any installations. Add
                         first installation to get started.
                       </p>
-                      <Button href="/rewards/new" className="gap-2">
+                      <Button href="/rewards/register" className="gap-2">
                         Add Installation
                         <IconArrowRightUp width={2} />
                       </Button>
@@ -1275,61 +1331,57 @@ export default function DashboardPage() {
                 description={`Top 5 cities by product installations in ${timeLabels[timePeriod]}`}
                 Icon={IconCity}
               />
-              <CardContent>
+              <CardContent className="w-full">
                 {cityData.length > 0 ? (
-                  <>
-                    <ChartContainer
-                      config={chartConfig}
-                      className="min-h-[250px] max-h-[400px] w-full"
+                  <ChartContainer
+                    config={chartConfig}
+                    className="min-h-[250px] max-h-[400px] w-full"
+                  >
+                    <BarChart
+                      accessibilityLayer
+                      data={cityData}
+                      layout="vertical"
+                      margin={{
+                        right: 16,
+                      }}
                     >
-                      <BarChart
-                        accessibilityLayer
-                        data={cityData}
-                        layout="vertical"
-                        margin={{
-                          right: 16,
-                        }}
+                      <CartesianGrid horizontal={false} />
+                      <YAxis
+                        dataKey="city"
+                        type="category"
+                        tickLine={false}
+                        tickMargin={10}
+                        axisLine={false}
+                        tickFormatter={(value) => value.slice(0, 3)}
+                        hide
+                      />
+                      <XAxis dataKey="installations" type="number" />
+                      <ChartTooltip
+                        cursor={false}
+                        content={<ChartTooltipContent indicator="line" />}
+                      />
+                      <Bar
+                        dataKey="installations"
+                        radius={16}
+                        className="fill-primary"
                       >
-                        <CartesianGrid horizontal={false} />
-                        <YAxis
+                        <LabelList
                           dataKey="city"
-                          type="category"
-                          tickLine={false}
-                          tickMargin={10}
-                          axisLine={false}
-                          tickFormatter={(value) => value.slice(0, 3)}
-                          hide
+                          position="insideLeft"
+                          offset={14}
+                          className="fill-primary-foreground font-semibold whitespace-nowrap"
+                          fontSize={12}
                         />
-                        <XAxis dataKey="installations" type="number" hide />
-                        <ChartTooltip
-                          cursor={false}
-                          content={
-                            <ChartTooltipContent indicator="line" hideLabel />
-                          }
-                        />
-                        <Bar
+                        <LabelList
                           dataKey="installations"
-                          radius={16}
-                          className="fill-primary"
-                        >
-                          <LabelList
-                            dataKey="city"
-                            position="insideLeft"
-                            offset={14}
-                            className="fill-primary-foreground font-semibold"
-                            fontSize={12}
-                          />
-                          <LabelList
-                            dataKey="installations"
-                            position="right"
-                            offset={8}
-                            className="fill-foreground"
-                            fontSize={12}
-                          />
-                        </Bar>
-                      </BarChart>
-                    </ChartContainer>
-                  </>
+                          position="right"
+                          offset={8}
+                          className="fill-foreground"
+                          fontSize={12}
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ChartContainer>
                 ) : (
                   <div className="h-[280px] flex items-center justify-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
@@ -1366,23 +1418,23 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Active Installers by Training Center */}
+          {/* Active Installers by District */}
           <Card className="transition-all hover:shadow-lg">
             <DashboardCardHeader
-              title="Active Installers by Training Center"
+              title="Active Installers by District"
               description={`Installers with at least 1 installation in ${timeLabels[timePeriod]}`}
               Icon={IconUserCheckRounded}
             />
             <CardContent>
-              {trainingCenterActive.length > 0 ? (
-                trainingCenterActive.map((center, index) => (
+              {districtActive.length > 0 ? (
+                districtActive.map((districtRow, index) => (
                   <div
-                    key={center.trainingCenter}
+                    key={districtRow.district}
                     onClick={async () => {
-                      setSelectedCenter(center.trainingCenter);
+                      setSelectedDistrict(districtRow.district);
                       setModalOpen(true);
 
-                      // Fetch installers for this training center
+                      // Fetch installers for this district
                       const { startDate, endDate } = getDateRange(timePeriod);
                       const dateParams =
                         startDate && endDate
@@ -1390,26 +1442,26 @@ export default function DashboardPage() {
                           : "";
 
                       const res = await fetch(
-                        `/api/dashboard/installers-by-center?trainingCenter=${encodeURIComponent(
-                          center.trainingCenter
-                        )}${dateParams}`
+                        `/api/dashboard/installers-by-district?district=${encodeURIComponent(
+                          districtRow.district,
+                        )}${dateParams}`,
                       );
                       const data = await res.json();
-                      setCenterInstallers(data.data || []);
+                      setDistrictInstallers(data.data || []);
                     }}
-                    className="flex items-center gap-3 p-4 squircle rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                    className="flex items-center gap-3 p-4 squircle-icon rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
                   >
                     <div
                       className={cn(
                         "flex h-12 w-12 shrink-0 items-center justify-center rounded-full font-bold border border-border shadow-xs",
-                        "bg-primary/10 text-primary"
+                        "bg-primary/10 text-primary",
                       )}
                     >
                       {index + 1}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-base truncate">
-                        {center.trainingCenter}
+                        {districtRow.district}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         Click to view installers
@@ -1421,7 +1473,7 @@ export default function DashboardPage() {
                           Active
                         </div>
                         <div className="font-bold text-lg text-primary">
-                          {center.activeInstallersCount}
+                          {districtRow.activeInstallersCount}
                         </div>
                       </div>
                       <div>
@@ -1429,7 +1481,7 @@ export default function DashboardPage() {
                           Installations
                         </div>
                         <div className="font-bold text-lg text-green-600 dark:text-green-500">
-                          {center.totalInstallations}
+                          {districtRow.totalInstallations}
                         </div>
                       </div>
                     </div>
@@ -1508,11 +1560,11 @@ export default function DashboardPage() {
                 description={`Historical view of installer activity in ${timeLabels[timePeriod]}`}
                 Icon={IconUserCheckRounded}
               />
-              <CardContent>
+              <CardContent className="p-0!">
                 {activeInstallersData.length > 0 ? (
                   <div className="space-y-4">
                     {activeInstallersData.map((period, index) => (
-                      <div key={period.period} className="space-y-2">
+                      <div key={period.period} className="space-y-2 p-4 lg:p-6">
                         <div className="flex items-center justify-between text-sm">
                           <span className="font-medium flex-1">
                             {period.label}
@@ -1527,7 +1579,8 @@ export default function DashboardPage() {
                             <span className="text-xs text-muted-foreground min-w-[50px] text-right">
                               {stats.totalInstallers > 0
                                 ? Math.round(
-                                    (period.count / stats.totalInstallers) * 100
+                                    (period.count / stats.totalInstallers) *
+                                      100,
                                   )
                                 : 0}
                               %
@@ -1549,7 +1602,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     ))}
-                    <div className="mt-6 pt-4 border-t border-border">
+                    <div className="mt-6 pt-4 border-t border-border p-4 lg:p-6">
                       <div className="flex items-center justify-between text-sm">
                         <span className="font-medium text-muted-foreground">
                           Total Registered
@@ -1580,16 +1633,16 @@ export default function DashboardPage() {
                 badge={String(recentInstallations.length)}
               />
               <CardContent>
-                <div className="flex items-center justify-center size-full">
+                <div className="space-y-3">
                   {recentInstallations.length > 0 ? (
                     recentInstallations.map((installation) => {
                       return (
                         <div
                           key={installation._id}
-                          className="flex items-center gap-3 p-4 squircle rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                          className="flex items-center gap-3 p-4 squircle-icon rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
                         >
                           <div className="h-10 w-10 rounded-full border border-border bg-primary/10 flex items-center justify-center shrink-0">
-                            <IconPackage className="h-5 w-5 text-primary" />
+                            <IconPackage className="size-5 text-primary" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-sm truncate">
@@ -1605,7 +1658,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="text-xs text-muted-foreground whitespace-nowrap">
                               {new Date(
-                                installation.createdAt
+                                installation.createdAt,
                               ).toLocaleDateString("en-US", {
                                 day: "numeric",
                                 month: "short",
@@ -1630,7 +1683,7 @@ export default function DashboardPage() {
                           You haven&rsquo;t registered any product. Register
                           first product to get started.
                         </p>
-                        <Button href="/rewards/new" className="gap-2">
+                        <Button href="/rewards/register" className="gap-2">
                           Add Installation
                           <IconArrowRightUp width={2} />
                         </Button>
@@ -1655,7 +1708,7 @@ export default function DashboardPage() {
                     recentInstallers.map((installer) => (
                       <div
                         key={installer._id}
-                        className="flex items-center gap-3 p-4 squircle rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                        className="flex items-center gap-3 p-4 squircle-icon rounded-2xl bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
                       >
                         <div className="h-10 w-10 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center shrink-0">
                           <IconUser className="size-5 text-blue-500" />
@@ -1675,7 +1728,7 @@ export default function DashboardPage() {
                           <div className="text-xs text-muted-foreground whitespace-nowrap">
                             {new Date(installer.createdAt).toLocaleDateString(
                               "en-GB",
-                              { day: "numeric", month: "short" }
+                              { day: "numeric", month: "short" },
                             )}
                           </div>
                         </div>
@@ -1693,96 +1746,91 @@ export default function DashboardPage() {
         </>
       )}
 
-      {/* Training Center Installers Modal */}
+      {/* District Installers Modal */}
       {modalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          onClick={() => setModalOpen(false)}
-        >
-          <div
-            className="bg-background rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+        <Dialog open={modalOpen} onOpenChange={() => setModalOpen(false)}>
+          <DialogContent
+            className="p-0 overflow-y-auto overflow-x-hidden max-h-[calc(80vh-140px)] gap-0 bg-background/80"
+            hideClose
           >
-            <div className="p-6 border-b border-border">
+            <DialogHeader className="p-4 border-b border-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold">{selectedCenter}</h2>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <DialogTitle className="text-2xl font-bold">
+                    {selectedDistrict}
+                  </DialogTitle>
+                  <DialogDescription>
                     Active installers in selected period
-                  </p>
+                  </DialogDescription>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <IconClose
+                  className="size-6 cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
                   onClick={() => setModalOpen(false)}
-                >
-                  ✕
-                </Button>
+                />
               </div>
-            </div>
-            <div className="p-6 overflow-y-auto max-h-[calc(80vh-140px)]">
-              <div className="space-y-3">
-                {centerInstallers.length > 0 ? (
-                  centerInstallers.map((installer, index) => (
-                    <div
-                      key={installer.installerCode}
-                      className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                    >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold bg-primary/10 text-primary">
-                        {index + 1}
+            </DialogHeader>
+            <div className="space-y-3 p-4">
+              {districtInstallers.length > 0 ? (
+                districtInstallers.map((installer, index) => (
+                  <Link
+                    href={`/installers/${installer.installerCode}`}
+                    key={installer.installerCode}
+                    className="flex items-center gap-4 p-4 squircle-icon rounded-2xl bg-muted/40 hover:bg-muted/70 transition-colors"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold bg-primary/10 text-primary leading-none">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-base truncate">
+                        {installer.installerName}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-base truncate">
-                          {installer.installerName}
-                        </div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-2">
-                          <span className="truncate">
-                            {installer.installerCode}
-                          </span>
-                          <span>•</span>
-                          <span className="truncate">{installer.city}</span>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 text-right">
-                        <div>
-                          <div className="text-xs text-muted-foreground">
-                            Products
-                          </div>
-                          <div className="font-bold text-lg text-primary">
-                            {installer.totalProducts}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground">
-                            Reward
-                          </div>
-                          <div className="font-bold text-sm text-green-600 dark:text-green-500">
-                            Rs. {installer.rewardAmount.toLocaleString()}
-                          </div>
-                        </div>
-                        {installer.referralRewardAmount > 0 && (
-                          <div className="col-span-2">
-                            <div className="text-xs text-muted-foreground">
-                              Referral Reward
-                            </div>
-                            <div className="font-semibold text-sm text-purple-600 dark:text-purple-500">
-                              Rs.{" "}
-                              {installer.referralRewardAmount.toLocaleString()}
-                            </div>
-                          </div>
-                        )}
+                      <div className="text-xs text-muted-foreground flex items-center gap-2">
+                        <span className="truncate">
+                          {installer.installerCode}
+                        </span>
+                        <span>•</span>
+                        <span className="truncate">{installer.city}</span>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Loading installers...
-                  </div>
-                )}
-              </div>
+                    <div className="grid grid-cols-2 gap-4 text-right">
+                      <div>
+                        <div className="text-xs text-muted-foreground">
+                          Products
+                        </div>
+                        <div className="font-bold text-primary">
+                          {installer.totalProducts}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground">
+                          Reward
+                        </div>
+                        <div className="font-bold text-green-600 dark:text-green-500">
+                          Rs. {installer.rewardAmount.toLocaleString()}
+                        </div>
+                      </div>
+                      {installer.referralRewardAmount > 0 && (
+                        <div className="col-span-2">
+                          <div className="text-xs text-muted-foreground">
+                            Referral Reward
+                          </div>
+                          <div className="font-semibold text-sm text-purple-600 dark:text-purple-500">
+                            Rs.{" "}
+                            {installer.referralRewardAmount.toLocaleString()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  Loading installers...
+                </div>
+              )}
             </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
@@ -1793,19 +1841,25 @@ interface DashboardCardHeaderProps {
   description: string;
   Icon: FC<IconProps>;
   badge?: string;
+  iconBadge?: boolean;
+  actions?: ReactNode;
 }
 
-const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
+export const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
   title,
   description,
   Icon,
   badge,
+  iconBadge = true,
+  actions,
 }) => {
   return (
     <CardHeader className="flex flex-row items-center gap-2 border-b border-border md:text-left">
       <div className="flex-1 flex items-center gap-4 mb-0">
         <div className="hidden md:block">
-          <Icon className="w-12 h-12 mb-0 text-primary" fill duotone />
+          {Icon && (
+            <Icon className="w-12 h-12 mb-0 text-primary" fill duotone />
+          )}
         </div>
         <div>
           <CardTitle className="flex items-center font-normal text-xl md:justify-start">
@@ -1814,17 +1868,20 @@ const DashboardCardHeader: FC<DashboardCardHeaderProps> = ({
           <CardDescription>{description}</CardDescription>
         </div>
       </div>
+      {actions}
       {badge ? (
         <Badge className="hidden md:block" variant="outline">
           {badge}
         </Badge>
       ) : (
-        <div className="squircle rounded-xl bg-emerald-100 dark:bg-emerald-950 p-2 hidden md:block">
-          <Icon
-            fill
-            className="h-5 w-5 text-emerald-600 dark:text-emerald-400"
-          />
-        </div>
+        iconBadge && (
+          <div className="squircle rounded-xl bg-emerald-100 dark:bg-emerald-950 p-2 hidden md:block">
+            <Icon
+              fill
+              className="size-5 text-emerald-600 dark:text-emerald-400"
+            />
+          </div>
+        )
       )}
     </CardHeader>
   );
@@ -1888,14 +1945,16 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
     }));
   }, [activeInstallers]);
 
-  // Stable click handler factory to avoid inline recreation in map
   const handleCopy = useCallback(
-    (code: string) => () => void copyToClipboard(code),
-    [copyToClipboard]
+    (code: string) => (e: React.MouseEvent<SVGSVGElement>) => {
+      e.stopPropagation(); // defensive — CopyButton also stops propagation
+      e.preventDefault();
+    },
+    [],
   );
 
   return (
-    <Carousel opts={{ align: "start" }} className="w-full [&>*]:select-none">
+    <Carousel opts={{ align: "start" }} className="w-full *:select-none">
       <CarouselContent>
         {installers.map((installer) => {
           const idx = installer.rank - 1;
@@ -1909,10 +1968,10 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
               <Link href={`installers/${installer.installerCode}`}>
                 <Card
                   className={cn(
-                    "transition-colors flex flex-col items-center py-6 px-2 border-none bg-gradient-to-b",
+                    "transition-colors flex flex-col items-center py-6 px-2 border-none bg-linear-to-b",
                     isVariant
                       ? bgVariants[idx]
-                      : "from-muted dark:from-muted/70 to-muted/20 dark:to-muted/10"
+                      : "from-muted dark:from-muted/70 to-muted/20 dark:to-muted/10",
                   )}
                 >
                   {/* INSTALLER AVATAR */}
@@ -1927,7 +1986,7 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                       "mb-4 size-18 shadow-md font-black font-sans text-2xl",
                       isVariant
                         ? avatarVariants[idx]
-                        : "dark:bg-border dark:border-ring border-zinc-300 bg-card"
+                        : "dark:bg-border dark:border-ring border-zinc-300 bg-card",
                     )}
                   />
 
@@ -1935,32 +1994,23 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                   <h2
                     className={cn(
                       "text-md font-semibold text-center text-balance mb-4 leading-none",
-                      isVariant ? titleColorVariants[idx] : "text-foreground"
+                      isVariant ? titleColorVariants[idx] : "text-foreground",
                     )}
                   >
                     <p>{installer.installerName}</p>
 
                     <div
                       className={cn(
-                        "text-xs text-muted-foreground/70 font-light font-mono"
+                        "text-xs text-muted-foreground/70 font-light font-mono",
                         // isVariant ? toneVariants[idx] : "text-muted-foreground"
                       )}
                     >
                       <div className="inline-flex items-center">
                         {installer.installerCode}
-
-                        <Button
-                          size={"icon"}
+                        <CopyButton
+                          text={installer.installerCode}
                           onClick={handleCopy(installer.installerCode)}
-                          className="!p-1 !size-max rounded-sm"
-                          variant={"ghost"}
-                        >
-                          {copied === installer.installerCode ? (
-                            <IconCheck className="size-3" />
-                          ) : (
-                            <IconCopy className="size-3" />
-                          )}
-                        </Button>
+                        />
                       </div>
                     </div>
                   </h2>
@@ -1971,7 +2021,9 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                       <IconProduct
                         className={cn(
                           "size-10",
-                          isVariant ? iconColorVariants[idx] : "text-foreground"
+                          isVariant
+                            ? iconColorVariants[idx]
+                            : "text-foreground",
                         )}
                         fill
                       />
@@ -1980,7 +2032,7 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                         <h3
                           className={cn(
                             "text-xs flex items-center gap-2 text-muted-foreground",
-                            idx > 2 && "text-muted-foreground"
+                            idx > 2 && "text-muted-foreground",
                           )}
                         >
                           Products
@@ -1991,7 +2043,7 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                             "text-primary text-xl leading-none font-number",
                             isVariant
                               ? iconProductTextVariants[idx]
-                              : "text-foreground "
+                              : "text-foreground ",
                           )}
                         >
                           {installer.totalProducts}
@@ -2003,7 +2055,9 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                       <IconGift
                         className={cn(
                           "size-10",
-                          isVariant ? giftIconVariants[idx] : "text-foreground "
+                          isVariant
+                            ? giftIconVariants[idx]
+                            : "text-foreground ",
                         )}
                         fill
                       />
@@ -2012,7 +2066,7 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                         <h3
                           className={cn(
                             "text-xs flex items-center gap-2 text-muted-foreground",
-                            idx > 2 && "text-muted-foreground"
+                            idx > 2 && "text-muted-foreground",
                           )}
                         >
                           Rewards
@@ -2023,7 +2077,7 @@ const TopInstallerCarousel: FC<TopInstallerCarouselProps> = ({
                             "text-primary text-xl leading-none font-number",
                             isVariant
                               ? iconProductTextVariants[idx]
-                              : "text-foreground "
+                              : "text-foreground ",
                           )}
                         >
                           {formatNumber(installer.rewardAmount)}

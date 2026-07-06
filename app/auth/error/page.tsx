@@ -104,7 +104,7 @@ export default function ErrorPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-background to-muted px-4 py-8">
       <Card className="w-full max-w-2xl">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
@@ -138,7 +138,9 @@ export default function ErrorPage() {
                   disabled={loading}
                   className="h-8"
                 >
-                  <RefreshCw className={`w-3 h-3 mr-1 ${loading ? 'animate-spin' : ''}`} />
+                  <RefreshCw
+                    className={`w-3 h-3 mr-1 ${loading ? "animate-spin" : ""}`}
+                  />
                   Reload
                 </Button>
                 <Button
@@ -156,7 +158,9 @@ export default function ErrorPage() {
             {loading ? (
               <div className="bg-muted rounded-md p-8 text-center">
                 <div className="animate-spin inline-block w-6 h-6 border-2 border-current border-t-transparent rounded-full mb-2" />
-                <p className="text-sm text-muted-foreground">Loading diagnostic data...</p>
+                <p className="text-sm text-muted-foreground">
+                  Loading diagnostic data...
+                </p>
               </div>
             ) : fetchError ? (
               <Alert variant="destructive">
@@ -165,7 +169,9 @@ export default function ErrorPage() {
                 <AlertDescription>
                   <div className="space-y-2">
                     <p>Error: {fetchError}</p>
-                    <p className="text-xs">This might indicate a server configuration issue.</p>
+                    <p className="text-xs">
+                      This might indicate a server configuration issue.
+                    </p>
                   </div>
                 </AlertDescription>
               </Alert>
@@ -174,48 +180,76 @@ export default function ErrorPage() {
                 <div className="bg-muted rounded-md p-4 space-y-3 text-sm font-mono">
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <span className="text-muted-foreground">Environment:</span>
+                      <span className="text-muted-foreground">
+                        Environment:
+                      </span>
                     </div>
                     <div>
-                      <span className="font-semibold">{debugInfo.environment || "unknown"}</span>
+                      <span className="font-semibold">
+                        {debugInfo.environment || "unknown"}
+                      </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Timestamp:</span>
                     </div>
                     <div>
-                      <span className="text-xs">{new Date(debugInfo.timestamp).toLocaleString()}</span>
+                      <span className="text-xs">
+                        {new Date(debugInfo.timestamp).toLocaleString()}
+                      </span>
                     </div>
                   </div>
 
                   <div className="pt-3 border-t border-border">
-                    <div className="font-semibold mb-3 text-foreground">Environment Variables Status:</div>
+                    <div className="font-semibold mb-3 text-foreground">
+                      Environment Variables Status:
+                    </div>
                     <div className="space-y-2">
-                      {debugInfo.envVars && Object.entries(debugInfo.envVars).map(([key, value]) => {
-                        const isSet = value !== "NOT SET";
-                        return (
-                          <div key={key} className="flex items-start gap-3 p-2 rounded bg-background">
-                            <div className="flex-shrink-0 mt-0.5">
-                              {isSet ? (
-                                <span className="text-green-600 font-bold text-lg">✓</span>
-                              ) : (
-                                <span className="text-destructive font-bold text-lg">✗</span>
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <div className="font-semibold text-foreground">{key}</div>
-                              <div className={`text-xs ${isSet ? 'text-muted-foreground' : 'text-destructive font-semibold'}`}>
-                                {String(value)}
+                      {debugInfo.envVars &&
+                        Object.entries(debugInfo.envVars).map(
+                          ([key, value]) => {
+                            const isSet = value !== "NOT SET";
+                            return (
+                              <div
+                                key={key}
+                                className="flex items-start gap-3 p-2 rounded bg-background"
+                              >
+                                <div className="shrink-0 mt-0.5">
+                                  {isSet ? (
+                                    <span className="text-green-600 font-bold text-lg">
+                                      ✓
+                                    </span>
+                                  ) : (
+                                    <span className="text-destructive font-bold text-lg">
+                                      ✗
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="font-semibold text-foreground">
+                                    {key}
+                                  </div>
+                                  <div
+                                    className={`text-xs ${
+                                      isSet
+                                        ? "text-muted-foreground"
+                                        : "text-destructive font-semibold"
+                                    }`}
+                                  >
+                                    {String(value)}
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                            );
+                          }
+                        )}
                     </div>
                   </div>
 
                   {debugInfo.authModuleError && (
                     <div className="pt-3 border-t border-destructive">
-                      <div className="text-destructive font-semibold mb-2 text-foreground">Auth Module Error:</div>
+                      <div className="text-destructive-text font-semibold mb-2">
+                        Auth Module Error:
+                      </div>
                       <div className="bg-destructive/10 p-3 rounded text-destructive text-xs whitespace-pre-wrap break-all">
                         {debugInfo.authModuleError}
                       </div>
@@ -224,30 +258,41 @@ export default function ErrorPage() {
                 </div>
 
                 {/* Actionable recommendations */}
-                {debugInfo.envVars && Object.entries(debugInfo.envVars).some(([_, value]) => value === "NOT SET") && (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Action Required</AlertTitle>
-                    <AlertDescription>
-                      <div className="space-y-2">
-                        <p>Missing environment variables detected. To fix this:</p>
-                        <ol className="list-decimal list-inside space-y-1 text-xs ml-2">
-                          <li>Go to your Vercel dashboard</li>
-                          <li>Select this project</li>
-                          <li>Navigate to Settings → Environment Variables</li>
-                          <li>Add the missing variables for Production environment</li>
-                          <li>Redeploy the application</li>
-                        </ol>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                )}
+                {debugInfo.envVars &&
+                  Object.entries(debugInfo.envVars).some(
+                    ([_, value]) => value === "NOT SET"
+                  ) && (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Action Required</AlertTitle>
+                      <AlertDescription>
+                        <div className="space-y-2">
+                          <p>
+                            Missing environment variables detected. To fix this:
+                          </p>
+                          <ol className="list-decimal list-inside space-y-1 text-xs ml-2">
+                            <li>Go to your Vercel dashboard</li>
+                            <li>Select this project</li>
+                            <li>
+                              Navigate to Settings → Environment Variables
+                            </li>
+                            <li>
+                              Add the missing variables for Production
+                              environment
+                            </li>
+                            <li>Redeploy the application</li>
+                          </ol>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
               </div>
             ) : (
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  No diagnostic data available. Try reloading or check browser console.
+                  No diagnostic data available. Try reloading or check browser
+                  console.
                 </AlertDescription>
               </Alert>
             )}

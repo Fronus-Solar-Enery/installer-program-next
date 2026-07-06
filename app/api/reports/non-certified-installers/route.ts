@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import dbConnect from '@/lib/mongodb';
 import Installer, { IInstaller } from '@/models/Installer';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
@@ -74,7 +74,8 @@ export async function GET(request: NextRequest) {
 
     if (format === 'excel') {
       // Create Excel workbook
-      const workbook = XLSX.utils.book_new();
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Non Certified Installers');
 
       // Prepare data for Excel
       const excelData: ExcelNonCertifiedData[] = installers.map((installer) => {
@@ -95,22 +96,19 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      const worksheet = XLSX.utils.json_to_sheet(excelData);
-
-      // Set column widths for better readability
-      worksheet['!cols'] = [
-        { wch: 15 }, // Installer Code
-        { wch: 25 }, // Installer Name
-        { wch: 50 }, // Address
-        { wch: 25 }, // Phone/WhatsApp Number
+      // Set columns and widths for better readability
+      worksheet.columns = [
+        { header: 'Installer Code', key: 'Installer Code', width: 15 },
+        { header: 'Installer Name', key: 'Installer Name', width: 25 },
+        { header: 'Address', key: 'Address', width: 50 },
+        { header: 'Phone/WhatsApp Number', key: 'Phone/WhatsApp Number', width: 25 },
       ];
-
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Non Certified Installers');
+      worksheet.addRows(excelData);
 
       // Generate Excel file
-      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      const excelBuffer = await workbook.xlsx.writeBuffer();
 
-      return new Response(excelBuffer, {
+      return new Response(Buffer.from(excelBuffer), {
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'Content-Disposition': `attachment; filename=non_certified_installers_${Date.now()}.xlsx`,

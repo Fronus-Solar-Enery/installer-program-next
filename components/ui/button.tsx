@@ -7,7 +7,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "squircle inline-flex items-center justify-center whitespace-nowrap rounded-4xl text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer data-[state=open]:bg-accent data-[state=open]:text-accent-foreground dark:ring-offset-zinc-950 dark:focus-visible:ring-ring-dark dark:data-[state=open]:bg-accent dark:data-[state=open]:text-accent-foreground transition-colors duration-300 active:translate-y-[1px] overflow-hidden",
+  "squircle inline-flex items-center justify-center whitespace-nowrap rounded-4xl text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer data-[state=open]:bg-muted data-[state=open]:text-accent-foreground dark:ring-offset-zinc-950 dark:focus-visible:ring-ring-dark dark:data-[state=open]:bg-accent dark:data-[state=open]:text-accent-foreground transition-colors duration-300 active:translate-y-[1px] overflow-hidden",
   {
     variants: {
       variant: {
@@ -26,8 +26,8 @@ const buttonVariants = cva(
       },
       size: {
         default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
+        sm: "h-9 rounded-xl px-3",
+        lg: "h-11 rounded-xl px-8",
         icon: "h-10 w-10 squircle-icon rounded-lg",
       },
     },

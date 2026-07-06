@@ -9,11 +9,14 @@ const IconSms: FC<IconProps> = ({
   return (
     <>
       {!fill ? (
-        <svg className={`size-4 ${className}`} width="25"
+        <svg
+          className={`size-4 ${className}`}
+          width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             d="M17.6699 20.5H7.66992C4.66992 20.5 2.66992 19 2.66992 15.5V8.5C2.66992 5 4.66992 3.5 7.66992 3.5H17.6699C20.6699 3.5 22.6699 5 22.6699 8.5V15.5C22.6699 19 20.6699 20.5 17.6699 20.5Z"
             stroke="currentColor"
@@ -33,11 +36,14 @@ const IconSms: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg className={`size-4 ${className}`} width="25"
+        <svg
+          className={`size-4 ${className}`}
+          width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             opacity={duotone ? "0.4" : "1"}
             d="M17.6699 20.5H7.66992C4.66992 20.5 2.66992 19 2.66992 15.5V8.5C2.66992 5 4.66992 3.5 7.66992 3.5H17.6699C20.6699 3.5 22.6699 5 22.6699 8.5V15.5C22.6699 19 20.6699 20.5 17.6699 20.5Z"
@@ -49,11 +55,14 @@ const IconSms: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg className={`size-4 ${className}`} width="25"
+        <svg
+          className={`size-4 ${className}`}
+          width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             d="M17.6699 3.5H7.66992C4.66992 3.5 2.66992 5 2.66992 8.5V15.5C2.66992 19 4.66992 20.5 7.66992 20.5H17.6699C20.6699 20.5 22.6699 19 22.6699 15.5V8.5C22.6699 5 20.6699 3.5 17.6699 3.5ZM18.1399 9.59L15.0099 12.09C14.3499 12.62 13.5099 12.88 12.6699 12.88C11.8299 12.88 10.9799 12.62 10.3299 12.09L7.19992 9.59C6.87992 9.33 6.82992 8.85 7.07992 8.53C7.33992 8.21 7.80992 8.15 8.12992 8.41L11.2599 10.91C12.0199 11.52 13.3099 11.52 14.0699 10.91L17.1999 8.41C17.5199 8.15 17.9999 8.2 18.2499 8.53C18.5099 8.85 18.4599 9.33 18.1399 9.59Z"
             fill="currentColor"

@@ -1,11 +1,12 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import dbConnect from '@/lib/mongodb';
 import InstallerReward, { IInstallerReward } from '@/models/InstallerReward';
 import { IInstaller } from '@/models/Installer';
 import { ITeamMember } from '@/models/TeamMember';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
+import { escapeRegex } from '@/lib/queryBuilder';
 import { FilterQuery } from 'mongoose';
 
 // Type for populated reward document
@@ -26,7 +27,7 @@ interface ExcelRewardData {
   'Product Model': string;
   'City of Installation': string;
   'Reward Amount': number;
-  'Payment Status': string;
+  'Reward Status': string;
   'Transaction ID': string;
   'Bank Name': string;
   'Account Number': string;
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'json';
-    const paymentStatus = searchParams.get('paymentStatus');
+    const rewardStatus = searchParams.get('rewardStatus');
     const productModel = searchParams.get('productModel');
     const city = searchParams.get('city');
     const startDate = searchParams.get('startDate');
@@ -70,16 +71,16 @@ export async function GET(request: NextRequest) {
 
     const query: FilterQuery<IInstallerReward> = {};
 
-    if (paymentStatus && paymentStatus !== 'all') {
-      query.paymentStatus = paymentStatus;
+    if (rewardStatus && rewardStatus !== 'all') {
+      query.rewardStatus = rewardStatus;
     }
 
     if (productModel) {
-      query.productModel = { $regex: productModel, $options: 'i' };
+      query.productModel = { $regex: escapeRegex(productModel), $options: 'i' };
     }
 
     if (city) {
-      query.cityOfInstallation = { $regex: city, $options: 'i' };
+      query.cityOfInstallation = { $regex: escapeRegex(city), $options: 'i' };
     }
 
     if (startDate || endDate) {
@@ -100,7 +101,8 @@ export async function GET(request: NextRequest) {
 
     if (format === 'excel') {
       // Create Excel workbook
-      const workbook = XLSX.utils.book_new();
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Rewards');
 
       // Prepare data for Excel
       const excelData: ExcelRewardData[] = rewards.map((reward) => {
@@ -113,7 +115,7 @@ export async function GET(request: NextRequest) {
           'Product Model': populatedReward.productModel,
           'City of Installation': populatedReward.cityOfInstallation,
           'Reward Amount': populatedReward.rewardAmount,
-          'Payment Status': populatedReward.paymentStatus,
+          'Reward Status': populatedReward.rewardStatus,
           'Transaction ID': populatedReward.transactionId || 'N/A',
           'Bank Name': populatedReward.bankName,
           'Account Number': populatedReward.accountNumber,
@@ -125,13 +127,18 @@ export async function GET(request: NextRequest) {
         };
       });
 
-      const worksheet = XLSX.utils.json_to_sheet(excelData);
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Rewards');
+      worksheet.columns = [
+        'Installer Code', 'Installer Name', 'Phone Number', 'Serial Number',
+        'Product Model', 'City of Installation', 'Reward Amount', 'Reward Status',
+        'Transaction ID', 'Bank Name', 'Account Number', 'Account Title',
+        'Payment Method', 'Sending Date', 'Registered By', 'Registration Date',
+      ].map((header) => ({ header, key: header }));
+      worksheet.addRows(excelData);
 
       // Generate Excel file
-      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      const excelBuffer = await workbook.xlsx.writeBuffer();
 
-      return new Response(excelBuffer, {
+      return new Response(Buffer.from(excelBuffer), {
         headers: {
           'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
           'Content-Disposition': `attachment; filename=rewards_report_${Date.now()}.xlsx`,
@@ -148,22 +155,22 @@ export async function GET(request: NextRequest) {
           totalRewards: { $sum: 1 },
           totalAmount: { $sum: '$rewardAmount' },
           pendingCount: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'PENDING'] }, 1, 0] },
+            $sum: { $cond: [{ $eq: ['$rewardStatus', 'PENDING'] }, 1, 0] },
           },
           paidCount: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'PAID'] }, 1, 0] },
+            $sum: { $cond: [{ $eq: ['$rewardStatus', 'PAID'] }, 1, 0] },
           },
           failedCount: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'FAILED'] }, 1, 0] },
+            $sum: { $cond: [{ $eq: ['$rewardStatus', 'FAILED'] }, 1, 0] },
           },
           pendingAmount: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'PENDING'] }, '$rewardAmount', 0] },
+            $sum: { $cond: [{ $eq: ['$rewardStatus', 'PENDING'] }, '$rewardAmount', 0] },
           },
           paidAmount: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'PAID'] }, '$rewardAmount', 0] },
+            $sum: { $cond: [{ $eq: ['$rewardStatus', 'PAID'] }, '$rewardAmount', 0] },
           },
           failedAmount: {
-            $sum: { $cond: [{ $eq: ['$paymentStatus', 'FAILED'] }, '$rewardAmount', 0] },
+            $sum: { $cond: [{ $eq: ['$rewardStatus', 'FAILED'] }, '$rewardAmount', 0] },
           },
         },
       },

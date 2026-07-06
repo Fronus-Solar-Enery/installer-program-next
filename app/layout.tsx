@@ -1,21 +1,35 @@
-import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Saira } from "next/font/google";
+import type { Viewport, Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 import { ThemeProvider } from "@/components/theme-provider";
 import AppLayout from "@/app/layout/AppLayout";
+import { BatchJobProvider } from "@/contexts/BatchJobContext";
+import { BatchJobProgress } from "@/components/BatchJobProgress";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { WifiOffIcon } from "@/components/icons/animated/WifiOff";
+import { WifiIcon } from "@/components/icons/animated/WifiOn";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const saira = Saira({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-saira",
+  display: "swap",
 });
 
 const siteUrl = process.env.NEXTAUTH_URL || "https://ipms.fronus.com";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "IPMS - Fronus",
+    template: "%s | IPMS",
+  },
+  description:
+    "Manage installers, rewards, and installations for Fronus Solar Energy",
+};
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -27,86 +41,6 @@ export const viewport: Viewport = {
   ],
 };
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: "Installer Program Management System - Fronus Solar Energy",
-    template: "%s | IPMS - Fronus Solar",
-  },
-  description: "Comprehensive installer program management system for Fronus Solar Energy. Track rewards, manage installers, integrate with Google Contacts, and monitor certification status.",
-  applicationName: "IPMS",
-  keywords: [
-    "installer management",
-    "program management",
-    "rewards tracking",
-    "solar energy",
-    "fronus solar",
-    "installer database",
-    "certification tracking",
-    "google contacts integration",
-    "payment management",
-    "installer rewards"
-  ],
-  authors: [{ name: "Fronus Solar Energy", url: siteUrl }],
-  creator: "Fronus Solar Energy",
-  publisher: "Fronus Solar Energy",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  manifest: "/manifest.json",
-  icons: {
-    icon: [
-      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
-      { url: "/favicon.svg", type: "image/svg+xml" },
-    ],
-    apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-    ],
-    other: [
-      { url: "/web-app-manifest-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/web-app-manifest-512x512.png", sizes: "512x512", type: "image/png" },
-    ],
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "IPMS",
-  },
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: siteUrl,
-    siteName: "Installer Program Management System",
-    title: "IPMS - Installer Program Management System",
-    description: "Comprehensive installer program management system for Fronus Solar Energy with rewards tracking and Google Contacts integration",
-    images: [
-      {
-        url: "/web-app-manifest-512x512.png",
-        width: 512,
-        height: 512,
-        alt: "IPMS Logo",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "IPMS - Installer Program Management System",
-    description: "Comprehensive installer program management system for Fronus Solar Energy",
-    images: ["/web-app-manifest-512x512.png"],
-    creator: "@fronussolar",
-  },
-  robots: {
-    index: false, // Set to true for public sites
-    follow: false,
-    googleBot: {
-      index: false,
-      follow: false,
-    },
-  },
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -114,9 +48,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${saira.variable} antialiased`}>
+        <OfflineIndicator />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -124,9 +57,25 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Providers>
-            <AppLayout>{children}</AppLayout>
+            <BatchJobProvider>
+              <BatchJobProgress />
+              <AppLayout>{children}</AppLayout>
+            </BatchJobProvider>
           </Providers>
         </ThemeProvider>
+        <Script
+          id="register-sw"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/sw.js');
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

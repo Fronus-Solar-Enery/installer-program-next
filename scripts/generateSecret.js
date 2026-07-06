@@ -1,12 +1,8 @@
-const crypto = require('crypto');
+const crypto = require("crypto");
 
-console.log('🔐 Generating NEXTAUTH_SECRET...\n');
-console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+const secret = crypto.randomBytes(32).toString("base64");
 
-const secret = crypto.randomBytes(32).toString('base64');
-
-console.log('Your NEXTAUTH_SECRET:');
+console.log("Generated NEXTAUTH_SECRET:\n");
 console.log(secret);
-console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-console.log('\nCopy this value to your .env.local file:');
-console.log(`NEXTAUTH_SECRET=${secret}\n`);
+console.log("\nAdd this to .env.local:");
+console.log(`NEXTAUTH_SECRET=${secret}`);

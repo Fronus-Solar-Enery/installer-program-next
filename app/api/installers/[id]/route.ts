@@ -1,268 +1,152 @@
-import { NextRequest } from 'next/server';
-import { auth } from '@/lib/auth';
-import dbConnect from '@/lib/mongodb';
-import Installer from '@/models/Installer';
-import InstallerReward from '@/models/InstallerReward';
-import { updateInstallerSchema } from '@/lib/validation';
-import { ApiResponse, handleApiError } from '@/lib/apiResponse';
-import mongoose from 'mongoose';
-import { TeamRole } from '@/models/TeamMember';
-import { createGoogleContact, updateGoogleContact, deleteGoogleContact } from '@/lib/googleContacts';
-import { ZodError } from 'zod';
+import { NextRequest } from "next/server";
+import dbConnect from "@/lib/mongodb";
+import InstallerReward from "@/models/InstallerReward";
+import { updateInstallerSchema } from "@/lib/validation";
+import { ApiResponse, handleApiError } from "@/lib/apiResponse";
+import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
+import { validateBody } from "@/lib/validateRequest";
+import { TeamRole } from "@/models/TeamMember";
+import {
+  findInstallerByIdOrCode,
+  INSTALLER_POPULATE_OPTIONS,
+} from "@/lib/installerUtils";
+import { getClientInfo } from "@/lib/requestUtils";
+import {
+  updateInstaller,
+  deleteInstaller,
+  InstallerServiceError,
+} from "@/services/installers";
 
 // GET single installer with stats
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const session = await auth();
+export const GET = withAuth(
+  async (request: NextRequest, context: RouteContext, session: AuthSession) => {
+    try {
+      await dbConnect();
 
-    if (!session) {
-      return ApiResponse.unauthorized();
-    }
+      const { id } = await context.params;
+      const installer = await findInstallerByIdOrCode(
+        id,
+        INSTALLER_POPULATE_OPTIONS.full,
+      );
 
-    await dbConnect();
+      if (!installer) {
+        return ApiResponse.notFound("Installer not found");
+      }
 
-    const { id } = await params;
+      // Include plain PIN for team members
+      const installerObj = installer.toObject();
+      const pinPlain = (installer as any).pinPlain || null;
 
-    // Check if id is a valid MongoDB ObjectId or installer code
-    let installer;
-    if (mongoose.Types.ObjectId.isValid(id) && id.length === 24) {
-      // Try finding by MongoDB ID first
-      installer = await Installer.findById(id)
-        .populate('registeredBy', 'name email role')
-        .populate('referrer', 'installerCode fullName');
-    }
+      // Get reward statistics
+      const installerId = installer._id;
+      const [totalRewards, pendingRewards, paidRewards, failedRewards] =
+        await Promise.all([
+          InstallerReward.countDocuments({ installer: installerId }),
+          InstallerReward.countDocuments({
+            installer: installerId,
+            rewardStatus: "PENDING",
+          }),
+          InstallerReward.countDocuments({
+            installer: installerId,
+            rewardStatus: "PAID",
+          }),
+          InstallerReward.countDocuments({
+            installer: installerId,
+            rewardStatus: "FAILED",
+          }),
+        ]);
 
-    // If not found by ID or not a valid ObjectId, try installer code
-    if (!installer) {
-      installer = await Installer.findOne({ installerCode: id })
-        .populate('registeredBy', 'name email role')
-        .populate('referrer', 'installerCode fullName');
-    }
-
-    if (!installer) {
-      return ApiResponse.notFound('Installer not found');
-    }
-
-    // Get reward statistics
-    const [totalRewards, pendingRewards, paidRewards, failedRewards] = await Promise.all([
-      InstallerReward.countDocuments({ installer: installer._id }),
-      InstallerReward.countDocuments({ installer: installer._id, paymentStatus: 'PENDING' }),
-      InstallerReward.countDocuments({ installer: installer._id, paymentStatus: 'PAID' }),
-      InstallerReward.countDocuments({ installer: installer._id, paymentStatus: 'FAILED' }),
-    ]);
-
-    // Get reward amounts
-    const rewardAmounts = await InstallerReward.aggregate([
-      { $match: { installer: new mongoose.Types.ObjectId(installer._id.toString()) } },
-      {
-        $group: {
-          _id: '$paymentStatus',
-          total: { $sum: '$rewardAmount' },
+      // Get reward amounts
+      const rewardAmounts = await InstallerReward.aggregate([
+        { $match: { installer: installerId } },
+        {
+          $group: {
+            _id: "$rewardStatus",
+            total: { $sum: "$rewardAmount" },
+          },
         },
-      },
-    ]);
+      ]);
 
-    const amountByStatus = {
-      all: 0,
-      PENDING: 0,
-      PAID: 0,
-      FAILED: 0,
-    };
+      const amountByStatus = {
+        all: 0,
+        PENDING: 0,
+        PAID: 0,
+        FAILED: 0,
+      };
 
-    rewardAmounts.forEach((item) => {
-      amountByStatus[item._id as keyof typeof amountByStatus] = item.total;
-      amountByStatus.all += item.total;
-    });
+      rewardAmounts.forEach((item) => {
+        amountByStatus[item._id as keyof typeof amountByStatus] = item.total;
+        amountByStatus.all += item.total;
+      });
 
-    return ApiResponse.success({
-      installer,
-      statistics: {
-        totalRewards,
-        pendingRewards,
-        paidRewards,
-        failedRewards,
-        totalAmount: amountByStatus.all,
-        pendingAmount: amountByStatus.PENDING,
-        paidAmount: amountByStatus.PAID,
-        failedAmount: amountByStatus.FAILED,
-      },
-    });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+      return ApiResponse.success({
+        installer,
+        pin: pinPlain,
+        statistics: {
+          totalRewards,
+          pendingRewards,
+          paidRewards,
+          failedRewards,
+          totalAmount: amountByStatus.all,
+          pendingAmount: amountByStatus.PENDING,
+          paidAmount: amountByStatus.PAID,
+          failedAmount: amountByStatus.FAILED,
+        },
+      });
+    } catch (error) {
+      return handleApiError(error);
+    }
+  },
+);
 
 // PUT - Update installer
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const session = await auth();
+export const PUT = withAuth(
+  async (request: NextRequest, context: RouteContext, session: AuthSession) => {
+    try {
+      const validation = await validateBody(request, updateInstallerSchema);
+      if (!validation.success) return validation.response;
 
-    if (!session) {
-      return ApiResponse.unauthorized();
-    }
+      await dbConnect();
 
-    const body = await request.json();
-    const validatedData = updateInstallerSchema.parse(body);
+      const { id } = await context.params;
+      const updatedInstaller = await updateInstaller(id, validation.data, {
+        userId: session.user.id,
+        clientInfo: getClientInfo(request),
+      });
 
-    await dbConnect();
-
-    const { id } = await params;
-
-    // Check if id is a valid MongoDB ObjectId or installer code
-    let installer;
-    if (mongoose.Types.ObjectId.isValid(id) && id.length === 24) {
-      installer = await Installer.findById(id);
-    }
-
-    if (!installer) {
-      installer = await Installer.findOne({ installerCode: id });
-    }
-
-    if (!installer) {
-      return ApiResponse.notFound('Installer not found');
-    }
-
-    // Validate referrer code if being updated
-    if (validatedData.referrerCode && validatedData.referrerCode !== installer.referrerCode) {
-      const referrer = await Installer.findOne({ installerCode: validatedData.referrerCode });
-      if (!referrer) {
-        return ApiResponse.error('Invalid referrer code', 400);
+      return ApiResponse.success(
+        updatedInstaller,
+        "Installer updated successfully",
+      );
+    } catch (error) {
+      if (error instanceof InstallerServiceError) {
+        return error.status === 404
+          ? ApiResponse.notFound(error.message)
+          : ApiResponse.badRequest(error.message);
       }
-
-      // Check if referrer has already referred 5 installers
-      const referralCount = await Installer.countDocuments({ referrer: referrer._id });
-      if (referralCount >= 5) {
-        return ApiResponse.error('Referrer has already referred maximum (5) installers', 400);
-      }
+      return handleApiError(error);
     }
-
-    // Update installer
-    Object.assign(installer, validatedData);
-    await installer.save();
-
-    // Update or Create Google Contact (using global authentication)
-    if (installer.googleContactId) {
-      // Update existing Google Contact
-      try {
-        await updateGoogleContact(installer.googleContactId, {
-          fullName: installer.fullName,
-          phoneNumber: installer.phoneNumber,
-          whatsappNumber: installer.whatsappNumber,
-          address: installer.address,
-          city: installer.city,
-          province: installer.province,
-          companyName: installer.companyName,
-          installerCode: installer.installerCode,
-          referrerCode: installer.referrerCode,
-          cnic: installer.cnic,
-          trainingCenter: installer.trainingCenter,
-        });
-        console.log('✓ Google contact updated successfully');
-      } catch (error) {
-        console.error('Failed to update Google contact:', error);
-      }
-    } else {
-      // Create Google Contact if it doesn't exist
-      try {
-        const googleContactId = await createGoogleContact({
-          fullName: installer.fullName,
-          phoneNumber: installer.phoneNumber,
-          whatsappNumber: installer.whatsappNumber,
-          address: installer.address,
-          city: installer.city,
-          province: installer.province,
-          companyName: installer.companyName,
-          installerCode: installer.installerCode,
-          referrerCode: installer.referrerCode,
-          cnic: installer.cnic,
-          trainingCenter: installer.trainingCenter,
-        });
-
-        if (googleContactId) {
-          installer.googleContactId = googleContactId;
-          await installer.save();
-          console.log('✓ Google contact created:', googleContactId);
-        }
-      } catch (error) {
-        console.error('Failed to create Google contact:', error);
-      }
-    }
-
-    const updatedInstaller = await Installer.findById(installer._id)
-      .populate('registeredBy', 'name email role')
-      .populate('referrer', 'installerCode fullName');
-
-    return ApiResponse.success(updatedInstaller, 'Installer updated successfully');
-  } catch (error: unknown) {
-    if (error instanceof ZodError) {
-      return ApiResponse.validationError(error.issues as Array<{ path?: PropertyKey[]; message: string }>);
-    }
-    return handleApiError(error);
-  }
-}
+  },
+);
 
 // DELETE installer (ADMIN/MANAGER only)
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const session = await auth();
+export const DELETE = withAuth(
+  async (request: NextRequest, context: RouteContext, session: AuthSession) => {
+    try {
+      await dbConnect();
 
-    if (!session) {
-      return ApiResponse.unauthorized();
-    }
+      const { id } = await context.params;
+      await deleteInstaller(id);
 
-    // Only ADMIN and MANAGER can delete
-    if (session.user.role !== TeamRole.ADMIN && session.user.role !== TeamRole.MANAGER) {
-      return ApiResponse.forbidden('Only admins and managers can delete installers');
-    }
-
-    await dbConnect();
-
-    const { id } = await params;
-
-    // Check if id is a valid MongoDB ObjectId or installer code
-    let installer;
-    if (mongoose.Types.ObjectId.isValid(id) && id.length === 24) {
-      installer = await Installer.findById(id);
-    }
-
-    if (!installer) {
-      installer = await Installer.findOne({ installerCode: id });
-    }
-
-    if (!installer) {
-      return ApiResponse.notFound('Installer not found');
-    }
-
-    // Check if installer has any rewards
-    const rewardCount = await InstallerReward.countDocuments({ installer: installer._id });
-    if (rewardCount > 0) {
-      return ApiResponse.error(
-        'Cannot delete installer with existing rewards. Please delete rewards first.',
-        400
-      );
-    }
-
-    // Delete Google Contact (using global authentication)
-    if (installer.googleContactId) {
-      try {
-        console.log(`Attempting to delete Google contact: ${installer.googleContactId} for installer: ${installer.installerCode}`);
-        const deleted = await deleteGoogleContact(installer.googleContactId);
-        if (deleted) {
-          console.log(`Successfully deleted Google contact for installer: ${installer.installerCode}`);
-        } else {
-          console.warn(`Failed to delete Google contact for installer: ${installer.installerCode}`);
-        }
-      } catch (error) {
-        console.error(`Error deleting Google contact for installer ${installer.installerCode}:`, error);
+      return ApiResponse.success(null, "Installer deleted successfully");
+    } catch (error) {
+      if (error instanceof InstallerServiceError) {
+        return error.status === 404
+          ? ApiResponse.notFound(error.message)
+          : ApiResponse.badRequest(error.message);
       }
-    } else {
-      console.log(`No Google contact ID found for installer: ${installer.installerCode}`);
+      return handleApiError(error);
     }
-
-    await installer.deleteOne();
-
-    return ApiResponse.success(null, 'Installer deleted successfully');
-  } catch (error) {
-    return handleApiError(error);
-  }
-}
+  },
+  { roles: [TeamRole.ADMIN, TeamRole.MANAGER] },
+);

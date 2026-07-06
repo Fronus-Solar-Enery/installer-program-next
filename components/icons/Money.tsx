@@ -3,7 +3,7 @@ import { FC } from "react";
 const IconMoney: FC<IconProps> = ({
   className,
   fill = false,
-  duotone = true,
+  duotone = false,
   width = "1.5",
   opacity = "0.4",
 }) => {
@@ -11,7 +11,7 @@ const IconMoney: FC<IconProps> = ({
     <>
       {!fill ? (
         <svg
-          className={className}
+          className={`size-4 ${className}`}
           width="24"
           height="24"
           viewBox="0 0 24 24"
@@ -41,7 +41,7 @@ const IconMoney: FC<IconProps> = ({
         </svg>
       ) : duotone ? (
         <svg
-          className={className}
+          className={`size-4 ${className}`}
           width="24"
           height="24"
           viewBox="0 0 24 24"
@@ -64,7 +64,7 @@ const IconMoney: FC<IconProps> = ({
         </svg>
       ) : (
         <svg
-          className={className}
+          className={`size-4 ${className}`}
           width="24"
           height="24"
           viewBox="0 0 24 24"

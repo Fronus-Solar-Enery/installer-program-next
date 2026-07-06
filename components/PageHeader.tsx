@@ -31,13 +31,13 @@ export default function PageHeader({
   };
 
   return (
-    <div className="flex w-full flex-wrap items-center justify-between gap-4 p-6 border lg:flex-nowrap bg-card squircle rounded-3xl border-border">
-      <div className="flex items-center gap-4">
+    <div className="flex w-full flex-wrap items-center justify-between gap-4 py-6 lg:flex-nowrap">
+      <div className="flex items-center gap-4 ml-6">
         {renderIcon()}
         <div>
           <h1
             className={cn(
-              "text-2xl font-medium tracking-wide text-foreground font-clash",
+              "text-2xl font-medium text-foreground leading-none",
               titleClassName
             )}
           >
@@ -51,7 +51,7 @@ export default function PageHeader({
         </div>
       </div>
       {action && (
-        <div className="flex space-x-2 items-center justify-end flex-shrink-0 w-full flex-wrap md:flex-nowrap md:w-auto">
+        <div className="flex space-x-2 items-center justify-end shrink-0 w-full flex-wrap md:flex-nowrap md:w-auto">
           {action}
         </div>
       )}

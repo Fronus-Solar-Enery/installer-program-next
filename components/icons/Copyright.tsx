@@ -9,11 +9,14 @@ const IconCopyright: FC<IconProps> = ({
   return (
     <>
       {!fill ? (
-        <svg className={`size-4 ${className}`} width="25"
+        <svg
+          className={`size-4 ${className}`}
+          width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             d="M12.6699 22C7.14992 22 2.66992 17.52 2.66992 12C2.66992 6.48 7.14992 2 12.6699 2C18.1899 2 22.6699 6.48 22.6699 12C22.6699 17.52 18.1899 22 12.6699 22Z"
             stroke="currentColor"
@@ -31,11 +34,14 @@ const IconCopyright: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg className={`size-4 ${className}`} width="25"
+        <svg
+          className={`size-4 ${className}`}
+          width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             opacity={duotone ? "0.4" : "1"}
             d="M12.6699 22C7.14992 22 2.66992 17.52 2.66992 12C2.66992 6.48 7.14992 2 12.6699 2C18.1899 2 22.6699 6.48 22.6699 12C22.6699 17.52 18.1899 22 12.6699 22Z"
@@ -47,11 +53,14 @@ const IconCopyright: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg className={`size-4 ${className}`} width="25"
+        <svg
+          className={`size-4 ${className}`}
+          width="25"
           height="24"
           viewBox="0 0 25 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             d="M12.6699 2C7.14992 2 2.66992 6.48 2.66992 12C2.66992 17.52 7.14992 22 12.6699 22C18.1899 22 22.6699 17.52 22.6699 12C22.6699 6.48 18.1899 2 12.6699 2ZM12.9099 15.25C13.6899 15.25 14.4599 14.96 15.0499 14.44C15.3599 14.17 15.8399 14.2 16.1099 14.51C16.3799 14.82 16.3499 15.3 16.0399 15.57C15.1699 16.34 14.0599 16.76 12.9099 16.76C10.2899 16.76 8.15992 14.63 8.15992 12.01C8.15992 9.39 10.2899 7.26 12.9099 7.26C14.0599 7.26 15.1799 7.68 16.0399 8.45C16.3499 8.72 16.3799 9.2 16.1099 9.51C15.8299 9.82 15.3599 9.85 15.0499 9.58C14.4599 9.06 13.6999 8.77 12.9099 8.77C11.1199 8.77 9.65992 10.23 9.65992 12.02C9.65992 13.81 11.1199 15.25 12.9099 15.25Z"
             fill="currentColor"
