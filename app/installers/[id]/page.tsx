@@ -133,6 +133,26 @@ export default function InstallerDetailsPage() {
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [resendingPin, setResendingPin] = useState(false);
+
+  const handleResendPin = async () => {
+    setResendingPin(true);
+    try {
+      const res = await fetch(`/api/installers/${installerId}/resend-pin`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("New PIN sent via WhatsApp");
+      } else {
+        toast.error(data.error || data.message || "Failed to resend PIN");
+      }
+    } catch {
+      toast.error("Failed to resend PIN");
+    } finally {
+      setResendingPin(false);
+    }
+  };
 
   const fetchInstaller = useCallback(async () => {
     try {
@@ -374,6 +394,14 @@ export default function InstallerDetailsPage() {
         description={`Installer Code: ${installer.installerCode}`}
         action={
           <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={handleResendPin}
+              disabled={resendingPin}
+              title="Generate a new login PIN and send it to the installer via WhatsApp (also unlocks a locked account)"
+            >
+              {resendingPin ? "Sending…" : "Reset PIN"}
+            </Button>
             <Button onClick={() => setEditModalOpen(true)} variant="default">
               <IconEdit2 className="mr-2" />
               Edit

@@ -62,13 +62,13 @@ export const POST = withAuth(
 
       await dbConnect();
 
-      const installer = await createInstaller(
+      const { installer, whatsappFailed } = await createInstaller(
         validation.data,
         session.user.id
       );
 
       return ApiResponse.success(
-        installer,
+        { installer, whatsappFailed },
         "Installer registered successfully",
         201
       );

@@ -29,6 +29,8 @@ interface RegistrationModalProps {
   errorMessage?: string;
   onRedirect: () => void;
   onViewInstaller?: () => void;
+  whatsappFailed?: boolean;
+  onResendPin?: () => Promise<boolean>;
 }
 
 const REGISTRATION_STEPS: RegistrationStep[] = [
@@ -47,9 +49,13 @@ export function RegistrationModal({
   errorMessage,
   onRedirect,
   onViewInstaller,
+  whatsappFailed,
+  onResendPin,
 }: RegistrationModalProps) {
   const [progress, setProgress] = useState(0);
   const [countdown, setCountdown] = useState(5);
+  const [resending, setResending] = useState(false);
+  const [pinResent, setPinResent] = useState(false);
   const startTimeRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
@@ -109,9 +115,11 @@ export function RegistrationModal({
     };
   }, [status, open]);
 
-  // Handle countdown for success state
+  // Handle countdown for success state.
+  // Paused while the PIN failed to deliver, so the user can hit Resend.
   useEffect(() => {
-    if (status !== "success" || !open) return;
+    if (status !== "success" || !open || (whatsappFailed && !pinResent))
+      return;
 
     if (countdown <= 0) {
       onRedirect();
@@ -123,7 +131,7 @@ export function RegistrationModal({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [countdown, status, open, onRedirect]);
+  }, [countdown, status, open, onRedirect, whatsappFailed, pinResent]);
 
   const progressPercentage = ((5 - countdown) / 5) * 100;
 
@@ -293,26 +301,56 @@ export function RegistrationModal({
                   </div>
                 </div>
 
-                {/* Countdown */}
-                <div className="space-y-3">
-                  <div className="relative">
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full bg-primary"
-                        initial={{ width: "0%" }}
-                        animate={{ width: `${progressPercentage}%` }}
-                        transition={{ duration: 1, ease: "linear" }}
-                      />
-                    </div>
+                {/* PIN delivery warning */}
+                {whatsappFailed && !pinResent && (
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 space-y-3 text-left">
+                    <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                      Could not send login PIN via WhatsApp
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      The installer needs this PIN to sign in. Click Resend to
+                      generate and send a new PIN.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      disabled={resending || !onResendPin}
+                      onClick={async () => {
+                        if (!onResendPin) return;
+                        setResending(true);
+                        const ok = await onResendPin();
+                        setResending(false);
+                        if (ok) setPinResent(true);
+                      }}
+                    >
+                      {resending ? "Resending…" : "Resend PIN"}
+                    </Button>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Redirecting in{" "}
-                    <span className="font-bold text-foreground">
-                      {countdown}
-                    </span>{" "}
-                    {countdown === 1 ? "second" : "seconds"}
-                  </p>
-                </div>
+                )}
+
+                {/* Countdown — hidden while PIN delivery needs attention */}
+                {!(whatsappFailed && !pinResent) && (
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full bg-primary"
+                          initial={{ width: "0%" }}
+                          animate={{ width: `${progressPercentage}%` }}
+                          transition={{ duration: 1, ease: "linear" }}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Redirecting in{" "}
+                      <span className="font-bold text-foreground">
+                        {countdown}
+                      </span>{" "}
+                      {countdown === 1 ? "second" : "seconds"}
+                    </p>
+                  </div>
+                )}
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-2">
