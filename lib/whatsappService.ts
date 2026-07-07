@@ -165,9 +165,12 @@ export async function sendWhatsAppMessage({
     // Hybrid mode: try free-form first if within 24h window
     if (settings.enableWhatsAppHybridMode && freeFormText) {
       try {
-        const installer = await Installer.findOne({ whatsappNumber: to }).select(
-          "lastCustomerMessageAt"
-        );
+        const installer = await Installer.findOne({
+          $or: [
+            { whatsappNumber: to },
+            { whatsappNumber: `+${to}` },
+          ],
+        }).select("lastCustomerMessageAt");
 
         if (isWithin24hWindow(installer?.lastCustomerMessageAt)) {
           const result = await sendFreeFormMessage(to, freeFormText, accessToken, phoneNumberId);
