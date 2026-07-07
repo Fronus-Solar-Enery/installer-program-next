@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+} from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { IconWhatsapp, IconArrowRightUp } from "@/components/icons";
 import { buildWhatsAppUrl, WHATSAPP_LINK_ATTRS } from "@/lib/whatsapp";
@@ -16,80 +20,113 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, index }: ProductCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const badgeRef = useRef<HTMLSpanElement>(null);
   const [view, setView] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
   const cycleTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
+  // Physics-based tilt values
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [8, -8]), {
+    stiffness: 300,
+    damping: 30,
+    mass: 0.5,
+  });
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-8, 8]), {
+    stiffness: 300,
+    damping: 30,
+    mass: 0.5,
+  });
+
+  // Image parallax — moves opposite to cursor for depth
+  const imageX = useSpring(useTransform(mouseX, [-0.5, 0.5], [6, -6]), {
+    stiffness: 200,
+    damping: 25,
+    mass: 0.4,
+  });
+  const imageY = useSpring(useTransform(mouseY, [-0.5, 0.5], [6, -6]), {
+    stiffness: 200,
+    damping: 25,
+    mass: 0.4,
+  });
+
+  // Badge scale on hover
+  const badgeScale = useSpring(1, {
+    stiffness: 400,
+    damping: 20,
+    mass: 0.3,
+  });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = cardRef.current;
     if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    mouseX.set(x);
+    mouseY.set(y);
+  };
 
-    const start = () => {
-      cycleTimer.current = setInterval(() => {
-        setView((v) => (v + 1) % product.views.length);
-      }, 1400);
-    };
-    const stop = () => {
-      if (cycleTimer.current) clearInterval(cycleTimer.current);
-      cycleTimer.current = null;
-      setView(0);
-    };
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    badgeScale.set(1.08);
+    cycleTimer.current = setInterval(() => {
+      setView((v) => (v + 1) % product.views.length);
+    }, 1400);
+  };
 
-    el.addEventListener("mouseenter", start);
-    el.addEventListener("mouseleave", stop);
-    return () => {
-      el.removeEventListener("mouseenter", start);
-      el.removeEventListener("mouseleave", stop);
-      if (cycleTimer.current) clearInterval(cycleTimer.current);
-    };
-  }, [product.views.length]);
-
-  useGSAP(
-    () => {
-      const mm = gsap.matchMedia();
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        if (badgeRef.current) {
-          gsap.to(badgeRef.current, {
-            scale: 1.04,
-            duration: 1.4,
-            ease: "sine.inOut",
-            yoyo: true,
-            repeat: -1,
-          });
-        }
-      });
-    },
-    { scope: cardRef },
-  );
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    mouseX.set(0);
+    mouseY.set(0);
+    badgeScale.set(1);
+    if (cycleTimer.current) clearInterval(cycleTimer.current);
+    cycleTimer.current = null;
+    setView(0);
+  };
 
   const displayName = `${product.name} ${product.power}`;
 
   return (
-    <div
+    <motion.div
       ref={cardRef}
-      className="product-card lp-glass flex w-[78vw] shrink-0 flex-col overflow-hidden rounded-4xl sm:w-[420px] group"
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        rotateX,
+        rotateY,
+        transformPerspective: 800,
+      }}
+      className="lp-glass flex h-full flex-col overflow-hidden rounded-3xl group"
     >
       <div className="relative flex h-64 items-center justify-center overflow-hidden bg-brand-1100/30 sm:h-72">
         {product.views.map((src, i) => (
-          <Image
+          <motion.div
             key={src}
-            src={src}
-            alt={`${displayName} — view ${i + 1}`}
-            fill
-            sizes="(max-width: 640px) 78vw, 420px"
-            className="lp-render select-none transition-opacity duration-500 object-contain"
-            style={{ opacity: i === view ? 1 : 0, objectPosition: "center" }}
-            draggable={false}
-          />
+            style={{ x: imageX, y: imageY }}
+            className="absolute inset-0"
+          >
+            <Image
+              src={src}
+              alt={`${displayName} — view ${i + 1}`}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="select-none transition-opacity duration-500 object-contain p-4"
+              style={{ opacity: i === view ? 1 : 0 }}
+              draggable={false}
+            />
+          </motion.div>
         ))}
 
-        <span
-          ref={badgeRef}
+        <motion.span
+          style={{ scale: badgeScale }}
           className="lp-glass absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-brand-900/70 backdrop-blur-lg px-3 py-1.5 text-xs font-semibold text-brand-100"
         >
           <span className="size-1.5 rounded-full bg-brand-300" />
           Eligible &middot; {product.reward}
-        </span>
+        </motion.span>
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-6">
@@ -126,12 +163,12 @@ export default function ProductCard({ product, index }: ProductCardProps) {
           >
             <IconWhatsapp fill className="mr-1 size-4" />
             Install this &amp; earn {product.reward}
-            <span className="lp-btn-icon ml-2">
+            <span className="ml-2">
               <IconArrowRightUp className="size-3.5" />
             </span>
           </a>
         </Button>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -11,7 +11,7 @@ export default function Footer2026() {
   return (
     <footer className="border-t border-border/40">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-4 py-6 sm:flex-row">
-        <ProgramLogo className="w-20 h-12!" />
+        <ProgramLogo className="w-20 h-10!" />
 
         <nav
           className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground"
@@ -22,6 +22,12 @@ export default function Footer2026() {
             className="transition-colors hover:text-foreground"
           >
             How it works
+          </a>
+          <a
+            href="#faq"
+            className="transition-colors hover:text-foreground"
+          >
+            FAQ
           </a>
           <a
             href={buildWhatsAppUrl({ intent: "question", source: "footer" })}

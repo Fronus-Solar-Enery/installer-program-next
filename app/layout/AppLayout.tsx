@@ -12,7 +12,6 @@ import {
   useBreadcrumb,
 } from "@/contexts/BreadcrumbContext";
 import { getRouteIcon } from "@/components/breadcrumbIcons";
-import { Skeleton } from "@/components/ui/skeleton";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { EASE_MOVE_REVERSE } from "@/lib/gsapEases";
@@ -40,26 +39,21 @@ function BreadcrumbWithOverrides({ crumbs }: { crumbs: BreadcrumbItem[] }) {
   return <Breadcrumb items={applied} />;
 }
 
-export default function AppLayout({ children }: AppLayoutProps) {
+/**
+ * Dashboard layout — renders sidebar + top navbar + breadcrumbs.
+ * Used by all authenticated dashboard pages.
+ * Auth pages and the landing page bypass this entirely.
+ */
+export function DashboardLayout({ children }: AppLayoutProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const pathname = usePathname() ?? "/dashboard";
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Pages that render standalone (no sidebar/navbar, no NextAuth requirement):
-  // auth pages, the public landing page, and the installer portal
-  // (cookie-authed in their own server components, not via NextAuth).
-  const isAuthPage =
-    pathname.startsWith("/auth") ||
-    pathname === "/" ||
-    pathname.startsWith("/my-stats") ||
-    pathname.startsWith("/installer/"); // note: "/installers" (team) stays guarded
-
   useEffect(() => {
-    if (status === "unauthenticated" && !isAuthPage) {
+    if (status === "unauthenticated") {
       router.push("/auth/signin");
     }
-  }, [status, router, isAuthPage]);
+  }, [status, router]);
 
   const mainRef = useRef<HTMLDivElement>(null);
 
@@ -67,14 +61,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
     const mainElem = mainRef?.current;
     if (!mainElem) return;
 
-    // Match the sidebar width tween exactly (same curve + duration) so the
-    // content edge tracks the sidebar edge instead of lagging on collapse.
     gsap.to(mainElem, {
       marginLeft: sidebarCollapsed ? "64px" : "256px",
       duration: 0.3,
       ease: EASE_MOVE_REVERSE,
     });
   }, [sidebarCollapsed]);
+
+  const pathname = usePathname() ?? "/dashboard";
 
   const breadcrumbItems = useMemo<BreadcrumbItem[]>(() => {
     const path = pathname || "/dashboard";
@@ -87,7 +81,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     const crumbs: BreadcrumbItem[] = [{ label: "Home", href: "/dashboard" }];
     let current = "";
 
-    segments.forEach((seg, idx) => {
+    segments.forEach((seg) => {
       current += `/${seg}`;
       if (current === "/dashboard") return;
 
@@ -104,37 +98,27 @@ export default function AppLayout({ children }: AppLayoutProps) {
   if (status === "loading") {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <Skeleton className="h-8 w-32" />
+        <div className="h-8 w-32 animate-pulse rounded bg-muted" />
       </div>
     );
   }
 
-  if (!session && !isAuthPage) {
+  if (!session) {
     return null;
-  }
-
-  // If auth page, render without layout
-  if (isAuthPage) {
-    return <>{children}</>;
   }
 
   return (
     <BreadcrumbProvider>
       <div className="flex h-screen overflow-hidden">
-        {/* Sidebar */}
         <Sidebar
           collapsed={sidebarCollapsed}
           onCollapsedChange={setSidebarCollapsed}
         />
-        {/* Main Content Area */}
         <div
           ref={mainRef}
-          className={`fixed top-0 right-0 left-0 bottom-0 flex flex-1 flex-col overflow-hidden main-elem max-h-screen h-full ml-64`}
+          className="fixed top-0 right-0 left-0 bottom-0 flex flex-1 flex-col overflow-hidden main-elem max-h-screen h-full ml-64"
         >
-          {/* Top Navbar */}
           <TopNavbar />
-
-          {/* Page Content */}
           <main className="flex-1 overflow-y-auto p-4 relative">
             <div className="container mx-auto">
               <div className="flex h-9 items-center pl-3 mb-4">
@@ -147,4 +131,31 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </div>
     </BreadcrumbProvider>
   );
+}
+
+/**
+ * Standalone layout — renders children with no chrome (no sidebar, no navbar).
+ * Used for auth pages, the public landing page, and the installer portal.
+ */
+export function StandaloneLayout({ children }: AppLayoutProps) {
+  return <>{children}</>;
+}
+
+/**
+ * Default export — routes to the correct layout based on pathname.
+ */
+export default function AppLayout({ children }: AppLayoutProps) {
+  const pathname = usePathname() ?? "/dashboard";
+
+  const isStandalonePage =
+    pathname.startsWith("/auth") ||
+    pathname === "/" ||
+    pathname.startsWith("/my-stats") ||
+    pathname.startsWith("/installer/");
+
+  if (isStandalonePage) {
+    return <StandaloneLayout>{children}</StandaloneLayout>;
+  }
+
+  return <DashboardLayout>{children}</DashboardLayout>;
 }

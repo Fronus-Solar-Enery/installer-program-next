@@ -60,7 +60,7 @@ export default function Header2026() {
           }}
           className={cn(
             "mt-4 flex items-center justify-between gap-4 backdrop-blur-2xl",
-            "rounded-full px-8 py-2.5",
+            "rounded-full px-8 py-4",
             "transition-all duration-500 ease-fluid",
             scrolled
               ? "lp-nav-island w-[90%] max-w-5xl shadow-lg"
@@ -72,7 +72,7 @@ export default function Header2026() {
             aria-label="Fronus Installer Program home"
             className="shrink-0"
           >
-            <ProgramLogo className="w-24 h-12!" />
+            <ProgramLogo className="w-24 h-8!" />
           </Link>
 
           <nav className="hidden md:flex items-center gap-8" aria-label="Main">
@@ -88,14 +88,6 @@ export default function Header2026() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="hidden sm:inline-flex rounded-full"
-            >
-              <Link href="/auth/signin">Sign In</Link>
-            </Button>
             <Button
               size="sm"
               asChild

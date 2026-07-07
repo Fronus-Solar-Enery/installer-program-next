@@ -86,9 +86,24 @@ Create these three templates:
 
 | Template Name | Category | Purpose | Variables |
 |---|---|---|---|
-| `installer_welcome` | Utility | Registration — welcome + code + PIN | `fullName`, `installerCode`, `pin` |
-| `reward_paid` | Utility | Reward marked PAID | `amount`, `product` |
-| `referral_earned` | Utility | Referrer earns a referral reward | `amount` |
+| `installer_welcome` | Utility | Registration — account active + code + PIN | `fullName`, `installerCode`, `pin` |
+| `reward_paid` | Utility | Reward payment processed | `fullName`, `productModel`, `serialNumber`, `amount` |
+| `referral_earned` | Utility | Referral reward processed | `fullName`, `referredInfo`, `amount` |
+
+**Recommended body text (strict Utility — no promotional language):**
+
+```
+installer_welcome:
+"Your installer account is active. Name: {{1}}, Code: {{2}}, PIN: {{3}}. Keep your PIN private."
+
+reward_paid:
+"Payment processed for {{2}} ({{3}}). Amount: {{4}}. {{1}}, check your account."
+
+referral_earned:
+"Referral reward for {{1}}. Referred: {{2}}. Amount: {{3}}."
+```
+
+> **Why this wording:** Meta rejects Utility templates with promotional language ("congratulations", "welcome!", "you've earned"). Keep body purely factual and informational.
 
 4. Each template goes through **Meta review** (2–24 hours for first templates)
 5. Templates must be **approved** before they can be sent
@@ -128,9 +143,51 @@ META_WHATSAPP_PHONE_NUMBER_ID=123456789012345
 META_WHATSAPP_ACCESS_TOKEN=EAAx...paste-your-token-here
 META_WHATSAPP_BUSINESS_ACCOUNT_ID=123456789012345
 
+# WhatsApp Webhook (Phase 2 — hybrid inbound)
+META_WHATSAPP_VERIFY_TOKEN=your-custom-verify-token
+META_WHATSAPP_APP_SECRET=your-app-secret-from-meta
+
 # Installer JWT cookie secret
 INSTALLER_JWT_SECRET=paste-your-base64-secret-here
 ```
+
+---
+
+## Step 8: Set Up WhatsApp Webhook (Optional — Hybrid Mode)
+
+This enables free-form messaging when an installer messages you within 24 hours, bypassing template approval.
+
+### 8a. Get your App Secret
+
+1. Go to **https://developers.facebook.com/apps/**
+2. Select your app → **Settings** → **Basic**
+3. Copy the **App Secret** → set as `META_WHATSAPP_APP_SECRET` in `.env.local`
+
+### 8b. Choose a Verify Token
+
+Pick any random string (you'll enter this in Meta). Set as `META_WHATSAPP_VERIFY_TOKEN` in `.env.local`.
+
+### 8c. Register the Webhook in Meta
+
+1. Go to **Meta Developer Portal** → your app → **WhatsApp** → **Configuration**
+2. Under **Webhook**, click **Edit**
+3. **Callback URL:** `https://your-domain.com/api/webhook/whatsapp`
+4. **Verify Token:** the same string you set in `META_WHATSAPP_VERIFY_TOKEN`
+5. Click **Verify and Save**
+6. Subscribe to **messages** field
+
+### 8d. Enable Hybrid Mode
+
+In your app's **Settings** page, toggle **Enable WhatsApp Hybrid Mode** to on.
+
+### How it works
+
+| Installer messaged within 24h? | What we send | Cost |
+|---|---|---|
+| Yes | Free-form text (no template needed) | Free |
+| No | Template (requires Meta approval) | ~$0.01–0.05 |
+
+The webhook at `POST /api/webhook/whatsapp` receives incoming messages and updates each installer's `lastCustomerMessageAt` timestamp.
 
 ---
 
@@ -141,5 +198,7 @@ INSTALLER_JWT_SECRET=paste-your-base64-secret-here
 | "Access token has expired" | Non-admin user token or 60-day expiry | Regenerate token or use an admin system user |
 | "Not enough permissions" | Missing `whatsapp_business_messaging` scope | Edit the system user token permissions |
 | "Phone number not verified" | Number not yet verified via SMS | Go to WhatsApp → Phone Numbers and verify |
-| "Template not approved" | Content violates Meta policy | Edit template to comply with Meta's commerce policy |
+| "Template not approved" | Content violates Meta policy | Use strict Utility wording (no promotional language). See recommended body text in Step 5. |
 | "Message failed to send" | Recipient hasn't opted in within 24h | Utility templates can send outside window if approved |
+| Webhook verification fails | Wrong verify token | Ensure `META_WHATSAPP_VERIFY_TOKEN` matches what you entered in Meta Developer Portal |
+| Webhook signature invalid | Wrong app secret | Ensure `META_WHATSAPP_APP_SECRET` matches your Meta app's App Secret |

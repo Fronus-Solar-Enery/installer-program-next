@@ -32,7 +32,7 @@ export default function Header() {
         "sticky top-0 z-50 transition-colors duration-300",
         scrolled
           ? "bg-background/80 backdrop-blur-md border-b border-border/50"
-          : "bg-transparent"
+          : "bg-transparent",
       )}
     >
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">

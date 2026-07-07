@@ -11,8 +11,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "bg-primary text-primary-foreground hover:bg-primary/90 border",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
         destructive:
           "bg-destructive text-white hover:bg-destructive-hover focus-visible:ring-destructive/20",
         outline:
@@ -35,7 +34,7 @@ const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
-  }
+  },
 );
 
 // Base button props
@@ -46,14 +45,12 @@ interface BaseButtonProps extends VariantProps<typeof buttonVariants> {
 
 // Button props (when no href)
 interface ButtonAsButton
-  extends BaseButtonProps,
-    React.ButtonHTMLAttributes<HTMLButtonElement> {
+  extends BaseButtonProps, React.ButtonHTMLAttributes<HTMLButtonElement> {
   href?: never;
 }
 
 interface ButtonAsLink
-  extends BaseButtonProps,
-    React.AnchorHTMLAttributes<HTMLAnchorElement> {
+  extends BaseButtonProps, React.AnchorHTMLAttributes<HTMLAnchorElement> {
   href: string;
   disabled?: boolean;
 }

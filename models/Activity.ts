@@ -22,6 +22,8 @@ export enum ActivityType {
   // WhatsApp Notifications
   WHATSAPP_SENT = 'WHATSAPP_SENT',
   WHATSAPP_FAILED = 'WHATSAPP_FAILED',
+  WHATSAPP_RECEIVED = 'WHATSAPP_RECEIVED',
+  WHATSAPP_FREE_FORM_SENT = 'WHATSAPP_FREE_FORM_SENT',
 }
 
 export interface IActivity {

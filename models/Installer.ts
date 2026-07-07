@@ -26,6 +26,7 @@ export interface IInstaller {
   lastPinChangeAt?: Date;
   pinAttempts?: number;
   pinLockedUntil?: Date;
+  lastCustomerMessageAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -141,6 +142,9 @@ const InstallerSchema = new Schema<IInstaller>(
       default: 0,
     },
     pinLockedUntil: {
+      type: Date,
+    },
+    lastCustomerMessageAt: {
       type: Date,
     },
   },

@@ -1,68 +1,13 @@
 "use client";
 
-import { useRef } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useGSAP } from "@gsap/react";
 import { motion } from "framer-motion";
 import ProductCard from "./ProductCard";
 import { LANDING_PRODUCTS } from "@/lib/landingProducts";
 import { slideUp, staggerContainer, VIEWPORT_ONCE } from "@/lib/motion";
 
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(useGSAP, ScrollTrigger);
-}
-
 export default function ProductShowcase() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
-
-  useGSAP(
-    () => {
-      const mm = gsap.matchMedia();
-
-      mm.add("(prefers-reduced-motion: reduce)", () => {
-        return;
-      });
-
-      mm.add(
-        "(min-width: 1024px) and (prefers-reduced-motion: no-preference)",
-        () => {
-          const track = trackRef.current;
-          const section = sectionRef.current;
-          if (!track || !section) return;
-
-          const getScrollAmount = () =>
-            -(track.scrollWidth - window.innerWidth + 64);
-
-          const tween = gsap.to(track, {
-            x: getScrollAmount,
-            ease: "none",
-          });
-
-          const st = ScrollTrigger.create({
-            trigger: section,
-            start: "top 75%",
-            end: () => `+=${Math.abs(getScrollAmount())}`,
-            pin: true,
-            animation: tween,
-            scrub: 1.2,
-            invalidateOnRefresh: true,
-          });
-
-          return () => st.kill();
-        },
-      );
-    },
-    { scope: sectionRef },
-  );
-
   return (
-    <section
-      ref={sectionRef}
-      id="products"
-      className="relative overflow-hidden"
-    >
+    <section id="products" className="relative">
       <motion.div
         variants={staggerContainer}
         initial="hidden"
@@ -92,16 +37,19 @@ export default function ProductShowcase() {
         </motion.p>
       </motion.div>
 
-      <div
-        ref={trackRef}
-        className="flex snap-x snap-mandatory gap-6 overflow-x-auto px-8 pb-24 lg:overflow-visible lg:justify-center scrollbar-hide"
+      <motion.div
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="show"
+        viewport={VIEWPORT_ONCE}
+        className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 pb-24 sm:grid-cols-2 lg:grid-cols-3"
       >
         {LANDING_PRODUCTS.map((product, i) => (
-          <div key={product.id} className="snap-center shrink-0 lg:snap-none">
+          <motion.div key={product.id} variants={slideUp}>
             <ProductCard product={product} index={i + 1} />
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </section>
   );
 }

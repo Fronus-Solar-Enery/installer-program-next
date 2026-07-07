@@ -23,6 +23,7 @@ export interface ISettings {
   // System Settings
   enableActivityLogging: boolean;
   enableWhatsAppNotifications: boolean;
+  enableWhatsAppHybridMode: boolean;
   maintenanceMode: boolean;
   systemNotificationMessage?: string;
 
@@ -110,6 +111,10 @@ const SettingsSchema = new Schema<ISettings>(
     enableWhatsAppNotifications: {
       type: Boolean,
       default: true,
+    },
+    enableWhatsAppHybridMode: {
+      type: Boolean,
+      default: false,
     },
     maintenanceMode: {
       type: Boolean,
