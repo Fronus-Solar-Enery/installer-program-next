@@ -1,4 +1,5 @@
-import { Saira } from "next/font/google";
+import { Saira, Geist } from "next/font/google";
+import localFont from "next/font/local";
 import type { Viewport, Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
@@ -16,6 +17,18 @@ import { Button } from "@/components/ui/button";
 const saira = Saira({
   subsets: ["latin"],
   variable: "--font-saira",
+  display: "swap",
+});
+
+const bloxat = localFont({
+  src: "../public/fonts/bloxat.ttf",
+  variable: "--font-bloxat",
+  display: "swap",
+});
+
+const geist = Geist({
+  subsets: ["latin"],
+  variable: "--font-geist",
   display: "swap",
 });
 
@@ -48,7 +61,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${saira.variable} antialiased`}>
+      <body className={`${saira.variable} ${bloxat.variable} ${geist.variable} antialiased`}>
         <OfflineIndicator />
         <ThemeProvider
           attribute="class"

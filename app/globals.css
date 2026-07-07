@@ -1,11 +1,8 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: "Bloxat";
-  src: url("/fonts/bloxat.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-}
+/* Bloxat and Geist are loaded via next/font in app/layout.tsx.
+   Their CSS variables (--font-bloxat, --font-geist) are injected
+   automatically by Next.js onto the <body>. */
 
 :root {
   --radius: 0.65rem;
@@ -86,6 +83,7 @@
 
 @theme inline {
   --font-number: "Bloxat", sans-serif;
+  --font-display: var(--font-geist), sans-serif;
   --font-mono: var(--font-saira);
 
   --radius: var(--radius);
@@ -126,7 +124,6 @@
   --color-brand-500: oklch(91.502% 0.069 173.13);
   --color-brand-600: oklch(87.281% 0.097 171.371);
   --color-brand-700: oklch(82.354% 0.123 169.37);
-  --color-brand-800: oklch(76.663% 0.141 167.156);
   --color-brand-800: oklch(70.699% 0.15 164.02);
   --color-brand-900: oklch(51.706% 0.128 164.369);
   --color-brand-1000: oklch(35.207% 0.101 164.75);
@@ -141,7 +138,6 @@
   --color-brandsec-500: oklch(83.828% 0.007 258.346);
   --color-brandsec-600: oklch(74.612% 0.01 248.022);
   --color-brandsec-700: oklch(62.9% 0.014 251.681);
-  --color-brandsec-800: oklch(48.877% 0.018 251.368);
   --color-brandsec-800: oklch(31.738% 0.023 253.622);
   --color-brandsec-900: oklch(23.861% 0.02 251.554);
   --color-brandsec-1000: oklch(16.772% 0.015 252.426);
@@ -406,5 +402,215 @@ ol:has(li.my-toast) {
   .before-wrapper:last-of-type::after {
     height: 52%;
     top: 0;
+  }
+}
+
+/* ============================================================
+   INSTALLER PROGRAM 2026 — landing utilities
+   Glassmorphism, grain, product-render compositing, glow.
+   All gated under .lp-2026 so they never leak into the app.
+   ============================================================ */
+
+@layer components {
+  /* Frosted-glass surface. Inner highlight line = the premium cue. */
+  .lp-glass {
+    background: color-mix(in oklch, var(--color-card) 40%, transparent);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid color-mix(in oklch, white 8%, transparent);
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklch, white 6%, transparent),
+      0 8px 32px -8px oklch(0% 0 0 / 0.4);
+  }
+
+  /* Product renders — dissolve white background via luminosity blend + soft
+     linear fade so the inverter floats without circular artifacts. */
+  .lp-render {
+    mix-blend-mode: screen;
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      black 30%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      black 30%,
+      transparent 100%
+    );
+  }
+
+  /* WhatsApp CTA breathing glow ring. */
+  .lp-glow-brand {
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--color-brand-700) 30%, transparent),
+      0 8px 30px -6px color-mix(in oklch, var(--color-brand-700) 45%, transparent),
+      0 0 60px -10px color-mix(in oklch, var(--color-brand-600) 35%, transparent);
+  }
+}
+
+/* Full-viewport grain texture, fixed, non-interactive. */
+.lp-grain {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+/* When the 2026 landing is active, sit body content above the grain layer. */
+.lp-2026 {
+  position: relative;
+  z-index: 2;
+}
+
+  /* Double-bezel (Doppelrand) — nested card architecture.
+     Outer shell wraps the inner core with a hairline border + padding. */
+  .lp-outer-shell {
+    background: color-mix(in oklch, white 3%, transparent);
+    padding: 1.5px;
+    border-radius: calc(2rem + 1.5px);
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklch, white 8%, transparent),
+      0 8px 32px -8px oklch(0% 0 0 / 0.5);
+  }
+
+  .lp-outer-shell > .lp-inner-core {
+    background: var(--color-card);
+    border-radius: calc(2rem - 0.375rem);
+    overflow: hidden;
+  }
+
+  /* Premium shadow for hero product imagery — soft, wide, brand-tinted. */
+  .lp-product-glow {
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--color-brand-700) 15%, transparent),
+      0 20px 60px -12px var(--color-brand-900),
+      0 0 120px -40px color-mix(in oklch, var(--color-brand-700) 20%, transparent);
+    border-radius: 2rem;
+  }
+
+  /* Fluid island nav — floating pill detached from top. */
+  .lp-nav-island {
+    background: color-mix(in oklch, var(--color-card) 50%, transparent);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid color-mix(in oklch, white 8%, transparent);
+    box-shadow:
+      inset 0 1px 0 0 color-mix(in oklch, white 8%, transparent),
+      0 8px 32px -8px oklch(0% 0 0 / 0.4);
+  }
+
+  /* Hamburger morph — each line is a bar. */
+  .lp-hamburger-line {
+    display: block;
+    width: 20px;
+    height: 1.5px;
+    border-radius: 2px;
+    background: currentColor;
+    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1),
+                opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    transform-origin: center;
+  }
+
+  .lp-hamburger-open .lp-hamburger-line:nth-child(1) {
+    transform: translateY(5.5px) rotate(45deg);
+  }
+
+  .lp-hamburger-open .lp-hamburger-line:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+
+  .lp-hamburger-open .lp-hamburger-line:nth-child(3) {
+    transform: translateY(-5.5px) rotate(-45deg);
+  }
+
+  /* Menu overlay — fullscreen glass. */
+  .lp-menu-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: color-mix(in oklch, var(--color-background) 80%, transparent);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+  }
+
+  .lp-menu-link {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3.5rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--foreground);
+    opacity: 0;
+    transform: translateY(32px);
+    transition: color 0.3s ease;
+    text-decoration: none;
+  }
+
+  .lp-menu-link:hover {
+    color: var(--color-brand-600);
+  }
+
+  /* Vertical spacing utility for distinct cinematic sections. */
+  .lp-section {
+    padding-top: clamp(4rem, 10vw, 8rem);
+    padding-bottom: clamp(4rem, 10vw, 8rem);
+  }
+
+  /* Button-in-button trailing icon wrapper. */
+  .lp-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+    background: color-mix(in oklch, white 10%, transparent);
+    flex-shrink: 0;
+    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1),
+                background 0.3s ease;
+  }
+
+  .group:hover .lp-btn-icon {
+    transform: translateX(2px) translateY(-1px);
+    background: color-mix(in oklch, white 18%, transparent);
+  }
+
+  /* Magnetic press effect. */
+  .lp-magnetic:active {
+    transform: scale(0.97);
+  }
+
+@theme inline {
+  --animate-menu-link-in: menu-link-in 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@keyframes menu-link-in {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-glow-brand {
+    box-shadow: none;
+  }
+  .lp-menu-link {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

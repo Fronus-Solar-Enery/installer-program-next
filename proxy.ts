@@ -15,6 +15,8 @@ export function proxy(request: NextRequest) {
     "/installer/",
     "/_next",
     "/favicon.ico",
+    "/sw.js",
+    "/manifest.json",
   ];
 
   const isPublicPath =
@@ -53,6 +55,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - static image files
      */
-     "/((?!api|_next/static|_next/image|favicon.ico|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+      "/((?!api|_next/static|_next/image|favicon.ico|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2?|ttf|eot|otf)$).*)",
   ],
 };
