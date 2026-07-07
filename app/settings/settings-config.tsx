@@ -169,6 +169,12 @@ export const SETTINGS_CARDS: SettingsCardConfig[] = [
       },
       {
         kind: "switch",
+        key: "enableWhatsAppHybridMode",
+        label: "Enable WhatsApp Hybrid Mode",
+        description: "Send free-form text within 24h of installer's last message",
+      },
+      {
+        kind: "switch",
         key: "maintenanceMode",
         label: "Maintenance Mode",
         description: "Disable access for non-admin users",

@@ -62,6 +62,7 @@ export interface SettingsData {
   sessionTimeoutMinutes?: number;
   enableActivityLogging?: boolean;
   enableWhatsAppNotifications?: boolean;
+  enableWhatsAppHybridMode?: boolean;
   maintenanceMode?: boolean;
   systemNotificationMessage?: string;
   notifyAdminOnNewInstaller?: boolean;
@@ -85,6 +86,7 @@ const SWITCH_SETTINGS_KEYS: (keyof SettingsData)[] = [
   "requireEmailVerification",
   "enableActivityLogging",
   "enableWhatsAppNotifications",
+  "enableWhatsAppHybridMode",
   "maintenanceMode",
   "notifyAdminOnNewInstaller",
   "notifyAdminOnRewardSubmission",
@@ -107,6 +109,7 @@ const DEFAULT_SETTINGS: SettingsData = {
   sessionTimeoutMinutes: 480,
   enableActivityLogging: true,
   enableWhatsAppNotifications: false,
+  enableWhatsAppHybridMode: false,
   maintenanceMode: false,
   systemNotificationMessage: "",
   notifyAdminOnNewInstaller: true,
