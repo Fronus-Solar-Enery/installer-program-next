@@ -19,7 +19,7 @@ const saira = Saira({
   display: "swap",
 });
 
-const siteUrl = process.env.NEXTAUTH_URL || "https://ipms.fronus.com";
+const siteUrl = process.env.NEXTAUTH_URL || "https://installer.fronus.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
