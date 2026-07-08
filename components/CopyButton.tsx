@@ -35,7 +35,7 @@ export const CopyButton = ({
     <>
       {isCopied ? (
         <IconCheck
-          className={cn("ml-2 text-green-600 dark:text-green-500", className)}
+          className={cn("ml-2 text-green-600 dark:text-green-300", className)}
         />
       ) : (
         <IconCopy
