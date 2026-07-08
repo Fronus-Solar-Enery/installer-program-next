@@ -144,10 +144,25 @@ export async function sendWhatsAppMessage({
 
     const to = normalizePhone(phoneNumber);
 
-    // Fetch installer's last message timestamp — always from DB, never cached
+    logger.debug("WhatsApp sendWhatsAppMessage — looking up installer", {
+      phoneNumber,
+      normalized: to,
+    });
+
+    // Fetch installer's last message timestamp — always from DB, never cached.
+    // Query both with and without '+' prefix since DB storage format varies.
     const installer = await Installer.findOne({
-      whatsappNumber: to,
+      $or: [
+        { whatsappNumber: to },
+        { whatsappNumber: `+${to}` },
+      ],
     }).select("lastCustomerMessageAt");
+
+    logger.debug("WhatsApp installer lookup result", {
+      phoneNumber,
+      found: !!installer,
+      lastCustomerMessageAt: installer?.lastCustomerMessageAt,
+    });
 
     const lastMessageAt = installer?.lastCustomerMessageAt;
 
@@ -258,7 +273,10 @@ export async function sendWhatsAppMessage({
 
           // Re-validate window before next attempt
           const freshInstaller = await Installer.findOne({
-            whatsappNumber: to,
+            $or: [
+              { whatsappNumber: to },
+              { whatsappNumber: `+${to}` },
+            ],
           }).select("lastCustomerMessageAt");
 
           if (!isWithin24hWindow(freshInstaller?.lastCustomerMessageAt)) {

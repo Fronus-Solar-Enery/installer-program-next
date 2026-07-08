@@ -99,13 +99,27 @@ async function processWebhookBody(body: Record<string, unknown>) {
 
     const normalizedNumber = normalizePhone(from);
 
+    logger.info("WhatsApp webhook — processing inbound message", {
+      from,
+      type,
+      normalizedNumber,
+    });
+
     try {
+      // Query both with and without '+' prefix since DB storage format varies.
       const installer = await Installer.findOne({
-        whatsappNumber: normalizedNumber,
+        $or: [
+          { whatsappNumber: normalizedNumber },
+          { whatsappNumber: `+${normalizedNumber}` },
+        ],
       });
 
       if (!installer) {
-        logger.debug("WhatsApp message from unknown number", { from, type });
+        logger.warn("WhatsApp message from unknown number — no matching installer", {
+          from,
+          normalizedNumber,
+          type,
+        });
         continue;
       }
 
@@ -115,6 +129,13 @@ async function processWebhookBody(body: Record<string, unknown>) {
         ? new Date(parseInt(timestamp) * 1000)
         : new Date();
       await installer.save();
+
+      logger.info("WhatsApp inbound message processed", {
+        installerCode: installer.installerCode,
+        from,
+        type,
+        lastCustomerMessageAt: installer.lastCustomerMessageAt,
+      });
 
       // Extract message content based on type
       let messageContent: string | undefined;
@@ -140,11 +161,6 @@ async function processWebhookBody(body: Record<string, unknown>) {
         },
       });
 
-      logger.debug("WhatsApp inbound message processed", {
-        installerCode: installer.installerCode,
-        from,
-        type,
-      });
     } catch (err) {
       logger.error("Failed to process inbound WhatsApp message", { err, from, type });
     }
