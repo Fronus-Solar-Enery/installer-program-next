@@ -5,6 +5,7 @@ import Installer, { IInstaller } from "@/models/Installer";
 import {
   sendInstallerRegistrationMessage,
   formatInstallerWhatsAppMessage,
+  type DeliveryMethod,
 } from "@/lib/whatsappService";
 import InstallerReward from "@/models/InstallerReward";
 import {
@@ -128,6 +129,7 @@ export async function regenerateAndSendPin(
   whatsappSent: boolean;
   error?: string;
   plainPin: string;
+  deliveryMethod?: DeliveryMethod;
   whatsappMessage?: string;
   whatsappUrl?: string;
 }> {
@@ -152,6 +154,7 @@ export async function regenerateAndSendPin(
       whatsappSent: false,
       error: "WhatsApp auto-send is disabled",
       plainPin,
+      deliveryMethod: "blocked",
       whatsappMessage: text,
       whatsappUrl,
     };
@@ -167,7 +170,28 @@ export async function regenerateAndSendPin(
     performedById
   );
 
-  return { whatsappSent: result.success, error: result.error, plainPin };
+  // If free-form delivery failed, generate manual fallback
+  if (!result.success) {
+    const { text, whatsappUrl } = formatInstallerWhatsAppMessage(
+      installer.installerCode,
+      plainPin,
+      installer.whatsappNumber
+    );
+    return {
+      whatsappSent: false,
+      error: result.error,
+      plainPin,
+      deliveryMethod: result.deliveryMethod,
+      whatsappMessage: text,
+      whatsappUrl,
+    };
+  }
+
+  return {
+    whatsappSent: true,
+    plainPin,
+    deliveryMethod: result.deliveryMethod,
+  };
 }
 
 /**
@@ -182,6 +206,7 @@ export async function createInstaller(
   installer: HydratedDocument<IInstaller> | null;
   whatsappFailed: boolean;
   plainPin: string;
+  deliveryMethod?: DeliveryMethod;
   whatsappMessage?: string;
   whatsappUrl?: string;
 }> {
@@ -196,7 +221,7 @@ export async function createInstaller(
 
   await createGoogleContactForInstaller(installer);
 
-  const { whatsappSent, plainPin, whatsappMessage, whatsappUrl } =
+  const { whatsappSent, plainPin, whatsappMessage, whatsappUrl, deliveryMethod } =
     await regenerateAndSendPin(installer, registeredById);
 
   return {
@@ -206,6 +231,7 @@ export async function createInstaller(
     ),
     whatsappFailed: !whatsappSent,
     plainPin,
+    deliveryMethod,
     whatsappMessage,
     whatsappUrl,
   };

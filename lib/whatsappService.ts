@@ -1,15 +1,19 @@
 /**
- * WhatsApp Service using Meta WhatsApp Cloud API (official Graph API).
+ * WhatsApp Service — Free-Form Only via Meta WhatsApp Cloud API.
  *
- * Supports two sending modes:
- *   1. Template messages — pre-approved Utility templates (Meta review required)
- *   2. Free-form messages — plain text sent within 24h of customer's last message
+ * All messages are sent as free-form (service) messages within the 24-hour
+ * customer service window. Templates are NOT used.
  *
- * Hybrid mode (enableWhatsAppHybridMode setting):
- *   - Checks Installer.lastCustomerMessageAt to determine if within 24h window
- *   - If within window: sends free-form text (no template needed, free)
- *   - If outside window: sends template (requires Meta approval)
- *   - If template also fails: logs error but does not block the action
+ * Constraints:
+ *   - Free-form messages ONLY work within 24h of the customer's last inbound message
+ *   - Error code 131047 = window expired → message silently fails, no retry possible
+ *   - Only customer messages reset the 24h timer — our replies do NOT extend it
+ *   - ALL message types from the customer reset the window (text, image, video, etc.)
+ *
+ * Delivery cascade:
+ *   1. Check if within 24h window
+ *   2. If within window → send free-form with retry (up to 3 attempts)
+ *   3. If outside window → block, return clear error for UI fallback
  *
  * Requires env vars:
  *   META_WHATSAPP_PHONE_NUMBER_ID  — Meta Business Suite → WhatsApp → Phone numbers
@@ -21,17 +25,27 @@ import { ActivityType } from "@/models/Activity";
 import { getSettings } from "@/models/Settings";
 import Installer from "@/models/Installer";
 import { logger } from "./logger";
+import { normalizePhone } from "./phoneUtils";
 
 const GRAPH_API_VERSION = "v22.0";
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+const MAX_RETRY_ATTEMPTS = 3;
+
+export type DeliveryMethod = "free-form" | "blocked";
 
 interface WhatsAppMessage {
   phoneNumber: string;
-  templateName: string;
-  bodyParams: string[];
-  freeFormText?: string; // Plain text for hybrid mode
+  freeFormText: string;
   performedBy?: string;
 }
+
+interface SendResult {
+  success: boolean;
+  error?: string;
+  deliveryMethod?: DeliveryMethod;
+}
+
+// ─── Window helpers ──────────────────────────────────────────────────────────
 
 /**
  * Check if a timestamp is within the last 24 hours.
@@ -42,25 +56,28 @@ export function isWithin24hWindow(timestamp: Date | undefined): boolean {
 }
 
 /**
- * Normalize a Pakistani phone number to Meta's expected format: digits only,
- * international prefix, no leading +. e.g. "0300-1234567" → "923001234567".
+ * Compute minutes remaining in the 24h window.
+ * Returns negative number if window has expired.
  */
-export function normalizeWhatsAppNumber(phoneNumber: string): string {
-  let digits = phoneNumber.replace(/\D/g, "");
-  if (digits.startsWith("0")) digits = `92${digits.slice(1)}`;
-  return digits;
+export function getMinutesRemaining(lastCustomerMessageAt: Date | undefined): number {
+  if (!lastCustomerMessageAt) return -1;
+  const expiresAt = lastCustomerMessageAt.getTime() + TWENTY_FOUR_HOURS_MS;
+  return Math.floor((expiresAt - Date.now()) / (60 * 1000));
 }
 
+// ─── Core send ───────────────────────────────────────────────────────────────
+
 /**
- * Send a plain text (free-form) WhatsApp message via Meta Cloud API.
- * Only usable within 24h of customer's last message.
+ * Send a free-form (service) text message via Meta Cloud API.
+ * Only works within the 24h customer service window.
+ * Returns parsed error codes for caller-specific handling.
  */
 async function sendFreeFormMessage(
   to: string,
   text: string,
   accessToken: string,
   phoneNumberId: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; errorCode?: number }> {
   const response = await fetch(
     `https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneNumberId}/messages`,
     {
@@ -79,71 +96,36 @@ async function sendFreeFormMessage(
   );
 
   if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`WhatsApp API error ${response.status}: ${body || response.statusText}`);
+    const body = await response.json().catch(() => ({})) as Record<string, unknown>;
+    const errorObj = body?.error as Record<string, unknown> | undefined;
+    const errorCode = errorObj?.code as number | undefined;
+    const errorMessage = (errorObj?.message as string) || response.statusText;
+
+    return {
+      success: false,
+      error: `WhatsApp API error ${response.status}: ${errorMessage}`,
+      errorCode,
+    };
   }
 
   return { success: true };
 }
 
-/**
- * Send a WhatsApp template message via Meta Cloud API.
- */
-async function sendTemplateMessage(
-  to: string,
-  templateName: string,
-  bodyParams: string[],
-  accessToken: string,
-  phoneNumberId: string
-): Promise<{ success: boolean; error?: string }> {
-  const response = await fetch(
-    `https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneNumberId}/messages`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to,
-        type: "template",
-        template: {
-          name: templateName,
-          language: { code: "en" },
-          components: bodyParams.length
-            ? [
-                {
-                  type: "body",
-                  parameters: bodyParams.map((text) => ({ type: "text", text })),
-                },
-              ]
-            : undefined,
-        },
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`WhatsApp API error ${response.status}: ${body || response.statusText}`);
-  }
-
-  return { success: true };
-}
+// ─── Main send function ──────────────────────────────────────────────────────
 
 /**
- * Send a WhatsApp message via Meta Cloud API.
- * In hybrid mode: checks 24h window and sends free-form if within window.
- * Falls back to template if free-form fails or hybrid mode is off.
+ * Send a WhatsApp free-form message via Meta Cloud API.
+ *
+ * 1. Validates the 24h window is open (checks DB, not cached)
+ * 2. Sends free-form text with retry (exponential backoff)
+ * 3. Re-validates window between retries (catches mid-send expiry)
+ * 4. Returns deliveryMethod so callers can show appropriate UI
  */
 export async function sendWhatsAppMessage({
   phoneNumber,
-  templateName,
-  bodyParams,
   freeFormText,
   performedBy,
-}: WhatsAppMessage): Promise<{ success: boolean; error?: string }> {
+}: WhatsAppMessage): Promise<SendResult> {
   try {
     const phoneNumberId = process.env.META_WHATSAPP_PHONE_NUMBER_ID;
     const accessToken = process.env.META_WHATSAPP_ACCESS_TOKEN;
@@ -160,21 +142,65 @@ export async function sendWhatsAppMessage({
       return { success: false, error: "WhatsApp notifications disabled in settings" };
     }
 
-    const to = normalizeWhatsAppNumber(phoneNumber);
+    const to = normalizePhone(phoneNumber);
 
-    // Hybrid mode: try free-form first if within 24h window
-    if (settings.enableWhatsAppHybridMode && freeFormText) {
+    // Fetch installer's last message timestamp — always from DB, never cached
+    const installer = await Installer.findOne({
+      whatsappNumber: to,
+    }).select("lastCustomerMessageAt");
+
+    const lastMessageAt = installer?.lastCustomerMessageAt;
+
+    // ── Gate: is the 24h window open? ──
+    if (!isWithin24hWindow(lastMessageAt)) {
+      const minutesExpired = lastMessageAt
+        ? Math.abs(getMinutesRemaining(lastMessageAt))
+        : null;
+
+      logger.warn("WhatsApp free-form blocked — window expired", {
+        phoneNumber,
+        lastMessageAt,
+        minutesExpired,
+      });
+
+      if (performedBy) {
+        await logActivity({
+          type: ActivityType.WHATSAPP_FAILED,
+          performedBy,
+          targetType: "Installer",
+          targetId: performedBy,
+          description: `WhatsApp message blocked — 24h window expired for ${phoneNumber}`,
+          metadata: {
+            whatsappNumber: phoneNumber,
+            mode: "blocked",
+            reason: "window_expired",
+            lastCustomerMessageAt: lastMessageAt?.toISOString(),
+            minutesExpired,
+          },
+        });
+      }
+
+      return {
+        success: false,
+        error: "The 24-hour WhatsApp window has expired. Ask the installer to send a message to reopen the window.",
+        deliveryMethod: "blocked",
+      };
+    }
+
+    // ── Within window — send with retry ──
+    const minutesRemaining = getMinutesRemaining(lastMessageAt);
+    logger.info("WhatsApp free-form send — window open", {
+      phoneNumber,
+      minutesRemaining,
+    });
+
+    let lastError: string | undefined;
+
+    for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
       try {
-        const installer = await Installer.findOne({
-          $or: [
-            { whatsappNumber: to },
-            { whatsappNumber: `+${to}` },
-          ],
-        }).select("lastCustomerMessageAt");
+        const result = await sendFreeFormMessage(to, freeFormText, accessToken, phoneNumberId);
 
-        if (isWithin24hWindow(installer?.lastCustomerMessageAt)) {
-          const result = await sendFreeFormMessage(to, freeFormText, accessToken, phoneNumberId);
-
+        if (result.success) {
           if (performedBy) {
             await logActivity({
               type: ActivityType.WHATSAPP_FREE_FORM_SENT,
@@ -185,43 +211,99 @@ export async function sendWhatsAppMessage({
               metadata: {
                 whatsappNumber: phoneNumber,
                 mode: "free-form",
+                attempt,
+                minutesRemaining,
+              },
+            });
+          }
+          return { success: true, deliveryMethod: "free-form" };
+        }
+
+        // Meta error 131047 = outside 24h window — no retry possible
+        if (result.errorCode === 131047) {
+          logger.warn("WhatsApp free-form rejected — Meta error 131047 (window expired)", {
+            phoneNumber,
+            attempt,
+          });
+
+          if (performedBy) {
+            await logActivity({
+              type: ActivityType.WHATSAPP_FAILED,
+              performedBy,
+              targetType: "Installer",
+              targetId: performedBy,
+              description: `WhatsApp message blocked — 24h window expired (Meta 131047) for ${phoneNumber}`,
+              metadata: {
+                whatsappNumber: phoneNumber,
+                mode: "blocked",
+                reason: "meta_131047",
+                attempt,
               },
             });
           }
 
-          return result;
+          return {
+            success: false,
+            error: "The 24-hour WhatsApp window has expired. Ask the installer to send a message to reopen the window.",
+            deliveryMethod: "blocked",
+          };
         }
-      } catch (freeFormError) {
-        // Free-form failed — fall through to template
-        logger.warn("Free-form message failed, falling back to template", {
-          error: freeFormError instanceof Error ? freeFormError.message : "Unknown",
+
+        lastError = result.error;
+
+        // Exponential backoff between retries
+        if (attempt < MAX_RETRY_ATTEMPTS) {
+          const backoffMs = attempt * 1000;
+          await new Promise((r) => setTimeout(r, backoffMs));
+
+          // Re-validate window before next attempt
+          const freshInstaller = await Installer.findOne({
+            whatsappNumber: to,
+          }).select("lastCustomerMessageAt");
+
+          if (!isWithin24hWindow(freshInstaller?.lastCustomerMessageAt)) {
+            logger.warn("WhatsApp window expired during retry backoff", { phoneNumber });
+            return {
+              success: false,
+              error: "The 24-hour WhatsApp window expired during retry.",
+              deliveryMethod: "blocked",
+            };
+          }
+        }
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : "Unknown error";
+        logger.error("WhatsApp free-form send attempt failed", {
           phoneNumber,
+          attempt,
+          error: lastError,
         });
+
+        if (attempt < MAX_RETRY_ATTEMPTS) {
+          await new Promise((r) => setTimeout(r, attempt * 1000));
+        }
       }
     }
 
-    // Template mode (default, or fallback)
-    const result = await sendTemplateMessage(to, templateName, bodyParams, accessToken, phoneNumberId);
-
+    // All retries exhausted
     if (performedBy) {
       await logActivity({
-        type: ActivityType.WHATSAPP_SENT,
+        type: ActivityType.WHATSAPP_FAILED,
         performedBy,
         targetType: "Installer",
         targetId: performedBy,
-        description: `WhatsApp template "${templateName}" sent to ${phoneNumber}`,
+        description: `Failed to send WhatsApp message to ${phoneNumber} after ${MAX_RETRY_ATTEMPTS} attempts`,
         metadata: {
           whatsappNumber: phoneNumber,
-          templateName,
-          mode: "template",
+          mode: "free-form",
+          errorMessage: lastError,
         },
       });
     }
 
-    return result;
+    return { success: false, error: lastError, deliveryMethod: "blocked" };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    logger.error("Failed to send WhatsApp message", { error: errorMessage, templateName });
+    logger.error("Failed to send WhatsApp message", { error: errorMessage });
 
     if (performedBy) {
       await logActivity({
@@ -229,10 +311,9 @@ export async function sendWhatsAppMessage({
         performedBy,
         targetType: "Installer",
         targetId: performedBy,
-        description: `Failed to send WhatsApp template "${templateName}" to ${phoneNumber}`,
+        description: `Failed to send WhatsApp message to ${phoneNumber}`,
         metadata: {
           whatsappNumber: phoneNumber,
-          templateName,
           errorMessage,
         },
       });
@@ -242,9 +323,12 @@ export async function sendWhatsAppMessage({
   }
 }
 
+// ─── Manual fallback ─────────────────────────────────────────────────────────
+
 /**
  * Format a WhatsApp message with installer credentials for manual sharing.
- * Used when auto-send is disabled — returns the text and a wa.me deep link.
+ * Used when auto-send is disabled or the 24h window has expired.
+ * Returns the text and a wa.me deep link the team member can tap.
  */
 export function formatInstallerWhatsAppMessage(
   installerCode: string,
@@ -261,7 +345,7 @@ export function formatInstallerWhatsAppMessage(
   ].join("\n");
 
   const normalizedNumber = whatsappNumber
-    ? normalizeWhatsAppNumber(whatsappNumber)
+    ? normalizePhone(whatsappNumber)
     : undefined;
 
   const whatsappUrl = normalizedNumber
@@ -271,9 +355,11 @@ export function formatInstallerWhatsAppMessage(
   return { text, whatsappUrl };
 }
 
+// ─── High-level send functions ───────────────────────────────────────────────
+
 /**
  * Send installer registration credentials (account active + code + PIN).
- * Template: installer_welcome — {{1}} name, {{2}} installer code, {{3}} PIN.
+ * Free-form only — requires open 24h customer service window.
  */
 export async function sendInstallerRegistrationMessage(
   installer: {
@@ -283,20 +369,30 @@ export async function sendInstallerRegistrationMessage(
     pin?: string;
   },
   performedBy: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<SendResult> {
   const pin = installer.pin ?? "-";
+  const freeFormText = [
+    `Hi ${installer.fullName},`,
+    "",
+    "Your Fronus Installer account is active.",
+    "",
+    `Installer Code: ${installer.installerCode}`,
+    `Login PIN: ${pin}`,
+    "",
+    "Login at https://installer.fronus.com",
+    "Keep your PIN private — do not share it.",
+  ].join("\n");
+
   return sendWhatsAppMessage({
     phoneNumber: installer.whatsappNumber,
-    templateName: "installer_welcome",
-    bodyParams: [installer.fullName, installer.installerCode, pin],
-    freeFormText: `Your installer account is active. Name: ${installer.fullName}, Code: ${installer.installerCode}, PIN: ${pin}. Keep your PIN private.`,
+    freeFormText,
     performedBy,
   });
 }
 
 /**
  * Send reward payment processed notification.
- * Template: reward_paid — {{1}} name, {{2}} product, {{3}} serial, {{4}} amount.
+ * Free-form only — requires open 24h customer service window.
  */
 export async function sendRewardPaymentMessage(
   reward: {
@@ -311,25 +407,27 @@ export async function sendRewardPaymentMessage(
     sendingDate?: Date;
   },
   performedBy: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<SendResult> {
   const amount = `Rs. ${reward.rewardAmount.toLocaleString()}`;
+  const freeFormText = [
+    `Hi ${reward.installer.fullName},`,
+    "",
+    `Payment processed for ${reward.productModel} (${reward.serialNumber}).`,
+    `Amount: ${amount}.`,
+    "",
+    "Check your account for details.",
+  ].join("\n");
+
   return sendWhatsAppMessage({
     phoneNumber: reward.installer.whatsappNumber,
-    templateName: "reward_paid",
-    bodyParams: [
-      reward.installer.fullName,
-      reward.productModel,
-      reward.serialNumber,
-      amount,
-    ],
-    freeFormText: `Payment processed for ${reward.productModel} (${reward.serialNumber}). Amount: ${amount}. ${reward.installer.fullName}, check your account.`,
+    freeFormText,
     performedBy,
   });
 }
 
 /**
  * Send referral reward processed notification to the referrer.
- * Template: referral_earned — {{1}} referrer name, {{2}} referred name (code), {{3}} amount.
+ * Free-form only — requires open 24h customer service window.
  */
 export async function sendReferralRewardMessage(
   referrer: {
@@ -342,14 +440,21 @@ export async function sendReferralRewardMessage(
   },
   rewardAmount: number,
   performedBy: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<SendResult> {
   const amount = `Rs. ${rewardAmount.toLocaleString()}`;
   const referredInfo = `${referred.fullName} (${referred.installerCode})`;
+  const freeFormText = [
+    `Hi ${referrer.fullName},`,
+    "",
+    `Referral reward for referring ${referredInfo}.`,
+    `Amount: ${amount}.`,
+    "",
+    "Check your account for details.",
+  ].join("\n");
+
   return sendWhatsAppMessage({
     phoneNumber: referrer.whatsappNumber,
-    templateName: "referral_earned",
-    bodyParams: [referrer.fullName, referredInfo, amount],
-    freeFormText: `Referral reward for ${referrer.fullName}. Referred: ${referredInfo}. Amount: ${amount}.`,
+    freeFormText,
     performedBy,
   });
 }

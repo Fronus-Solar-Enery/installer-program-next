@@ -101,6 +101,7 @@ export default function NewInstallerPage() {
   const [whatsappMessage, setWhatsappMessage] = useState<string | null>(null);
   const [whatsappUrl, setWhatsappUrl] = useState<string | null>(null);
   const [registrationPin, setRegistrationPin] = useState<string | null>(null);
+  const [deliveryMethod, setDeliveryMethod] = useState<string | null>(null);
 
   const { copyToClipboard, copied } = useClipboard();
 
@@ -438,6 +439,7 @@ export default function NewInstallerPage() {
         setWhatsappMessage(data.data?.whatsappMessage || null);
         setWhatsappUrl(data.data?.whatsappUrl || null);
         setRegistrationPin(data.data?.pin || null);
+        setDeliveryMethod(data.data?.deliveryMethod || null);
         setRegistrationStatus("success");
       } else {
         // Format error message with better readability
@@ -607,6 +609,7 @@ export default function NewInstallerPage() {
         installerName={registeredInstaller?.name}
         errorMessage={registrationError}
         whatsappFailed={whatsappFailed}
+        deliveryMethod={deliveryMethod}
         pin={registrationPin}
         onResendPin={async () => {
           const target = registeredInstaller?.id || registeredInstaller?.code;
@@ -621,13 +624,16 @@ export default function NewInstallerPage() {
                 setWhatsappMessage(result.data.whatsappMessage);
                 setWhatsappUrl(result.data.whatsappUrl || null);
                 setRegistrationPin(result.data?.pin || null);
+                setDeliveryMethod(result.data?.deliveryMethod || null);
               }
               toast.success(
-                result.data?.whatsappMessage
-                  ? "New PIN generated — share manually"
-                  : "New PIN sent via WhatsApp"
+                result.data?.deliveryMethod === "free-form"
+                  ? "New PIN sent via WhatsApp"
+                  : result.data?.whatsappMessage
+                    ? "New PIN generated — share manually"
+                    : "New PIN sent via WhatsApp"
               );
-              if (!result.data?.whatsappMessage) {
+              if (result.data?.deliveryMethod === "free-form") {
                 setWhatsappFailed(false);
               }
               return true;

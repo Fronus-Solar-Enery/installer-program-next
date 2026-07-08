@@ -5,6 +5,7 @@ import Installer from "@/models/Installer";
 import { logActivity } from "@/lib/activityLogger";
 import { ActivityType } from "@/models/Activity";
 import { logger } from "@/lib/logger";
+import { normalizePhone } from "@/lib/phoneUtils";
 
 const VERIFY_TOKEN = process.env.META_WHATSAPP_VERIFY_TOKEN;
 const APP_SECRET = process.env.META_WHATSAPP_APP_SECRET;
@@ -34,7 +35,9 @@ export async function GET(request: NextRequest) {
  * POST /api/webhook/whatsapp
  * Receives incoming WhatsApp messages from Meta.
  * Verifies the X-Hub-Signature-256 HMAC header for security.
- * Updates Installer.lastCustomerMessageAt when a customer messages us.
+ * Updates Installer.lastCustomerMessageAt for ANY inbound message type
+ * (text, image, video, document, sticker, location, interactive, etc.)
+ * so the 24-hour customer service window is accurately tracked.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -89,32 +92,38 @@ async function processWebhookBody(body: Record<string, unknown>) {
 
     if (!from) continue;
 
-    // Only process text messages for 24h window tracking
-    if (type !== "text") continue;
+    // Track ALL message types for 24h window — not just text.
+    // Images, videos, documents, stickers, locations, interactive messages,
+    // and contacts all reset the customer service window timer.
+    // Skipping status/webhook events (no "from" field on those).
 
-    // Normalize the phone number to match our DB format
-    const normalizedNumber = normalizeForDB(from);
+    const normalizedNumber = normalizePhone(from);
 
     try {
       const installer = await Installer.findOne({
-        $or: [
-          { whatsappNumber: normalizedNumber },
-          { whatsappNumber: from },
-          { whatsappNumber: `+${from}` },
-          { whatsappNumber: { $regex: from.slice(-10) } },
-        ],
+        whatsappNumber: normalizedNumber,
       });
 
       if (!installer) {
-        logger.debug("WhatsApp message from unknown number", { from });
+        logger.debug("WhatsApp message from unknown number", { from, type });
         continue;
       }
 
-      // Update the last customer message timestamp
+      // Update the last customer message timestamp.
+      // Only the customer's messages reset the 24h timer — our replies don't.
       installer.lastCustomerMessageAt = timestamp
         ? new Date(parseInt(timestamp) * 1000)
         : new Date();
       await installer.save();
+
+      // Extract message content based on type
+      let messageContent: string | undefined;
+      if (type === "text") {
+        messageContent = (message.text as Record<string, unknown>)?.body as string | undefined;
+      } else if (type === "interactive") {
+        const interactive = message.interactive as Record<string, unknown> | undefined;
+        messageContent = interactive?.type as string | undefined;
+      }
 
       // Log the inbound message activity
       await logActivity({
@@ -123,26 +132,21 @@ async function processWebhookBody(body: Record<string, unknown>) {
         targetType: "Installer",
         targetId: installer._id,
         targetName: installer.fullName,
-        description: `WhatsApp message received from ${installer.fullName}`,
+        description: `WhatsApp ${type || "message"} received from ${installer.fullName}`,
         metadata: {
           whatsappNumber: from,
           messageType: type,
-          messageContent: (message.text as Record<string, unknown>)?.body as string | undefined,
+          messageContent,
         },
       });
 
       logger.debug("WhatsApp inbound message processed", {
         installerCode: installer.installerCode,
         from,
+        type,
       });
     } catch (err) {
-      logger.error("Failed to process inbound WhatsApp message", { err, from });
+      logger.error("Failed to process inbound WhatsApp message", { err, from, type });
     }
   }
-}
-
-function normalizeForDB(phoneNumber: string): string {
-  let digits = phoneNumber.replace(/\D/g, "");
-  if (digits.startsWith("0")) digits = `92${digits.slice(1)}`;
-  return digits;
 }
