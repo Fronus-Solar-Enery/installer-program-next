@@ -217,6 +217,7 @@ export async function createInstaller(
   const installer = await Installer.create({
     ...input,
     registeredBy: registeredById,
+    lastCustomerMessageAt: new Date(),
   });
 
   await createGoogleContactForInstaller(installer);
