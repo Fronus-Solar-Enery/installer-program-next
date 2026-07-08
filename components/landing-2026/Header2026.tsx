@@ -74,7 +74,7 @@ export default function Header2026() {
           >
             <ProgramLogo className="w-24 h-8!" />
           </Link>
-
+          {/* 
           <nav className="hidden md:flex items-center gap-8" aria-label="Main">
             {NAV_LINKS.map((link) => (
               <a
@@ -85,7 +85,7 @@ export default function Header2026() {
                 {link.label}
               </a>
             ))}
-          </nav>
+          </nav> */}
 
           <div className="flex items-center gap-2">
             <Button

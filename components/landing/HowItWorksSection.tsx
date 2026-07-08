@@ -31,7 +31,10 @@ const STEPS = [
 
 export default function HowItWorksSection() {
   return (
-    <section id="how-it-works" className="bg-muted/20 border-y border-border/50">
+    <section
+      id="how-it-works"
+      className="bg-muted/20 border-y border-border/50"
+    >
       <motion.div
         variants={staggerContainer}
         initial="hidden"

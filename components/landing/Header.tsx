@@ -39,7 +39,7 @@ export default function Header() {
         <Link href="/" aria-label="Fronus Installer Program home">
           <ProgramLogo className="w-24" />
         </Link>
-
+        {/* 
         <nav className="hidden md:flex items-center gap-6" aria-label="Main">
           {NAV_LINKS.map((link) => (
             <a
@@ -50,7 +50,7 @@ export default function Header() {
               {link.label}
             </a>
           ))}
-        </nav>
+        </nav> */}
 
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild>

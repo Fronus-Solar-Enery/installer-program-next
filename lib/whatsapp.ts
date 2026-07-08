@@ -67,9 +67,8 @@ export function buildWhatsAppUrl({
   number = WHATSAPP_NUMBER,
 }: BuildWhatsAppUrlArgs): string {
   const message = MESSAGES[intent]({ product });
-  const encoded = encodeURIComponent(message);
   const url = new URL(`https://wa.me/${number}`);
-  url.searchParams.set("text", encoded);
+  url.searchParams.set("text", message);
   if (source) url.searchParams.set("source", source);
   return url.toString();
 }

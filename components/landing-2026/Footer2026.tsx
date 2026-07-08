@@ -23,10 +23,7 @@ export default function Footer2026() {
           >
             How it works
           </a>
-          <a
-            href="#faq"
-            className="transition-colors hover:text-foreground"
-          >
+          <a href="#faq" className="transition-colors hover:text-foreground">
             FAQ
           </a>
           <a

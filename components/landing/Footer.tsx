@@ -11,16 +11,28 @@ export default function Footer() {
           className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground"
           aria-label="Footer"
         >
-          <a href="#features" className="hover:text-foreground transition-colors">
+          <a
+            href="#features"
+            className="hover:text-foreground transition-colors"
+          >
             Features
           </a>
-          <a href="#how-it-works" className="hover:text-foreground transition-colors">
+          <a
+            href="#how-it-works"
+            className="hover:text-foreground transition-colors"
+          >
             How it works
           </a>
-          <Link href="/auth/installer" className="hover:text-foreground transition-colors">
+          <Link
+            href="/auth/installer"
+            className="hover:text-foreground transition-colors"
+          >
             Installer Login
           </Link>
-          <Link href="/auth/signin" className="hover:text-foreground transition-colors">
+          <Link
+            href="/auth/signin"
+            className="hover:text-foreground transition-colors"
+          >
             Team Sign In
           </Link>
         </nav>

@@ -90,13 +90,7 @@ export default function Hero2026() {
             asChild
             className="text-base rounded-full"
           >
-            <a
-              href={buildWhatsAppUrl({
-                intent: "get-code",
-                source: "hero-secondary",
-              })}
-              {...WHATSAPP_LINK_ATTRS}
-            >
+            <a href="/auth/installer">
               Already installing? Check Stats
               <span className="ml-2">
                 <IconArrowRight className="size-3.5" />
