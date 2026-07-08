@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { HyperText } from "@/components/ui/hypertext";
 import { cn } from "@/lib/utils";
+import { getBankLabel } from "@/lib/constants";
 import { StepHeader } from "@/components/StepHeader";
 import { ReviewSectionHeader } from "./ReviewSectionHeader";
 import { ReviewItem } from "./ReviewItem";
@@ -272,7 +273,7 @@ export function ReviewStep(props: ReviewStepProps) {
               />
               <ReviewItem
                 label="Bank"
-                value={installerData?.bankName ?? ""}
+                value={getBankLabel(installerData?.bankName ?? "")}
                 isHighlighted={true}
                 icon={
                   <IconBank className="h-3.5 w-3.5 text-muted-foreground/90" />

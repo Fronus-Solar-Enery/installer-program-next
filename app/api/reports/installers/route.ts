@@ -6,6 +6,7 @@ import Installer, { IInstaller } from '@/models/Installer';
 import { ITeamMember } from '@/models/TeamMember';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
 import { escapeRegex } from '@/lib/queryBuilder';
+import { getBankLabel } from '@/lib/constants';
 import { FilterQuery } from 'mongoose';
 
 // Type for populated installer document
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
           'Province': populatedInstaller.province,
           'District': populatedInstaller.district,
           'Company Name': populatedInstaller.companyName || '',
-          'Bank Name': populatedInstaller.bankName,
+          'Bank Name': getBankLabel(populatedInstaller.bankName),
           'Account Number': populatedInstaller.accountNumber,
           'Account Title': populatedInstaller.accountTitle,
           'Certified': populatedInstaller.certified ? 'Yes' : 'No',

@@ -6,6 +6,7 @@ import InstallerReward, { IInstallerReward } from "@/models/InstallerReward";
 import { IInstaller } from "@/models/Installer";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { FilterQuery } from "mongoose";
+import { getBankLabel } from "@/lib/constants";
 
 // Type for populated reward document
 interface PopulatedReward
@@ -120,7 +121,7 @@ export async function GET(request: NextRequest) {
       if (installer) {
         allPayments.push({
           "To Account": installer.accountNumber || "",
-          Bank: installer.bankName || "",
+          Bank: getBankLabel(installer.bankName) || "",
           Amount: populatedReward.rewardAmount || 0,
           Purpose: "Others",
           "Phone No.": formatPhoneNumber(installer.phoneNumber || ""),
@@ -139,7 +140,7 @@ export async function GET(request: NextRequest) {
       ) {
         allPayments.push({
           "To Account": referrer.accountNumber || "",
-          Bank: referrer.bankName || "",
+          Bank: getBankLabel(referrer.bankName) || "",
           Amount: populatedReward.referrerRewardAmount || 0,
           Purpose: "Others",
           "Phone No.": formatPhoneNumber(referrer.phoneNumber || ""),

@@ -29,7 +29,7 @@ import {
   Loader2,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import { PAYMENT_METHOD, BANKS, SERIAL_STATUSES } from "@/lib/constants";
+import { PAYMENT_METHOD, BANKS, SERIAL_STATUSES, getBankLabel } from "@/lib/constants";
 import { useProducts } from "@/hooks/useProducts";
 import { FileDropzone } from "@/components/ui/drop-zone";
 import { IconLayer, IconTrashBin2 } from "@/components/icons";
@@ -1532,9 +1532,9 @@ export default function BulkCreateRewardsPage() {
                         </div>
                         <div
                           className="w-40 px-4 py-3 text-sm shrink-0 flex items-center truncate"
-                          title={reward.bankName}
+                          title={getBankLabel(reward.bankName)}
                         >
-                          {reward.bankName}
+                          {getBankLabel(reward.bankName)}
                         </div>
                         <div className="w-24 px-4 py-3 text-sm font-mono shrink-0 flex items-center">
                           {reward.rewardAmount}

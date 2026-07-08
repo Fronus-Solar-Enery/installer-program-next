@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/CopyButton";
 import { IconEdit2, IconTrashBin2 } from "@/components/icons";
-import { BANKS } from "@/lib/constants";
+import { BANKS, getBankLabel } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import type { InstallerWithId } from "@/hooks/useInstallers";
@@ -151,7 +151,7 @@ function InstallerTableRowComponent({
 
       {/* Bank Name */}
       {visibleColumns.bankName && (
-        <TableCell>{installer.bankName || "-"}</TableCell>
+        <TableCell>{getBankLabel(installer.bankName ?? "") || "-"}</TableCell>
       )}
 
       {/* Account Number */}

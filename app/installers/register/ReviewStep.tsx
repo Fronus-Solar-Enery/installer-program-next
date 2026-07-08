@@ -1,5 +1,5 @@
 import { motion, type Variants } from "framer-motion";
-import { BANKS } from "@/lib/constants";
+import { BANKS, getBankLabel } from "@/lib/constants";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { HyperText } from "@/components/ui/hypertext";
@@ -260,7 +260,7 @@ export function ReviewStep(props: ReviewStepProps) {
               />
               <ReviewItem
                 label="Bank"
-                value={bankName}
+                value={getBankLabel(bankName)}
                 isHighlighted={true}
                 icon={
                   <IconBank className="h-3.5 w-3.5 text-muted-foreground/90" />

@@ -7,6 +7,7 @@ import { IInstaller } from '@/models/Installer';
 import { ITeamMember } from '@/models/TeamMember';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
 import { escapeRegex } from '@/lib/queryBuilder';
+import { getBankLabel } from '@/lib/constants';
 import { FilterQuery } from 'mongoose';
 
 // Type for populated reward document
@@ -117,7 +118,7 @@ export async function GET(request: NextRequest) {
           'Reward Amount': populatedReward.rewardAmount,
           'Reward Status': populatedReward.rewardStatus,
           'Transaction ID': populatedReward.transactionId || 'N/A',
-          'Bank Name': populatedReward.bankName,
+          'Bank Name': getBankLabel(populatedReward.bankName),
           'Account Number': populatedReward.accountNumber,
           'Account Title': populatedReward.accountTitle,
           'Payment Method': populatedReward.paymentMethod || 'N/A',

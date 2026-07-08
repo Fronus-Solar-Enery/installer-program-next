@@ -875,3 +875,15 @@ export const BANKS: Bank[] = [
     shortcut: "MCBAH",
   },
 ];
+
+export function getBankLabel(bankName: string): string {
+  if (!bankName) return bankName;
+  const bank = BANKS.find(
+    (b) =>
+      b.label === bankName ||
+      b.value === bankName ||
+      b.shortcut === bankName ||
+      b.matchcase === bankName,
+  );
+  return bank ? bank.label : bankName;
+}

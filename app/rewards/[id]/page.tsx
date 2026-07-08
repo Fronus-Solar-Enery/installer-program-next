@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { IconArrowLeft, IconEdit2 } from "@/components/icons";
 import PageHeader from "@/components/PageHeader";
+import { getBankLabel } from "@/lib/constants";
 import { CopyButton } from "@/components/CopyButton";
 import { SimpleDeleteDialog } from "@/components/SimpleDeleteDialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -395,7 +396,7 @@ export default function RewardDetailsPage() {
               <div className="flex items-center justify-between py-2.5">
                 <dt className="text-xs text-muted-foreground">Bank</dt>
                 <dd className="text-sm font-medium">
-                  {reward.bankName || "N/A"}
+                   {getBankLabel(reward.bankName || "") || "N/A"}
                 </dd>
               </div>
               <div className="flex items-center justify-between py-2.5">

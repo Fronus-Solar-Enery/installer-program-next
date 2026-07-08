@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { BANKS } from "@/lib/constants";
+import { BANKS, getBankLabel } from "@/lib/constants";
 import {
   Check,
   Edit,
@@ -761,7 +761,7 @@ export default function InstallerDetailsPage() {
                     <div className="flex items-center justify-between py-2.5 first:pt-0">
                       <dt className="text-xs text-muted-foreground">Bank</dt>
                       <dd className="text-sm font-medium">
-                         {installer.bankName || "-"}
+                         {getBankLabel(installer.bankName) || "-"}
                       </dd>
                     </div>
                     <div className="flex items-center justify-between py-2.5">

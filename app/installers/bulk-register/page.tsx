@@ -29,7 +29,7 @@ import {
   Loader2,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import { BANKS, CITY_TO_DISTRICT, DISTRICT_CODES } from "@/lib/constants";
+import { BANKS, CITY_TO_DISTRICT, DISTRICT_CODES, getBankLabel } from "@/lib/constants";
 import BulkUploadProgressModal, {
   UploadStep,
 } from "@/components/BulkUploadProgressModal";
@@ -1533,7 +1533,7 @@ export default function BulkUploadInstallersPage() {
                           {installer.province}
                         </div>
                         <div className="w-36 px-4 py-3 text-sm shrink-0 flex items-center">
-                          {installer.bankName}
+                          {getBankLabel(installer.bankName)}
                         </div>
                         <div className="flex-1 min-w-80 px-4 py-3 text-sm flex items-center">
                           {installer.issues.length > 0 ? (
