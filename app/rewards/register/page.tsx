@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  SERIAL_STATUSES,
   CITIES,
   CITY_TO_PROVINCE,
   PROVINCES,
@@ -41,6 +40,7 @@ import {
   CARD_SECTION_CLASS,
   GRID_2_COL_CLASS,
 } from "@/lib/registration-styles";
+import { MonthYearGridPicker } from "@/components/ui/month-year-grid-picker";
 
 interface ValidationError {
   path?: string[];
@@ -95,7 +95,11 @@ export default function NewRewardPage() {
   // Step 2: Product Details
   const [productModel, setProductModel] = useState("");
   const [cityOfInstallation, setCityOfInstallation] = useState("");
-  const [serialNumberStatus, setSerialNumberStatus] = useState("");
+  const [installationMonthYear, setInstallationMonthYear] = useState<string>(() => {
+    const now = new Date();
+    const month = now.toLocaleString("en-US", { month: "long" });
+    return `${month} ${now.getFullYear()}`;
+  });
 
   const { data: products = [] } = useProducts();
 
@@ -157,17 +161,7 @@ export default function NewRewardPage() {
             ),
           })),
       })),
-    []
-  );
-
-  // Memoize serial status options
-  const serialStatusOptions = useMemo(
-    () =>
-      SERIAL_STATUSES.map((status) => ({
-        value: status.value,
-        label: status.label,
-      })),
-    []
+    [    ]
   );
 
   // Check if form has data (for unsaved changes warning)
@@ -177,7 +171,6 @@ export default function NewRewardPage() {
       serialNumber.trim() !== "" ||
       productModel !== "" ||
       cityOfInstallation !== "" ||
-      serialNumberStatus !== "" ||
       inverterSerialNumber.trim() !== ""
     );
   }, [
@@ -185,7 +178,6 @@ export default function NewRewardPage() {
     serialNumber,
     productModel,
     cityOfInstallation,
-    serialNumberStatus,
     inverterSerialNumber,
   ]);
 
@@ -312,12 +304,12 @@ export default function NewRewardPage() {
     () =>
       productModel !== "" &&
       cityOfInstallation !== "" &&
-      serialNumberStatus !== "" &&
+      installationMonthYear !== "" &&
       (!isBatteryProduct || inverterSerialNumber !== ""),
     [
       productModel,
       cityOfInstallation,
-      serialNumberStatus,
+      installationMonthYear,
       isBatteryProduct,
       inverterSerialNumber,
     ]
@@ -341,9 +333,9 @@ export default function NewRewardPage() {
   }, [installerData, serialValid]);
 
   const handleStep2Next = useCallback(() => {
-    if (!productModel || !cityOfInstallation || !serialNumberStatus) {
+    if (!productModel || !cityOfInstallation || !installationMonthYear) {
       toast.error(
-        "Please complete all fields: Product Model, City of Installation, and Serial Number Status are required."
+        "Please complete all fields: Product Model, City of Installation, and Installation Month & Year are required."
       );
       return;
     }
@@ -357,7 +349,7 @@ export default function NewRewardPage() {
   }, [
     productModel,
     cityOfInstallation,
-    serialNumberStatus,
+    installationMonthYear,
     isBatteryProduct,
     inverterSerialNumber,
   ]);
@@ -372,8 +364,11 @@ export default function NewRewardPage() {
     setRegistrationStatus("registering");
 
     try {
-      // Get current date and time as installation date
-      const currentDate = new Date().toISOString();
+      // Parse installation month/year string (e.g., "July 2026")
+      const [monthName, yearStr] = installationMonthYear.split(" ");
+      const monthIndex = new Date(`${monthName} 1, 2000`).getMonth();
+      const year = parseInt(yearStr);
+      const installationDate = new Date(year, monthIndex, 1).toISOString();
 
       const response = await fetch("/api/rewards", {
         method: "POST",
@@ -384,9 +379,8 @@ export default function NewRewardPage() {
           inverterSerialNumber: isBatteryProduct ? inverterSerialNumber : "N/A",
           productModel,
           cityOfInstallation,
-          serialNumberStatus,
           rewardAmount,
-          installationDate: currentDate,
+          installationDate,
         }),
       });
 
@@ -462,7 +456,7 @@ export default function NewRewardPage() {
     inverterSerialNumber,
     productModel,
     cityOfInstallation,
-    serialNumberStatus,
+    installationMonthYear,
     rewardAmount,
   ]);
 
@@ -477,7 +471,10 @@ export default function NewRewardPage() {
     setSerialTouched(false);
     setProductModel("");
     setCityOfInstallation("");
-    setSerialNumberStatus("");
+    const now = new Date();
+    setInstallationMonthYear(
+      `${now.toLocaleString("en-US", { month: "long" })} ${now.getFullYear()}`
+    );
     setInverterSerialNumber("");
     setRegistrationStatus("idle");
     setRegisteredReward(null);
@@ -830,20 +827,21 @@ export default function NewRewardPage() {
                         aria-required="true"
                       />
 
-                      {/* Serial Number Status */}
-                      <FormField
-                        type="select"
-                        label="Serial Number Status"
-                        id="serial-status"
-                        value={serialNumberStatus}
-                        onChange={setSerialNumberStatus}
-                        placeholder="Select product condition"
-                        hint="Choose the condition of the product serial number label"
-                        options={serialStatusOptions}
-                        required
-                        aria-label="Product serial number label condition"
-                        aria-required="true"
-                      />
+                      {/* Installation Month & Year */}
+                      <div className="space-y-2">
+                        <Label htmlFor="installation-date" className="block">
+                          Installation Month & Year{" "}
+                          <span className="text-destructive-text text-[10px]">✱</span>
+                        </Label>
+                        <MonthYearGridPicker
+                          value={installationMonthYear}
+                          onChange={setInstallationMonthYear}
+                          id="installation-date"
+                        />
+                        <p className="text-[13px] text-muted-foreground">
+                          Month and year when the product was installed
+                        </p>
+                      </div>
                     </div>
 
                     {/* Inverter Serial Number - Only for battery products */}
@@ -887,8 +885,8 @@ export default function NewRewardPage() {
                   productModel={productModel}
                   rewardAmount={rewardAmount}
                   cityOfInstallation={cityOfInstallation}
-                  serialNumberStatus={serialNumberStatus}
                   installerData={installerData}
+                  installationMonthYear={installationMonthYear}
                 />
               )}
             </div>

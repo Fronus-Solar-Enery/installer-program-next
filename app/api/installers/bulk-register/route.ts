@@ -4,6 +4,7 @@ import dbConnect from "@/lib/mongodb";
 import Installer, { IInstaller } from "@/models/Installer";
 import Activity from "@/models/Activity";
 import { CITY_TO_DISTRICT, DISTRICT_CODES } from "@/lib/constants";
+import { toTitleCase } from "@/lib/validation";
 
 interface BulkInstallerData extends Partial<IInstaller> {
   isValid?: boolean;
@@ -216,20 +217,22 @@ export async function POST(req: NextRequest) {
       // Prepare installer document
       installersToInsert.push({
         installerCode: installerData.installerCode,
-        fullName: installerData.fullName,
+        fullName: toTitleCase(installerData.fullName),
         referrerCode: installerData.referrerCode,
         referrer: referrerId,
         cnic: installerData.cnic,
         phoneNumber: installerData.phoneNumber,
         whatsappNumber: installerData.whatsappNumber,
-        address: installerData.address,
+        address: toTitleCase(installerData.address),
         city: installerData.city,
         province: installerData.province,
         district,
-        companyName: installerData.companyName,
+        companyName: installerData.companyName
+          ? toTitleCase(installerData.companyName)
+          : undefined,
         bankName: installerData.bankName,
-        accountNumber: installerData.accountNumber,
-        accountTitle: installerData.accountTitle,
+        accountNumber: installerData.accountNumber.toUpperCase(),
+        accountTitle: toTitleCase(installerData.accountTitle),
         certified: installerData.certified || false,
         registeredBy: session.user.id,
       });

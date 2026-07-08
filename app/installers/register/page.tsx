@@ -98,6 +98,8 @@ export default function NewInstallerPage() {
   } | null>(null);
   const [registrationError, setRegistrationError] = useState<string>("");
   const [whatsappFailed, setWhatsappFailed] = useState(false);
+  const [whatsappMessage, setWhatsappMessage] = useState<string | null>(null);
+  const [whatsappUrl, setWhatsappUrl] = useState<string | null>(null);
   const [registrationPin, setRegistrationPin] = useState<string | null>(null);
 
   const { copyToClipboard, copied } = useClipboard();
@@ -338,7 +340,7 @@ export default function NewInstallerPage() {
 
   const isStep3Valid = useCallback(() => {
     if (!bankName || !accountTitle.trim()) return false;
-    const selectedBank = BANKS.find((b) => b.value === bankName);
+    const selectedBank = BANKS.find((b) => b.label === bankName);
     const isDigital = selectedBank?.mobile || false;
     if (isDigital) {
       const accountDigits = accountNumber.replace(/\D/g, "");
@@ -433,6 +435,8 @@ export default function NewInstallerPage() {
           id: data.data?.installer?._id,
         });
         setWhatsappFailed(Boolean(data.data?.whatsappFailed));
+        setWhatsappMessage(data.data?.whatsappMessage || null);
+        setWhatsappUrl(data.data?.whatsappUrl || null);
         setRegistrationPin(data.data?.pin || null);
         setRegistrationStatus("success");
       } else {
@@ -510,7 +514,7 @@ export default function NewInstallerPage() {
 
   // Memoize selected bank and digital payment check
   const selectedBank = useMemo(
-    () => BANKS.find((b) => b.value === bankName),
+    () => BANKS.find((b) => b.label === bankName),
     [bankName],
   );
   const isDigitalPayment = selectedBank?.mobile || false;
@@ -553,14 +557,14 @@ export default function NewInstallerPage() {
       {
         label: "Digital Payment Methods",
         options: BANKS.filter((b) => b.mobile).map((b) => ({
-          value: b.value,
+          value: b.label,
           label: b.label,
         })),
       },
       {
         label: "Commercial Banks",
         options: BANKS.filter((b) => !b.mobile).map((b) => ({
-          value: b.value,
+          value: b.label,
           label: b.label,
         })),
       },
@@ -613,8 +617,19 @@ export default function NewInstallerPage() {
             });
             const result = await res.json();
             if (result.success) {
-              toast.success("New PIN sent via WhatsApp");
-              setWhatsappFailed(false);
+              if (result.data?.whatsappMessage) {
+                setWhatsappMessage(result.data.whatsappMessage);
+                setWhatsappUrl(result.data.whatsappUrl || null);
+                setRegistrationPin(result.data?.pin || null);
+              }
+              toast.success(
+                result.data?.whatsappMessage
+                  ? "New PIN generated — share manually"
+                  : "New PIN sent via WhatsApp"
+              );
+              if (!result.data?.whatsappMessage) {
+                setWhatsappFailed(false);
+              }
               return true;
             }
             toast.error(result.error || "Failed to resend PIN");
@@ -624,6 +639,8 @@ export default function NewInstallerPage() {
             return false;
           }
         }}
+        whatsappMessage={whatsappMessage || undefined}
+        whatsappUrl={whatsappUrl || undefined}
         onRedirect={handleRedirect}
         onViewInstaller={
           registeredInstaller?.code

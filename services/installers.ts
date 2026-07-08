@@ -2,7 +2,10 @@ import { randomInt } from "crypto";
 import bcrypt from "bcryptjs";
 import { HydratedDocument } from "mongoose";
 import Installer, { IInstaller } from "@/models/Installer";
-import { sendInstallerRegistrationMessage } from "@/lib/whatsappService";
+import {
+  sendInstallerRegistrationMessage,
+  formatInstallerWhatsAppMessage,
+} from "@/lib/whatsappService";
 import InstallerReward from "@/models/InstallerReward";
 import {
   RegisterInstallerInput,
@@ -121,7 +124,13 @@ async function syncGoogleContactOnUpdate(
 export async function regenerateAndSendPin(
   installer: HydratedDocument<IInstaller>,
   performedById: string
-): Promise<{ whatsappSent: boolean; error?: string; plainPin: string }> {
+): Promise<{
+  whatsappSent: boolean;
+  error?: string;
+  plainPin: string;
+  whatsappMessage?: string;
+  whatsappUrl?: string;
+}> {
   const plainPin = randomInt(0, 1_000_000).toString().padStart(6, "0");
 
   installer.pin = await bcrypt.hash(plainPin, 10);
@@ -130,6 +139,23 @@ export async function regenerateAndSendPin(
   installer.pinAttempts = 0;
   installer.pinLockedUntil = undefined;
   await installer.save();
+
+  const settings = await getSettings();
+
+  if (!settings.enableWhatsAppNotifications) {
+    const { text, whatsappUrl } = formatInstallerWhatsAppMessage(
+      installer.installerCode,
+      plainPin,
+      installer.whatsappNumber
+    );
+    return {
+      whatsappSent: false,
+      error: "WhatsApp auto-send is disabled",
+      plainPin,
+      whatsappMessage: text,
+      whatsappUrl,
+    };
+  }
 
   const result = await sendInstallerRegistrationMessage(
     {
@@ -156,6 +182,8 @@ export async function createInstaller(
   installer: HydratedDocument<IInstaller> | null;
   whatsappFailed: boolean;
   plainPin: string;
+  whatsappMessage?: string;
+  whatsappUrl?: string;
 }> {
   if (input.referrerCode) {
     await assertReferrerWithinLimit(input.referrerCode);
@@ -168,7 +196,8 @@ export async function createInstaller(
 
   await createGoogleContactForInstaller(installer);
 
-  const { whatsappSent, plainPin } = await regenerateAndSendPin(installer, registeredById);
+  const { whatsappSent, plainPin, whatsappMessage, whatsappUrl } =
+    await regenerateAndSendPin(installer, registeredById);
 
   return {
     installer: await findInstallerByIdOrCode(
@@ -177,6 +206,8 @@ export async function createInstaller(
     ),
     whatsappFailed: !whatsappSent,
     plainPin,
+    whatsappMessage,
+    whatsappUrl,
   };
 }
 

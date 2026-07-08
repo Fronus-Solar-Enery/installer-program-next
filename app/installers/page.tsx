@@ -255,7 +255,7 @@ const InstallerRow = memo(
           style={columnStyles.bankDetails}
         >
           <div>
-            <div className="text-primary">{BANKS.find((b) => b.value === installer.bankName)?.label || installer.bankName}</div>
+            <div className="text-primary">{installer.bankName || "-"}</div>
             <div className="text-xs">{installer.accountNumber}</div>
           </div>
         </div>

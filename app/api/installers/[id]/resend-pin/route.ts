@@ -20,12 +20,10 @@ export const POST = withAuth(
         return ApiResponse.notFound("Installer not found");
       }
 
-      const { whatsappSent, error, plainPin } = await regenerateAndSendPin(
-        installer,
-        session.user.id
-      );
+      const { whatsappSent, error, plainPin, whatsappMessage, whatsappUrl } =
+        await regenerateAndSendPin(installer, session.user.id);
 
-      if (!whatsappSent) {
+      if (!whatsappSent && !whatsappMessage) {
         return ApiResponse.error(
           error || "Failed to send PIN via WhatsApp",
           502
@@ -33,8 +31,10 @@ export const POST = withAuth(
       }
 
       return ApiResponse.success(
-        { pin: plainPin },
-        "New PIN sent via WhatsApp"
+        { pin: plainPin, whatsappMessage, whatsappUrl },
+        whatsappMessage
+          ? "New PIN generated — share manually via WhatsApp"
+          : "New PIN sent via WhatsApp"
       );
     } catch (error) {
       return handleApiError(error);

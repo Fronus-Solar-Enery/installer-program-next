@@ -1,5 +1,4 @@
 import { motion } from "framer-motion";
-import { SERIAL_STATUSES } from "@/lib/constants";
 import { useProducts } from "@/hooks/useProducts";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +16,7 @@ import {
   IconBuildings,
   IconProduct,
   IconSerialNumber,
+  IconCalendarMinimalistic,
 } from "@/components/icons";
 import IconUser from "@/components/icons/User";
 import IconVerify from "@/components/icons/Verify";
@@ -44,8 +44,8 @@ interface ReviewStepProps {
   productModel: string;
   rewardAmount: number;
   cityOfInstallation: string;
-  serialNumberStatus: string;
   installerData: InstallerData | null;
+  installationMonthYear: string;
 }
 
 const CARD_CLASS =
@@ -75,16 +75,13 @@ export function ReviewStep(props: ReviewStepProps) {
     productModel,
     rewardAmount,
     cityOfInstallation,
-    serialNumberStatus,
     installerData,
+    installationMonthYear,
   } = props;
 
   const { data: products = [] } = useProducts();
   const selectedProductLabel =
     products.find((p) => p.value === productModel)?.label || productModel;
-  const selectedStatusLabel =
-    SERIAL_STATUSES.find((s) => s.value === serialNumberStatus)?.label ||
-    serialNumberStatus;
 
   return (
     <div className="space-y-6">
@@ -100,31 +97,16 @@ export function ReviewStep(props: ReviewStepProps) {
           description="Verify all details before registering the new reward"
         />
 
-        <div className="grid gap-8 md:grid-cols-1 xl:grid-cols-2 xl:gap-6">
+        <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-2 xl:gap-6">
           {/* Serial Number Card */}
           <motion.div
             variants={itemVariants}
-            className={cn(CARD_CLASS, "xl:col-span-2")}
+            className={cn(CARD_CLASS, "col-span-2")}
           >
             <ReviewSectionHeader
               className="p-6"
               title="Product Serial Number"
               icon={IconSerialNumber}
-              badge={
-                <Badge
-                  variant={
-                    selectedStatusLabel === "2025" ||
-                    selectedStatusLabel === "2025 - Not Found"
-                      ? "success"
-                      : "destructive"
-                  }
-                  className={cn(
-                    "rounded-full px-2.5 uppercase text-[10px] font-bold tracking-wider"
-                  )}
-                >
-                  {selectedStatusLabel}
-                </Badge>
-              }
             />
             <div className="p-6">
               <div className="flex justify-center mb-4">
@@ -152,14 +134,17 @@ export function ReviewStep(props: ReviewStepProps) {
           </motion.div>
 
           {/* Installer Details */}
-          <motion.div variants={itemVariants} className={CARD_CLASS}>
+          <motion.div
+            variants={itemVariants}
+            className={cn(CARD_CLASS, "col-span-2")}
+          >
             <ReviewSectionHeader
               title="Installer Details"
               icon={IconUser}
               className="p-6"
             />
 
-            <div className="grid grid-cols-1 gap-2 p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 p-6">
               <ReviewItem
                 label="Installer Code"
                 value={installerData?.installerCode || "N/A"}
@@ -201,13 +186,16 @@ export function ReviewStep(props: ReviewStepProps) {
           </motion.div>
 
           {/* Product Details */}
-          <motion.div variants={itemVariants} className={CARD_CLASS}>
+          <motion.div
+            variants={itemVariants}
+            className={cn(CARD_CLASS, "col-span-2 lg:col-span-1")}
+          >
             <ReviewSectionHeader
               className="p-6"
               title="Product Details"
               icon={IconVerify}
             />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 p-6">
               <ReviewItem
                 label="Product Model"
                 value={selectedProductLabel}
@@ -215,21 +203,6 @@ export function ReviewStep(props: ReviewStepProps) {
                 isHighlighted={true}
                 icon={
                   <IconProduct className="h-3.5 w-3.5 text-muted-foreground/90" />
-                }
-              />
-              <ReviewItem
-                label="Reward Amount"
-                value={`Rs. ${rewardAmount.toLocaleString()}`}
-                valueClass="text-green-600 font-semibold"
-                icon={
-                  <IconCard className="h-3.5 w-3.5 text-muted-foreground/90" />
-                }
-              />
-              <ReviewItem
-                label="Serial Status"
-                value={selectedStatusLabel}
-                icon={
-                  <IconVerify className="h-3.5 w-3.5 text-muted-foreground/90" />
                 }
               />
               {isBatteryProduct && (
@@ -251,22 +224,36 @@ export function ReviewStep(props: ReviewStepProps) {
                   <IconMapPoint className="h-3.5 w-3.5 text-muted-foreground/90" />
                 }
               />
-              {/* <ReviewItem
+              <ReviewItem
                 label="Installation Date"
-                value={`${new Date().toLocaleDateString()} (Today)`}
+                value={installationMonthYear}
                 valueClass="text-muted-foreground"
-              /> */}
+                icon={
+                  <IconCalendarMinimalistic className="h-3.5 w-3.5 text-muted-foreground/90" />
+                }
+              />
+              <ReviewItem
+                label="Reward Amount"
+                value={`Rs. ${rewardAmount.toLocaleString()}`}
+                valueClass="text-green-600 font-semibold"
+                icon={
+                  <IconCard className="h-3.5 w-3.5 text-muted-foreground/90" />
+                }
+              />
             </div>
           </motion.div>
 
           {/* Banking Details */}
-          <motion.div variants={itemVariants} className={CARD_CLASS}>
+          <motion.div
+            variants={itemVariants}
+            className={cn(CARD_CLASS, "col-span-2 lg:col-span-1")}
+          >
             <ReviewSectionHeader
               title="Payment Details"
               icon={IconBank}
               className="p-6"
             />
-            <div className="grid grid-cols-1 gap-2 p-6">
+            <div className="grid gap-2 p-6">
               <ReviewItem
                 label="Account Title"
                 value={installerData?.accountTitle || "N/A"}
@@ -302,7 +289,7 @@ export function ReviewStep(props: ReviewStepProps) {
                 icon={IconUserHeartRounded}
                 className="p-6"
               />
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 p-6">
                 <ReviewItem
                   label="Referrer Name"
                   value={installerData?.referrer?.fullName}

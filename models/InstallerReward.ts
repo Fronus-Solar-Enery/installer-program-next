@@ -103,6 +103,7 @@ const InstallerRewardSchema = new Schema<IInstallerReward>(
       type: String,
       required: [true, "Account number is required"],
       trim: true,
+      uppercase: true,
     },
     accountTitle: {
       type: String,

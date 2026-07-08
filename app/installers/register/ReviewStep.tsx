@@ -260,7 +260,7 @@ export function ReviewStep(props: ReviewStepProps) {
               />
               <ReviewItem
                 label="Bank"
-                value={BANKS.find((b) => b.value === bankName)?.label as string}
+                value={bankName}
                 isHighlighted={true}
                 icon={
                   <IconBank className="h-3.5 w-3.5 text-muted-foreground/90" />

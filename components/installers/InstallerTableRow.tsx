@@ -151,7 +151,7 @@ function InstallerTableRowComponent({
 
       {/* Bank Name */}
       {visibleColumns.bankName && (
-        <TableCell>{BANKS.find((b) => b.value === installer.bankName)?.label || installer.bankName || "-"}</TableCell>
+        <TableCell>{installer.bankName || "-"}</TableCell>
       )}
 
       {/* Account Number */}

@@ -2,6 +2,11 @@ import { z } from "zod";
 import { TeamRole } from "@/types/roles";
 import { RewardStatus } from "@/types/rewards";
 
+// Title Case: capitalize first letter of each word
+export function toTitleCase(str: string): string {
+  return str.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 // Phone number formatter: converts to +92XXXXXXXXXX format
 function formatPhoneNumber(phone: string): string {
   let cleaned = phone.replace(/[^\d+]/g, "");
@@ -57,7 +62,10 @@ export const changePasswordSchema = z
 // Installer Schemas
 export const registerInstallerSchema = z.object({
   installerCode: z.string().min(1, "Installer code is required").toUpperCase(),
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  fullName: z
+    .string()
+    .min(2, "Full name must be at least 2 characters")
+    .transform(toTitleCase),
   referrerCode: z.string().optional(),
   cnic: z
     .string()
@@ -70,14 +78,26 @@ export const registerInstallerSchema = z.object({
     .string()
     .min(10, "WhatsApp number must be at least 10 digits")
     .transform(formatPhoneNumber),
-  address: z.string().min(5, "Address must be at least 5 characters"),
+  address: z
+    .string()
+    .min(5, "Address must be at least 5 characters")
+    .transform(toTitleCase),
   city: z.string().min(2, "City is required"),
   province: z.string().min(2, "Province is required"),
   district: z.string().min(2, "District is required"),
-  companyName: z.string().optional(),
+  companyName: z
+    .string()
+    .optional()
+    .transform((v) => (v ? toTitleCase(v) : v)),
   bankName: z.string().min(2, "Bank name is required"),
-  accountNumber: z.string().min(5, "Account number is required"),
-  accountTitle: z.string().min(2, "Account title is required"),
+  accountNumber: z
+    .string()
+    .min(5, "Account number is required")
+    .transform((v) => v.toUpperCase()),
+  accountTitle: z
+    .string()
+    .min(2, "Account title is required")
+    .transform(toTitleCase),
   certified: z.boolean().default(false),
 });
 

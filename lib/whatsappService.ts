@@ -243,6 +243,35 @@ export async function sendWhatsAppMessage({
 }
 
 /**
+ * Format a WhatsApp message with installer credentials for manual sharing.
+ * Used when auto-send is disabled — returns the text and a wa.me deep link.
+ */
+export function formatInstallerWhatsAppMessage(
+  installerCode: string,
+  pin: string,
+  whatsappNumber?: string
+): { text: string; whatsappUrl: string } {
+  const text = [
+    "Your Fronus Installer account is active.",
+    "",
+    `Installer Code: ${installerCode}`,
+    `Login PIN: ${pin}`,
+    "",
+    "Please save this information to log in at https://installer.fronus.com",
+  ].join("\n");
+
+  const normalizedNumber = whatsappNumber
+    ? normalizeWhatsAppNumber(whatsappNumber)
+    : undefined;
+
+  const whatsappUrl = normalizedNumber
+    ? `https://wa.me/${normalizedNumber}?text=${encodeURIComponent(text)}`
+    : "";
+
+  return { text, whatsappUrl };
+}
+
+/**
  * Send installer registration credentials (account active + code + PIN).
  * Template: installer_welcome — {{1}} name, {{2}} installer code, {{3}} PIN.
  */

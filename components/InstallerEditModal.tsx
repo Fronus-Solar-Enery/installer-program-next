@@ -296,7 +296,7 @@ export default function InstallerEditModal({
         setBankName(data.bankName);
 
         // Handle account number - check if it's a digital payment
-        const selectedBank = BANKS.find((b) => b.value === data.bankName);
+        const selectedBank = BANKS.find((b) => b.label === data.bankName);
         if (selectedBank?.mobile) {
           accountNumberInput.setValue(data.accountNumber);
         }
@@ -429,7 +429,7 @@ export default function InstallerEditModal({
 
   const isStep3Valid = useCallback(() => {
     if (!bankName || !accountTitle.trim()) return false;
-    const selectedBank = BANKS.find((b) => b.value === bankName);
+    const selectedBank = BANKS.find((b) => b.label === bankName);
     const isDigital = selectedBank?.mobile || false;
     if (isDigital) {
       const accountDigits = accountNumber.replace(/\D/g, "");
@@ -558,7 +558,7 @@ export default function InstallerEditModal({
 
   // Memoize selected bank and digital payment check
   const selectedBank = useMemo(
-    () => BANKS.find((b) => b.value === bankName),
+    () => BANKS.find((b) => b.label === bankName),
     [bankName],
   );
   const isDigitalPayment = selectedBank?.mobile || false;
@@ -601,14 +601,14 @@ export default function InstallerEditModal({
       {
         label: "Digital Payment Methods",
         options: BANKS.filter((b) => b.mobile).map((b) => ({
-          value: b.value,
+          value: b.label,
           label: b.label,
         })),
       },
       {
         label: "Commercial Banks",
         options: BANKS.filter((b) => !b.mobile).map((b) => ({
-          value: b.value,
+          value: b.label,
           label: b.label,
         })),
       },

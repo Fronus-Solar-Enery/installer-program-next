@@ -271,11 +271,10 @@ export default function BulkUploadInstallersPage() {
   const normalizeBankName = (bankName: string): string => {
     const trimmedInput = bankName.trim();
 
-    // STRICTLY match using case-sensitive matchcase field ONLY
-    // If matched, return the matchcase value (NOT label) for storage
+    // Match using case-sensitive matchcase field, but return the label for storage
     const matchedBank = BANKS.find((bank) => bank.matchcase === trimmedInput);
 
-    return matchedBank ? matchedBank.matchcase : bankName;
+    return matchedBank ? matchedBank.label : bankName;
   };
 
   const validateBankName = useCallback((bankName: string): boolean => {
