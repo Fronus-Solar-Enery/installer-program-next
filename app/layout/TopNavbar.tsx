@@ -13,13 +13,13 @@ import {
   DropdownContent,
   DropdownTrigger,
 } from "@/components/ui/dropdown";
-import IconLogout2 from "@/components/icons/Logout2";
-import IconSettings from "@/components/icons/Settings";
+import IconLogout2 from "@/components/icons/Logout2"; 
 import IconUserRounded from "@/components/icons/UserRounded";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import IconArrowUpDown from "@/components/icons/ArrowUpDown";
 import IconMagnifer from "@/components/icons/Magnifer";
+import IconRefresh2 from "@/components/icons/Refresh2";
 // Dynamic import: GlobalSearchModal is 26KB - only loaded when search is opened
 const GlobalSearchModal = dynamic(
   () => import("@/components/GlobalSearchModal"),
@@ -94,6 +94,17 @@ export default function TopNavbar() {
             </span>
           </Button>
 
+          {/* Refresh */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.dispatchEvent(new Event("app:refresh"))}
+            title="Refresh data"
+            className="gap-2 rounded-2xl"
+          >
+            Refresh
+            <IconRefresh2 width={2} className="h-3.5 w-3.5" />
+          </Button>
           {/* Fullscreen Toggle */}
           <Button
             variant="ghost"

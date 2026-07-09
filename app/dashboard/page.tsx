@@ -609,6 +609,13 @@ export default function DashboardPage() {
     }
   }, [session, fetchStats]);
 
+  // Listen for global refresh events
+  useEffect(() => {
+    const handleRefresh = () => fetchStats();
+    window.addEventListener("app:refresh", handleRefresh);
+    return () => window.removeEventListener("app:refresh", handleRefresh);
+  }, [fetchStats]);
+
   if (!session) {
     return null;
   }

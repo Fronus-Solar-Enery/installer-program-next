@@ -324,6 +324,13 @@ export default function RewardsPage() {
     };
   }, [fetchRewards, dispatch]);
 
+  // Listen for global refresh events
+  useEffect(() => {
+    const handleRefresh = () => fetchRewards();
+    window.addEventListener("app:refresh", handleRefresh);
+    return () => window.removeEventListener("app:refresh", handleRefresh);
+  }, [fetchRewards]);
+
   // Handler functions
   const handleFilterChange = useCallback(
     (key: string, value: string) => {

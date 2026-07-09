@@ -480,6 +480,13 @@ export default function InstallersPage() {
     };
   }, []);
 
+  // Listen for global refresh events
+  useEffect(() => {
+    const handleRefresh = () => fetchInstallers();
+    window.addEventListener("app:refresh", handleRefresh);
+    return () => window.removeEventListener("app:refresh", handleRefresh);
+  }, [fetchInstallers]);
+
   const handleAuthenticateGoogle = async () => {
     setAuthLoading(true);
     try {

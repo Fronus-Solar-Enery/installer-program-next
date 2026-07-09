@@ -91,7 +91,7 @@ export default function Hero2026() {
             className="text-base rounded-full"
           >
             <a href="/auth/installer">
-              Already installing? Check Stats
+              Login to Installer Portal
               <span className="ml-2">
                 <IconArrowRight className="size-3.5" />
               </span>
