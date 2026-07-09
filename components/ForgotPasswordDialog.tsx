@@ -281,7 +281,7 @@ export function ForgotPasswordDialog({
                   className={cn(
                     "pl-10",
                     emailError &&
-                      "border-destructive focus-visible:ring-destructive"
+                      "border-destructive focus-visible:ring-destructive",
                   )}
                   autoFocus
                 />
@@ -437,7 +437,7 @@ export function ForgotPasswordDialog({
                   className={cn(
                     "pl-10 pr-10",
                     passwordError &&
-                      "border-destructive focus-visible:ring-destructive"
+                      "border-destructive focus-visible:ring-destructive",
                   )}
                   autoFocus
                 />
@@ -473,7 +473,7 @@ export function ForgotPasswordDialog({
                   className={cn(
                     "pl-10 pr-10",
                     passwordError &&
-                      "border-destructive focus-visible:ring-destructive"
+                      "border-destructive focus-visible:ring-destructive",
                   )}
                 />
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

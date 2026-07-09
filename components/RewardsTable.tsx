@@ -182,7 +182,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
     // Column width calculation refs
     const measureRef = useRef<HTMLDivElement>(null);
     const [columnWidths, setColumnWidths] = useState<Record<string, number>>(
-      {}
+      {},
     );
 
     // Virtual scrolling setup
@@ -247,24 +247,24 @@ export const RewardsTable = React.memo<RewardsTableProps>(
         const member = teamMembers?.find((m) => m._id === teamMemberId);
         return member ? `${member.name} (${member.email})` : "Team Member";
       },
-      [teamMembers]
+      [teamMembers],
     );
 
     const activeColumnsLength = useMemo(
       () => Object.values(visibleColumns).filter(Boolean).length,
-      [visibleColumns]
+      [visibleColumns],
     );
 
     const allSelected = useMemo(
       () =>
         rewards.length > 0 && rewards.every((r) => selectedRewards.has(r._id)),
-      [rewards, selectedRewards]
+      [rewards, selectedRewards],
     );
 
     // Pagination calculations
     const totalPages = useMemo(
       () => Math.ceil(totalRewards / itemsPerPage),
-      [totalRewards, itemsPerPage]
+      [totalRewards, itemsPerPage],
     );
 
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -275,7 +275,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
       (value: string) => {
         onItemsPerPageChange(Number(value));
       },
-      [onItemsPerPageChange]
+      [onItemsPerPageChange],
     );
 
     const handleFirstPage = useCallback(() => {
@@ -313,7 +313,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
           />
         );
       },
-      [sortField, sortDirection]
+      [sortField, sortDirection],
     );
 
     // Helper function to get column style with memoized width
@@ -323,7 +323,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
           ? `${columnWidths[columnName]}px`
           : undefined,
       }),
-      [columnWidths]
+      [columnWidths],
     );
 
     return (
@@ -361,7 +361,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                       "size-4!",
                       sortField === "createdAt" && sortDirection === "desc"
                         ? "cursor-not-allowed opacity-50"
-                        : "cursor-pointer"
+                        : "cursor-pointer",
                     )}
                     onClick={() => {
                       if (
@@ -395,7 +395,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                         "size-4!",
                         filters.dateRange === "all"
                           ? "cursor-not-allowed opacity-50"
-                          : "cursor-pointer"
+                          : "cursor-pointer",
                       )}
                       onClick={() => {
                         if (filters.dateRange !== "all") {
@@ -661,6 +661,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
               </div>
             </CardContent>
           </Activity>
+
           {/* REWARDS DATATABLE with Virtual Scrolling */}
           <div
             className="overflow-auto"
@@ -677,7 +678,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   className={cn(
                     "flex w-full bg-muted/50 text-muted-foreground backdrop-blur-xl border-b border-border relative font-mono",
                     loading && "overflow-hidden",
-                    !loading && "min-w-max"
+                    !loading && "w-full",
                   )}
                 >
                   <div className="w-12 px-4 py-3 text-sm font-medium flex items-center justify-center shrink-0">
@@ -725,14 +726,14 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   >
                     Status{getSortIcon("rewardStatus")}
                   </div>
-                  <div
+                  {/* <div
                     data-column="payment"
                     className="px-4 py-3 text-sm font-medium whitespace-nowrap select-none"
                     style={getColumnStyle("payment")}
                   >
                     Payment
-                  </div>
-                  <div
+                  </div> */}
+                  {/* <div
                     data-column="referrer"
                     className="px-4 py-3 text-sm font-medium whitespace-nowrap select-none"
                     style={getColumnStyle("referrer")}
@@ -745,7 +746,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                     style={getColumnStyle("referrerReward")}
                   >
                     Referrer Reward
-                  </div>
+                  </div> */}
                   <div
                     data-column="registeredBy"
                     className="px-4 py-3 text-sm font-medium cursor-pointer whitespace-nowrap select-none transition-colors hover:text-foreground"
@@ -754,18 +755,18 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   >
                     Registered{getSortIcon("createdAt")}
                   </div>
-                  <div
+                  {/* <div
                     data-column="updatedBy"
                     className="px-4 py-3 text-sm font-medium cursor-pointer whitespace-nowrap select-none transition-colors hover:text-foreground"
                     style={getColumnStyle("updatedBy")}
                     onClick={() => onToggleSort("updatedAt")}
                   >
                     Updated{getSortIcon("updatedAt")}
-                  </div>
+                  </div> */}
                   <div
                     className={cn(
                       "px-4 py-3 text-sm font-medium whitespace-nowrap select-none",
-                      loading ? "flex-1" : "w-32 shrink-0"
+                      loading ? "flex-1" : "w-32 shrink-0",
                     )}
                   >
                     Actions
@@ -841,7 +842,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                       </div>
 
                       {/* Payment */}
-                      <div
+                      {/* <div
                         className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
                         style={getColumnStyle("payment")}
                       >
@@ -849,10 +850,10 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                           <div className="h-4 bg-muted rounded w-20 animate-pulse" />
                           <div className="h-3 bg-muted rounded w-16 animate-pulse" />
                         </div>
-                      </div>
+                      </div> */}
 
                       {/* Referrer */}
-                      <div
+                      {/* <div
                         className="px-4 py-3 text-sm flex items-center whitespace-nowrap gap-2"
                         style={getColumnStyle("referrer")}
                       >
@@ -861,10 +862,10 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                           <div className="h-4 bg-muted rounded w-24 animate-pulse" />
                           <div className="h-3 bg-muted rounded w-16 animate-pulse" />
                         </div>
-                      </div>
+                      </div> */}
 
                       {/* Referrer Reward */}
-                      <div
+                      {/* <div
                         className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
                         style={getColumnStyle("referrerReward")}
                       >
@@ -872,7 +873,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                           <div className="h-4 bg-muted rounded w-20 animate-pulse" />
                           <div className="h-3 bg-muted rounded w-24 animate-pulse" />
                         </div>
-                      </div>
+                      </div> */}
 
                       {/* Registered By */}
                       <div
@@ -886,7 +887,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                       </div>
 
                       {/* Updated By */}
-                      <div
+                      {/* <div
                         className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
                         style={getColumnStyle("updatedBy")}
                       >
@@ -894,7 +895,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                           <div className="h-4 bg-muted rounded w-24 animate-pulse" />
                           <div className="h-3 bg-muted rounded w-20 animate-pulse" />
                         </div>
-                      </div>
+                      </div> */}
 
                       {/* Actions */}
                       <div className="flex-1 px-4 py-3 text-sm flex items-center gap-4">
@@ -948,7 +949,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                           height: `${virtualRow.size}px`,
                           transform: `translateY(${virtualRow.start}px)`,
                         }}
-                        className="flex items-center w-full min-w-max border-b border-border transition-colors hover:bg-muted/30"
+                        className="flex items-center w-full border-b border-border transition-colors hover:bg-muted/30"
                       >
                         <div className="w-12 px-4 py-3 text-sm flex items-center justify-center shrink-0">
                           <Checkbox
@@ -1036,7 +1037,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                                   />
                                 </div>
                               ) : (
-                                <Unavailable />
+                                <Unavailable prefix="TID: " />
                               )}
                             </div>
                           </div>
@@ -1051,14 +1052,14 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                               reward.rewardStatus === "PAID"
                                 ? "success"
                                 : reward.rewardStatus === "PENDING"
-                                ? "warning"
-                                : "destructive"
+                                  ? "warning"
+                                  : "destructive"
                             }
                           >
                             {reward.rewardStatus}
                           </Badge>
                         </div>
-                        <div
+                        {/* <div
                           data-column="payment"
                           className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
                           style={getColumnStyle("payment")}
@@ -1068,15 +1069,15 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                             <div className="text-xs text-muted-foreground">
                               {reward.sendingDate ? (
                                 new Date(
-                                  reward.sendingDate
+                                  reward.sendingDate,
                                 ).toLocaleDateString()
                               ) : (
                                 <Unavailable />
                               )}
                             </div>
                           </div>
-                        </div>
-                        <div
+                        </div> */}
+                        {/* <div
                           data-column="referrer"
                           className="px-4 py-3 text-sm flex items-center whitespace-nowrap gap-2"
                           style={getColumnStyle("referrer")}
@@ -1133,7 +1134,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                           ) : (
                             <Unavailable title="No Referrer" />
                           )}
-                        </div>
+                        </div> */}
 
                         <div
                           data-column="registeredBy"
@@ -1149,22 +1150,20 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                             </div>
                           </div>
                         </div>
-                        <div
+                        {/* <div
                           data-column="updatedBy"
                           className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
                           style={getColumnStyle("updatedBy")}
                         >
                           {reward.updatedAt !== reward.createdAt ? (
                             <div>
-                              {/* UPDATED BY */}
                               <div>
                                 {reward.updatedBy?.name || <Unavailable />}
                               </div>
-                              {/* UPDATED On */}
                               <div className="text-xs text-muted-foreground">
                                 {reward.updatedAt ? (
                                   new Date(
-                                    reward.updatedAt
+                                    reward.updatedAt,
                                   ).toLocaleDateString()
                                 ) : (
                                   <Unavailable />
@@ -1174,7 +1173,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                           ) : (
                             <Unavailable title="Never Updated" />
                           )}
-                        </div>
+                        </div> */}
                         <div className="w-32 px-4 py-3 text-sm flex items-center gap-4 shrink-0">
                           <button
                             onClick={() => onEditClick(reward._id)}
@@ -1302,7 +1301,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                 }}
                 exit={{ opacity: 0, y: 5 }}
                 className={cn(
-                  "border border-border rounded-2xl p-2 flex items-center gap-2 relative bg-background/40 backdrop-blur-xs pointer-events-auto"
+                  "border border-border rounded-2xl p-2 flex items-center gap-2 relative bg-background/40 backdrop-blur-xs pointer-events-auto",
                 )}
               >
                 <div className="px-4 py-3 bg-background rounded-xl flex items-center justify-center leading-none select-none">
@@ -1327,7 +1326,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
         </div>
       </>
     );
-  }
+  },
 );
 
 RewardsTable.displayName = "RewardsTable";

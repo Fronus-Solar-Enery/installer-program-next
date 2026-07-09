@@ -5,14 +5,9 @@ import Script from "next/script";
 import "./globals.css";
 import { Providers } from "./providers";
 import { ThemeProvider } from "@/components/theme-provider";
-import AppLayout from "@/app/layout/AppLayout";
 import { BatchJobProvider } from "@/contexts/BatchJobContext";
 import { BatchJobProgress } from "@/components/BatchJobProgress";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
-import { WifiOffIcon } from "@/components/icons/animated/WifiOff";
-import { WifiIcon } from "@/components/icons/animated/WifiOn";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 const saira = Saira({
   subsets: ["latin"],
@@ -72,7 +67,7 @@ export default function RootLayout({
           <Providers>
             <BatchJobProvider>
               <BatchJobProgress />
-              <AppLayout>{children}</AppLayout>
+              {children}
             </BatchJobProvider>
           </Providers>
         </ThemeProvider>

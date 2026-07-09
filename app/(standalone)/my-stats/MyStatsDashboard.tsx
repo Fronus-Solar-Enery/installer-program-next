@@ -3,7 +3,17 @@
 import { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Package, Clock, Users, Calendar, Settings } from "lucide-react";
+import {
+  TrendingUp,
+  Package,
+  Clock,
+  Users,
+  Calendar,
+  Share2,
+  Settings,
+  LogOut,
+  Copy,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,7 +43,13 @@ import { InstallationTrendChart } from "@/components/InstallationTrendChart";
 import { ProductDistributionChart } from "@/components/ProductDistributionChart";
 import { MotivationalNudge } from "@/components/MotivationalNudge";
 import { staggerContainer, slideUp } from "@/lib/motion";
-import { IconGift, IconLogout2, IconSave, IconShare } from "@/components/icons";
+import {
+  IconAward,
+  IconGift,
+  IconLogout2,
+  IconSave,
+  IconShare,
+} from "@/components/icons";
 import { getInitials } from "@/lib/getInitials";
 import dynamic from "next/dynamic";
 const ThemeToggle = dynamic(
@@ -321,7 +337,7 @@ export default function MyStatsDashboard() {
         {/* Hero Header Card */}
 
         {/* Top row: Logo + Actions */}
-        <div className="flex items-center justify-between bg-card/60 backdrop-blur-md squircle rounded-full p-4 sticky top-4 z-100 border border-border">
+        <div className="flex items-center justify-between mb-8 bg-card/60 backdrop-blur-md squircle rounded-full p-4 sticky top-4 z-100 border border-border">
           <ProgramLogo className="w-24 sm:w-28 h-10!" />
           <div className="flex items-center gap-2">
             <Button
@@ -431,7 +447,7 @@ export default function MyStatsDashboard() {
                 <Skeleton className="h-3 w-24" />
                 <Skeleton className="h-7 w-32" />
               </div>
-              <div className="text-right justify-end space-y-0.5">
+              <div className="text-right space-y-0.5">
                 <Skeleton className="h-3 w-20 ml-auto" />
                 <Skeleton className="h-7 w-28 ml-auto" />
               </div>
@@ -456,6 +472,13 @@ export default function MyStatsDashboard() {
               variants={slideUp}
               className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"
             >
+              {/* <StatCard
+                label="Total Earned"
+                value={data.stats.paidRewards}
+                prefix="Rs. "
+                icon={TrendingUp}
+                color="bg-success/15 text-success-text"
+              /> */}
               <StatCard
                 label="Installations"
                 value={data.stats.installationCount}

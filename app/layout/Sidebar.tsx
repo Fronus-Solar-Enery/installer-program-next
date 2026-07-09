@@ -106,11 +106,11 @@ const DEFAULT_NAV_ITEMS: NavItem[] = [
         href: "/installers/register",
         show: true,
       },
-      {
-        title: "Bulk Register",
-        href: "/installers/bulk-register",
-        show: true,
-      },
+      // {
+      //   title: "Bulk Register",
+      //   href: "/installers/bulk-register",
+      //   show: true,
+      // },
     ],
   },
   {
@@ -128,11 +128,11 @@ const DEFAULT_NAV_ITEMS: NavItem[] = [
         href: "/rewards/register",
         show: true,
       },
-      {
-        title: "Bulk Register",
-        href: "/rewards/bulk-register",
-        show: true,
-      },
+      // {
+      //   title: "Bulk Register",
+      //   href: "/rewards/bulk-register",
+      //   show: true,
+      // },
       {
         title: "Bulk Update",
         href: "/rewards/bulk-update",

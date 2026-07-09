@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { HyperText } from "@/components/ui/hypertext";
-import Loading from "../../../components/ui/loading";
+import Loading from "@/components/ui/loading";
 
 interface CNICInputProps {
   value: string;

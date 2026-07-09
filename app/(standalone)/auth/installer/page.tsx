@@ -51,7 +51,7 @@ export default function InstallerLoginPage() {
       }
     } catch {
       setError(
-        "Unable to connect to the server. Please check your internet connection."
+        "Unable to connect to the server. Please check your internet connection.",
       );
     } finally {
       setLoading(false);

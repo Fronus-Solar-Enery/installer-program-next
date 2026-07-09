@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
 import * as React from "react";
 import Link from "next/link";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
-
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "squircle inline-flex items-center justify-center whitespace-nowrap rounded-4xl text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer data-[state=open]:bg-muted data-[state=open]:text-accent-foreground dark:ring-offset-zinc-950 dark:focus-visible:ring-ring-dark dark:data-[state=open]:bg-accent dark:data-[state=open]:text-accent-foreground transition-colors duration-300 active:translate-y-[1px] overflow-hidden",
+  "squircle inline-flex items-center justify-center whitespace-nowrap rounded-4xl text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer data-[state=open]:bg-muted data-[state=open]:text-accent-foreground dark:ring-offset-zinc-950 dark:focus-visible:ring-ring-dark dark:data-[state=open]:bg-accent dark:data-[state=open]:text-accent-foreground transition-colors duration-300 overflow-hidden",
   {
     variants: {
       variant: {
@@ -67,7 +68,7 @@ const isExternalUrl = (href: string): boolean => {
   );
 };
 
-const Button = React.forwardRef<
+const ButtonBase = React.forwardRef<
   HTMLButtonElement | HTMLAnchorElement,
   ButtonProps
 >(({ className, variant, size, asChild = false, ...props }, ref) => {
@@ -151,6 +152,22 @@ const Button = React.forwardRef<
     />
   );
 });
+ButtonBase.displayName = "Button";
+
+const MotionButton = motion.create(ButtonBase);
+type MotionButtonProps = React.ComponentProps<typeof MotionButton>;
+
+const Button = React.forwardRef<
+  HTMLButtonElement | HTMLAnchorElement,
+  MotionButtonProps
+>((props, ref) => (
+  <MotionButton
+    whileTap={{ scale: 0.96 }}
+    transition={{ type: "spring", stiffness: 500, damping: 32 }}
+    {...props}
+    ref={ref}
+  />
+));
 Button.displayName = "Button";
 
 export { Button, buttonVariants };

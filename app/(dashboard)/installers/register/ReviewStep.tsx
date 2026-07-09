@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { StepHeader } from "@/components/StepHeader";
-import { ReviewSectionHeader } from "@/app/installers/register/ReviewSectionHeader";
-import { ReviewItem } from "@/app/installers/register/ReviewItem";
+import { ReviewSectionHeader } from "@/app/(dashboard)/installers/register/ReviewSectionHeader";
+import { ReviewItem } from "@/app/(dashboard)/installers/register/ReviewItem";
 import {
   IconCheck,
   IconCopy,

@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
-import Sidebar from "./Sidebar";
+import Sidebar from "@/app/layout/Sidebar";
 import TopNavbar from "@/app/layout/TopNavbar";
 import Breadcrumb from "@/components/Breadcrumb";
 import {
@@ -18,10 +18,6 @@ import { EASE_MOVE_REVERSE } from "@/lib/gsapEases";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(useGSAP);
-}
-
-interface AppLayoutProps {
-  children: React.ReactNode;
 }
 
 function BreadcrumbWithOverrides({ crumbs }: { crumbs: BreadcrumbItem[] }) {
@@ -39,12 +35,11 @@ function BreadcrumbWithOverrides({ crumbs }: { crumbs: BreadcrumbItem[] }) {
   return <Breadcrumb items={applied} />;
 }
 
-/**
- * Dashboard layout — renders sidebar + top navbar + breadcrumbs.
- * Used by all authenticated dashboard pages.
- * Auth pages and the landing page bypass this entirely.
- */
-export function DashboardLayout({ children }: AppLayoutProps) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -131,31 +126,4 @@ export function DashboardLayout({ children }: AppLayoutProps) {
       </div>
     </BreadcrumbProvider>
   );
-}
-
-/**
- * Standalone layout — renders children with no chrome (no sidebar, no navbar).
- * Used for auth pages, the public landing page, and the installer portal.
- */
-export function StandaloneLayout({ children }: AppLayoutProps) {
-  return <>{children}</>;
-}
-
-/**
- * Default export — routes to the correct layout based on pathname.
- */
-export default function AppLayout({ children }: AppLayoutProps) {
-  const pathname = usePathname() ?? "/dashboard";
-
-  const isStandalonePage =
-    pathname.startsWith("/auth") ||
-    pathname === "/" ||
-    pathname.startsWith("/my-stats") ||
-    pathname.startsWith("/installer/");
-
-  if (isStandalonePage) {
-    return <StandaloneLayout>{children}</StandaloneLayout>;
-  }
-
-  return <DashboardLayout>{children}</DashboardLayout>;
 }

@@ -122,59 +122,62 @@ export default function Header2026() {
 
       <AnimatePresence>
         {mobileOpen && (
-          <motion.div
-            ref={menuRef}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="lp-menu-overlay"
-          >
-            {NAV_LINKS.map((link, i) => (
-              <motion.a
-                key={link.href}
-                href={link.href}
-                onClick={closeMobile}
-                custom={i}
+          <>
+            <div className="lp-menu-backdrop" />
+            <motion.div
+              ref={menuRef}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="lp-menu-overlay"
+            >
+              {NAV_LINKS.map((link, i) => (
+                <motion.a
+                  key={link.href}
+                  href={link.href}
+                  onClick={closeMobile}
+                  custom={i}
+                  variants={menuItem}
+                  initial="hidden"
+                  animate="show"
+                  exit="exit"
+                  className="lp-menu-link"
+                >
+                  {link.label}
+                </motion.a>
+              ))}
+              <motion.div
+                custom={NAV_LINKS.length}
                 variants={menuItem}
                 initial="hidden"
                 animate="show"
                 exit="exit"
-                className="lp-menu-link"
+                className="mt-6 flex flex-col items-center gap-4"
               >
-                {link.label}
-              </motion.a>
-            ))}
-            <motion.div
-              custom={NAV_LINKS.length}
-              variants={menuItem}
-              initial="hidden"
-              animate="show"
-              exit="exit"
-              className="mt-6 flex flex-col items-center gap-4"
-            >
-              <Button size="lg" asChild className="rounded-full lp-magnetic">
-                <a
-                  href={buildWhatsAppUrl({
-                    intent: "join",
-                    source: "header-mobile",
-                  })}
-                  {...WHATSAPP_LINK_ATTRS}
+                <Button size="lg" asChild className="rounded-full lp-magnetic">
+                  <a
+                    href={buildWhatsAppUrl({
+                      intent: "join",
+                      source: "header-mobile",
+                    })}
+                    {...WHATSAPP_LINK_ATTRS}
+                    onClick={closeMobile}
+                  >
+                    <IconWhatsapp fill className="mr-2 size-5" />
+                    Join on WhatsApp
+                  </a>
+                </Button>
+                <Link
+                  href="/auth/signin"
                   onClick={closeMobile}
+                  className="text-sm text-muted-foreground hover:text-brand-600 transition-colors"
                 >
-                  <IconWhatsapp fill className="mr-2 size-5" />
-                  Join on WhatsApp
-                </a>
-              </Button>
-              <Link
-                href="/auth/signin"
-                onClick={closeMobile}
-                className="text-sm text-muted-foreground hover:text-brand-600 transition-colors"
-              >
-                Sign In
-              </Link>
+                  Sign In
+                </Link>
+              </motion.div>
             </motion.div>
-          </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>

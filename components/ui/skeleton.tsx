@@ -10,7 +10,7 @@ function Skeleton({ className, round = false, ...props }: SkeletonProps) {
       className={cn(
         "animate-pulse rounded-2xl bg-primary/10",
         round && "rounded-full",
-        className
+        className,
       )}
       {...props}
     />

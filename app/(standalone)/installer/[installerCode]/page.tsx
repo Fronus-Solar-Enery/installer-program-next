@@ -34,7 +34,9 @@ async function getProfile(installerCode: string) {
 
   const installer = await Installer.findOne({
     installerCode: installerCode.toUpperCase(),
-  }).select("installerCode fullName companyName city district certified createdAt");
+  }).select(
+    "installerCode fullName companyName city district certified createdAt",
+  );
 
   if (!installer) return null;
 

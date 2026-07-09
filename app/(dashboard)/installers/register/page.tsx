@@ -46,11 +46,11 @@ import { getInitials } from "@/lib/getInitials";
 import { useRelativeTime } from "@/lib/getRelativeTime";
 import { useClipboard } from "@/hooks/useCopyToClipboard";
 import { StepHeader } from "@/components/StepHeader";
-import { CNICInput } from "@/app/installers/register/CNICInput";
-import { InstallerCodeDisplay } from "@/app/installers/register/InstallerCodeDisplay";
+import { CNICInput } from "@/app/(dashboard)/installers/register/CNICInput";
+import { InstallerCodeDisplay } from "@/app/(dashboard)/installers/register/InstallerCodeDisplay";
 import { FormStep } from "@/components/ui/FormStep";
 import { ReviewStep } from "./ReviewStep";
-import { RegistrationModal } from "@/app/installers/register/RegistrationModal";
+import { RegistrationModal } from "@/app/(dashboard)/installers/register/RegistrationModal";
 import IconUserPlus from "@/components/icons/UserPlus";
 import PageHeader from "@/components/PageHeader";
 import {
@@ -631,7 +631,7 @@ export default function NewInstallerPage() {
                   ? "New PIN sent via WhatsApp"
                   : result.data?.whatsappMessage
                     ? "New PIN generated — share manually"
-                    : "New PIN sent via WhatsApp"
+                    : "New PIN sent via WhatsApp",
               );
               if (result.data?.deliveryMethod === "free-form") {
                 setWhatsappFailed(false);
@@ -917,6 +917,7 @@ export default function NewInstallerPage() {
                           value={province}
                           onChange={() => {}}
                           icon={IconMapPoint}
+                          placeholder="Enter complete address"
                           disabled
                         />
 
@@ -927,6 +928,7 @@ export default function NewInstallerPage() {
                           value={district}
                           onChange={() => {}}
                           icon={IconMapPoint}
+                          placeholder="Enter complete address"
                           disabled
                         />
 

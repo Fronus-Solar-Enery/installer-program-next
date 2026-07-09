@@ -143,7 +143,7 @@ function SignInForm() {
       }
     } catch (err) {
       setError(
-        "Unable to connect to the server. Please check your internet connection."
+        "Unable to connect to the server. Please check your internet connection.",
       );
     } finally {
       setLoading(false);
@@ -200,7 +200,7 @@ function SignInForm() {
                     "pl-10",
                     emailError
                       ? "border-destructive focus-visible:ring-destructive"
-                      : ""
+                      : "",
                   )}
                 />
                 <IconSms className="absolute -translate-y-1/2 top-1/2 left-3 size-4.5" />
@@ -214,9 +214,19 @@ function SignInForm() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">
-                Password <span className="text-destructive">*</span>
-              </Label>
+              <span className="flex justify-between items-center mb-0.5!">
+                <Label htmlFor="password">
+                  Password <span className="text-destructive">*</span>
+                </Label>
+                <Button
+                  variant="link"
+                  className="p-0 h-max text-xs relative text-muted-foreground hover:text-foreground"
+                  type="button"
+                  onClick={() => setShowForgotPasswordDialog(true)}
+                >
+                  Forgot password?
+                </Button>
+              </span>
               <div className="relative">
                 <Input
                   id="password"
@@ -229,7 +239,7 @@ function SignInForm() {
                     "pl-10",
                     passwordError
                       ? "border-destructive focus-visible:ring-destructive"
-                      : ""
+                      : "",
                   )}
                 />
                 <IconLockPassword className="absolute -translate-y-1/2 top-1/2 left-3 size-4.5" />
@@ -261,14 +271,22 @@ function SignInForm() {
             </Button>
           </CardContent>
 
-          <CardFooter className="flex flex-col items-center gap-2">
+          <CardFooter className="flex justify-center items-center gap-2">
             <Button
               variant="link"
               className="p-0 h-max text-xs relative"
               type="button"
-              onClick={() => setShowForgotPasswordDialog(true)}
+              href="/"
             >
-              Forgot password?
+              Home
+            </Button>
+            <Button
+              variant="link"
+              className="p-0 h-max text-xs relative"
+              type="button"
+              href="/auth/installer"
+            >
+              Installer Login
             </Button>
           </CardFooter>
         </form>
