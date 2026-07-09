@@ -1440,7 +1440,7 @@ export default function DashboardPage() {
               description={`Installers with at least 1 installation in ${timeLabels[timePeriod]}`}
               Icon={IconUserCheckRounded}
             />
-            <CardContent>
+            <CardContent className="space-y-2">
               {districtActive.length > 0 ? (
                 districtActive.map((districtRow, index) => (
                   <div
