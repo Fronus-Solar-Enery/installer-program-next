@@ -17,7 +17,6 @@ export interface IInstallerReward {
   cityOfInstallation: string;
   productModel: string;
   serialNumber: string;
-  serialNumberStatus: string;
   inverterSerialNumber: string;
   installationDate?: Date;
   bankName: string;
@@ -79,11 +78,6 @@ const InstallerRewardSchema = new Schema<IInstallerReward>(
       type: String,
       required: [true, "Serial number is required"],
       unique: true,
-      trim: true,
-    },
-    serialNumberStatus: {
-      type: String,
-      required: [true, "Serial number status is required"],
       trim: true,
     },
     inverterSerialNumber: {

@@ -40,7 +40,7 @@ export const GET = withAuth(
             "referrerTransactionId",
             "installerCode",
           ],
-          searchTerm
+          searchTerm,
         )
         .enumFilter("rewardStatus", params.getString("rewardStatus"))
         .filter("productModel", params.getString("productModel"), {
@@ -50,15 +50,14 @@ export const GET = withAuth(
         .ref("registeredBy", params.getString("registeredBy"))
         .filter(
           "installerCode",
-          params.getString("installerCode")?.toUpperCase()
+          params.getString("installerCode")?.toUpperCase(),
         )
         .ref("installer", params.getString("installer"))
-        .filter("serialNumberStatus", params.getString("serialNumberStatus"))
         .filter("paymentMethod", params.getString("paymentMethod"))
         .dateRange(
           "createdAt",
           params.getString("startDate"),
-          params.getString("endDate")
+          params.getString("endDate"),
         )
         .build();
 
@@ -69,11 +68,11 @@ export const GET = withAuth(
         InstallerReward.find(query)
           .populate(
             "installer",
-            "installerCode fullName cnic phoneNumber whatsappNumber district bankName accountNumber accountTitle"
+            "installerCode fullName cnic phoneNumber whatsappNumber district bankName accountNumber accountTitle",
           )
           .populate(
             "referrer",
-            "installerCode fullName phoneNumber bankName accountNumber accountTitle"
+            "installerCode fullName phoneNumber bankName accountNumber accountTitle",
           )
           .populate("registeredBy", "name email role")
           .populate("updatedBy", "name email role")
@@ -104,7 +103,7 @@ export const GET = withAuth(
     } catch (error) {
       return handleApiError(error);
     }
-  }
+  },
 );
 
 // POST - Register new reward
@@ -179,8 +178,10 @@ export const POST = withAuth(
             transactionId: reward.transactionId,
             sendingDate: reward.sendingDate,
           },
-          session.user.id
-        ).catch((e) => logger.error("Reward WhatsApp failed", { error: String(e) }));
+          session.user.id,
+        ).catch((e) =>
+          logger.error("Reward WhatsApp failed", { error: String(e) }),
+        );
       }
       if (referrerDoc && reward.referrerRewardAmount) {
         sendReferralRewardMessage(
@@ -193,18 +194,20 @@ export const POST = withAuth(
             installerCode: installer.installerCode,
           },
           reward.referrerRewardAmount,
-          session.user.id
-        ).catch((e) => logger.error("Referral WhatsApp failed", { error: String(e) }));
+          session.user.id,
+        ).catch((e) =>
+          logger.error("Referral WhatsApp failed", { error: String(e) }),
+        );
       }
 
       const populatedReward = await InstallerReward.findById(reward._id)
         .populate(
           "installer",
-          "installerCode fullName cnic phoneNumber whatsappNumber district bankName accountNumber accountTitle"
+          "installerCode fullName cnic phoneNumber whatsappNumber district bankName accountNumber accountTitle",
         )
         .populate(
           "referrer",
-          "installerCode fullName phoneNumber bankName accountNumber accountTitle"
+          "installerCode fullName phoneNumber bankName accountNumber accountTitle",
         )
         .populate("registeredBy", "name email role")
         .populate("updatedBy", "name email role");
@@ -212,10 +215,10 @@ export const POST = withAuth(
       return ApiResponse.success(
         populatedReward,
         "Reward registered successfully",
-        201
+        201,
       );
     } catch (error) {
       return handleApiError(error);
     }
-  }
+  },
 );

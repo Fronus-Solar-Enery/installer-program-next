@@ -286,14 +286,6 @@ export const PRODUCT_MODELS: ProductModels[] = [
   },
 ];
 
-// Serial number statuses
-export const SERIAL_STATUSES = [
-  { value: "2025", label: "2025" },
-  { value: "2025 - Not Found", label: "2025 - Not Found" },
-  { value: "2024", label: "2024" },
-  { value: "Not Found", label: "Not Found" },
-];
-
 export const PAYMENT_METHOD = [
   { value: "UBANK", label: "UBANK" },
   { value: "UPaisa", label: "UPaisa" },

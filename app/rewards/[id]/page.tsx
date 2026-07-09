@@ -56,7 +56,6 @@ export default function RewardDetailsPage() {
     bankName?: string;
     accountNumber?: string;
     accountTitle?: string;
-    serialNumberStatus?: string;
     inverterSerialNumber?: string;
     createdAt?: string;
     updatedAt?: string;
@@ -301,9 +300,14 @@ export default function RewardDetailsPage() {
                 </dd>
               </div>
               <div className="flex items-center justify-between py-2.5">
-                <dt className="text-xs text-muted-foreground">Serial Status</dt>
+                <dt className="text-xs text-muted-foreground">Installation Date</dt>
                 <dd className="text-sm">
-                  {reward.serialNumberStatus || "N/A"}
+                  {reward.installationDate
+                    ? new Date(reward.installationDate).toLocaleDateString("en-US", {
+                        month: "long",
+                        year: "numeric",
+                      })
+                    : "N/A"}
                 </dd>
               </div>
               <div className="flex items-center justify-between py-2.5 last:pb-0">

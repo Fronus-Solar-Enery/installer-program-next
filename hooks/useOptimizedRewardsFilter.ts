@@ -15,7 +15,7 @@ export interface RewardWithId {
   referrerRewardAmount?: number;
   sendingDate?: string;
   inverterSerialNumber?: string;
-  serialNumberStatus?: string;
+  installationDate?: string;
   createdAt: string;
   updatedAt?: string;
   installer?: {
@@ -48,7 +48,7 @@ export interface RewardsFilters {
   rewardStatus: string;
   sendingDate: string;
   paymentMethod: string;
-  serialNumberStatus: string;
+  installationDate: string;
   productModel: string;
   teamMember: string;
   search: string;
@@ -84,7 +84,6 @@ interface OptimizedFilterResult {
   };
   uniqueValues: {
     paymentMethods: string[];
-    serialNumberStatuses: string[];
     productModels: string[];
   };
 }
@@ -153,7 +152,6 @@ export function useOptimizedRewardsFilter({
 
     // Single-pass processing - collect statistics and unique values
     const uniquePaymentMethods = new Set<string>();
-    const uniqueSerialNumberStatuses = new Set<string>();
     const uniqueProductModels = new Set<string>();
     const uniqueInstallers = new Set<string>();
 
@@ -168,8 +166,6 @@ export function useOptimizedRewardsFilter({
     const filtered = rewards.filter((reward) => {
       // Collect unique values from ALL rewards (not just filtered)
       if (reward.paymentMethod) uniquePaymentMethods.add(reward.paymentMethod);
-      if (reward.serialNumberStatus)
-        uniqueSerialNumberStatuses.add(reward.serialNumberStatus);
       if (reward.productModel) uniqueProductModels.add(reward.productModel);
       if (reward.installer?._id) uniqueInstallers.add(reward.installer._id);
 
@@ -215,8 +211,14 @@ export function useOptimizedRewardsFilter({
         if (reward.paymentMethod !== filters.paymentMethod) return false;
       }
 
-      if (filters.serialNumberStatus && filters.serialNumberStatus !== "all") {
-        if (reward.serialNumberStatus !== filters.serialNumberStatus)
+      if (filters.installationDate) {
+        if (!reward.installationDate) return false;
+        const rewardDate = new Date(reward.installationDate);
+        const filterDate = new Date(filters.installationDate + "-01");
+        if (
+          rewardDate.getFullYear() !== filterDate.getFullYear() ||
+          rewardDate.getMonth() !== filterDate.getMonth()
+        )
           return false;
       }
 
@@ -284,7 +286,6 @@ export function useOptimizedRewardsFilter({
       },
       uniqueValues: {
         paymentMethods: Array.from(uniquePaymentMethods).sort(),
-        serialNumberStatuses: Array.from(uniqueSerialNumberStatuses).sort(),
         productModels: Array.from(uniqueProductModels).sort(),
       },
     };

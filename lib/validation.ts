@@ -109,7 +109,6 @@ export const registerRewardSchema = z.object({
   cityOfInstallation: z.string().min(2, "City of installation is required"),
   productModel: z.string().min(1, "Product model is required"),
   serialNumber: z.string().min(1, "Serial number is required"),
-  serialNumberStatus: z.string().min(1, "Serial number status is required"),
   inverterSerialNumber: z.string().min(1, "Inverter serial number is required"),
   installationDate: z.string().optional(),
   rewardAmount: z.number().min(0, "Reward amount must be positive"),
@@ -126,10 +125,6 @@ export const updateRewardSchema = z.object({
     .min(2, "City of installation is required")
     .optional(),
   productModel: z.string().min(1, "Product model is required").optional(),
-  serialNumberStatus: z
-    .string()
-    .min(1, "Serial number status is required")
-    .optional(),
   inverterSerialNumber: z
     .string()
     .min(1, "Inverter serial number is required")

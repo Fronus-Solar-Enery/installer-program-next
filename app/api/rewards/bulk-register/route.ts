@@ -12,7 +12,6 @@ interface RewardDataInput {
   installerCode: string;
   productModel: string;
   serialNumber: string;
-  serialNumberStatus: string;
   bankName: string;
   accountNumber: string;
   accountTitle: string;
@@ -149,7 +148,6 @@ export async function POST(request: NextRequest) {
           "installerCode",
           "productModel",
           "serialNumber",
-          "serialNumberStatus",
           "bankName",
           "accountNumber",
           "accountTitle",
@@ -242,7 +240,6 @@ export async function POST(request: NextRequest) {
           productModel: rewardData.productModel,
           serialNumber: rewardData.serialNumber,
           inverterSerialNumber: rewardData.inverterSerialNumber || "",
-          serialNumberStatus: rewardData.serialNumberStatus,
           installationDate: installationDate,
           bankName: rewardData.bankName,
           accountNumber: rewardData.accountNumber,

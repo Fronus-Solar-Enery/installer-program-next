@@ -32,7 +32,7 @@ export interface RewardsFilters extends BaseDateFilters {
   rewardStatus: string;
   sendingDate: string;
   paymentMethod: string;
-  serialNumberStatus: string;
+  installationDate: string;
   productModel: string;
   teamMember: string;
   search: string;
@@ -44,7 +44,7 @@ const initialFilters: RewardsFilters = {
   rewardStatus: "ALL",
   sendingDate: "",
   paymentMethod: "all",
-  serialNumberStatus: "all",
+  installationDate: "",
   productModel: "all",
   teamMember: "all",
   search: "",

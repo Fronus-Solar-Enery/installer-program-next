@@ -163,10 +163,10 @@ export default function RewardsPage() {
         params.append("paymentMethod", state.filters.paymentMethod);
       }
       if (
-        state.filters.serialNumberStatus &&
-        state.filters.serialNumberStatus !== "all"
+        state.filters.installationDate &&
+        state.filters.installationDate !== ""
       ) {
-        params.append("serialNumberStatus", state.filters.serialNumberStatus);
+        params.append("installationDate", state.filters.installationDate);
       }
       if (state.filters.productModel && state.filters.productModel !== "all") {
         params.append("productModel", state.filters.productModel);
@@ -268,7 +268,7 @@ export default function RewardsPage() {
     debouncedSearch,
     state.filters.rewardStatus,
     state.filters.paymentMethod,
-    state.filters.serialNumberStatus,
+    state.filters.installationDate,
     state.filters.productModel,
     state.filters.teamMember,
     state.filters.dateRange,
@@ -334,7 +334,7 @@ export default function RewardsPage() {
             | "rewardStatus"
             | "sendingDate"
             | "paymentMethod"
-            | "serialNumberStatus"
+            | "installationDate"
             | "productModel"
             | "teamMember"
             | "search",
@@ -591,10 +591,7 @@ export default function RewardsPage() {
           state.filters.paymentMethod !== "all"
             ? state.filters.paymentMethod
             : "",
-        serialNumberStatus:
-          state.filters.serialNumberStatus !== "all"
-            ? state.filters.serialNumberStatus
-            : "",
+        installationDate: state.filters.installationDate || "",
         productModel:
           state.filters.productModel !== "all"
             ? state.filters.productModel
@@ -730,7 +727,7 @@ export default function RewardsPage() {
             | "rewardStatus"
             | "sendingDate"
             | "paymentMethod"
-            | "serialNumberStatus"
+            | "installationDate"
             | "productModel"
             | "teamMember"
             | "search",

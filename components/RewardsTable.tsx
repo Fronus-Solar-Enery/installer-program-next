@@ -58,6 +58,7 @@ import Dropdown, {
 } from "@/components/ui/dropdown";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { CopyButton } from "@/components/CopyButton";
 import {
@@ -114,7 +115,7 @@ interface RewardsTableProps {
     rewardStatus?: string;
     sendingDate?: string;
     paymentMethod?: string;
-    serialNumberStatus?: string;
+    installationDate?: string;
     productModel?: string;
     teamMember?: string;
     dateRange?: "all" | "today" | "week" | "month" | "year" | "custom";
@@ -125,7 +126,6 @@ interface RewardsTableProps {
   teamMembers?: TeamMember[];
   uniqueValues?: {
     paymentMethods: string[];
-    serialNumberStatuses: string[];
     productModels: string[];
   };
   onToggleColumn: (column: keyof ColumnVisibility) => void;
@@ -443,25 +443,6 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                 </div>
               )}
 
-              {/* Serial Number Status Filter */}
-              {filters?.serialNumberStatus &&
-                filters.serialNumberStatus !== "all" && (
-                  <div className="text-xs flex items-center gap-1 text-muted-foreground">
-                    Serial Status:
-                    <Badge
-                      variant="outline"
-                      className="gap-1 [&>svg]:pointer-events-auto h-5.5"
-                      id="filtersSerialNumberStatus"
-                    >
-                      {filters.serialNumberStatus}
-                      <IconClose
-                        className="size-4! cursor-pointer"
-                        onClick={() => onClearFilter?.("serialNumberStatus")}
-                      />
-                    </Badge>
-                  </div>
-                )}
-
               {/* Product Model Filter */}
               {filters?.productModel && filters.productModel !== "all" && (
                 <div className="text-xs flex items-center gap-1 text-muted-foreground">
@@ -587,29 +568,18 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                 </Select>
               </div>
 
-              {/* Serial Number Status Filter */}
+              {/* Installation Date Filter */}
               <div className="space-y-2 w-full">
-                <span className="text-sm px-2">Serial Number Status</span>
-                <Select
-                  value={filters?.serialNumberStatus || "all"}
-                  onValueChange={(value) =>
-                    onFilterChange?.("serialNumberStatus", value)
+                <span className="text-sm px-2">Installation Date</span>
+                <Input
+                  type="month"
+                  value={filters?.installationDate || ""}
+                  onChange={(e) =>
+                    onFilterChange?.("installationDate", e.target.value)
                   }
-                  name="serialNumberStatusSelect"
+                  className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors"
                   disabled={loading}
-                >
-                  <SelectTrigger className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
-                    <SelectValue placeholder="All Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    {uniqueValues?.serialNumberStatuses.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
 
               {/* Product Model Filter */}
@@ -675,7 +645,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   disabled={
                     (filters?.rewardStatus === "ALL" &&
                       filters?.paymentMethod === "all" &&
-                      filters?.serialNumberStatus === "all" &&
+                      filters?.installationDate === "" &&
                       filters?.productModel === "all" &&
                       filters?.teamMember === "all" &&
                       filters?.dateRange === "all" &&

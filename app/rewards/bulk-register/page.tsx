@@ -29,7 +29,7 @@ import {
   Loader2,
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import { PAYMENT_METHOD, BANKS, SERIAL_STATUSES, getBankLabel } from "@/lib/constants";
+import { PAYMENT_METHOD, BANKS, getBankLabel } from "@/lib/constants";
 import { useProducts } from "@/hooks/useProducts";
 import { FileDropzone } from "@/components/ui/drop-zone";
 import { IconLayer, IconTrashBin2 } from "@/components/icons";
@@ -84,7 +84,6 @@ interface RewardCreate {
   productModel: string;
   serialNumber: string;
   inverterSerialNumber?: string;
-  serialNumberStatus: string;
   cityOfInstallation: string;
   bankName: string;
   accountNumber: string;
@@ -249,14 +248,6 @@ export default function BulkCreateRewardsPage() {
     );
   };
 
-  const validateSerialStatus = (status: string): boolean => {
-    if (!status) return false;
-    const normalizedInput = status.trim();
-    return SERIAL_STATUSES.some(
-      (s) => s.value === normalizedInput || s.label === normalizedInput,
-    );
-  };
-
   const parseTimestamp = (timestampStr: string): string => {
     if (!timestampStr) return "";
     try {
@@ -337,15 +328,6 @@ export default function BulkCreateRewardsPage() {
     // Serial number validation
     if (!reward.serialNumber || reward.serialNumber.length < 3) {
       issues.push("Serial number is required (min 3 characters)");
-    }
-
-    // Serial number status validation
-    if (!reward.serialNumberStatus) {
-      issues.push("Serial number status is required");
-    } else if (!validateSerialStatus(reward.serialNumberStatus)) {
-      issues.push(
-        `Invalid serial number status "${reward.serialNumberStatus}" (must be: 2025, 2025 - Not Found, 2024, or Not Found)`,
-      );
     }
 
     // City of installation validation
@@ -530,8 +512,6 @@ export default function BulkCreateRewardsPage() {
               inverterSerialNumber: requiresInverter
                 ? rawInverterSerial || undefined
                 : "N/A",
-              serialNumberStatus:
-                row["Serial Number Status"]?.toString().trim() || "",
               cityOfInstallation:
                 row["City of Installation"]?.toString().trim() || "",
               bankName: normalizeBankName(rawBankName),
@@ -690,7 +670,6 @@ export default function BulkCreateRewardsPage() {
         "Product Model": record.productModel,
         "Serial Number": record.serialNumber,
         "Inverter Serial Number": record.inverterSerialNumber || "",
-        "Serial Number Status": record.serialNumberStatus,
         "City of Installation": record.cityOfInstallation,
         "Bank Name": record.bankName,
         "Account Number": record.accountNumber,

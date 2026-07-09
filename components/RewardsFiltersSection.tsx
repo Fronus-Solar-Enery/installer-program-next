@@ -27,7 +27,6 @@ interface RewardsFiltersSectionProps {
   onDownloadReport: () => void;
   uniqueValues: {
     paymentMethods: string[];
-    serialNumberStatuses: string[];
     productModels: string[];
   };
   teamMembers: TeamMember[];
@@ -77,9 +76,9 @@ export const RewardsFiltersSection = React.memo<RewardsFiltersSectionProps>(
       [onFilterChange]
     );
 
-    const handleSerialNumberStatusChange = useCallback(
-      (value: string) => {
-        onFilterChange("serialNumberStatus", value);
+    const handleInstallationDateChange = useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        onFilterChange("installationDate", e.target.value);
       },
       [onFilterChange]
     );
@@ -196,25 +195,15 @@ export const RewardsFiltersSection = React.memo<RewardsFiltersSectionProps>(
               </Select>
             </div>
 
-            {/* Serial Number Status Filter */}
+            {/* Installation Date Filter */}
             <div className="space-y-2">
-              <Label htmlFor="serial-status">Serial Number Status</Label>
-              <Select
-                value={filters.serialNumberStatus}
-                onValueChange={handleSerialNumberStatusChange}
-              >
-                <SelectTrigger id="serial-status">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  {uniqueValues.serialNumberStatuses.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="installation-date">Installation Date</Label>
+              <Input
+                id="installation-date"
+                type="month"
+                value={filters.installationDate}
+                onChange={handleInstallationDateChange}
+              />
             </div>
 
             {/* Product Model Filter */}
