@@ -164,7 +164,7 @@ export default function GlobalSearchModal({
         throw new Error(`Search failed: ${response.status}`);
       }
       const data = await response.json();
-      setSearchResults(data);
+      setSearchResults(data.data);
       setSelectedIndex(0);
     } catch (error) {
       console.error("Search error:", error);
