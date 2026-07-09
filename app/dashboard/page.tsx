@@ -566,6 +566,7 @@ export default function DashboardPage() {
       console.error("Failed to fetch stats:", error);
     } finally {
       setLoading(false);
+      window.dispatchEvent(new Event("app:refresh:done"));
     }
   }, [filterByDateRange, getDateRange, timePeriod]);
 

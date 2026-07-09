@@ -13,7 +13,7 @@ import {
   DropdownContent,
   DropdownTrigger,
 } from "@/components/ui/dropdown";
-import IconLogout2 from "@/components/icons/Logout2"; 
+import IconLogout2 from "@/components/icons/Logout2";
 import IconUserRounded from "@/components/icons/UserRounded";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,14 @@ export default function TopNavbar() {
   const { data: session } = useSession();
   const [searchOpen, setSearchOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Listen for refresh completion
+  useEffect(() => {
+    const handleDone = () => setRefreshing(false);
+    window.addEventListener("app:refresh:done", handleDone);
+    return () => window.removeEventListener("app:refresh:done", handleDone);
+  }, []);
 
   // Handle fullscreen toggle
   const toggleFullscreen = useCallback(() => {
@@ -79,7 +87,7 @@ export default function TopNavbar() {
             variant="secondary"
             size="sm"
             onClick={() => setSearchOpen(true)}
-            className="squircle-icon max-w-xs w- h-10 justify-start text-left font-normal rounded-full border border-border"
+            className="squircle-icon max-w-xs h-9 justify-start text-left font-normal rounded-full border border-border"
             aria-label="Open search"
           >
             <IconMagnifer className="shrink-0 w-4.5 h-4.5 text-zinc-500 dark:text-zinc-400" />
@@ -96,33 +104,40 @@ export default function TopNavbar() {
 
           {/* Refresh */}
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
-            onClick={() => window.dispatchEvent(new Event("app:refresh"))}
+            onClick={() => {
+              setRefreshing(true);
+              window.dispatchEvent(new Event("app:refresh"));
+            }}
+            disabled={refreshing}
             title="Refresh data"
-            className="gap-2 rounded-2xl"
+            className="gap-2 squircle-icon h-9 rounded-full border border-border"
           >
             Refresh
-            <IconRefresh2 width={2} className="h-3.5 w-3.5" />
+            <IconRefresh2
+              width={2}
+              className={cn("h-3.5 w-3.5", refreshing && "animate-spin")}
+            />
           </Button>
           {/* Fullscreen Toggle */}
           <Button
             variant="ghost"
-            className="rounded-full hover:border border-border"
+            className="rounded-full hover:border border-border size-9"
             size={"icon"}
             onClick={toggleFullscreen}
             aria-label="Toggle fullscreen"
           >
             <>
               {isFullscreen ? (
-                <IconQuitFullScreen className="w-5 h-5" />
+                <IconQuitFullScreen className="size-4.5" />
               ) : (
-                <IconFullScreen className="w-5 h-5" />
+                <IconFullScreen className="size-4.5" />
               )}
             </>
           </Button>
           {/* Theme Toggle */}
-          <ThemeToggle />
+          <ThemeToggle triggerClass="size-9 " />
 
           {/* User Menu */}
 
@@ -130,7 +145,7 @@ export default function TopNavbar() {
             <DropdownTrigger asChild>
               <Button
                 variant="secondary"
-                className="squircle-icon gap-2 pl-1 pr-3 text-left font-normal border border-border"
+                className="squircle-icon h-9 gap-2 pl-1 pr-3 text-left font-normal border border-border"
               >
                 <UserAvatar
                   user={session?.user}

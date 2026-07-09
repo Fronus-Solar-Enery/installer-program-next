@@ -326,7 +326,10 @@ export default function RewardsPage() {
 
   // Listen for global refresh events
   useEffect(() => {
-    const handleRefresh = () => fetchRewards();
+    const handleRefresh = async () => {
+      await fetchRewards();
+      window.dispatchEvent(new Event("app:refresh:done"));
+    };
     window.addEventListener("app:refresh", handleRefresh);
     return () => window.removeEventListener("app:refresh", handleRefresh);
   }, [fetchRewards]);

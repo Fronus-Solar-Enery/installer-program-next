@@ -49,7 +49,11 @@ const THEME_OPTIONS = [
   },
 ];
 
-export function ThemeToggle() {
+interface ThemeToggleProps {
+  triggerClass?: string;
+}
+
+export function ThemeToggle({ triggerClass }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
 
   // Get current theme icon
@@ -61,7 +65,10 @@ export function ThemeToggle() {
         <Button
           variant="ghost"
           size="icon"
-          className="hover:border border-border rounded-full"
+          className={cn(
+            "hover:border border-border rounded-full",
+            triggerClass,
+          )}
         >
           {currentIcon}
         </Button>
@@ -117,7 +124,7 @@ function ThemeOption({
       }}
       className={cn(
         "w-full justify-start px-2 py-2 text-sm bg-transparent rounded-lg flex items-center",
-        isActive && "font-medium text-primary bg-secondary"
+        isActive && "font-medium text-primary bg-secondary",
       )}
     >
       <Icon className="mr-2" />

@@ -482,7 +482,10 @@ export default function InstallersPage() {
 
   // Listen for global refresh events
   useEffect(() => {
-    const handleRefresh = () => fetchInstallers();
+    const handleRefresh = async () => {
+      await fetchInstallers();
+      window.dispatchEvent(new Event("app:refresh:done"));
+    };
     window.addEventListener("app:refresh", handleRefresh);
     return () => window.removeEventListener("app:refresh", handleRefresh);
   }, [fetchInstallers]);
