@@ -6,39 +6,14 @@ export interface ISettings {
   // Installer Settings
   allowInstallerCodeEdit: boolean;
   maxReferralsPerInstaller: number;
-  requireCertificationForRewards: boolean;
-  autoVerifyInstallers: boolean;
 
   // Reward Settings
   defaultReferralReward: number;
-  maxRewardProcessingDays: number;
   requireTransactionIdForPaid: boolean;
   autoSendWhatsAppOnPaid: boolean;
 
-  // Team Settings
-  allowUserSelfRegistration: boolean;
-  requireEmailVerification: boolean;
-  sessionTimeoutMinutes: number;
-
   // System Settings
-  enableActivityLogging: boolean;
   enableWhatsAppNotifications: boolean;
-  enableWhatsAppHybridMode: boolean;
-  maintenanceMode: boolean;
-  systemNotificationMessage?: string;
-
-  // Notification Settings
-  notifyAdminOnNewInstaller: boolean;
-  notifyAdminOnRewardSubmission: boolean;
-  adminNotificationEmail?: string;
-
-  // Bulk Operations
-  allowBulkRewardUpload: boolean;
-  maxBulkUploadSize: number;
-
-  // Data Retention
-  activityLogRetentionDays: number;
-  autoDeleteOldActivities: boolean;
 
   // Last updated
   updatedBy?: string;
@@ -59,25 +34,12 @@ const SettingsSchema = new Schema<ISettings>(
       min: 0,
       max: 100,
     },
-    requireCertificationForRewards: {
-      type: Boolean,
-      default: false,
-    },
-    autoVerifyInstallers: {
-      type: Boolean,
-      default: false,
-    },
 
     // Reward Settings
     defaultReferralReward: {
       type: Number,
       default: 500,
       min: 0,
-    },
-    maxRewardProcessingDays: {
-      type: Number,
-      default: 30,
-      min: 1,
     },
     requireTransactionIdForPaid: {
       type: Boolean,
@@ -88,75 +50,10 @@ const SettingsSchema = new Schema<ISettings>(
       default: true,
     },
 
-    // Team Settings
-    allowUserSelfRegistration: {
-      type: Boolean,
-      default: false,
-    },
-    requireEmailVerification: {
-      type: Boolean,
-      default: false,
-    },
-    sessionTimeoutMinutes: {
-      type: Number,
-      default: 480, // 8 hours
-      min: 30,
-    },
-
     // System Settings
-    enableActivityLogging: {
-      type: Boolean,
-      default: true,
-    },
     enableWhatsAppNotifications: {
       type: Boolean,
       default: true,
-    },
-    enableWhatsAppHybridMode: {
-      type: Boolean,
-      default: false,
-    },
-    maintenanceMode: {
-      type: Boolean,
-      default: false,
-    },
-    systemNotificationMessage: {
-      type: String,
-    },
-
-    // Notification Settings
-    notifyAdminOnNewInstaller: {
-      type: Boolean,
-      default: true,
-    },
-    notifyAdminOnRewardSubmission: {
-      type: Boolean,
-      default: false,
-    },
-    adminNotificationEmail: {
-      type: String,
-    },
-
-    // Bulk Operations
-    allowBulkRewardUpload: {
-      type: Boolean,
-      default: true,
-    },
-    maxBulkUploadSize: {
-      type: Number,
-      default: 1000,
-      min: 1,
-    },
-
-    // Data Retention
-    activityLogRetentionDays: {
-      type: Number,
-      default: 90,
-      min: 30,
-    },
-    autoDeleteOldActivities: {
-      type: Boolean,
-      default: false,
     },
 
     // Metadata

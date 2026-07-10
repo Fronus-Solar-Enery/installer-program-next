@@ -30,7 +30,7 @@ import {
 } from "@/components/icons";
 import IconReset from "@/components/icons/Reset";
 import { DashboardCardHeader } from "../dashboard/page";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import {
   useProducts,
@@ -51,74 +51,29 @@ import { SwitchRow, ValueRow } from "./setting-row";
 export interface SettingsData {
   allowInstallerCodeEdit?: boolean;
   maxReferralsPerInstaller?: number;
-  requireCertificationForRewards?: boolean;
-  autoVerifyInstallers?: boolean;
   defaultReferralReward?: number;
-  maxRewardProcessingDays?: number;
   requireTransactionIdForPaid?: boolean;
   autoSendWhatsAppOnPaid?: boolean;
-  allowUserSelfRegistration?: boolean;
-  requireEmailVerification?: boolean;
-  sessionTimeoutMinutes?: number;
-  enableActivityLogging?: boolean;
   enableWhatsAppNotifications?: boolean;
-  enableWhatsAppHybridMode?: boolean;
-  maintenanceMode?: boolean;
-  systemNotificationMessage?: string;
-  notifyAdminOnNewInstaller?: boolean;
-  notifyAdminOnRewardSubmission?: boolean;
-  adminNotificationEmail?: string;
-  allowBulkRewardUpload?: boolean;
-  maxBulkUploadSize?: number;
-  activityLogRetentionDays?: number;
-  autoDeleteOldActivities?: boolean;
   updatedAt?: string;
 }
 
 // List of switch (boolean) settings keys
 const SWITCH_SETTINGS_KEYS: (keyof SettingsData)[] = [
   "allowInstallerCodeEdit",
-  "requireCertificationForRewards",
-  "autoVerifyInstallers",
   "requireTransactionIdForPaid",
   "autoSendWhatsAppOnPaid",
-  "allowUserSelfRegistration",
-  "requireEmailVerification",
-  "enableActivityLogging",
   "enableWhatsAppNotifications",
-  "enableWhatsAppHybridMode",
-  "maintenanceMode",
-  "notifyAdminOnNewInstaller",
-  "notifyAdminOnRewardSubmission",
-  "allowBulkRewardUpload",
-  "autoDeleteOldActivities",
 ];
 
 // Default settings values
 const DEFAULT_SETTINGS: SettingsData = {
   allowInstallerCodeEdit: false,
   maxReferralsPerInstaller: 5,
-  requireCertificationForRewards: false,
-  autoVerifyInstallers: false,
   defaultReferralReward: 1000,
-  maxRewardProcessingDays: 30,
   requireTransactionIdForPaid: true,
   autoSendWhatsAppOnPaid: false,
-  allowUserSelfRegistration: true,
-  requireEmailVerification: true,
-  sessionTimeoutMinutes: 480,
-  enableActivityLogging: true,
   enableWhatsAppNotifications: false,
-  enableWhatsAppHybridMode: false,
-  maintenanceMode: false,
-  systemNotificationMessage: "",
-  notifyAdminOnNewInstaller: true,
-  notifyAdminOnRewardSubmission: true,
-  adminNotificationEmail: "",
-  allowBulkRewardUpload: true,
-  maxBulkUploadSize: 1000,
-  activityLogRetentionDays: 90,
-  autoDeleteOldActivities: false,
 };
 
 export default function SettingsPage() {

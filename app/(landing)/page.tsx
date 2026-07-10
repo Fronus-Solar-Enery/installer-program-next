@@ -5,7 +5,7 @@ import dbConnect from "@/lib/mongodb";
 import Installer from "@/models/Installer";
 import InstallerReward from "@/models/InstallerReward";
 import { RewardStatus } from "@/types/rewards";
-import LandingPage from "@/components/landing-2026/LandingPage2026";
+import LandingPage from "@/components/landing/LandingPage2026";
 import { logger } from "@/lib/logger";
 
 async function getLandingStats() {

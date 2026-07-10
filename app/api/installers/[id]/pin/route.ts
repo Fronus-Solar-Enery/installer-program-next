@@ -6,6 +6,7 @@ import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { TeamRole } from "@/models/TeamMember";
 import { decryptSecret } from "@/lib/encryption";
+import { logger } from "@/lib/logger";
 
 // GET — reveal an installer's current PIN for ADMIN/MANAGER.
 // Decrypts the AES-256-GCM copy on demand. Returns { pin: null } when no
@@ -31,7 +32,18 @@ export const GET = withAuth(
         return ApiResponse.success({ pin: null });
       }
 
-      return ApiResponse.success({ pin: decryptSecret(installer.pinEncrypted) });
+      // A decrypt failure (key rotated since the PIN was written, corrupt
+      // ciphertext) is unrecoverable — degrade to "no pin" so the UI offers
+      // regenerate instead of 500ing. ponytail: swallow only the decrypt path.
+      try {
+        return ApiResponse.success({ pin: decryptSecret(installer.pinEncrypted) });
+      } catch (decryptError) {
+        logger.warn("PIN decrypt failed — key mismatch or corrupt ciphertext", {
+          installerId: installer._id?.toString(),
+          error: (decryptError as Error).message,
+        });
+        return ApiResponse.success({ pin: null });
+      }
     } catch (error) {
       return handleApiError(error);
     }

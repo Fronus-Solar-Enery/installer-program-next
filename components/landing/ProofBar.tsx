@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useInView, useSpring, useTransform } from "framer-motion";
-import { staggerContainer, slideUp, VIEWPORT_ONCE } from "@/lib/motion";
+import { motion, useInView, useSpring, useTransform } from "motion/react";
+import { slideUp, staggerContainer, VIEWPORT_ONCE } from "@/lib/motion";
 
 export interface LandingStats {
   installers: number;
@@ -14,21 +14,21 @@ function Counter({ value, prefix = "" }: { value: number; prefix?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
   const spring = useSpring(0, { stiffness: 60, damping: 20 });
-  const display = useTransform(spring, (v) =>
-    `${prefix}${Math.round(v).toLocaleString()}`
+  const display = useTransform(
+    spring,
+    (v) => `${prefix}${Math.round(v).toLocaleString()}`,
   );
   const [text, setText] = useState(`${prefix}0`);
 
   useEffect(() => {
     if (inView) spring.set(value);
   }, [inView, spring, value]);
-
   useEffect(() => display.on("change", setText), [display]);
 
   return <span ref={ref}>{text}</span>;
 }
 
-export default function StatsSection({ stats }: { stats: LandingStats }) {
+export default function ProofBar({ stats }: { stats: LandingStats }) {
   const items = [
     { label: "Registered Installers", value: stats.installers },
     { label: "Installations Tracked", value: stats.installations },
@@ -36,20 +36,22 @@ export default function StatsSection({ stats }: { stats: LandingStats }) {
   ];
 
   return (
-    <section className="border-y border-border/50 bg-muted/20">
+    <section className="border-y border-border/40 bg-muted/10">
       <motion.div
         variants={staggerContainer}
         initial="hidden"
         whileInView="show"
         viewport={VIEWPORT_ONCE}
-        className="max-w-5xl mx-auto px-4 py-14 grid grid-cols-1 sm:grid-cols-3 gap-10 text-center"
+        className="mx-auto grid max-w-5xl grid-cols-1 gap-8 px-4 py-10 text-center sm:grid-cols-3"
       >
         {items.map((item) => (
           <motion.div key={item.label} variants={slideUp} className="space-y-1">
-            <p className="text-4xl font-bold tabular-nums text-brand-1000 dark:text-brand-600">
+            <p className="font-number text-3xl font-bold tabular-nums text-brand-800 sm:text-4xl">
               <Counter value={item.value} prefix={item.prefix} />
             </p>
-            <p className="text-sm text-muted-foreground">{item.label}</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground sm:text-sm">
+              {item.label}
+            </p>
           </motion.div>
         ))}
       </motion.div>

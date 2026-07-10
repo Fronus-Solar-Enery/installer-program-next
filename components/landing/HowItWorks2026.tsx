@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { IconWhatsapp, IconClipboardTick, IconMoney } from "@/components/icons";
 import { slideUp, staggerContainer, VIEWPORT_ONCE } from "@/lib/motion";
 

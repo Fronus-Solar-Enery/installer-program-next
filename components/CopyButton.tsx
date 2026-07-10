@@ -2,7 +2,7 @@ import { useClipboard } from "@/hooks/useCopyToClipboard";
 import { IconCheck, IconCopy } from "./icons";
 import type { MouseEventHandler } from "react";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 export const CopyButton = ({
   text,

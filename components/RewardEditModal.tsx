@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import Modal from "./Modal";
 import { PAYMENT_METHOD } from "@/lib/constants";
 import { useProducts } from "@/hooks/useProducts";
+import { useSettings } from "@/hooks/useSettings";
 import { RewardStatus } from "@/types/rewards";
 import { toast } from "sonner";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -88,6 +89,9 @@ export default function RewardEditModal({
   onSuccess,
 }: RewardEditModalProps) {
   const { data: products = [] } = useProducts();
+  // Default to required while loading so PAID can't slip through un-gated.
+  const { data: appSettings } = useSettings();
+  const requireTid = appSettings?.requireTransactionIdForPaid ?? true;
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -427,16 +431,18 @@ export default function RewardEditModal({
   ]);
 
   const isStep2Valid = useMemo(() => {
-    // If status is PAID, transaction ID is required
+    // If status is PAID and the setting requires it, transaction ID is required
     const isTransactionIdValid =
-      rewardStatus !== RewardStatus.PAID || transactionId.trim() !== "";
+      !requireTid ||
+      rewardStatus !== RewardStatus.PAID ||
+      transactionId.trim() !== "";
 
     return (
       rewardStatus &&
       (rewardStatus === RewardStatus.PENDING || paymentMethod !== "") &&
       isTransactionIdValid
     );
-  }, [rewardStatus, paymentMethod, transactionId]);
+  }, [rewardStatus, paymentMethod, transactionId, requireTid]);
 
   // Navigation handlers
   const handleNext = useCallback(() => {
@@ -448,7 +454,11 @@ export default function RewardEditModal({
       return;
     }
     if (currentStep === 2 && !isStep2Valid) {
-      if (rewardStatus === RewardStatus.PAID && transactionId.trim() === "") {
+      if (
+        requireTid &&
+        rewardStatus === RewardStatus.PAID &&
+        transactionId.trim() === ""
+      ) {
         toast.error("Transaction ID is required when reward status is PAID");
       } else {
         toast.error("Please select reward status and method");
@@ -463,6 +473,7 @@ export default function RewardEditModal({
     isBatteryProduct,
     rewardStatus,
     transactionId,
+    requireTid,
   ]);
 
   const handlePrev = useCallback(() => {
@@ -934,11 +945,11 @@ export default function RewardEditModal({
                     onChange={setTransactionId}
                     placeholder="e.g., TXN123456"
                     hint={
-                      rewardStatus === RewardStatus.PAID
+                      requireTid && rewardStatus === RewardStatus.PAID
                         ? "Required when reward status is PAID"
                         : "Transaction ID for installer payment"
                     }
-                    required={rewardStatus === RewardStatus.PAID}
+                    required={requireTid && rewardStatus === RewardStatus.PAID}
                   />
 
                   {!!reward?.referrer && (
@@ -950,7 +961,7 @@ export default function RewardEditModal({
                       onChange={setReferrerTransactionId}
                       placeholder="e.g., TXN789012"
                       hint="Transaction ID for referrer payment"
-                      required={rewardStatus === RewardStatus.PAID}
+                      required={requireTid && rewardStatus === RewardStatus.PAID}
                     />
                   )}
 

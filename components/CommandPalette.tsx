@@ -15,9 +15,6 @@ import {
   LayoutDashboard,
   Users,
   Gift,
-  FileText,
-  Activity,
-  UserCog,
   UserPlus,
   PackagePlus,
   ArrowRight,
@@ -86,7 +83,7 @@ export default function CommandPalette({
   const filteredCommands = commands.filter(
     (command) =>
       command.title.toLowerCase().includes(search.toLowerCase()) ||
-      command.description.toLowerCase().includes(search.toLowerCase())
+      command.description.toLowerCase().includes(search.toLowerCase()),
   );
 
   useEffect(() => {
@@ -109,7 +106,7 @@ export default function CommandPalette({
           e.preventDefault();
           setSelectedIndex(
             (prev) =>
-              (prev - 1 + filteredCommands.length) % filteredCommands.length
+              (prev - 1 + filteredCommands.length) % filteredCommands.length,
           );
         }
         if (e.key === "Enter") {
@@ -175,7 +172,7 @@ export default function CommandPalette({
                   onClick={() => handleSelect(command)}
                   className={cn(
                     "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent",
-                    index === selectedIndex && "bg-accent"
+                    index === selectedIndex && "bg-accent",
                   )}
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">

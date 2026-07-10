@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { RewardStatus } from '@/types/rewards';
 import { PAYMENT_METHOD } from '@/lib/constants';
 import { useProducts } from '@/hooks/useProducts';
+import { useSettings } from '@/hooks/useSettings';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,9 @@ export default function EditRewardPage() {
   const params = useParams();
   const rewardId = params.id as string;
   const { data: products = [] } = useProducts();
+  // Default to required while loading so PAID can't slip through un-gated.
+  const { data: appSettings } = useSettings();
+  const requireTid = appSettings?.requireTransactionIdForPaid ?? true;
 
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
@@ -104,6 +108,16 @@ export default function EditRewardPage() {
 
     if (!inverterSerialNumber) {
       setError('Inverter serial number is required');
+      setLoading(false);
+      return;
+    }
+
+    if (
+      requireTid &&
+      rewardStatus === RewardStatus.PAID &&
+      transactionId.trim() === ''
+    ) {
+      setError('Transaction ID is required to mark a reward as PAID');
       setLoading(false);
       return;
     }
@@ -299,13 +313,19 @@ export default function EditRewardPage() {
 
             {/* Installer Transaction ID */}
             <div className="space-y-2">
-              <Label htmlFor="transaction-id">Installer Transaction ID</Label>
+              <Label htmlFor="transaction-id">
+                Installer Transaction ID
+                {requireTid && rewardStatus === RewardStatus.PAID && (
+                  <span className="text-destructive"> *</span>
+                )}
+              </Label>
               <Input
                 id="transaction-id"
                 type="text"
                 value={transactionId}
                 onChange={(e) => setTransactionId(e.target.value)}
                 placeholder="Enter transaction ID"
+                required={requireTid && rewardStatus === RewardStatus.PAID}
               />
             </div>
 

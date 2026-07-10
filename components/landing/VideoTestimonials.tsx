@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import TestimonialCard, { type Testimonial } from "./TestimonialCard";
 import { slideUp, staggerContainer, VIEWPORT_ONCE } from "@/lib/motion";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import ProductCard from "./ProductCard";
 import { LANDING_PRODUCTS } from "@/lib/landingProducts";
 import { slideUp, staggerContainer, VIEWPORT_ONCE } from "@/lib/motion";

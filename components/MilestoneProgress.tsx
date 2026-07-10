@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { Progress } from "@/components/ui/progress";
 import { slideUp } from "@/lib/motion";
 import { IconAward } from "@/components/icons";

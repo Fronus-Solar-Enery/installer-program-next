@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { useProducts } from "@/hooks/useProducts";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

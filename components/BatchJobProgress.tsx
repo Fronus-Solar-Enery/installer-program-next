@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Loading from "./ui/loading";
 import { IconCheckCircle, IconDangerCircle } from "./icons";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 
 export function BatchJobProgress() {
   const { activeJobs, isPolling, retryJob } = useBatchJobs();

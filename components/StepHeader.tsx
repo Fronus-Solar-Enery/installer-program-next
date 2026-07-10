@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, type Variants } from "framer-motion";
+import { motion, type Variants } from "motion/react";
 import { CardHeader, CardTitle } from "@/components/ui/card";
 
 interface StepHeaderProps {

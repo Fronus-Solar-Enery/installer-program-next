@@ -2,7 +2,7 @@
  * Shared Framer Motion tokens for scroll-reveal and layout animation.
  * Keep all landing/marketing motion on these so the feel stays consistent.
  */
-import type { Variants, Transition } from "framer-motion";
+import type { Variants, Transition } from "motion/react";
 
 export const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 

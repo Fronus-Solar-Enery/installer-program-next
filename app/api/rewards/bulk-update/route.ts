@@ -5,6 +5,8 @@ import Activity from "@/models/Activity";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { BUSINESS_RULES } from "@/lib/constants";
+import { getSettings } from "@/models/Settings";
+import { RewardStatus } from "@/types/rewards";
 import mongoose from "mongoose";
 
 interface RewardUpdateInput {
@@ -75,6 +77,8 @@ export const POST = withAuth(
         existingRewards.map((r) => [r.serialNumber, r])
       );
 
+      const { requireTransactionIdForPaid } = await getSettings();
+
       // Build bulk write operations
       type BulkWriteOp = {
         updateOne: {
@@ -101,6 +105,19 @@ export const POST = withAuth(
           results.failed++;
           results.errors.push(
             `Serial number ${rewardUpdate.serialNumber} not found`
+          );
+          continue;
+        }
+
+        // Enforce Transaction ID before allowing a reward to be marked PAID.
+        if (
+          requireTransactionIdForPaid &&
+          rewardUpdate.rewardStatus === RewardStatus.PAID &&
+          !(rewardUpdate.transactionId || existingReward.transactionId)?.trim()
+        ) {
+          results.failed++;
+          results.errors.push(
+            `Serial number ${rewardUpdate.serialNumber} needs a Transaction ID to be marked PAID`
           );
           continue;
         }

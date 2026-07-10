@@ -73,7 +73,7 @@ import {
 import IconTrashBin2 from "@/components/icons/TrashBin2";
 import { EmptyState } from "@/components/EmptyState";
 import Loading from "@/components/ui/loading";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog";
 import { BulkDeleteConfirmationDialog } from "@/components/BulkDeleteConfirmationDialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";

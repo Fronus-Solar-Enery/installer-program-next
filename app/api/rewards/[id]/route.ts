@@ -56,7 +56,30 @@ export const PUT = withAuth(
       await dbConnect();
 
       const { id } = await context.params;
-      const previous = await InstallerReward.findById(id).select("rewardStatus");
+      const previous = await InstallerReward.findById(id).select(
+        "rewardStatus transactionId",
+      );
+      if (!previous) {
+        return ApiResponse.notFound("Reward not found");
+      }
+
+      const becomingPaid =
+        previous.rewardStatus !== RewardStatus.PAID &&
+        validation.data.rewardStatus === RewardStatus.PAID;
+
+      // Enforce Transaction ID before allowing a reward to be marked PAID.
+      const settings = becomingPaid ? await getSettings() : null;
+      if (settings?.requireTransactionIdForPaid) {
+        const effectiveTxnId =
+          validation.data.transactionId ?? previous.transactionId;
+        if (!effectiveTxnId?.trim()) {
+          return ApiResponse.badRequest(
+            "Transaction ID is required to mark a reward as PAID",
+            { transactionId: ["Transaction ID is required"] },
+          );
+        }
+      }
+
       const reward = await InstallerReward.findByIdAndUpdate(
         id,
         { ...validation.data, updatedBy: session.user.id },
@@ -73,13 +96,11 @@ export const PUT = withAuth(
         whatsappNumber?: string;
       } | null;
       if (
-        previous?.rewardStatus !== RewardStatus.PAID &&
-        reward.rewardStatus === RewardStatus.PAID &&
+        becomingPaid &&
         installer?.fullName &&
         installer?.whatsappNumber
       ) {
-        const { autoSendWhatsAppOnPaid } = await getSettings();
-        if (autoSendWhatsAppOnPaid) {
+        if (settings?.autoSendWhatsAppOnPaid) {
           sendRewardPaymentMessage(
             {
               installer: {

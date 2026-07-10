@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { LandingStats } from "@/components/landing/StatsSection";
+import type { LandingStats } from "./ProofBar";
 
 import Preloader from "./Preloader";
 import Header2026 from "./Header2026";

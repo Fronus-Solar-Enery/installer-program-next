@@ -1,4 +1,4 @@
-import { motion, type Variants } from "framer-motion";
+import { motion, type Variants } from "motion/react";
 import { BANKS, getBankLabel } from "@/lib/constants";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

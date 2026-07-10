@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { motion, useInView, useSpring, useTransform } from "framer-motion";
+import { motion, useInView, useSpring, useTransform } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { IconWhatsapp, IconArrowRight } from "@/components/icons";
 import { buildWhatsAppUrl, WHATSAPP_LINK_ATTRS } from "@/lib/whatsapp";
