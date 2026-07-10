@@ -162,35 +162,6 @@ interface RecentInstaller {
   createdAt: string;
 }
 
-interface ItemWithDate {
-  createdAt: string;
-  [key: string]: unknown;
-}
-
-interface DashboardReward extends ItemWithDate {
-  _id: string;
-  rewardAmount: number;
-  referrerRewardAmount?: number;
-  rewardStatus: "PENDING" | "PAID" | "FAILED";
-  productModel: string;
-  cityOfInstallation: string;
-  createdAt: string;
-  installer?: {
-    _id: string;
-    installerCode: string;
-    fullName: string;
-    city: string;
-  };
-}
-
-interface DashboardInstaller extends ItemWithDate {
-  _id: string;
-  installerCode: string;
-  fullName: string;
-  city: string;
-  createdAt: string;
-}
-
 type TimePeriod =
   | "all"
   | "lastWeek"
@@ -316,110 +287,60 @@ export default function DashboardPage() {
     [customStartDate, customEndDate],
   );
 
-  const filterByDateRange = useCallback(
-    <T extends ItemWithDate>(
-      items: T[],
-      dateField: keyof T = "createdAt" as keyof T,
-    ): T[] => {
-      const { startDate, endDate } = getDateRange(timePeriod);
-
-      if (!startDate || !endDate) return items;
-
-      return items.filter((item) => {
-        const fieldValue = item[dateField];
-        const itemDate = new Date(String(fieldValue));
-        return itemDate >= startDate && itemDate <= endDate;
-      });
-    },
-    [timePeriod, getDateRange],
-  );
-
   const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Build date range params for active installers API
+      // Build date range params for range-aware endpoints
       const { startDate, endDate } = getDateRange(timePeriod);
       const dateParams =
         startDate && endDate
           ? `?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
           : "";
 
-      // Fetch all data in parallel for better performance
+      // Aggregated dashboard numbers now come from the server; the client no
+      // longer downloads the full rewards/installers tables to compute them.
       const [
         installersRes,
         rewardsRes,
-        allRewardsRes,
-        allInstallersRes,
+        summaryRes,
         activeInstallersRes,
         districtRes,
       ] = await Promise.all([
         fetch("/api/installers?limit=5&sortBy=createdAt&sortOrder=desc"),
         fetch("/api/rewards?limit=5&sortBy=createdAt&sortOrder=desc"),
-        fetch("/api/rewards?limit=5000"),
-        fetch("/api/installers?limit=5000"),
+        fetch(`/api/dashboard/summary${dateParams}`),
         fetch(`/api/dashboard/active-installers${dateParams}`),
         fetch(`/api/dashboard/active-by-district${dateParams}`),
       ]);
 
-      // Parse all responses in parallel
       const [
         installersData,
         rewardsData,
-        allRewards,
-        allInstallers,
+        summaryData,
         activeInstallersData,
         districtData,
       ] = await Promise.all([
         installersRes.json(),
         rewardsRes.json(),
-        allRewardsRes.json(),
-        allInstallersRes.json(),
+        summaryRes.json(),
         activeInstallersRes.json(),
         districtRes.json(),
       ]);
 
-      // Filter data by date range
-      const filteredRewards = filterByDateRange(
-        allRewards.data?.rewards || [],
-      ) as DashboardReward[];
-      const filteredInstallers = filterByDateRange(
-        allInstallers.data?.installers || [],
-      ) as DashboardInstaller[];
+      const summary = summaryData.data;
+      const rewardStats = summary?.stats ?? {
+        totalRewards: 0,
+        totalAmount: 0,
+        pendingAmount: 0,
+        paidAmount: 0,
+        failedAmount: 0,
+        referrerRewardsTotal: 0,
+        referrerRewardsPending: 0,
+        referrerRewardsPaid: 0,
+      };
 
-      // Optimize calculations using a single reduce pass
-      const rewardStats = filteredRewards.reduce(
-        (acc, reward) => {
-          const rewardAmount = reward.rewardAmount || 0;
-          const referrerAmount = reward.referrerRewardAmount || 0;
-
-          acc.totalAmount += rewardAmount;
-          acc.referrerRewardsTotal += referrerAmount;
-
-          if (reward.rewardStatus === "PENDING") {
-            acc.pendingAmount += rewardAmount;
-            acc.referrerRewardsPending += referrerAmount;
-          } else if (reward.rewardStatus === "PAID") {
-            acc.paidAmount += rewardAmount;
-            acc.referrerRewardsPaid += referrerAmount;
-          } else if (reward.rewardStatus === "FAILED") {
-            acc.failedAmount += rewardAmount;
-          }
-
-          return acc;
-        },
-        {
-          totalAmount: 0,
-          pendingAmount: 0,
-          paidAmount: 0,
-          failedAmount: 0,
-          referrerRewardsTotal: 0,
-          referrerRewardsPending: 0,
-          referrerRewardsPaid: 0,
-        },
-      );
-
-      // Calculate grand totals (installer rewards + referrer rewards)
+      // Grand totals (installer rewards + referrer rewards)
       const grandTotal =
         rewardStats.totalAmount + rewardStats.referrerRewardsTotal;
       const grandTotalPending =
@@ -428,8 +349,8 @@ export default function DashboardPage() {
         rewardStats.paidAmount + rewardStats.referrerRewardsPaid;
 
       setStats({
-        totalInstallers: filteredInstallers.length,
-        totalRewards: filteredRewards.length,
+        totalInstallers: summary?.totalInstallers ?? 0,
+        totalRewards: rewardStats.totalRewards,
         totalAmount: rewardStats.totalAmount,
         pendingAmount: rewardStats.pendingAmount,
         paidAmount: rewardStats.paidAmount,
@@ -442,106 +363,29 @@ export default function DashboardPage() {
         grandTotalPaid,
       });
 
-      // Process product and city data in a single pass for better performance
-      const productCounts = new Map<string, number>();
-      const cityCounts = new Map<string, number>();
+      setProductData(summary?.productData ?? []);
+      setCityData(summary?.cityData ?? []);
 
-      filteredRewards.forEach((reward: DashboardReward) => {
-        // Count products
-        const product = reward.productModel;
-        productCounts.set(product, (productCounts.get(product) || 0) + 1);
-
-        // Count cities (filter out invalid values)
-        const city = reward.cityOfInstallation;
-        if (city && city !== "undefined" && city !== "null") {
-          cityCounts.set(city, (cityCounts.get(city) || 0) + 1);
-        }
-      });
-
-      // Convert to sorted arrays
-      const productArray = Array.from(productCounts.entries())
-        .map(([model, installations]) => ({
-          model: model.length > 25 ? model.substring(0, 25) + "..." : model,
-          installations,
-        }))
-        .sort((a, b) => b.installations - a.installations)
-        .slice(0, 6);
-
-      const cityArray = Array.from(cityCounts.entries())
-        .map(([city, installations]) => ({
-          city,
-          installations,
-        }))
-        .sort((a, b) => b.installations - a.installations)
-        .slice(0, 5);
-
-      setProductData(productArray);
-      setCityData(cityArray);
-
-      // Calculate Active Installers for different time periods
-      const calculateActiveInstallers = (
-        startDate: Date | null,
-        endDate: Date | null,
-      ) => {
-        if (!startDate || !endDate) {
-          // For "All Time", use all rewards
-          const uniqueInstallers = new Set(
-            allRewards.data?.rewards
-              ?.map((r: DashboardReward) => r.installer?._id)
-              .filter(Boolean),
-          );
-          return uniqueInstallers.size;
-        }
-
-        const periodRewards =
-          allRewards.data?.rewards?.filter((reward: DashboardReward) => {
-            const rewardDate = new Date(reward.createdAt);
-            return rewardDate >= startDate && rewardDate <= endDate;
-          }) || [];
-
-        const uniqueInstallers = new Set(
-          periodRewards
-            .map((r: DashboardReward) => r.installer?._id)
-            .filter(Boolean),
-        );
-        return uniqueInstallers.size;
+      // Active installer timeline — counts from the server, labels built here.
+      const timeline = summary?.activeTimeline ?? {
+        last30days: 0,
+        previousMonth: 0,
+        last6months: 0,
+        previousYear: 0,
       };
-
       const now = new Date();
       const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth();
+      const prevMonthStart = new Date(currentYear, now.getMonth() - 1, 1);
 
-      // Last 30 days
-      const last30Start = new Date();
-      last30Start.setDate(last30Start.getDate() - 30);
-      const last30Count = calculateActiveInstallers(last30Start, now);
-
-      // Previous month
-      const prevMonthStart = new Date(currentYear, currentMonth - 1, 1);
-      const prevMonthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59);
-      const prevMonthCount = calculateActiveInstallers(
-        prevMonthStart,
-        prevMonthEnd,
-      );
-
-      // Last 6 months
-      const last6MonthsStart = new Date();
-      last6MonthsStart.setMonth(last6MonthsStart.getMonth() - 6);
-      const last6MonthsCount = calculateActiveInstallers(last6MonthsStart, now);
-
-      // Previous year (previous calendar year)
-      const previousYearStart = new Date(currentYear - 1, 0, 1);
-      const previousYearEnd = new Date(currentYear - 1, 11, 31, 23, 59, 59);
-      const previousYearCount = calculateActiveInstallers(
-        previousYearStart,
-        previousYearEnd,
-      );
-
-      const activeInstallersArray: ActiveInstallersData[] = [
-        { period: "last30days", count: last30Count, label: "Last 30 Days" },
+      setActiveInstallersData([
+        {
+          period: "last30days",
+          count: timeline.last30days,
+          label: "Last 30 Days",
+        },
         {
           period: "previousMonth",
-          count: prevMonthCount,
+          count: timeline.previousMonth,
           label: prevMonthStart.toLocaleString("default", {
             month: "long",
             year: "numeric",
@@ -549,17 +393,15 @@ export default function DashboardPage() {
         },
         {
           period: "last6months",
-          count: last6MonthsCount,
+          count: timeline.last6months,
           label: "Last 6 Months",
         },
         {
           period: "previousYear",
-          count: previousYearCount,
+          count: timeline.previousYear,
           label: `${currentYear - 1}`,
         },
-      ];
-
-      setActiveInstallersData(activeInstallersArray);
+      ]);
 
       // Set active installers from API
       setActiveInstallers(activeInstallersData.data || []);
@@ -575,7 +417,7 @@ export default function DashboardPage() {
       setLoading(false);
       window.dispatchEvent(new Event("app:refresh:done"));
     }
-  }, [filterByDateRange, getDateRange, timePeriod]);
+  }, [getDateRange, timePeriod]);
 
   const paidCount = useMemo(
     () =>

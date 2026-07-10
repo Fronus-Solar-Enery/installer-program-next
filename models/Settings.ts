@@ -175,13 +175,19 @@ const Settings: Model<ISettings> =
 
 export default Settings;
 
-// Helper function to get settings (creates default if doesn't exist)
+// Helper function to get settings (atomically creates the singleton if missing).
+// Single atomic find-and-upsert instead of findOne()-then-create(): removes the
+// window where concurrent first-requests each create their own Settings doc,
+// after which findOne() returns an arbitrary one and edits appear to randomly
+// not apply.
+// ponytail: a residual dup is only possible if two upserts race on the very
+// first request ever (empty collection, no unique index). Harden with a unique
+// index on a fixed singleton key if that first-boot edge ever bites.
 export async function getSettings(): Promise<ISettings> {
-  let settings = await Settings.findOne();
-
-  if (!settings) {
-    settings = await Settings.create({});
-  }
-
-  return settings;
+  // upsert + new:true always resolves to a document; TS still widens to | null.
+  return (await Settings.findOneAndUpdate(
+    {},
+    { $setOnInsert: {} },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  ))!;
 }

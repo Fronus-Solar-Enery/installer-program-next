@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { resolveDateRange } from "@/lib/dateRange";
 import type { InstallerWithId } from "./useInstallers";
 import type { Filters } from "./useInstallersState";
 
@@ -50,49 +51,7 @@ export function useOptimizedInstallerFilter({
     let filteredCount = 0;
 
     // Pre-compute date filters once
-    let startDate: Date | null = null;
-    let endDate: Date | null = null;
-
-    if (filters.dateRange !== "all") {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      switch (filters.dateRange) {
-        case "today":
-          startDate = today;
-          endDate = new Date(today);
-          endDate.setHours(23, 59, 59, 999);
-          break;
-        case "week":
-          startDate = new Date(today);
-          startDate.setDate(today.getDate() - 7);
-          endDate = new Date(today);
-          endDate.setHours(23, 59, 59, 999);
-          break;
-        case "month":
-          startDate = new Date(today);
-          startDate.setDate(today.getDate() - 30);
-          endDate = new Date(today);
-          endDate.setHours(23, 59, 59, 999);
-          break;
-        case "year":
-          startDate = new Date(today);
-          startDate.setFullYear(today.getFullYear() - 1);
-          endDate = new Date(today);
-          endDate.setHours(23, 59, 59, 999);
-          break;
-        case "custom":
-          if (filters.customStartDate) {
-            startDate = new Date(filters.customStartDate);
-            startDate.setHours(0, 0, 0, 0);
-          }
-          if (filters.customEndDate) {
-            endDate = new Date(filters.customEndDate);
-            endDate.setHours(23, 59, 59, 999);
-          }
-          break;
-      }
-    }
+    const { start: startDate, end: endDate } = resolveDateRange(filters);
 
     // Single-pass filter and collect statistics
     const filtered = installers.filter((installer) => {
@@ -120,12 +79,11 @@ export function useOptimizedInstallerFilter({
         if (!matchesSearch) return false;
       }
 
-      // Apply date filter
-      if (startDate && endDate) {
+      // Apply date filter (either bound may be set for a one-sided custom range)
+      if (startDate || endDate) {
         const installerDate = new Date(installer.createdAt);
-        if (installerDate < startDate || installerDate > endDate) {
-          return false;
-        }
+        if (startDate && installerDate < startDate) return false;
+        if (endDate && installerDate > endDate) return false;
       }
 
       // Apply other filters

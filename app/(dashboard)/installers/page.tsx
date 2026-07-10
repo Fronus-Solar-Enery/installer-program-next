@@ -84,7 +84,11 @@ import type { DateRange } from "react-day-picker";
 import IconSortVertical from "@/components/icons/SortVertical";
 
 // Optimization imports
-import { useInstallers, type InstallerWithId } from "@/hooks/useInstallers";
+import {
+  useInstallers,
+  useDeleteInstaller,
+  type InstallerWithId,
+} from "@/hooks/useInstallers";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useOptimizedInstallerFilter } from "@/hooks/useOptimizedInstallerFilter";
 import { StatisticsCards } from "@/components/installers/StatisticsCards";
@@ -309,6 +313,7 @@ export default function InstallersPage() {
     refetch: fetchInstallers,
     dataUpdatedAt,
   } = useInstallers();
+  const deleteInstaller = useDeleteInstaller();
   const loading = isLoading || isFetching;
   const installers = useMemo(
     () => queryData?.installers || [],
@@ -518,53 +523,40 @@ export default function InstallersPage() {
 
       setDeletingId(installerId);
       try {
-        const response = await fetch(`/api/installers/${installerId}`, {
-          method: "DELETE",
+        // Mutation invalidates the ["installers"] query so the list refreshes.
+        await deleteInstaller.mutateAsync(installerId);
+
+        // Remove from selection if selected
+        setSelectedInstallers((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(installerId);
+          return newSet;
         });
 
-        const data = await response.json();
-
-        if (response.ok) {
-          // React Query will auto-refetch, just update UI state
-          await fetchInstallers();
-
-          // Remove from selection if selected
-          setSelectedInstallers((prev) => {
-            const newSet = new Set(prev);
-            newSet.delete(installerId);
-            return newSet;
-          });
-
-          // Show success in dialog
-          setDeleteDialogState({
-            open: true,
-            status: "success",
-            message: `Installer "${installerName}" has been deleted successfully!`,
-            installerName,
-          });
-        } else {
-          // Show error in dialog
-          setDeleteDialogState({
-            open: true,
-            status: "error",
-            message: data.message || "Failed to delete installer",
-            installerName,
-          });
-        }
+        // Show success in dialog
+        setDeleteDialogState({
+          open: true,
+          status: "success",
+          message: `Installer "${installerName}" has been deleted successfully!`,
+          installerName,
+        });
       } catch (error) {
         console.error("Failed to delete installer:", error);
         // Show error in dialog
         setDeleteDialogState({
           open: true,
           status: "error",
-          message: "An error occurred while deleting the installer",
+          message:
+            error instanceof Error
+              ? error.message
+              : "An error occurred while deleting the installer",
           installerName,
         });
       } finally {
         setDeletingId(null);
       }
     },
-    [fetchInstallers],
+    [deleteInstaller],
   );
 
   // Bulk delete handler

@@ -19,6 +19,7 @@ export interface IBatchJob extends Document {
   createdAt: Date;
   updatedAt: Date;
   completedAt?: Date;
+  processingStartedAt?: Date;
 }
 
 const BatchJobSchema = new Schema<IBatchJob>(
@@ -67,6 +68,12 @@ const BatchJobSchema = new Schema<IBatchJob>(
       required: true,
     },
     completedAt: {
+      type: Date,
+    },
+    // Set when a worker claims the job. A "processing" job whose
+    // processingStartedAt is older than STALE_PROCESSING_MS is treated as
+    // dead (serverless froze mid-loop) and becomes claimable again.
+    processingStartedAt: {
       type: Date,
     },
   },

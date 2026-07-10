@@ -13,6 +13,8 @@
     "setup:admin": "node scripts/createAdmin.js",
     "setup": "npm run setup:secret && npm run setup:admin",
     "test:db": "node scripts/testDbConnection.js",
+    "purge:pinplain": "node scripts/purgePinPlain.js",
+    "reset:pins": "node scripts/resetAllPins.js",
     "icondex": "node icondex.mjs",
     "removeprops": "node scripts/remove-iconprops.js",
     "reset:admin": "node scripts/resetAdmin.js",

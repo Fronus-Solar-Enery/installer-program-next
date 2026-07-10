@@ -26,6 +26,34 @@ import {
 import { logActivity, getChanges } from "@/lib/activityLogger";
 import { ActivityType } from "@/models/Activity";
 import { getClientInfo } from "@/lib/requestUtils";
+import { encryptSecret } from "@/lib/encryption";
+import { logger } from "@/lib/logger";
+
+/**
+ * Single source of truth for persisting a PIN: bcrypt hash for verification,
+ * plus a best-effort AES-256-GCM ciphertext so ADMIN/MANAGER can reveal it.
+ * Every PIN write MUST go through here so the encrypted copy never drifts from
+ * the hash (a stale copy would reveal an old, wrong PIN). Encryption is
+ * best-effort: with no/invalid TOKEN_ENCRYPTION_KEY the PIN still works via the
+ * hash and reveal simply reports "unavailable" — registration never breaks.
+ */
+export async function setInstallerPin(
+  installer: HydratedDocument<IInstaller>,
+  plainPin: string
+): Promise<void> {
+  installer.pin = await bcrypt.hash(plainPin, 10);
+  try {
+    installer.pinEncrypted = process.env.TOKEN_ENCRYPTION_KEY
+      ? encryptSecret(plainPin)
+      : undefined;
+  } catch (error) {
+    // Key misconfigured — clear any stale ciphertext, keep the hash working.
+    installer.pinEncrypted = undefined;
+    logger.warn("PIN encryption skipped — reveal will be unavailable", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
 
 /**
  * Business-rule failure raised by installer orchestration. Route handlers map
@@ -135,8 +163,7 @@ export async function regenerateAndSendPin(
 }> {
   const plainPin = randomInt(0, 1_000_000).toString().padStart(6, "0");
 
-  installer.pin = await bcrypt.hash(plainPin, 10);
-  installer.pinPlain = plainPin;
+  await setInstallerPin(installer, plainPin);
   installer.lastPinChangeAt = new Date();
   installer.pinAttempts = 0;
   installer.pinLockedUntil = undefined;
@@ -145,11 +172,12 @@ export async function regenerateAndSendPin(
   const settings = await getSettings();
 
   if (!settings.enableWhatsAppNotifications) {
-    const { text, whatsappUrl } = formatInstallerWhatsAppMessage(
-      installer.installerCode,
-      plainPin,
-      installer.whatsappNumber
-    );
+    const { text, whatsappUrl } = formatInstallerWhatsAppMessage({
+      fullName: installer.fullName,
+      installerCode: installer.installerCode,
+      pin: plainPin,
+      whatsappNumber: installer.whatsappNumber,
+    });
     return {
       whatsappSent: false,
       error: "WhatsApp auto-send is disabled",
@@ -172,11 +200,12 @@ export async function regenerateAndSendPin(
 
   // If free-form delivery failed, generate manual fallback
   if (!result.success) {
-    const { text, whatsappUrl } = formatInstallerWhatsAppMessage(
-      installer.installerCode,
-      plainPin,
-      installer.whatsappNumber
-    );
+    const { text, whatsappUrl } = formatInstallerWhatsAppMessage({
+      fullName: installer.fullName,
+      installerCode: installer.installerCode,
+      pin: plainPin,
+      whatsappNumber: installer.whatsappNumber,
+    });
     return {
       whatsappSent: false,
       error: result.error,
@@ -217,7 +246,6 @@ export async function createInstaller(
   const installer = await Installer.create({
     ...input,
     registeredBy: registeredById,
-    lastCustomerMessageAt: new Date(),
   });
 
   await createGoogleContactForInstaller(installer);

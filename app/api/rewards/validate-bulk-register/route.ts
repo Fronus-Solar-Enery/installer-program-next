@@ -5,6 +5,7 @@ import InstallerReward from "@/models/InstallerReward";
 import TeamMember from "@/models/TeamMember";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
+import { BatchDuplicateTracker } from "@/lib/bulkValidation";
 
 interface RewardInput {
   installerCode?: string;
@@ -81,7 +82,7 @@ export const POST = withAuth(
       );
 
       // Track duplicates in batch
-      const serialNumbersInBatch = new Map<string, number>();
+      const serialNumbersInBatch = new BatchDuplicateTracker();
 
       const validatedRewards = rewards.map(
         (reward: RewardInput, index: number) => {
@@ -155,15 +156,12 @@ export const POST = withAuth(
 
           // Check for duplicate serial numbers in batch
           if (serialNumber) {
-            if (serialNumbersInBatch.has(serialNumber)) {
-              const firstOccurrence =
-                serialNumbersInBatch.get(serialNumber)! + 1;
-              newIssues.push(
-                `Duplicate serial number in upload (first occurrence at row ${firstOccurrence})`
-              );
-            } else {
-              serialNumbersInBatch.set(serialNumber, index);
-            }
+            const dupIssue = serialNumbersInBatch.check(
+              serialNumber,
+              index,
+              "serial number"
+            );
+            if (dupIssue) newIssues.push(dupIssue);
           }
 
           return {

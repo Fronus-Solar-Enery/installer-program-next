@@ -19,6 +19,17 @@ export function normalizePhone(phoneNumber: string): string {
 }
 
 /**
+ * Canonical form stored in the DB `whatsappNumber` field: normalized digits with
+ * a leading '+' (e.g. "+923001234567"). The single source of truth for that
+ * convention — the schema setter, every lookup, and the migration all use this,
+ * so no call site re-implements the '+' dance. The Meta Cloud API `to` uses the
+ * plain normalizePhone (no '+') instead.
+ */
+export function whatsappStorageFormat(phoneNumber: string): string {
+  return `+${normalizePhone(phoneNumber)}`;
+}
+
+/**
  * Check if two phone numbers refer to the same WhatsApp number,
  * accounting for format variations (+ prefix, leading 0, dashes, etc.).
  */

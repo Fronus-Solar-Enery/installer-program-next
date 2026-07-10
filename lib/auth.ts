@@ -5,10 +5,16 @@ import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/mongodb";
 import TeamMember, { TeamRole } from "@/models/TeamMember";
 import { isRateLimited, recordFailedAttempt } from "@/lib/rateLimit";
+import { logger } from "@/lib/logger";
 
 // Login throttle: cap failed password guesses per (email, IP).
 const LOGIN_WINDOW_MS = 10 * 60 * 1000;
 const LOGIN_LIMIT = 5;
+
+// Re-check the user's role/existence against the DB at most this often, so a
+// demotion or deletion revokes access within minutes instead of the 30-day
+// token lifetime. One indexed query per user per interval.
+const ROLE_REVALIDATE_MS = 5 * 60 * 1000;
 
 function ipFromRequest(request: Request | undefined): string {
   const headers = request?.headers;
@@ -117,23 +123,34 @@ export const authConfig: NextAuthConfig = {
           email: normalizedEmail,
         });
 
+        // Generic message for every failure case (no user / Google-only /
+        // wrong password) so an attacker can't enumerate which emails are
+        // accounts or which use Google SSO. Real reason stays in server logs.
+        const INVALID_CREDENTIALS = "Invalid email or password";
+
         if (!user) {
+          logger.info("Login failed: no account", { email: normalizedEmail });
           await recordFailedAttempt(rateLimitKey, { windowMs: LOGIN_WINDOW_MS });
-          throw new CustomAuthError("No account found with this email address");
+          throw new CustomAuthError(INVALID_CREDENTIALS);
         }
 
         if (!user.password) {
-          throw new CustomAuthError(
-            "This account uses Google Sign-In. Please sign in with Google."
-          );
+          logger.info("Login failed: Google-only account", {
+            email: normalizedEmail,
+          });
+          await recordFailedAttempt(rateLimitKey, { windowMs: LOGIN_WINDOW_MS });
+          throw new CustomAuthError(INVALID_CREDENTIALS);
         }
 
         const passwordHash: string = user.password as string;
         const isValid = await bcrypt.compare(password, passwordHash);
 
         if (!isValid) {
+          logger.info("Login failed: wrong password", {
+            email: normalizedEmail,
+          });
           await recordFailedAttempt(rateLimitKey, { windowMs: LOGIN_WINDOW_MS });
-          throw new CustomAuthError("Incorrect password. Please try again.");
+          throw new CustomAuthError(INVALID_CREDENTIALS);
         }
 
         return {
@@ -154,6 +171,7 @@ export const authConfig: NextAuthConfig = {
         token.role = user.role || TeamRole.USER;
         token.name = user.name;
         token.email = user.email;
+        token.lastChecked = Date.now();
       }
 
       // Update token on session update
@@ -170,10 +188,31 @@ export const authConfig: NextAuthConfig = {
               token.id = dbUser._id.toString();
               token.role = dbUser.role;
               token.name = dbUser.name;
+              token.lastChecked = Date.now();
             }
           } catch (error) {
             console.error("Error fetching user in JWT callback:", error);
           }
+        }
+      }
+
+      // Revalidate role/existence periodically so demotions and deletions take
+      // effect within ROLE_REVALIDATE_MS instead of the 30-day token lifetime.
+      const lastChecked = (token.lastChecked as number | undefined) ?? 0;
+      if (token.email && Date.now() - lastChecked > ROLE_REVALIDATE_MS) {
+        try {
+          await dbConnect();
+          const dbUser = await TeamMember.findOne({ email: token.email });
+          // User was deleted -> invalidate the session entirely.
+          if (!dbUser) return null;
+          token.id = dbUser._id.toString();
+          token.role = dbUser.role;
+          token.name = dbUser.name;
+          token.lastChecked = Date.now();
+        } catch (error) {
+          // On a transient DB error, keep the existing token rather than
+          // locking everyone out; it will be retried on the next request.
+          console.error("Error revalidating user in JWT callback:", error);
         }
       }
 

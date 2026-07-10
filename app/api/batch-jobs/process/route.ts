@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import BatchJob from "@/models/BatchJob";
@@ -26,6 +26,10 @@ interface InstallerDocument {
   companyName?: string;
   googleContactId?: string;
 }
+
+// A "processing" job untouched for this long is assumed dead (serverless
+// froze/killed the invocation mid-loop) and can be re-claimed.
+const STALE_PROCESSING_MS = 5 * 60 * 1000;
 
 // POST - Process a batch job (Google Contacts creation/deletion)
 export async function POST(request: NextRequest) {
@@ -60,42 +64,54 @@ export async function POST(request: NextRequest) {
       return ApiResponse.forbidden("You can only process your own batch jobs");
     }
 
-    // Check if job is already processing or completed
-    if (job.status === "processing") {
-      return ApiResponse.error("Job is already being processed", 400);
-    }
+    // Atomically claim the job: the filter is the lock. Claimable when
+    // pending/failed, OR "processing" but stale (a prior invocation froze
+    // mid-loop and never finished). Concurrent POSTs (double-click, retry)
+    // that lose the race get null and bail, so the processor launches once.
+    const staleCutoff = new Date(Date.now() - STALE_PROCESSING_MS);
+    const claimed = await BatchJob.findOneAndUpdate(
+      {
+        _id: jobId,
+        $or: [
+          { status: { $in: ["pending", "failed"] } },
+          { status: "processing", processingStartedAt: { $lt: staleCutoff } },
+        ],
+      },
+      { status: "processing", processingStartedAt: new Date() },
+      { new: true }
+    );
 
-    // Allow retrying failed jobs
-    if (job.status === "completed") {
-      return ApiResponse.error("Job is already completed", 400);
+    if (!claimed) {
+      return ApiResponse.error("Job is already processing or completed", 409);
     }
-
-    // Update job status to processing
-    job.status = "processing";
-    await job.save();
 
     // Process based on job type
     if (job.type === "GOOGLE_CONTACTS_CREATE") {
-      // Process in background (don't await - let it run)
-      processGoogleContactsCreate(jobId).catch((error) => {
-        console.error(
-          `Background job ${jobId} failed:`,
-          error instanceof Error ? error.message : error
-        );
-      });
+      // Run after the response is sent. after() ties the work to the
+      // platform's waitUntil so serverless keeps the invocation alive
+      // instead of freezing the loop mid-batch.
+      after(() =>
+        processGoogleContactsCreate(jobId).catch((error) => {
+          console.error(
+            `Background job ${jobId} failed:`,
+            error instanceof Error ? error.message : error
+          );
+        })
+      );
 
       return ApiResponse.success(
         { jobId, status: "processing" },
         "Google Contacts creation started in background"
       );
     } else if (job.type === "GOOGLE_CONTACTS_DELETE") {
-      // Process in background
-      processGoogleContactsDelete(jobId).catch((error) => {
-        console.error(
-          `Background job ${jobId} failed:`,
-          error instanceof Error ? error.message : error
-        );
-      });
+      after(() =>
+        processGoogleContactsDelete(jobId).catch((error) => {
+          console.error(
+            `Background job ${jobId} failed:`,
+            error instanceof Error ? error.message : error
+          );
+        })
+      );
 
       return ApiResponse.success(
         { jobId, status: "processing" },

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMemo } from "react";
+import { resolveDateRange } from "@/lib/dateRange";
 
 export interface RewardWithId {
   _id: string;
@@ -101,54 +102,8 @@ export function useOptimizedRewardsFilter({
     const searchLower = filters.search.toLowerCase().trim();
 
     // Calculate date range boundaries
-    let dateRangeStart: Date | null = null;
-    let dateRangeEnd: Date | null = null;
-
-    if (filters.dateRange && filters.dateRange !== "all") {
-      const now = new Date();
-      const todayStart = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate()
-      );
-
-      switch (filters.dateRange) {
-        case "today":
-          dateRangeStart = todayStart;
-          dateRangeEnd = new Date(
-            todayStart.getTime() + 24 * 60 * 60 * 1000 - 1
-          );
-          break;
-        case "week":
-          dateRangeStart = new Date(
-            todayStart.getTime() - 7 * 24 * 60 * 60 * 1000
-          );
-          dateRangeEnd = now;
-          break;
-        case "month":
-          dateRangeStart = new Date(
-            todayStart.getTime() - 30 * 24 * 60 * 60 * 1000
-          );
-          dateRangeEnd = now;
-          break;
-        case "year":
-          dateRangeStart = new Date(
-            todayStart.getTime() - 365 * 24 * 60 * 60 * 1000
-          );
-          dateRangeEnd = now;
-          break;
-        case "custom":
-          if (filters.customStartDate) {
-            dateRangeStart = new Date(filters.customStartDate);
-          }
-          if (filters.customEndDate) {
-            dateRangeEnd = new Date(filters.customEndDate);
-            // Set to end of day
-            dateRangeEnd.setHours(23, 59, 59, 999);
-          }
-          break;
-      }
-    }
+    const { start: dateRangeStart, end: dateRangeEnd } =
+      resolveDateRange(filters);
 
     // Single-pass processing - collect statistics and unique values
     const uniquePaymentMethods = new Set<string>();

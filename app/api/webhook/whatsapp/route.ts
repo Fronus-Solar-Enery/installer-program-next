@@ -5,7 +5,7 @@ import Installer from "@/models/Installer";
 import { logActivity } from "@/lib/activityLogger";
 import { ActivityType } from "@/models/Activity";
 import { logger } from "@/lib/logger";
-import { normalizePhone } from "@/lib/phoneUtils";
+import { normalizePhone, whatsappStorageFormat } from "@/lib/phoneUtils";
 
 const VERIFY_TOKEN = process.env.META_WHATSAPP_VERIFY_TOKEN;
 const APP_SECRET = process.env.META_WHATSAPP_APP_SECRET;
@@ -69,19 +69,34 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "ok" }, { status: 200 });
   } catch (error) {
     logger.error("WhatsApp webhook error", { err: error });
-    // Still return 200 to prevent Meta retries for processing errors
-    return NextResponse.json({ status: "ok" }, { status: 200 });
+    // Malformed payload is a permanent business error — ack with 200 so Meta
+    // stops retrying (a retry would fail identically). Everything else (DB down,
+    // body-read failure) is transient: return 500 so Meta redelivers with
+    // backoff. F6's atomic $max makes redelivered duplicates harmless.
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ status: "ok" }, { status: 200 });
+    }
+    return NextResponse.json({ status: "error" }, { status: 500 });
   }
 }
 
 async function processWebhookBody(body: Record<string, unknown>) {
   const entryArr = body.entry as Array<Record<string, unknown>> | undefined;
-  const entry = entryArr?.[0];
-  const changes = entry?.changes as Array<Record<string, unknown>> | undefined;
-  const value = changes?.[0]?.value as Record<string, unknown> | undefined;
-  const messages = value?.messages as Array<Record<string, unknown>> | undefined;
 
-  if (!messages?.length) return;
+  // Meta batches multiple entries per delivery, and multiple changes per entry
+  // (especially under load or after downtime). Collect messages across ALL of
+  // them — reading only entry[0]/changes[0] silently drops the rest.
+  const messages: Array<Record<string, unknown>> = [];
+  for (const entry of entryArr ?? []) {
+    const changes = entry?.changes as Array<Record<string, unknown>> | undefined;
+    for (const change of changes ?? []) {
+      const value = change?.value as Record<string, unknown> | undefined;
+      const changeMessages = value?.messages as Array<Record<string, unknown>> | undefined;
+      if (changeMessages?.length) messages.push(...changeMessages);
+    }
+  }
+
+  if (!messages.length) return;
 
   await dbConnect();
 
@@ -106,12 +121,9 @@ async function processWebhookBody(body: Record<string, unknown>) {
     });
 
     try {
-      // Query both with and without '+' prefix since DB storage format varies.
+      // whatsappNumber is stored canonical (whatsappStorageFormat) — plain equality.
       const installer = await Installer.findOne({
-        $or: [
-          { whatsappNumber: normalizedNumber },
-          { whatsappNumber: `+${normalizedNumber}` },
-        ],
+        whatsappNumber: whatsappStorageFormat(from),
       });
 
       if (!installer) {
@@ -125,16 +137,22 @@ async function processWebhookBody(body: Record<string, unknown>) {
 
       // Update the last customer message timestamp.
       // Only the customer's messages reset the 24h timer — our replies don't.
-      installer.lastCustomerMessageAt = timestamp
+      // $max is atomic, idempotent, and order-independent: retried/out-of-order
+      // webhooks and concurrent installer edits can't regress the timestamp or
+      // clobber other fields (which a full-document save() would).
+      const msgDate = timestamp
         ? new Date(parseInt(timestamp) * 1000)
         : new Date();
-      await installer.save();
+      await Installer.updateOne(
+        { _id: installer._id },
+        { $max: { lastCustomerMessageAt: msgDate } }
+      );
 
       logger.info("WhatsApp inbound message processed", {
         installerCode: installer.installerCode,
         from,
         type,
-        lastCustomerMessageAt: installer.lastCustomerMessageAt,
+        lastCustomerMessageAt: msgDate,
       });
 
       // Extract message content based on type

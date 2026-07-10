@@ -3,6 +3,7 @@ import dbConnect from "@/lib/mongodb";
 import InstallerReward from "@/models/InstallerReward";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
+import { BatchDuplicateTracker } from "@/lib/bulkValidation";
 
 interface RewardUpdate {
   serialNumber: string;
@@ -49,7 +50,7 @@ export const POST = withAuth(
       );
 
       // Track serial numbers in the upload batch for duplicate detection
-      const serialsInBatch = new Map<string, number>();
+      const serialsInBatch = new BatchDuplicateTracker();
 
       // Validate each reward
       const validatedRewards: RewardUpdate[] = rewards.map(
@@ -65,14 +66,12 @@ export const POST = withAuth(
           }
 
           // Check for duplicate serial number in the upload batch
-          if (serialsInBatch.has(serialUpper)) {
-            const firstOccurrence = serialsInBatch.get(serialUpper)! + 1;
-            newIssues.push(
-              `Duplicate serial number in upload (first occurrence at row ${firstOccurrence})`
-            );
-          } else {
-            serialsInBatch.set(serialUpper, index);
-          }
+          const dupIssue = serialsInBatch.check(
+            serialUpper,
+            index,
+            "serial number"
+          );
+          if (dupIssue) newIssues.push(dupIssue);
 
           // Validate referrer transaction ID requirement
           if (rewardsWithReferrer.has(serialUpper)) {

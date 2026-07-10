@@ -1,4 +1,5 @@
 import mongoose, { Schema, Model, Types } from 'mongoose';
+import { whatsappStorageFormat } from '@/lib/phoneUtils';
 
 export interface IInstaller {
   _id?: string;
@@ -21,7 +22,7 @@ export interface IInstaller {
   certified: boolean;
   googleContactId?: string;
   pin?: string; // bcrypt hash, hidden from queries by default
-  pinPlain?: string; // plain text, visible to team members on profile
+  pinEncrypted?: string; // AES-256-GCM ciphertext for ADMIN/MANAGER reveal; hidden by default
   shareToken?: string;
   lastPinChangeAt?: Date;
   pinAttempts?: number;
@@ -69,6 +70,10 @@ const InstallerSchema = new Schema<IInstaller>(
       type: String,
       required: [true, 'WhatsApp number is required'],
       trim: true,
+      // Canonical format: normalized digits with leading '+' (e.g. "+923001234567").
+      // Setter runs on create/save/insertMany so every write lands in one format —
+      // lookups are a plain equality, no $or dance. See whatsappStorageFormat.
+      set: whatsappStorageFormat,
     },
     address: {
       type: String,
@@ -126,8 +131,9 @@ const InstallerSchema = new Schema<IInstaller>(
       type: String,
       select: false, // Never returned unless explicitly .select('+pin')
     },
-    pinPlain: {
+    pinEncrypted: {
       type: String,
+      select: false, // Ciphertext; only the reveal endpoint selects + decrypts it
     },
     shareToken: {
       type: String,
@@ -156,6 +162,7 @@ const InstallerSchema = new Schema<IInstaller>(
 
 // Indexes for better query performance
 // Note: installerCode and cnic already have unique indexes, no need to add them again
+InstallerSchema.index({ whatsappNumber: 1 });
 InstallerSchema.index({ referrerCode: 1 });
 InstallerSchema.index({ city: 1 });
 InstallerSchema.index({ province: 1 });

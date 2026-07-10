@@ -20,6 +20,7 @@ import {
   MapPin,
   Landmark,
   Calendar,
+  Eye,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,7 +60,6 @@ interface InstallerDetails {
   _id: string;
   installerCode: string;
   fullName: string;
-  pinPlain?: string;
   cnic: string;
   phoneNumber: string;
   whatsappNumber: string;
@@ -152,6 +152,30 @@ export default function InstallerDetailsPage() {
   const [newWhatsappUrl, setNewWhatsappUrl] = useState<string | null>(null);
   const [pinDialogOpen, setPinDialogOpen] = useState(false);
 
+  const [revealedPin, setRevealedPin] = useState<string | null>(null);
+  const [revealingPin, setRevealingPin] = useState(false);
+
+  const handleRevealPin = async () => {
+    setRevealingPin(true);
+    try {
+      const res = await fetch(`/api/installers/${installerId}/pin`);
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || data.message || "Failed to reveal PIN");
+        return;
+      }
+      if (!data.data?.pin) {
+        toast.info("No stored PIN — use Resend PIN to generate a new one");
+        return;
+      }
+      setRevealedPin(data.data.pin);
+    } catch {
+      toast.error("Failed to reveal PIN");
+    } finally {
+      setRevealingPin(false);
+    }
+  };
+
   const handleResendPin = async () => {
     setResendingPin(true);
     try {
@@ -184,10 +208,7 @@ export default function InstallerDetailsPage() {
         throw new Error(data.error || "Failed to fetch installer");
       }
 
-      setInstaller({
-        ...data.data.installer,
-        pinPlain: data.data.pin || data.data.installer?.pinPlain,
-      });
+      setInstaller(data.data.installer);
       setStatistics(data.data.statistics);
     } catch (err: unknown) {
       setError(
@@ -596,13 +617,26 @@ export default function InstallerDetailsPage() {
                               label="Installer Code"
                             />
                           </span>
-                          {installer.pinPlain && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-brand-400/30 dark:bg-brand-1100/30 font-mono text-xs font-bold tracking-widest">
-                              PIN: {installer.pinPlain}
-                              <CopyButton
-                                text={installer.pinPlain}
-                                label="PIN"
-                              />
+                          {isAdmin && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-muted font-mono text-xs font-bold tracking-widest">
+                              PIN: {revealedPin ?? "••••••"}
+                              {revealedPin ? (
+                                <CopyButton text={revealedPin} label="PIN" />
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={handleRevealPin}
+                                  disabled={revealingPin}
+                                  className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                                  aria-label="Reveal PIN"
+                                >
+                                  {revealingPin ? (
+                                    <Loading className="size-3.5" />
+                                  ) : (
+                                    <Eye className="h-3.5 w-3.5" />
+                                  )}
+                                </button>
+                              )}
                             </span>
                           )}
                           {installer.certified && (

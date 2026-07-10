@@ -7,7 +7,7 @@ import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { validateBody, getSearchParams } from "@/lib/validateRequest";
 import { QueryBuilder, parseSortParams } from "@/lib/queryBuilder";
-import { getPaginationParams, createPaginationMeta } from "@/lib/pagination";
+import { getPaginationParams, createPaginationMeta, LIST_MAX_LIMIT } from "@/lib/pagination";
 import { getSettings } from "@/models/Settings";
 import { RewardStatus } from "@/types/rewards";
 import {
@@ -24,7 +24,9 @@ export const GET = withAuth(
 
       const params = getSearchParams(request);
       const { page, limit, skip } = getPaginationParams(params.raw, {
-        maxLimit: 10000, // Allow fetching all rewards for dashboard stats
+        // List page filters client-side; bounded by a documented ceiling.
+        maxLimit: LIST_MAX_LIMIT,
+        strictMaxLimit: true,
       });
       const { field: sortBy, order: sortOrder } = parseSortParams(params.raw);
 

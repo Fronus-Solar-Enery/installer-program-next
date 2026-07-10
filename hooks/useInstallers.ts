@@ -82,48 +82,7 @@ export function useDeleteInstaller() {
   });
 }
 
-export function useBulkDeleteInstallers() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (installerIds: string[]) => {
-      const results = {
-        successCount: 0,
-        failCount: 0,
-        failures: [] as Array<{ id: string; name: string; reason: string }>,
-      };
-
-      for (const installerId of installerIds) {
-        try {
-          const response = await fetch(`/api/installers/${installerId}`, {
-            method: "DELETE",
-          });
-
-          if (response.ok) {
-            results.successCount++;
-          } else {
-            results.failCount++;
-            const data = await response.json();
-            results.failures.push({
-              id: installerId,
-              name: installerId,
-              reason: data.message || "Unknown error",
-            });
-          }
-        } catch (error) {
-          results.failCount++;
-          results.failures.push({
-            id: installerId,
-            name: installerId,
-            reason: "Network error",
-          });
-        }
-      }
-
-      return results;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["installers"] });
-    },
-  });
-}
+// Bulk delete intentionally has no hook: the installers page hits the dedicated
+// /api/installers/bulk-delete endpoint (which also queues Google Contacts cleanup
+// as a batch job) and invalidates ["installers"] itself. A per-id loop here would
+// silently skip that cleanup.

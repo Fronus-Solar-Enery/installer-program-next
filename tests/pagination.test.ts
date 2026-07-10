@@ -33,6 +33,20 @@ describe("getPaginationParams", () => {
   it("honors a custom defaultLimit", () => {
     expect(getPaginationParams(new URLSearchParams(), { defaultLimit: 50 }).limit).toBe(50);
   });
+
+  it("refuses limits above the ceiling when strictMaxLimit is set", () => {
+    const params = new URLSearchParams("limit=99999");
+    expect(() =>
+      getPaginationParams(params, { maxLimit: 20000, strictMaxLimit: true })
+    ).toThrowError(/must not exceed 20000/);
+    // within the ceiling still passes through
+    expect(
+      getPaginationParams(new URLSearchParams("limit=20000"), {
+        maxLimit: 20000,
+        strictMaxLimit: true,
+      }).limit
+    ).toBe(20000);
+  });
 });
 
 describe("createPaginationMeta", () => {

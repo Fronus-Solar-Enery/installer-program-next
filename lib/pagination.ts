@@ -33,6 +33,18 @@ const DEFAULTS = {
 } as const;
 
 /**
+ * Documented hard ceiling for "fetch (almost) everything" list endpoints that
+ * back client-side filtering (installers/rewards tables). Client-side filtering
+ * is a deliberate UX choice at current scale — but it must be bounded so a
+ * request for `?limit=999999` can't try to serialize the whole collection.
+ *
+ * This is a deferred scaling trigger (see CLAUDE.md): when the real dataset
+ * approaches this number, switch those pages to true server-side pagination
+ * instead of raising the ceiling.
+ */
+export const LIST_MAX_LIMIT = 20000;
+
+/**
  * Extract pagination parameters from URL search params.
  * Applies reasonable defaults and limits.
  *
@@ -44,7 +56,7 @@ const DEFAULTS = {
  */
 export function getPaginationParams(
   searchParams: URLSearchParams,
-  options?: { defaultLimit?: number; maxLimit?: number }
+  options?: { defaultLimit?: number; maxLimit?: number; strictMaxLimit?: boolean }
 ): PaginationParams {
   const defaultLimit = options?.defaultLimit ?? DEFAULTS.limit;
   const maxLimit = options?.maxLimit ?? DEFAULTS.maxLimit;
@@ -55,7 +67,22 @@ export function getPaginationParams(
       DEFAULTS.page
   );
 
-  let limit = parseInt(searchParams.get("limit") || String(defaultLimit), 10);
+  const rawLimit = parseInt(
+    searchParams.get("limit") || String(defaultLimit),
+    10
+  );
+  let limit = Number.isNaN(rawLimit) ? defaultLimit : rawLimit;
+
+  // strictMaxLimit: refuse (400) instead of silently clamping, so a caller
+  // asking beyond the documented ceiling gets a loud error rather than a
+  // silently truncated page it would mistake for the full dataset.
+  if (options?.strictMaxLimit && limit > maxLimit) {
+    throw Object.assign(
+      new Error(`limit must not exceed ${maxLimit}`),
+      { status: 400 }
+    );
+  }
+
   limit = Math.max(1, Math.min(limit, maxLimit));
 
   const skip = (page - 1) * limit;

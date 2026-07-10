@@ -5,6 +5,7 @@ import dbConnect from "@/lib/mongodb";
 import Installer from "@/models/Installer";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { getInstallerFromCookie } from "@/lib/installerAuth";
+import { setInstallerPin } from "@/services/installers";
 
 const changePinSchema = z.object({
   currentPin: z.string().regex(/^\d{6}$/, "Current PIN must be 6 digits"),
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
       return ApiResponse.badRequest("Current PIN is incorrect");
     }
 
-    installer.pin = await bcrypt.hash(parsed.data.newPin, 10);
+    await setInstallerPin(installer, parsed.data.newPin);
     installer.lastPinChangeAt = new Date();
     installer.pinAttempts = 0;
     installer.pinLockedUntil = undefined;

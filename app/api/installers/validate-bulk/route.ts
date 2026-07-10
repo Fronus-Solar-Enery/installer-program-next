@@ -4,6 +4,7 @@ import Installer from "@/models/Installer";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { CITY_TO_DISTRICT, DISTRICT_CODES } from "@/lib/constants";
+import { BatchDuplicateTracker } from "@/lib/bulkValidation";
 
 interface InstallerUpload {
   installerCode: string;
@@ -77,8 +78,8 @@ export const POST = withAuth(
       );
 
       // Track codes and CNICs in the current upload batch for duplicate detection
-      const codesInBatch = new Map<string, number>();
-      const cnicsInBatch = new Map<string, number>();
+      const codesInBatch = new BatchDuplicateTracker();
+      const cnicsInBatch = new BatchDuplicateTracker();
 
       // Validate each installer
       const validatedInstallers: InstallerUpload[] = installers.map(
@@ -95,14 +96,12 @@ export const POST = withAuth(
           }
 
           // Check for duplicate installer code in the upload batch
-          if (codesInBatch.has(code)) {
-            const firstOccurrence = codesInBatch.get(code)! + 1;
-            newIssues.push(
-              `Duplicate installer code in upload (first occurrence at row ${firstOccurrence})`
-            );
-          } else {
-            codesInBatch.set(code, index);
-          }
+          const dupCodeIssue = codesInBatch.check(
+            code,
+            index,
+            "installer code"
+          );
+          if (dupCodeIssue) newIssues.push(dupCodeIssue);
 
           // Check installer code prefix matches the district derived from city
           const district = installer.city
@@ -129,14 +128,8 @@ export const POST = withAuth(
           }
 
           // Check for duplicate CNIC in the upload batch
-          if (cnicsInBatch.has(cnic)) {
-            const firstOccurrence = cnicsInBatch.get(cnic)! + 1;
-            newIssues.push(
-              `Duplicate CNIC in upload (first occurrence at row ${firstOccurrence})`
-            );
-          } else {
-            cnicsInBatch.set(cnic, index);
-          }
+          const dupCnicIssue = cnicsInBatch.check(cnic, index, "CNIC");
+          if (dupCnicIssue) newIssues.push(dupCnicIssue);
 
           // Validate referrer code if provided
           if (installer.referrerCode) {
@@ -151,9 +144,7 @@ export const POST = withAuth(
             // Check if referrer exists in database or in current batch
             else if (!validReferrerCodes.has(refCode)) {
               // Check if it's in the current batch and comes before this installer
-              const refIndexInBatch = Array.from(codesInBatch.entries()).find(
-                ([c]) => c === refCode
-              )?.[1];
+              const refIndexInBatch = codesInBatch.indexOf(refCode);
 
               if (refIndexInBatch === undefined || refIndexInBatch > index) {
                 newIssues.push(

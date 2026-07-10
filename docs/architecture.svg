@@ -1,0 +1,505 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 2200" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#020617"/>
+    </linearGradient>
+    <linearGradient id="clientGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e1b4b"/>
+      <stop offset="100%" style="stop-color:#312e81"/>
+    </linearGradient>
+    <linearGradient id="frameworkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#172554"/>
+      <stop offset="100%" style="stop-color:#1e3a5f"/>
+    </linearGradient>
+    <linearGradient id="dataGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#14532d"/>
+      <stop offset="100%" style="stop-color:#166534"/>
+    </linearGradient>
+    <linearGradient id="externalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c2d12"/>
+      <stop offset="100%" style="stop-color:#9a3412"/>
+    </linearGradient>
+    <linearGradient id="infraGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#581c87"/>
+      <stop offset="100%" style="stop-color:#6b21a8"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1400" height="2200" fill="url(#bgGrad)"/>
+
+  <!-- Title -->
+  <text x="700" y="50" text-anchor="middle" fill="#e0e7ff" font-size="28" font-weight="700" filter="url(#glow)">IPMS System Architecture</text>
+  <text x="700" y="78" text-anchor="middle" fill="#94a3b8" font-size="14">Installer Program Management System — Fronus Solar Energy</text>
+  <text x="700" y="100" text-anchor="middle" fill="#64748b" font-size="12">Next.js 16 App Router · React Server Components · MongoDB Atlas · Vercel</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- LAYER 1: CLIENT -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <rect x="40" y="130" width="1320" height="310" rx="16" fill="url(#clientGrad)" stroke="#6366f1" stroke-width="2" filter="url(#shadow)"/>
+  <text x="70" y="162" fill="#a5b4fc" font-size="16" font-weight="700">LAYER 1 — CLIENT</text>
+
+  <!-- Browsers -->
+  <rect x="70" y="185" width="220" height="100" rx="10" fill="#1e1b4b" stroke="#818cf8" stroke-width="1.5"/>
+  <text x="180" y="210" text-anchor="middle" fill="#c7d2fe" font-size="13" font-weight="600">Web Browsers</text>
+  <text x="180" y="230" text-anchor="middle" fill="#818cf8" font-size="22">🖥️</text>
+  <text x="180" y="255" text-anchor="middle" fill="#c7d2fe" font-size="13" font-weight="600">Mobile Devices</text>
+  <text x="180" y="275" text-anchor="middle" fill="#818cf8" font-size="22">📱</text>
+
+  <!-- Arrow -->
+  <line x1="290" y1="235" x2="330" y2="235" stroke="#6366f1" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+  <!-- Client Components -->
+  <rect x="340" y="185" width="280" height="100" rx="10" fill="#1e1b4b" stroke="#818cf8" stroke-width="1.5"/>
+  <text x="480" y="210" text-anchor="middle" fill="#c7d2fe" font-size="13" font-weight="600">React Client Components</text>
+  <text x="480" y="230" text-anchor="middle" fill="#a5b4fc" font-size="11">'use client'</text>
+  <text x="480" y="250" text-anchor="middle" fill="#94a3b8" font-size="10">SessionProvider · QueryClientProvider</text>
+  <text x="480" y="265" text-anchor="middle" fill="#94a3b8" font-size="10">BatchJobProvider · Toaster</text>
+  <text x="480" y="280" text-anchor="middle" fill="#94a3b8" font-size="10">ThemeProvider · Service Worker</text>
+
+  <!-- Arrow -->
+  <line x1="620" y1="235" x2="660" y2="235" stroke="#6366f1" stroke-width="2"/>
+
+  <!-- Global State -->
+  <rect x="670" y="185" width="220" height="100" rx="10" fill="#1e1b4b" stroke="#818cf8" stroke-width="1.5"/>
+  <text x="780" y="210" text-anchor="middle" fill="#c7d2fe" font-size="13" font-weight="600">State &amp; Caching</text>
+  <text x="780" y="230" text-anchor="middle" fill="#a5b4fc" font-size="11">React Query (30s stale)</text>
+  <text x="780" y="248" text-anchor="middle" fill="#a5b4fc" font-size="11">Context API (BatchJob)</text>
+  <text x="780" y="266" text-anchor="middle" fill="#a5b4fc" font-size="11">URL State (Search params)</text>
+  <text x="780" y="284" text-anchor="middle" fill="#a5b4fc" font-size="11">Router Cache (Prefetch)</text>
+
+  <!-- Arrow -->
+  <line x1="890" y1="235" x2="930" y2="235" stroke="#6366f1" stroke-width="2"/>
+
+  <!-- UI Boundaries -->
+  <rect x="940" y="185" width="220" height="100" rx="10" fill="#1e1b4b" stroke="#818cf8" stroke-width="1.5"/>
+  <text x="1050" y="210" text-anchor="middle" fill="#c7d2fe" font-size="13" font-weight="600">UI Boundaries</text>
+  <text x="1050" y="230" text-anchor="middle" fill="#94a3b8" font-size="11">Suspense (Streaming)</text>
+  <text x="1050" y="248" text-anchor="middle" fill="#94a3b8" font-size="10">loading.tsx</text>
+  <text x="1050" y="266" text-anchor="middle" fill="#94a3b8" font-size="10">error.tsx</text>
+  <text x="1050" y="284" text-anchor="middle" fill="#94a3b8" font-size="10">global-error.tsx</text>
+
+  <!-- Data flow arrow from Client to Framework -->
+  <line x1="700" y1="285" x2="700" y2="320" stroke="#6366f1" stroke-width="2"/>
+  <line x1="695" y1="315" x2="705" y2="325" stroke="#6366f1" stroke-width="2"/>
+  <text x="730" y="312" fill="#6366f1" font-size="11" font-weight="500">HTTP / WebSocket</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- LAYER 2: RENDERING & FRAMEWORK -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <rect x="40" y="340" width="1320" height="380" rx="16" fill="url(#frameworkGrad)" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+  <text x="70" y="372" fill="#93c5fd" font-size="16" font-weight="700">LAYER 2 — RENDERING &amp; FRAMEWORK (Next.js App Router)</text>
+
+  <!-- Middleware -->
+  <rect x="70" y="395" width="260" height="90" rx="10" fill="#172554" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="200" y="418" text-anchor="middle" fill="#bfdbfe" font-size="13" font-weight="600">Middleware (proxy.ts)</text>
+  <text x="200" y="438" text-anchor="middle" fill="#93c5fd" font-size="10">Edge Runtime · Auth cookie check</text>
+  <text x="200" y="455" text-anchor="middle" fill="#93c5fd" font-size="10">Public routes: /, /auth/*, /installer/*</text>
+  <text x="200" y="472" text-anchor="middle" fill="#93c5fd" font-size="10">Protected → /auth/signin redirect</text>
+
+  <!-- Route Groups -->
+  <rect x="360" y="395" width="340" height="140" rx="10" fill="#172554" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="530" y="418" text-anchor="middle" fill="#bfdbfe" font-size="13" font-weight="600">App Router Route Groups</text>
+
+  <rect x="380" y="430" width="95" height="95" rx="6" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1"/>
+  <text x="428" y="448" text-anchor="middle" fill="#7dd3fc" font-size="9" font-weight="600">(dashboard)/</text>
+  <text x="428" y="463" text-anchor="middle" fill="#94a3b8" font-size="8">activity</text>
+  <text x="428" y="475" text-anchor="middle" fill="#94a3b8" font-size="8">batch-jobs</text>
+  <text x="428" y="487" text-anchor="middle" fill="#94a3b8" font-size="8">dashboard</text>
+  <text x="428" y="499" text-anchor="middle" fill="#94a3b8" font-size="8">installers</text>
+  <text x="428" y="511" text-anchor="middle" fill="#94a3b8" font-size="8">rewards · team</text>
+
+  <rect x="485" y="430" width="95" height="95" rx="6" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1"/>
+  <text x="533" y="448" text-anchor="middle" fill="#7dd3fc" font-size="9" font-weight="600">(landing)/</text>
+  <text x="533" y="468" text-anchor="middle" fill="#94a3b8" font-size="8">/ — Marketing</text>
+  <text x="533" y="483" text-anchor="middle" fill="#94a3b8" font-size="8">No auth required</text>
+  <text x="533" y="498" text-anchor="middle" fill="#94a3b8" font-size="8">Hero · Features</text>
+  <text x="533" y="513" text-anchor="middle" fill="#94a3b8" font-size="8">CTA · FAQ</text>
+
+  <rect x="590" y="430" width="95" height="95" rx="6" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1"/>
+  <text x="638" y="448" text-anchor="middle" fill="#7dd3fc" font-size="9" font-weight="600">(standalone)/</text>
+  <text x="638" y="468" text-anchor="middle" fill="#94a3b8" font-size="8">auth/signin</text>
+  <text x="638" y="483" text-anchor="middle" fill="#94a3b8" font-size="8">installer/[id]</text>
+  <text x="638" y="498" text-anchor="middle" fill="#94a3b8" font-size="8">my-stats</text>
+  <text x="638" y="513" text-anchor="middle" fill="#94a3b8" font-size="8">Own layout</text>
+
+  <!-- Server Execution -->
+  <rect x="730" y="395" width="280" height="140" rx="10" fill="#172554" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="870" y="418" text-anchor="middle" fill="#bfdbfe" font-size="13" font-weight="600">Server Execution</text>
+
+  <rect x="750" y="435" width="240" height="30" rx="5" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1"/>
+  <text x="870" y="455" text-anchor="middle" fill="#e0f2fe" font-size="11">React Server Components (RSC)</text>
+
+  <rect x="750" y="475" width="240" height="30" rx="5" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1"/>
+  <text x="870" y="495" text-anchor="middle" fill="#e0f2fe" font-size="11">Server Actions — 'use server'</text>
+
+  <rect x="750" y="515" width="240" height="30" rx="5" fill="#1e3a5f" stroke="#38bdf8" stroke-width="1"/>
+  <text x="870" y="535" text-anchor="middle" fill="#e0f2fe" font-size="11">Route Handlers — /api/* (15 routes)</text>
+
+  <!-- Rendering Modes -->
+  <rect x="70" y="510" width="260" height="80" rx="10" fill="#172554" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="200" y="533" text-anchor="middle" fill="#bfdbfe" font-size="13" font-weight="600">Rendering Modes</text>
+  <text x="200" y="555" text-anchor="middle" fill="#86efac" font-size="10">SSG: /, /my-stats</text>
+  <text x="200" y="572" text-anchor="middle" fill="#fde047" font-size="10">ISR: Product pages, reports</text>
+  <text x="200" y="589" text-anchor="middle" fill="#fca5a5" font-size="10">Dynamic: Dashboard, CRUD, auth</text>
+
+  <!-- API Routes -->
+  <rect x="70" y="610" width="1320" height="95" rx="10" fill="#172554" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="700" y="633" text-anchor="middle" fill="#bfdbfe" font-size="13" font-weight="600">Route Handlers — /api/* (15 routes)</text>
+
+  <!-- API route boxes -->
+  <rect x="80" y="648" width="120" height="22" rx="4" fill="#1e3a5f" stroke="#38bdf8" stroke-width="0.8"/>
+  <text x="140" y="663" text-anchor="middle" fill="#7dd3fc" font-size="9">/api/installers</text>
+
+  <rect x="210" y="648" width="100" height="22" rx="4" fill="#1e3a5f" stroke="#38bdf8" stroke-width="0.8"/>
+  <text x="260" y="663" text-anchor="middle" fill="#7dd3fc" font-size="9">/api/rewards</text>
+
+  <rect x="320" y="648" width="90" height="22" rx="4" fill="#1e3a5f" stroke="#38bdf8" stroke-width="0.8"/>
+  <text x="365" y="663" text-anchor="middle" fill="#7dd3fc" font-size="9">/api/team</text>
+
+  <rect x="420" y="648" width="100" height="22" rx="4" fill="#1e3a5f" stroke="#38bdf8" stroke-width="0.8"/>
+  <text x="470" y="663" text-anchor="middle" fill="#7dd3fc" font-size="9">/api/reports</text>
+
+  <rect x="530" y="648" width="110" height="22" rx="4" fill="#1e3a5f" stroke="#38bdf8" stroke-width="0.8"/>
+  <text x="585" y="663" text-anchor="middle" fill="#7dd3fc" font-size="9">/api/webhook</text>
+
+  <rect x="650" y="648" width="100" height="22" rx="4" fill="#1e3a5f" stroke="#38bdf8" stroke-width="0.8"/>
+  <text x="700" y="663" text-anchor="middle" fill="#7dd3fc" font-size="9">/api/auth/*</text>
+
+  <rect x="760" y="648" width="100" height="22" rx="4" fill="#1e3a5f" stroke="#38bdf8" stroke-width="0.8"/>
+  <text x="810" y="663" text-anchor="middle" fill="#7dd3fc" font-size="9">/api/health</text>
+
+  <rect x="870" y="648" width="110" height="22" rx="4" fill="#1e3a5f" stroke="#38bdf8" stroke-width="0.8"/>
+  <text x="925" y="663" text-anchor="middle" fill="#7dd3fc" font-size="9">/api/batch-jobs</text>
+
+  <rect x="990" y="648" width="120" height="22" rx="4" fill="#1e3a5f" stroke="#38bdf8" stroke-width="0.8"/>
+  <text x="1050" y="663" text-anchor="middle" fill="#7dd3fc" font-size="9">/api/dashboard</text>
+
+  <rect x="1120" y="648" width="100" height="22" rx="4" fill="#1e3a5f" stroke="#38bdf8" stroke-width="0.8"/>
+  <text x="1170" y="663" text-anchor="middle" fill="#7dd3fc" font-size="9">/api/search</text>
+
+  <rect x="1230" y="648" width="110" height="22" rx="4" fill="#1e3a5f" stroke="#38bdf8" stroke-width="0.8"/>
+  <text x="1285" y="663" text-anchor="middle" fill="#7dd3fc" font-size="9">/api/settings</text>
+
+  <text x="140" y="693" text-anchor="middle" fill="#94a3b8" font-size="8">CRUD + search</text>
+  <text x="260" y="693" text-anchor="middle" fill="#94a3b8" font-size="8">Payments</text>
+  <text x="365" y="693" text-anchor="middle" fill="#94a3b8" font-size="8">Roles</text>
+  <text x="470" y="693" text-anchor="middle" fill="#94a3b8" font-size="8">Excel export</text>
+  <text x="585" y="693" text-anchor="middle" fill="#94a3b8" font-size="8">WhatsApp</text>
+  <text x="700" y="693" text-anchor="middle" fill="#94a3b8" font-size="8">NextAuth v5</text>
+  <text x="810" y="693" text-anchor="middle" fill="#94a3b8" font-size="8">Ping</text>
+  <text x="925" y="693" text-anchor="middle" fill="#94a3b8" font-size="8">Bulk ops</text>
+  <text x="1050" y="693" text-anchor="middle" fill="#94a3b8" font-size="8">Stats</text>
+  <text x="1170" y="693" text-anchor="middle" fill="#94a3b8" font-size="8">Full-text</text>
+  <text x="1285" y="693" text-anchor="middle" fill="#94a3b8" font-size="8">Config</text>
+
+  <!-- Data flow arrow -->
+  <line x1="700" y1="720" x2="700" y2="755" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="695" y1="750" x2="705" y2="760" stroke="#3b82f6" stroke-width="2"/>
+  <text x="730" y="747" fill="#3b82f6" font-size="11" font-weight="500">ORM / Cache miss</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- LAYER 3: DATA ACCESS & CACHING -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <rect x="40" y="770" width="1320" height="310" rx="16" fill="url(#dataGrad)" stroke="#22c55e" stroke-width="2" filter="url(#shadow)"/>
+  <text x="70" y="802" fill="#86efac" font-size="16" font-weight="700">LAYER 3 — DATA ACCESS &amp; CACHING</text>
+
+  <!-- Cache Layers -->
+  <rect x="70" y="825" width="400" height="120" rx="10" fill="#14532d" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="270" y="848" text-anchor="middle" fill="#bbf7d0" font-size="13" font-weight="600">Cache Layers</text>
+
+  <rect x="90" y="865" width="170" height="30" rx="5" fill="#166534" stroke="#4ade80" stroke-width="1"/>
+  <text x="175" y="885" text-anchor="middle" fill="#dcfce7" font-size="10">React Query (30s)</text>
+
+  <rect x="270" y="865" width="170" height="30" rx="5" fill="#166534" stroke="#4ade80" stroke-width="1"/>
+  <text x="355" y="885" text-anchor="middle" fill="#dcfce7" font-size="10">Next.js Data Cache</text>
+
+  <rect x="90" y="905" width="170" height="30" rx="5" fill="#166534" stroke="#4ade80" stroke-width="1"/>
+  <text x="175" y="925" text-anchor="middle" fill="#dcfce7" font-size="10">Request Memoization</text>
+
+  <rect x="270" y="905" width="170" height="30" rx="5" fill="#166534" stroke="#4ade80" stroke-width="1"/>
+  <text x="355" y="925" text-anchor="middle" fill="#dcfce7" font-size="10">Router Cache</text>
+
+  <!-- Data Access -->
+  <rect x="500" y="825" width="400" height="120" rx="10" fill="#14532d" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="700" y="848" text-anchor="middle" fill="#bbf7d0" font-size="13" font-weight="600">Data Access</text>
+
+  <rect x="520" y="865" width="180" height="30" rx="5" fill="#166534" stroke="#4ade80" stroke-width="1"/>
+  <text x="610" y="885" text-anchor="middle" fill="#dcfce7" font-size="10">Mongoose ODM</text>
+
+  <rect x="710" y="865" width="170" height="30" rx="5" fill="#166534" stroke="#4ade80" stroke-width="1"/>
+  <text x="795" y="885" text-anchor="middle" fill="#dcfce7" font-size="10">dbConnect() Singleton</text>
+
+  <rect x="520" y="905" width="170" height="30" rx="5" fill="#166534" stroke="#4ade80" stroke-width="1"/>
+  <text x="605" y="925" text-anchor="middle" fill="#dcfce7" font-size="10">Connection Pool: 10</text>
+
+  <rect x="710" y="905" width="170" height="30" rx="5" fill="#166534" stroke="#4ade80" stroke-width="1"/>
+  <text x="795" y="925" text-anchor="middle" fill="#dcfce7" font-size="10">Query Builder + Zod</text>
+
+  <!-- Query Helpers -->
+  <rect x="930" y="825" width="400" height="120" rx="10" fill="#14532d" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="1130" y="848" text-anchor="middle" fill="#bbf7d0" font-size="13" font-weight="600">Query Utilities</text>
+
+  <rect x="950" y="865" width="170" height="30" rx="5" fill="#166534" stroke="#4ade80" stroke-width="1"/>
+  <text x="1035" y="885" text-anchor="middle" fill="#dcfce7" font-size="10">queryBuilder.ts</text>
+
+  <rect x="1140" y="865" width="170" height="30" rx="5" fill="#166534" stroke="#4ade80" stroke-width="1"/>
+  <text x="1225" y="885" text-anchor="middle" fill="#dcfce7" font-size="10">pagination.ts</text>
+
+  <rect x="950" y="905" width="170" height="30" rx="5" fill="#166534" stroke="#4ade80" stroke-width="1"/>
+  <text x="1035" y="925" text-anchor="middle" fill="#dcfce7" font-size="10">validateRequest.ts</text>
+
+  <rect x="1140" y="905" width="170" height="30" rx="5" fill="#166534" stroke="#4ade80" stroke-width="1"/>
+  <text x="1225" y="925" text-anchor="middle" fill="#dcfce7" font-size="10">apiResponse.ts</text>
+
+  <!-- Mongoose Models -->
+  <rect x="70" y="965" width="1320" height="100" rx="10" fill="#14532d" stroke="#4ade80" stroke-width="1.5"/>
+  <text x="700" y="988" text-anchor="middle" fill="#bbf7d0" font-size="13" font-weight="600">Mongoose Models (10)</text>
+
+  <rect x="80" y="1005" width="120" height="22" rx="4" fill="#166534" stroke="#4ade80" stroke-width="0.8"/>
+  <text x="140" y="1020" text-anchor="middle" fill="#dcfce7" font-size="9">TeamMember</text>
+
+  <rect x="210" y="1005" width="120" height="22" rx="4" fill="#166534" stroke="#4ade80" stroke-width="0.8"/>
+  <text x="270" y="1020" text-anchor="middle" fill="#dcfce7" font-size="9">Installer</text>
+
+  <rect x="340" y="1005" width="120" height="22" rx="4" fill="#166534" stroke="#4ade80" stroke-width="0.8"/>
+  <text x="400" y="1020" text-anchor="middle" fill="#dcfce7" font-size="9">InstallerReward</text>
+
+  <rect x="470" y="1005" width="120" height="22" rx="4" fill="#166534" stroke="#4ade80" stroke-width="0.8"/>
+  <text x="530" y="1020" text-anchor="middle" fill="#dcfce7" font-size="9">Product</text>
+
+  <rect x="600" y="1005" width="120" height="22" rx="4" fill="#166534" stroke="#4ade80" stroke-width="0.8"/>
+  <text x="660" y="1020" text-anchor="middle" fill="#dcfce7" font-size="9">Settings</text>
+
+  <rect x="730" y="1005" width="120" height="22" rx="4" fill="#166534" stroke="#4ade80" stroke-width="0.8"/>
+  <text x="790" y="1020" text-anchor="middle" fill="#dcfce7" font-size="9">Activity</text>
+
+  <rect x="860" y="1005" width="120" height="22" rx="4" fill="#166534" stroke="#4ade80" stroke-width="0.8"/>
+  <text x="920" y="1020" text-anchor="middle" fill="#dcfce7" font-size="9">BatchJob</text>
+
+  <rect x="990" y="1005" width="120" height="22" rx="4" fill="#166534" stroke="#4ade80" stroke-width="0.8"/>
+  <text x="1050" y="1020" text-anchor="middle" fill="#dcfce7" font-size="9">GoogleAuth</text>
+
+  <rect x="1120" y="1005" width="120" height="22" rx="4" fill="#166534" stroke="#4ade80" stroke-width="0.8"/>
+  <text x="1180" y="1020" text-anchor="middle" fill="#dcfce7" font-size="9">RateLimit</text>
+
+  <rect x="1250" y="1005" width="100" height="22" rx="4" fill="#166534" stroke="#4ade80" stroke-width="0.8"/>
+  <text x="1300" y="1020" text-anchor="middle" fill="#dcfce7" font-size="9">PasswordReset</text>
+
+  <!-- Data flow arrow -->
+  <line x1="700" y1="1080" x2="700" y2="1115" stroke="#22c55e" stroke-width="2"/>
+  <line x1="695" y1="1110" x2="705" y2="1120" stroke="#22c55e" stroke-width="2"/>
+  <text x="730" y="1107" fill="#22c55e" font-size="11" font-weight="500">mongodb+srv://</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- LAYER 4: EXTERNAL SERVICES & DATABASE -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <rect x="40" y="1130" width="1320" height="310" rx="16" fill="url(#externalGrad)" stroke="#f97316" stroke-width="2" filter="url(#shadow)"/>
+  <text x="70" y="1162" fill="#fed7aa" font-size="16" font-weight="700">LAYER 4 — EXTERNAL SERVICES &amp; DATABASE</text>
+
+  <!-- MongoDB Atlas -->
+  <rect x="70" y="1185" width="260" height="100" rx="10" fill="#7c2d12" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="200" y="1208" text-anchor="middle" fill="#ffedd5" font-size="13" font-weight="600">MongoDB Atlas</text>
+  <text x="200" y="1230" text-anchor="middle" fill="#fdba74" font-size="11">10 Collections</text>
+  <text x="200" y="1248" text-anchor="middle" fill="#fdba74" font-size="10">Connection pooling (10)</text>
+  <text x="200" y="1266" text-anchor="middle" fill="#fdba74" font-size="10">DNS SRV resolution</text>
+  <text x="200" y="1284" text-anchor="middle" fill="#fdba74" font-size="10">Atlas backups</text>
+
+  <!-- Auth -->
+  <rect x="350" y="1185" width="200" height="100" rx="10" fill="#7c2d12" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="450" y="1208" text-anchor="middle" fill="#ffedd5" font-size="13" font-weight="600">NextAuth v5</text>
+  <text x="450" y="1228" text-anchor="middle" fill="#fdba74" font-size="10">Credentials Provider</text>
+  <text x="450" y="1246" text-anchor="middle" fill="#fdba74" font-size="10">JWT (30-day expiry)</text>
+  <text x="450" y="1264" text-anchor="middle" fill="#fdba74" font-size="10">bcryptjs hashing</text>
+  <text x="450" y="1282" text-anchor="middle" fill="#fdba74" font-size="10">5 attempts / 10 min</text>
+
+  <!-- WhatsApp -->
+  <rect x="570" y="1185" width="220" height="100" rx="10" fill="#7c2d12" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="680" y="1208" text-anchor="middle" fill="#ffedd5" font-size="13" font-weight="600">WhatsApp Cloud API</text>
+  <text x="680" y="1228" text-anchor="middle" fill="#fdba74" font-size="10">Meta Business Platform</text>
+  <text x="680" y="1246" text-anchor="middle" fill="#fdba74" font-size="10">Free-form messages</text>
+  <text x="680" y="1264" text-anchor="middle" fill="#fdba74" font-size="10">24-hour service window</text>
+  <text x="680" y="1282" text-anchor="middle" fill="#fdba74" font-size="10">PIN delivery + webhooks</text>
+
+  <!-- Google Contacts -->
+  <rect x="810" y="1185" width="200" height="100" rx="10" fill="#7c2d12" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="910" y="1208" text-anchor="middle" fill="#ffedd5" font-size="13" font-weight="600">Google Contacts</text>
+  <text x="910" y="1228" text-anchor="middle" fill="#fdba74" font-size="10">People API</text>
+  <text x="910" y="1246" text-anchor="middle" fill="#fdba74" font-size="10">OAuth 2.0 flow</text>
+  <text x="910" y="1264" text-anchor="middle" fill="#fdba74" font-size="10">Create · Update · Delete</text>
+  <text x="910" y="1282" text-anchor="middle" fill="#fdba74" font-size="10">Fire-and-forget sync</text>
+
+  <!-- Nodemailer -->
+  <rect x="1030" y="1185" width="150" height="100" rx="10" fill="#7c2d12" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="1105" y="1208" text-anchor="middle" fill="#ffedd5" font-size="13" font-weight="600">Nodemailer</text>
+  <text x="1105" y="1228" text-anchor="middle" fill="#fdba74" font-size="10">SMTP transport</text>
+  <text x="1105" y="1246" text-anchor="middle" fill="#fdba74" font-size="10">Password reset PIN</text>
+  <text x="1105" y="1264" text-anchor="middle" fill="#fdba74" font-size="10">Email delivery</text>
+
+  <!-- ExcelJS -->
+  <rect x="1200" y="1185" width="150" height="100" rx="10" fill="#7c2d12" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="1275" y="1208" text-anchor="middle" fill="#ffedd5" font-size="13" font-weight="600">ExcelJS</text>
+  <text x="1275" y="1228" text-anchor="middle" fill="#fdba74" font-size="10">.xlsx generation</text>
+  <text x="1275" y="1246" text-anchor="middle" fill="#fdba74" font-size="10">Report export</text>
+  <text x="1275" y="1264" text-anchor="middle" fill="#fdba74" font-size="10">Data tables</text>
+
+  <!-- Service Layer -->
+  <rect x="70" y="1310" width="1320" height="55" rx="10" fill="#7c2d12" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="700" y="1333" text-anchor="middle" fill="#ffedd5" font-size="13" font-weight="600">Service Layer — Business Logic Orchestration</text>
+  <text x="700" y="1353" text-anchor="middle" fill="#fdba74" font-size="10">services/installers.ts — createInstaller · updateInstaller · deleteInstaller · regenerateAndSendPin</text>
+
+  <!-- File Storage -->
+  <rect x="70" y="1380" width="300" height="55" rx="10" fill="#7c2d12" stroke="#fb923c" stroke-width="1.5"/>
+  <text x="220" y="1403" text-anchor="middle" fill="#ffedd5" font-size="13" font-weight="600">File Storage</text>
+  <text x="220" y="1423" text-anchor="middle" fill="#fdba74" font-size="10">Vercel Blob · public/ fonts + images + service worker</text>
+
+  <!-- Data flow arrow -->
+  <line x1="700" y1="1440" x2="700" y2="1475" stroke="#f97316" stroke-width="2"/>
+  <line x1="695" y1="1470" x2="705" y2="1480" stroke="#f97316" stroke-width="2"/>
+  <text x="730" y="1467" fill="#f97316" font-size="11" font-weight="500">Deploy pipeline</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- LAYER 5: INFRASTRUCTURE & CI/CD -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <rect x="40" y="1490" width="1320" height="310" rx="16" fill="url(#infraGrad)" stroke="#a855f7" stroke-width="2" filter="url(#shadow)"/>
+  <text x="70" y="1522" fill="#e9d5ff" font-size="16" font-weight="700">LAYER 5 — INFRASTRUCTURE &amp; CI/CD</text>
+
+  <!-- Vercel -->
+  <rect x="70" y="1545" width="350" height="120" rx="10" fill="#581c87" stroke="#c084fc" stroke-width="1.5"/>
+  <text x="245" y="1568" text-anchor="middle" fill="#e9d5ff" font-size="13" font-weight="600">Vercel Edge Network</text>
+
+  <rect x="90" y="1585" width="155" height="30" rx="5" fill="#6b21a8" stroke="#c084fc" stroke-width="1"/>
+  <text x="168" y="1605" text-anchor="middle" fill="#e9d5ff" font-size="10">Edge Functions</text>
+
+  <rect x="255" y="1585" width="155" height="30" rx="5" fill="#6b21a8" stroke="#c084fc" stroke-width="1"/>
+  <text x="333" y="1605" text-anchor="middle" fill="#e9d5ff" font-size="10">Serverless Functions</text>
+
+  <rect x="90" y="1625" width="155" height="30" rx="5" fill="#6b21a8" stroke="#c084fc" stroke-width="1"/>
+  <text x="168" y="1645" text-anchor="middle" fill="#e9d5ff" font-size="10">ISR/SSG Cache</text>
+
+  <rect x="255" y="1625" width="155" height="30" rx="5" fill="#6b21a8" stroke="#c084fc" stroke-width="1"/>
+  <text x="333" y="1645" text-anchor="middle" fill="#e9d5ff" font-size="10">CDN + Image Opt</text>
+
+  <!-- GitHub -->
+  <rect x="450" y="1545" width="250" height="120" rx="10" fill="#581c87" stroke="#c084fc" stroke-width="1.5"/>
+  <text x="575" y="1568" text-anchor="middle" fill="#e9d5ff" font-size="13" font-weight="600">GitHub</text>
+
+  <rect x="470" y="1585" width="210" height="30" rx="5" fill="#6b21a8" stroke="#c084fc" stroke-width="1"/>
+  <text x="575" y="1605" text-anchor="middle" fill="#e9d5ff" font-size="10">Git Version Control</text>
+
+  <rect x="470" y="1625" width="210" height="30" rx="5" fill="#6b21a8" stroke="#c084fc" stroke-width="1"/>
+  <text x="575" y="1645" text-anchor="middle" fill="#e9d5ff" font-size="10">Pull Requests · Code Review</text>
+
+  <!-- CI/CD Pipeline -->
+  <rect x="730" y="1545" width="630" height="120" rx="10" fill="#581c87" stroke="#c084fc" stroke-width="1.5"/>
+  <text x="1045" y="1568" text-anchor="middle" fill="#e9d5ff" font-size="13" font-weight="600">CI/CD Pipeline</text>
+
+  <rect x="750" y="1585" width="105" height="30" rx="5" fill="#6b21a8" stroke="#c084fc" stroke-width="1"/>
+  <text x="803" y="1605" text-anchor="middle" fill="#e9d5ff" font-size="9">ESLint</text>
+
+  <rect x="865" y="1585" width="105" height="30" rx="5" fill="#6b21a8" stroke="#c084fc" stroke-width="1"/>
+  <text x="918" y="1605" text-anchor="middle" fill="#e9d5ff" font-size="9">TypeScript</text>
+
+  <rect x="980" y="1585" width="105" height="30" rx="5" fill="#6b21a8" stroke="#c084fc" stroke-width="1"/>
+  <text x="1033" y="1605" text-anchor="middle" fill="#e9d5ff" font-size="9">Vitest</text>
+
+  <rect x="1095" y="1585" width="105" height="30" rx="5" fill="#6b21a8" stroke="#c084fc" stroke-width="1"/>
+  <text x="1148" y="1605" text-anchor="middle" fill="#e9d5ff" font-size="9">Build</text>
+
+  <rect x="1210" y="1585" width="130" height="30" rx="5" fill="#6b21a8" stroke="#c084fc" stroke-width="1"/>
+  <text x="1275" y="1605" text-anchor="middle" fill="#e9d5ff" font-size="9">Deploy</text>
+
+  <!-- Pipeline arrows -->
+  <line x1="855" y1="1600" x2="865" y2="1600" stroke="#c084fc" stroke-width="1.5"/>
+  <line x1="970" y1="1600" x2="980" y2="1600" stroke="#c084fc" stroke-width="1.5"/>
+  <line x1="1085" y1="1600" x2="1095" y2="1600" stroke="#c084fc" stroke-width="1.5"/>
+  <line x1="1200" y1="1600" x2="1210" y2="1600" stroke="#c084fc" stroke-width="1.5"/>
+
+  <rect x="750" y="1625" width="590" height="30" rx="5" fill="#6b21a8" stroke="#c084fc" stroke-width="1"/>
+  <text x="1045" y="1645" text-anchor="middle" fill="#e9d5ff" font-size="10">PR → Preview Deploy | main → Production Deploy</text>
+
+  <!-- Monitoring -->
+  <rect x="70" y="1690" width="1320" height="85" rx="10" fill="#581c87" stroke="#c084fc" stroke-width="1.5"/>
+  <text x="700" y="1713" text-anchor="middle" fill="#e9d5ff" font-size="13" font-weight="600">Monitoring &amp; Observability</text>
+
+  <rect x="90" y="1730" width="240" height="25" rx="4" fill="#6b21a8" stroke="#c084fc" stroke-width="0.8"/>
+  <text x="210" y="1747" text-anchor="middle" fill="#e9d5ff" font-size="9">Activity Logger — All mutations audited</text>
+
+  <rect x="350" y="1730" width="240" height="25" rx="4" fill="#6b21a8" stroke="#c084fc" stroke-width="0.8"/>
+  <text x="470" y="1747" text-anchor="middle" fill="#e9d5ff" font-size="9">Rate Limiter — Login: 5/10min</text>
+
+  <rect x="610" y="1730" width="240" height="25" rx="4" fill="#6b21a8" stroke="#c084fc" stroke-width="0.8"/>
+  <text x="730" y="1747" text-anchor="middle" fill="#e9d5ff" font-size="9">Logger — Structured logging</text>
+
+  <rect x="870" y="1730" width="240" height="25" rx="4" fill="#6b21a8" stroke="#c084fc" stroke-width="0.8"/>
+  <text x="990" y="1747" text-anchor="middle" fill="#e9d5ff" font-size="9">Health Check — /api/health</text>
+
+  <rect x="1130" y="1730" width="200" height="25" rx="4" fill="#6b21a8" stroke="#c084fc" stroke-width="0.8"/>
+  <text x="1230" y="1747" text-anchor="middle" fill="#e9d5ff" font-size="9">Environment Secrets</text>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- DATA FLOW SUMMARY -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <rect x="40" y="1830" width="1320" height="340" rx="16" fill="#0f172a" stroke="#64748b" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="700" y="1862" text-anchor="middle" fill="#e2e8f0" font-size="16" font-weight="700">COMPLETE DATA FLOW — Request Lifecycle</text>
+
+  <!-- Flow boxes -->
+  <rect x="70" y="1890" width="160" height="60" rx="8" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="150" y="1915" text-anchor="middle" fill="#c7d2fe" font-size="12" font-weight="600">👤 User</text>
+  <text x="150" y="1935" text-anchor="middle" fill="#94a3b8" font-size="9">Navigate / Interact</text>
+
+  <line x1="230" y1="1920" x2="270" y2="1920" stroke="#6366f1" stroke-width="2"/>
+
+  <rect x="280" y="1890" width="160" height="60" rx="8" fill="#1e1b4b" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="360" y="1915" text-anchor="middle" fill="#c7d2fe" font-size="12" font-weight="600">🌐 Browser</text>
+  <text x="360" y="1935" text-anchor="middle" fill="#94a3b8" font-size="9">HTTPS Request</text>
+
+  <line x1="440" y1="1920" x2="480" y2="1920" stroke="#6366f1" stroke-width="2"/>
+
+  <rect x="490" y="1890" width="160" height="60" rx="8" fill="#581c87" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="570" y="1915" text-anchor="middle" fill="#e9d5ff" font-size="12" font-weight="600">⚡ Edge (Vercel)</text>
+  <text x="570" y="1935" text-anchor="middle" fill="#94a3b8" font-size="9">Middleware proxy.ts</text>
+
+  <line x1="650" y1="1920" x2="690" y2="1920" stroke="#a855f7" stroke-width="2"/>
+
+  <rect x="700" y="1890" width="160" height="60" rx="8" fill="#172554" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="780" y="1915" text-anchor="middle" fill="#dbeafe" font-size="12" font-weight="600">📄 Next.js Server</text>
+  <text x="780" y="1935" text-anchor="middle" fill="#94a3b8" font-size="9">RSC / Route Handler</text>
+
+  <line x1="860" y1="1920" x2="900" y2="1920" stroke="#3b82f6" stroke-width="2"/>
+
+  <rect x="910" y="1890" width="160" height="60" rx="8" fill="#14532d" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="990" y="1915" text-anchor="middle" fill="#dcfce7" font-size="12" font-weight="600">💾 Cache Layer</text>
+  <text x="990" y="1935" text-anchor="middle" fill="#94a3b8" font-size="9">React Query + NDC</text>
+
+  <line x1="1070" y1="1920" x2="1110" y2="1920" stroke="#22c55e" stroke-width="2"/>
+
+  <rect x="1120" y="1890" width="200" height="60" rx="8" fill="#7c2d12" stroke="#f97316" stroke-width="1.5"/>
+  <text x="1220" y="1915" text-anchor="middle" fill="#fed7aa" font-size="12" font-weight="600">🍃 MongoDB Atlas</text>
+  <text x="1220" y="1935" text-anchor="middle" fill="#94a3b8" font-size="9">10 Collections</text>
+
+  <!-- Return flow -->
+  <line x1="700" y1="1955" x2="700" y2="1990" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5,5"/>
+  <text x="700" y="2010" text-anchor="middle" fill="#64748b" font-size="11">← Response flows back through cache → Edge → Browser → User</text>
+
+  <!-- Cache hit path -->
+  <path d="M 570 1950 Q 570 2030 780 2030 Q 990 2030 990 1955" fill="none" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,4"/>
+  <text x="780" y="2045" text-anchor="middle" fill="#22c55e" font-size="9">Cache hit → skip DB</text>
+
+  <!-- Side effects callout -->
+  <rect x="70" y="2060" width="1320" height="80" rx="10" fill="#1e293b" stroke="#64748b" stroke-width="1"/>
+  <text x="700" y="2083" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="600">Side Effects (fire-and-forget, non-blocking)</text>
+  <text x="700" y="2103" text-anchor="middle" fill="#94a3b8" font-size="10">WhatsApp PIN delivery · Google Contacts sync · Activity logging · Email notifications · Excel report generation</text>
+  <text x="700" y="2123" text-anchor="middle" fill="#64748b" font-size="9">These run in parallel after the primary mutation — failures are logged, never fatal to the main request</text>
+
+  <!-- Footer -->
+  <text x="700" y="2175" text-anchor="middle" fill="#475569" font-size="10">Generated for IPMS v1.0 — Next.js 16 · React 19 · MongoDB Atlas · Vercel · 15 API Routes · 10 Models</text>
+</svg>
