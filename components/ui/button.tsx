@@ -155,7 +155,10 @@ const ButtonBase = React.forwardRef<
 ButtonBase.displayName = "Button";
 
 const MotionButton = motion.create(ButtonBase);
-type MotionButtonProps = React.ComponentProps<typeof MotionButton>;
+type MotionButtonProps = Omit<
+  React.ComponentProps<typeof MotionButton>,
+  "onDrag" | "onDragStart" | "onDragEnd" | "onAnimationStart"
+>;
 
 const Button = React.forwardRef<
   HTMLButtonElement | HTMLAnchorElement,
