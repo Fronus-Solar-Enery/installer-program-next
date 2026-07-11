@@ -7,33 +7,37 @@ import { slideUp, staggerContainer, VIEWPORT_ONCE } from "@/lib/motion";
 
 export default function ProductShowcase() {
   return (
-    <section id="products" className="relative">
+    <section id="products" className="lp-section relative scroll-mt-24">
       <motion.div
         variants={staggerContainer}
         initial="hidden"
         whileInView="show"
         viewport={VIEWPORT_ONCE}
-        className="mx-auto max-w-6xl space-y-3 px-4 pt-24 pb-12 text-center"
+        className="mx-auto max-w-6xl space-y-4 px-4 pb-14"
       >
         <motion.p
           variants={slideUp}
-          className="text-xs uppercase tracking-[0.3em] text-brand-800"
+          className="text-xs font-medium uppercase tracking-[0.25em] text-brand-1000 dark:text-brand-600"
         >
-          Eligible Products
+          Eligible products
         </motion.p>
         <motion.h2
           variants={slideUp}
-          className="font-display text-3xl font-bold tracking-tight text-balance sm:text-5xl"
+          className="max-w-3xl font-display text-3xl font-bold tracking-tight sm:text-5xl"
         >
-          Every Fronus inverter pays{" "}
-          <span className="text-brand-800">Rs 5,000</span>
+          Three inverters. Same flat{" "}
+          <span className="font-number text-brand-900 dark:text-brand-600">
+            Rs 5,000
+          </span>
+          .
         </motion.h2>
         <motion.p
           variants={slideUp}
-          className="mx-auto max-w-xl text-muted-foreground text-balance"
+          className="max-w-2xl text-pretty text-muted-foreground"
         >
-          Install any of these. Register the serial. The reward lands in your
-          bank — flat, no tiers, no fine print.
+          No exclusivity and no tiers — keep installing whatever you already
+          install, and earn on every eligible Fronus unit you fit. Units
+          purchased after 1 July 2026 qualify.
         </motion.p>
       </motion.div>
 
@@ -42,11 +46,11 @@ export default function ProductShowcase() {
         initial="hidden"
         whileInView="show"
         viewport={VIEWPORT_ONCE}
-        className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 pb-24 sm:grid-cols-2 lg:grid-cols-3"
+        className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-4 sm:grid-cols-2 lg:grid-cols-3"
       >
-        {LANDING_PRODUCTS.map((product, i) => (
+        {LANDING_PRODUCTS.map((product) => (
           <motion.div key={product.id} variants={slideUp}>
-            <ProductCard product={product} index={i + 1} />
+            <ProductCard product={product} />
           </motion.div>
         ))}
       </motion.div>

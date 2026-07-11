@@ -2,41 +2,43 @@
 
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { IconWhatsapp } from "@/components/icons";
+import { IconWhatsapp, IconArrowRight } from "@/components/icons";
 import { buildWhatsAppUrl, WHATSAPP_LINK_ATTRS } from "@/lib/whatsapp";
 import { slideUp, staggerContainer, VIEWPORT_ONCE } from "@/lib/motion";
 
 export default function FinalCTA() {
   return (
-    <section className="relative flex min-h-[80vh] items-center justify-center overflow-hidden border-t border-border/40 px-4 py-24">
+    <section className="lp-section relative overflow-hidden border-t border-border/60 bg-brand-200/60 px-4 dark:bg-brand-1200/40">
       <motion.div
         variants={staggerContainer}
         initial="hidden"
         whileInView="show"
         viewport={VIEWPORT_ONCE}
-        className="flex flex-col items-center gap-8 text-center"
+        className="mx-auto flex max-w-3xl flex-col items-center gap-7 text-center"
       >
         <motion.h2
           variants={slideUp}
-          className="font-display max-w-3xl text-4xl font-bold leading-[1.05] tracking-tight text-balance sm:text-6xl"
+          className="font-display text-4xl font-bold leading-[1.05] tracking-tight text-balance sm:text-6xl"
         >
           Your next install is worth{" "}
-          <span className="text-brand-800 font-number">5,000 PKR</span>
+          <span className="font-number text-brand-900 tabular-nums dark:text-brand-600">
+            Rs 5,000
+          </span>
         </motion.h2>
 
         <motion.p
           variants={slideUp}
-          className="max-w-lg text-muted-foreground text-balance"
+          className="max-w-lg text-pretty text-muted-foreground"
         >
-          Join the Fronus Installer Program. Get your code on WhatsApp in
-          minutes. Start earning today.
+          Message us on WhatsApp, get registered in minutes, and start earning
+          on the installs you&apos;re already doing.
         </motion.p>
 
         <motion.div variants={slideUp}>
           <Button
             size="lg"
             asChild
-            className="text-base sm:text-lg rounded-full"
+            className="lp-glow-brand group h-13 rounded-full bg-brand-900 px-8 pr-4 text-base text-white hover:bg-brand-1000 sm:text-lg dark:bg-brand-700 dark:text-brand-1200 dark:hover:bg-brand-600"
           >
             <a
               href={buildWhatsAppUrl({ intent: "join", source: "final-cta" })}
@@ -44,9 +46,16 @@ export default function FinalCTA() {
             >
               <IconWhatsapp fill className="mr-2 size-5" />
               Join the Installer Program
+              <span className="lp-btn-icon ml-3">
+                <IconArrowRight className="size-3.5" />
+              </span>
             </a>
           </Button>
         </motion.div>
+
+        <motion.p variants={slideUp} className="text-sm text-muted-foreground">
+          Free to join · No forms · No exclusivity
+        </motion.p>
       </motion.div>
     </section>
   );

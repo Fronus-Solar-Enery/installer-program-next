@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/button";
 import ProgramLogo from "@/components/ProgramLogo";
-import { IconWhatsapp, IconClose } from "@/components/icons";
+import { IconWhatsapp } from "@/components/icons";
 import { buildWhatsAppUrl, WHATSAPP_LINK_ATTRS } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
   { href: "#products", label: "Products" },
   { href: "#how-it-works", label: "How it works" },
-  { href: "#testimonials", label: "Testimonials" },
+  { href: "#faq", label: "FAQ" },
 ];
 
 const easeStrong = [0.23, 1, 0.32, 1] as const;
@@ -35,7 +35,6 @@ const menuItem = {
 export default function Header2026() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -43,6 +42,16 @@ export default function Header2026() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Fullscreen menu open = lock body scroll behind it.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
 
   const closeMobile = () => setMobileOpen(false);
 
@@ -59,12 +68,10 @@ export default function Header2026() {
             delay: 0.1,
           }}
           className={cn(
-            "mt-4 flex items-center justify-between gap-4 backdrop-blur-2xl",
-            "rounded-full px-8 py-4",
-            "transition-all duration-500 ease-fluid",
-            scrolled
-              ? "lp-nav-island w-[90%] max-w-5xl shadow-lg"
-              : "lp-nav-island w-[90%] max-w-5xl",
+            "lp-nav-island mt-4 flex w-[92%] max-w-5xl items-center justify-between gap-4",
+            "rounded-full py-3 pl-6 pr-3 sm:pl-8",
+            "transition-shadow duration-500 ease-fluid",
+            scrolled && "shadow-lg",
           )}
         >
           <Link
@@ -74,43 +81,43 @@ export default function Header2026() {
           >
             <ProgramLogo className="w-24 h-8!" />
           </Link>
-          {/* 
-          <nav className="hidden md:flex items-center gap-8" aria-label="Main">
+
+          <nav className="hidden items-center gap-7 md:flex" aria-label="Main">
             {NAV_LINKS.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
-                className="text-sm text-muted-foreground hover:text-brand-600 transition-colors duration-300"
+                className="text-sm font-medium text-muted-foreground transition-colors duration-300 hover:text-foreground"
               >
                 {link.label}
               </a>
             ))}
-          </nav> */}
+          </nav>
 
           <div className="flex items-center gap-2">
             <Button
               size="sm"
               asChild
-              className="hidden sm:inline-flex rounded-full lp-magnetic"
+              className="lp-magnetic hidden rounded-full bg-brand-900 text-white hover:bg-brand-1000 sm:inline-flex dark:bg-brand-700 dark:text-brand-1200 dark:hover:bg-brand-600"
             >
               <a
                 href={buildWhatsAppUrl({ intent: "join", source: "header" })}
                 {...WHATSAPP_LINK_ATTRS}
               >
                 <IconWhatsapp fill className="mr-1.5 size-4" />
-                Join Now
+                Join on WhatsApp
               </a>
             </Button>
             <button
               type="button"
-              aria-label="Toggle menu"
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
               onClick={() => setMobileOpen(!mobileOpen)}
-              className={`
-                flex md:hidden flex-col items-center justify-center gap-[3.5px]
-                size-9 rounded-full
-                text-muted-foreground hover:text-foreground transition-colors
-                ${mobileOpen ? "lp-hamburger-open" : ""}
-              `}
+              className={cn(
+                "flex size-10 flex-col items-center justify-center gap-[3.5px] rounded-full",
+                "text-muted-foreground transition-colors hover:text-foreground md:hidden",
+                mobileOpen && "lp-hamburger-open",
+              )}
             >
               <span className="lp-hamburger-line" />
               <span className="lp-hamburger-line" />
@@ -125,13 +132,22 @@ export default function Header2026() {
           <>
             <div className="lp-menu-backdrop" />
             <motion.div
-              ref={menuRef}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
               className="lp-menu-overlay"
             >
+              <button
+                type="button"
+                aria-label="Close menu"
+                onClick={closeMobile}
+                className="lp-hamburger-open absolute right-4 top-6 flex size-11 flex-col items-center justify-center gap-[3.5px] rounded-full text-foreground"
+              >
+                <span className="lp-hamburger-line" />
+                <span className="lp-hamburger-line" />
+                <span className="lp-hamburger-line" />
+              </button>
               {NAV_LINKS.map((link, i) => (
                 <motion.a
                   key={link.href}
@@ -155,7 +171,11 @@ export default function Header2026() {
                 exit="exit"
                 className="mt-6 flex flex-col items-center gap-4"
               >
-                <Button size="lg" asChild className="rounded-full lp-magnetic">
+                <Button
+                  size="lg"
+                  asChild
+                  className="lp-magnetic rounded-full bg-brand-900 text-white hover:bg-brand-1000 dark:bg-brand-700 dark:text-brand-1200 dark:hover:bg-brand-600"
+                >
                   <a
                     href={buildWhatsAppUrl({
                       intent: "join",
@@ -169,11 +189,11 @@ export default function Header2026() {
                   </a>
                 </Button>
                 <Link
-                  href="/auth/signin"
+                  href="/auth/installer"
                   onClick={closeMobile}
-                  className="text-sm text-muted-foreground hover:text-brand-600 transition-colors"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  Sign In
+                  Login to Installer Portal
                 </Link>
               </motion.div>
             </motion.div>
