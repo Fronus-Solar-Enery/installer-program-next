@@ -46,7 +46,7 @@ export function ProductFormDialog({
             requiresInverter: product.requiresInverter,
             isBattery: product.isBattery,
           }
-        : EMPTY_FORM
+        : EMPTY_FORM,
     );
   }, [product, isOpen]);
 
@@ -85,7 +85,7 @@ export function ProductFormDialog({
           <div className="flex items-center justify-between space-x-2">
             <Label htmlFor="product-battery">Is Battery</Label>
             <Switch
-              id="product-battery"
+              label="Is Battery"
               checked={form.isBattery}
               onCheckedChange={(checked) =>
                 setForm((f) => ({ ...f, isBattery: checked }))
@@ -95,7 +95,7 @@ export function ProductFormDialog({
           <div className="flex items-center justify-between space-x-2">
             <Label htmlFor="product-inverter">Requires Inverter Serial</Label>
             <Switch
-              id="product-inverter"
+              label="Requires Inverter Serial"
               checked={form.requiresInverter}
               onCheckedChange={(checked) =>
                 setForm((f) => ({ ...f, requiresInverter: checked }))

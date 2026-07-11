@@ -35,12 +35,12 @@ const STEPS = [
   {
     icon: IconBank,
     title: "You get rewarded",
-    body: "A flat Rs 5,000 is transferred to your bank account — typically within a few working days of approval, not months.",
+    body: "A flat Rs 5,000 is transferred to your bank account — typically within a few working hours of approval, not months.",
     highlight: true,
   },
 ];
 
-export default function HowItWorks2026() {
+export default function HowItWorks() {
   return (
     <section
       id="how-it-works"
@@ -56,7 +56,7 @@ export default function HowItWorks2026() {
         >
           <motion.p
             variants={slideUp}
-            className="text-xs font-medium uppercase tracking-[0.25em] text-brand-1000 dark:text-brand-600"
+            className="text-xs font-medium uppercase tracking-[0.25em] text-brand-900 dark:text-brand-800"
           >
             How it works
           </motion.p>
@@ -70,9 +70,8 @@ export default function HowItWorks2026() {
             variants={slideUp}
             className="max-w-md text-pretty text-muted-foreground"
           >
-            Every step is verified by our team, so every reward is real. You
-            can track your installs and payouts any time in the installer
-            portal.
+            Every step is verified by our team, so every reward is real. You can
+            track your installs and payouts any time in the installer portal.
           </motion.p>
         </motion.div>
 
@@ -89,14 +88,14 @@ export default function HowItWorks2026() {
               variants={slideUp}
               className={
                 step.highlight
-                  ? "relative rounded-3xl border border-brand-900/25 bg-brand-200/70 p-6 dark:border-brand-700/30 dark:bg-brand-1100/50"
-                  : "relative rounded-3xl border border-foreground/10 bg-card p-6 dark:border-white/8"
+                  ? "relative squircle rounded-3xl border border-brand-900/25 bg-brand-200/70 p-6 dark:border-brand-900/20 dark:bg-brand-1000/20 text-brand-800 dark:text-brand-700"
+                  : "relative squircle rounded-3xl border border-foreground/10 bg-card p-6 dark:border-white/8"
               }
             >
               <div className="flex items-start gap-5">
                 <span
                   aria-hidden
-                  className="font-number pt-0.5 text-3xl leading-none text-brand-900/35 tabular-nums dark:text-brand-600/40"
+                  className="font-number pt-0.5 text-3xl leading-snug text-brand-800 tabular-nums dark:text-brand-600/80"
                 >
                   {i + 1}
                 </span>
@@ -105,8 +104,8 @@ export default function HowItWorks2026() {
                     <h3 className="font-display text-lg font-bold">
                       {step.title}
                     </h3>
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-900/10 dark:bg-brand-700/15">
-                      <step.icon className="size-5 text-brand-1000 dark:text-brand-600" />
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-900/10 dark:bg-brand-900/15">
+                      <step.icon className="size-5 text-brand-900 dark:text-brand-600" />
                     </span>
                   </div>
                   <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">

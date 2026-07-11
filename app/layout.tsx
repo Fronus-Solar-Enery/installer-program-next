@@ -32,11 +32,24 @@ const siteUrl = process.env.NEXTAUTH_URL || "https://installer.fronus.com";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "IPMS - Fronus",
-    template: "%s | IPMS",
+    default: "Fronus Installer Program",
+    template: "%s | Fronus",
   },
   description:
-    "Manage installers, rewards, and installations for Fronus Solar Energy",
+    "Fronus Solar Energy installer reward program — earn on every eligible inverter installation.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/apple-icon.png" },
+      { url: "/favicon-152x152.png", sizes: "152x152", type: "image/png" },
+      { url: "/favicon-180x180.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
 };
 
 export const viewport: Viewport = {
@@ -56,7 +69,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${saira.variable} ${bloxat.variable} ${geist.variable} antialiased`}>
+      <body
+        className={`${saira.variable} ${bloxat.variable} ${geist.variable} antialiased`}
+      >
         <OfflineIndicator />
         <ThemeProvider
           attribute="class"

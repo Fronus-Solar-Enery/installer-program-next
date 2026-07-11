@@ -32,19 +32,19 @@ export function OfflineIndicator() {
   return (
     <div
       className={cn(
-        "fixed top-0 left-0 right-0 z-100 w-full h-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-medium transition-all duration-300 ease-in-out bg-background/80"
+        "fixed top-0 left-0 right-0 z-100 w-full h-full flex items-center justify-center gap-2 py-2.5 px-4 text-sm font-medium transition-all duration-300 ease-in-out bg-background/80 backdrop-blur-xs",
       )}
     >
       <div
         className={cn(
-          "flex flex-col items-center justify-between p-6 bg-card/50 backdrop-blur-sm rounded-4xl squircle w-xs h-96 text-center border border-border/60"
+          "flex flex-col items-center justify-between p-6 bg-card rounded-4xl squircle w-xs h-96 text-center border border-border/60",
         )}
       >
         <div className="flex flex-col items-center gap-4">
           <div
             className={cn(
               "rounded-full bg-card border border-border/40 p-6 size-36! flex items-center justify-center",
-              !isOnline ? "text-red-400" : "text-emerald-400"
+              !isOnline ? "text-red-400" : "text-emerald-400",
             )}
           >
             {isOnline ? (

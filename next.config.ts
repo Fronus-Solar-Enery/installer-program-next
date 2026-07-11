@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["192.168.18.12"],
   // Configuration for stable builds on Windows
   generateBuildId: async () => {
     return "build-" + Date.now();

@@ -21,7 +21,7 @@ export default function FinalCTA() {
           className="font-display text-4xl font-bold leading-[1.05] tracking-tight text-balance sm:text-6xl"
         >
           Your next install is worth{" "}
-          <span className="font-number text-brand-900 tabular-nums dark:text-brand-600">
+          <span className="font-number text-brand-900 tabular-nums dark:text-brand-800">
             Rs 5,000
           </span>
         </motion.h2>
@@ -38,7 +38,7 @@ export default function FinalCTA() {
           <Button
             size="lg"
             asChild
-            className="lp-glow-brand group h-13 rounded-full bg-brand-900 px-8 pr-4 text-base text-white hover:bg-brand-1000 sm:text-lg dark:bg-brand-700 dark:text-brand-1200 dark:hover:bg-brand-600"
+            className="lp-glow-brand group h-13 rounded-full bg-brand-900 pl-5 pr-5.5 text-base text-white hover:bg-brand-1000 sm:text-lg dark:bg-brand-800 dark:text-brand-1200 dark:hover:bg-brand-700"
           >
             <a
               href={buildWhatsAppUrl({ intent: "join", source: "final-cta" })}
@@ -46,7 +46,7 @@ export default function FinalCTA() {
             >
               <IconWhatsapp fill className="mr-2 size-5" />
               Join the Installer Program
-              <span className="lp-btn-icon ml-3">
+              <span className="lp-btn-icon ml-3 bg-foreground/20">
                 <IconArrowRight className="size-3.5" />
               </span>
             </a>

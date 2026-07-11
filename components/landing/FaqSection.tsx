@@ -19,10 +19,6 @@ const FAQ_ITEMS = [
     a: "Once your video is verified and the unit passes the eligibility check, the Rs 5,000 transfer to your bank is typically completed within a few working days — not weeks or months. You'll see the status change in your portal at every step.",
   },
   {
-    q: "I already install another inverter brand. Can I still join?",
-    a: "Yes — there's no exclusivity. Keep installing whatever you install today, and earn Rs 5,000 extra whenever a job uses an eligible Fronus unit. It's additional income on work you're already doing.",
-  },
-  {
     q: "Which units are eligible?",
     a: "The X1-Genki (6 kW), X1-Genki (8/10/12 kW) single-phase and X3-Genki (10/15 kW) three-phase inverters. The unit must have been purchased after 1 July 2026 to qualify.",
   },
@@ -52,7 +48,7 @@ export default function FaqSection() {
         >
           <motion.p
             variants={slideUp}
-            className="text-xs font-medium uppercase tracking-[0.25em] text-brand-1000 dark:text-brand-600"
+            className="text-xs font-medium uppercase tracking-[0.25em] text-brand-900 dark:text-brand-800"
           >
             FAQ
           </motion.p>
@@ -82,7 +78,7 @@ export default function FaqSection() {
               <motion.div key={item.q} variants={slideUp}>
                 <AccordionItem
                   value={`faq-${i}`}
-                  className="rounded-2xl border border-foreground/10 bg-card px-6 dark:border-white/8"
+                  className="squircle rounded-2xl border border-foreground/10 bg-card px-6 dark:border-white/8"
                 >
                   <AccordionTrigger className="py-5 text-left text-base font-semibold text-foreground hover:no-underline">
                     {item.q}

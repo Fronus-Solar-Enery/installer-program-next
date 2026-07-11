@@ -17,7 +17,7 @@ export default function ProductShowcase() {
       >
         <motion.p
           variants={slideUp}
-          className="text-xs font-medium uppercase tracking-[0.25em] text-brand-1000 dark:text-brand-600"
+          className="text-xs font-medium uppercase tracking-[0.25em] text-brand-900 dark:text-brand-800"
         >
           Eligible products
         </motion.p>
@@ -25,9 +25,9 @@ export default function ProductShowcase() {
           variants={slideUp}
           className="max-w-3xl font-display text-3xl font-bold tracking-tight sm:text-5xl"
         >
-          Three inverters. Same flat{" "}
-          <span className="font-number text-brand-900 dark:text-brand-600">
-            Rs 5,000
+          Three Inverter Series. Same flat{" "}
+          <span className="font-mono text-brand-900 dark:text-brand-800">
+            Reward
           </span>
           .
         </motion.h2>
@@ -35,8 +35,8 @@ export default function ProductShowcase() {
           variants={slideUp}
           className="max-w-2xl text-pretty text-muted-foreground"
         >
-          No exclusivity and no tiers — keep installing whatever you already
-          install, and earn on every eligible Fronus unit you fit. Units
+          No exclusivity and no tiers, keep installing whatever you already
+          install, and earn on every eligible Fronus-Solax Inverter. Units
           purchased after 1 July 2026 qualify.
         </motion.p>
       </motion.div>

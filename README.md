@@ -148,8 +148,7 @@ components/
   icons/                    # 128 individual icon components (incl. animated/)
   installers/               # Installer-specific components (table row, stats cards)
   registration/             # Registration form components
-  landing/                  # Landing page v1
-  landing-2026/             # Landing page v2026 (Hero2026, Testimonials, Video, FAQ)
+  landing/             # Landing page (Hero, Testimonials, Video, FAQ)
 contexts/
   BatchJobContext.tsx       # Bulk operation progress state (SSE/polling)
   BreadcrumbContext.tsx
@@ -166,51 +165,51 @@ instrumentation.ts          # Next.js instrumentation (dev-only DNS override for
 
 ### `lib/` reference
 
-| File | Purpose |
-|---|---|
-| `auth.ts` | NextAuth config — exports `{ handlers, auth, signIn, signOut }` |
-| `authGuard.ts` | `withAuth(handler, { roles? })` HOF — use in every API route instead of calling `auth()` directly |
-| `apiResponse.ts` | `ApiResponse` class + `handleApiError()` — standard API response shapes |
-| `mongodb.ts` | `dbConnect()` — cached Mongoose connection singleton |
-| `validation.ts`, `validation-helpers.ts` | Zod schemas |
-| `validateRequest.ts` | Wraps Zod parsing, returns formatted field errors |
-| `activityLogger.ts` | Writes to the `Activity` model (audit log) |
-| `googleContacts.ts` | Google Contacts sync (OAuth refresh token flow) |
-| `whatsappService.ts` | WhatsApp notifications via Meta Cloud API (free-form messages) |
-| `whatsapp.ts` | WhatsApp message formatting utilities |
-| `email.ts` | Forgot-password PIN email sending |
-| `encryption.ts` | Encryption utilities for sensitive data |
-| `rateLimit.ts` | Rate limiting for login attempts and API calls |
-| `queryBuilder.ts`, `pagination.ts`, `queryHelpers.ts` | Mongo filter/sort/pagination helpers for list endpoints |
-| `queryClient.ts` | TanStack Query client config |
-| `installerUtils.ts` | Installer-specific utilities |
-| `installerAuth.ts` | Installer authentication helpers |
-| `phoneUtils.ts` | Phone number normalization |
-| `requestUtils.ts` | Request info extraction (IP, user agent) |
-| `gsapEases.ts`, `motion.ts` | Animation configuration |
-| `constants.ts`, `formatNumber.ts`, `getInitials.ts`, `getRelativeTime.ts`, `registration-styles.ts`, `requestUtils.ts`, `utils.ts` | Misc formatting/UI helpers |
+| File                                                                                                                               | Purpose                                                                                           |
+| ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `auth.ts`                                                                                                                          | NextAuth config — exports `{ handlers, auth, signIn, signOut }`                                   |
+| `authGuard.ts`                                                                                                                     | `withAuth(handler, { roles? })` HOF — use in every API route instead of calling `auth()` directly |
+| `apiResponse.ts`                                                                                                                   | `ApiResponse` class + `handleApiError()` — standard API response shapes                           |
+| `mongodb.ts`                                                                                                                       | `dbConnect()` — cached Mongoose connection singleton                                              |
+| `validation.ts`, `validation-helpers.ts`                                                                                           | Zod schemas                                                                                       |
+| `validateRequest.ts`                                                                                                               | Wraps Zod parsing, returns formatted field errors                                                 |
+| `activityLogger.ts`                                                                                                                | Writes to the `Activity` model (audit log)                                                        |
+| `googleContacts.ts`                                                                                                                | Google Contacts sync (OAuth refresh token flow)                                                   |
+| `whatsappService.ts`                                                                                                               | WhatsApp notifications via Meta Cloud API (free-form messages)                                    |
+| `whatsapp.ts`                                                                                                                      | WhatsApp message formatting utilities                                                             |
+| `email.ts`                                                                                                                         | Forgot-password PIN email sending                                                                 |
+| `encryption.ts`                                                                                                                    | Encryption utilities for sensitive data                                                           |
+| `rateLimit.ts`                                                                                                                     | Rate limiting for login attempts and API calls                                                    |
+| `queryBuilder.ts`, `pagination.ts`, `queryHelpers.ts`                                                                              | Mongo filter/sort/pagination helpers for list endpoints                                           |
+| `queryClient.ts`                                                                                                                   | TanStack Query client config                                                                      |
+| `installerUtils.ts`                                                                                                                | Installer-specific utilities                                                                      |
+| `installerAuth.ts`                                                                                                                 | Installer authentication helpers                                                                  |
+| `phoneUtils.ts`                                                                                                                    | Phone number normalization                                                                        |
+| `requestUtils.ts`                                                                                                                  | Request info extraction (IP, user agent)                                                          |
+| `gsapEases.ts`, `motion.ts`                                                                                                        | Animation configuration                                                                           |
+| `constants.ts`, `formatNumber.ts`, `getInitials.ts`, `getRelativeTime.ts`, `registration-styles.ts`, `requestUtils.ts`, `utils.ts` | Misc formatting/UI helpers                                                                        |
 
 ### `models/` reference
 
-| Model | Collection | Key Fields |
-|---|---|---|
-| `TeamMember` | team_members | email, password, role, name |
-| `Installer` | installers | installerCode, pin, fullName, whatsappNumber |
-| `InstallerReward` | installer_rewards | installer, amount, serialNumber |
-| `Product` | products | name, category, isActive |
-| `Settings` | settings | enableWhatsAppNotifications, maxReferrals |
-| `Activity` | activities | type, performedBy, targetType, changes |
-| `BatchJob` | batch_jobs | status, progress, results |
-| `GoogleAuth` | google_auths | accessToken, refreshToken, expiry |
-| `RateLimit` | rate_limits | key, attempts, windowStart |
-| `PasswordReset` | password_resets | email, pin, expiresAt |
+| Model             | Collection        | Key Fields                                   |
+| ----------------- | ----------------- | -------------------------------------------- |
+| `TeamMember`      | team_members      | email, password, role, name                  |
+| `Installer`       | installers        | installerCode, pin, fullName, whatsappNumber |
+| `InstallerReward` | installer_rewards | installer, amount, serialNumber              |
+| `Product`         | products          | name, category, isActive                     |
+| `Settings`        | settings          | enableWhatsAppNotifications, maxReferrals    |
+| `Activity`        | activities        | type, performedBy, targetType, changes       |
+| `BatchJob`        | batch_jobs        | status, progress, results                    |
+| `GoogleAuth`      | google_auths      | accessToken, refreshToken, expiry            |
+| `RateLimit`       | rate_limits       | key, attempts, windowStart                   |
+| `PasswordReset`   | password_resets   | email, pin, expiresAt                        |
 
 All models use the `mongoose.models.X || mongoose.model('X', schema)` pattern to survive dev hot-reload.
 
 ### `services/` reference
 
-| File | Purpose |
-|---|---|
+| File            | Purpose                                                                                                                                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `installers.ts` | Business logic orchestration — `createInstaller`, `updateInstaller`, `deleteInstaller`, `regenerateAndSendPin` — handles referral limits, Google Contacts sync, WhatsApp PIN delivery, activity logging |
 
 ## Authentication & Roles
@@ -220,25 +219,27 @@ All models use the `mongoose.models.X || mongoose.model('X', schema)` pattern to
 - Login throttling: 5 failed attempts per (email, IP) within 10 minutes.
 - Role hierarchy: `ADMIN > MANAGER > USER`, enforced in API routes via `withAuth(handler, { roles })` and `hasRoleOrHigher()` (`lib/authGuard.ts`).
 
-| Action | ADMIN | MANAGER | USER |
-|---|---|---|---|
-| Register installers / rewards | ✅ | ✅ | ✅ |
-| Update own profile | ✅ | ✅ | ✅ |
-| Register team member | Any role | MANAGER/USER only | ❌ |
-| Update/delete team members | ✅ | ✅ (not ADMIN) | ❌ |
-| Delete installers / rewards | ✅ | ✅ | ❌ |
+| Action                        | ADMIN    | MANAGER           | USER |
+| ----------------------------- | -------- | ----------------- | ---- |
+| Register installers / rewards | ✅       | ✅                | ✅   |
+| Update own profile            | ✅       | ✅                | ✅   |
+| Register team member          | Any role | MANAGER/USER only | ❌   |
+| Update/delete team members    | ✅       | ✅ (not ADMIN)    | ❌   |
+| Delete installers / rewards   | ✅       | ✅                | ❌   |
 
 ## API Routes
 
 All routes live under `app/api/`, use `dbConnect()`, `withAuth()`, Zod validation, and the `ApiResponse` / `handleApiError` conventions from `lib/`.
 
 ### Auth
+
 - `POST /api/auth/forgot-password` — request reset PIN
 - `POST /api/auth/verify-pin` — verify PIN
 - `POST /api/auth/reset-password` — verify PIN + set new password
 - `[...nextauth]` — NextAuth sign-in/session handlers
 
 ### Team
+
 - `GET /api/team` — list team members
 - `POST /api/team` — register new member (role restrictions per hierarchy above)
 - `GET /api/team/[id]` / `PUT` / `DELETE`
@@ -246,34 +247,41 @@ All routes live under `app/api/`, use `dbConnect()`, `withAuth()`, Zod validatio
 - `PUT /api/team/change-password`
 
 ### Installers
+
 - `GET/POST /api/installers` — list (filtered/paginated) / register
 - `GET/PUT/DELETE /api/installers/[id]`
 - `POST /api/installers/bulk-register`, `/api/installers/bulk-delete`, `/api/installers/validate-bulk`
 
 ### Rewards
+
 - `GET/POST /api/rewards` — list (filtered/paginated) / register
 - `GET/PUT/DELETE /api/rewards/[id]`
 - `GET /api/rewards/check-serial` — validate inverter serial number status
 - `POST /api/rewards/bulk-register`, `/api/rewards/bulk-update`, `/api/rewards/bulk-delete`, `/api/rewards/validate-bulk`, `/api/rewards/validate-bulk-register`
 
 ### Batch Jobs
+
 - `GET/POST /api/batch-jobs`, `GET /api/batch-jobs/[id]`, `POST /api/batch-jobs/process` — async bulk-operation tracking (backs installer/reward bulk endpoints; progress surfaced via `BatchJobContext`)
 
 ### Dashboard
+
 - `GET /api/dashboard/active-installers`
 - `GET /api/dashboard/installers-by-center`
 - `GET /api/dashboard/active-by-training-center`
 
 ### Reports (JSON or Excel export)
+
 - `GET /api/reports/installers`
 - `GET /api/reports/rewards`
 - `GET /api/reports/non-certified-installers`
 - `GET /api/reports/payment-format` — Excel formatted for bulk payment processing
 
 ### Google Contacts
+
 - `GET /api/google-auth/initiate`, `GET /api/google-auth/callback`, `GET /api/google-auth/status`, `DELETE /api/google-auth/status` — OAuth flow to obtain/manage the Google Contacts refresh token
 
 ### Misc
+
 - `GET /api/activities` — audit log feed
 - `GET /api/search` — global search (admin-guarded)
 - `GET/PUT /api/settings` — app settings
@@ -316,16 +324,16 @@ npm run test:watch   # Watch mode
 
 Current test coverage:
 
-| Test File | Tests |
-|---|---|
-| `apiResponse.test.ts` | ApiResponse class formatting |
-| `authGuard.test.ts` | withAuth HOF role enforcement |
-| `constants.test.ts` | Application constants |
-| `encryption.test.ts` | Encryption utilities |
-| `logger.test.ts` | Structured logging |
-| `pagination.test.ts` | Pagination helpers |
-| `queryBuilder.test.ts` | MongoDB query builder |
-| `validation.test.ts` | Zod schema validation |
+| Test File              | Tests                         |
+| ---------------------- | ----------------------------- |
+| `apiResponse.test.ts`  | ApiResponse class formatting  |
+| `authGuard.test.ts`    | withAuth HOF role enforcement |
+| `constants.test.ts`    | Application constants         |
+| `encryption.test.ts`   | Encryption utilities          |
+| `logger.test.ts`       | Structured logging            |
+| `pagination.test.ts`   | Pagination helpers            |
+| `queryBuilder.test.ts` | MongoDB query builder         |
+| `validation.test.ts`   | Zod schema validation         |
 
 ## Deployment
 

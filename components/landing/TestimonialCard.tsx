@@ -1,6 +1,7 @@
 "use client";
 
 import ProgramLogo from "@/components/ProgramLogo";
+import { cn } from "@/lib/utils";
 
 export interface Testimonial {
   id: string;
@@ -18,7 +19,13 @@ export interface Testimonial {
  */
 export default function TestimonialCard({ item }: { item: Testimonial }) {
   return (
-    <div className="relative aspect-9/16 w-60 shrink-0 snap-center overflow-hidden rounded-3xl border border-foreground/10 bg-linear-to-b from-brand-200 to-brand-300 sm:w-65 dark:border-white/8 dark:from-brand-1100 dark:to-brand-1200">
+    <div
+      className={cn(
+        "relative squircle aspect-9/16 w-60 shrink-0 snap-center overflow-hidden rounded-4xl border sm:w-65",
+        "bg-linear-to-b from-brand-200 to-brand-300 border-foreground/10",
+        "dark:border-brand-700/30 dark:from-brand-1100 dark:to-brand-1200",
+      )}
+    >
       {item.videoSrc ? (
         <>
           <video

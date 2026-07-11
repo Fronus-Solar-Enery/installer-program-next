@@ -33,7 +33,7 @@ export function SwitchRow({
         </p>
       </div>
       <Switch
-        id={id}
+        label={label}
         checked={checked}
         onCheckedChange={onCheckedChange}
         aria-describedby={descriptionId}

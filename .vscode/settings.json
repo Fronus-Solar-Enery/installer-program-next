@@ -1,0 +1,4 @@
+{
+  "js/ts.suggest.autoImports": true,
+  "js/ts.preferences.importModuleSpecifier": "non-relative"
+}

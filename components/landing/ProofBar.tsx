@@ -66,7 +66,7 @@ export default function ProofBar({ stats }: { stats: LandingStats }) {
   ];
 
   return (
-    <section className="border-y border-border/60 bg-brand-200/60 dark:bg-brand-1200/40">
+    <section className="border-y border-border/60 bg-brand-300/50 dark:bg-muted/30">
       {showLive ? (
         <motion.div
           variants={staggerContainer}
@@ -76,7 +76,11 @@ export default function ProofBar({ stats }: { stats: LandingStats }) {
           className="mx-auto grid max-w-5xl grid-cols-1 gap-8 px-4 py-12 text-center sm:grid-cols-3"
         >
           {counters.map((item) => (
-            <motion.div key={item.label} variants={slideUp} className="space-y-1">
+            <motion.div
+              key={item.label}
+              variants={slideUp}
+              className="space-y-1"
+            >
               <p className="text-3xl font-bold text-brand-900 sm:text-4xl dark:text-brand-600">
                 <Counter value={item.value} prefix={item.prefix} />
               </p>
@@ -96,10 +100,10 @@ export default function ProofBar({ stats }: { stats: LandingStats }) {
             <motion.div
               key={tile.title}
               variants={slideUp}
-              className="flex items-start gap-3"
+              className="flex items-center gap-3"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-900/10 dark:bg-brand-700/15">
-                <tile.icon className="size-5 text-brand-1000 dark:text-brand-600" />
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-brand-900/15 dark:bg-brand-900/15">
+                <tile.icon className="size-6 text-brand-900 dark:text-brand-700" />
               </span>
               <div>
                 <p className="font-display text-sm font-semibold text-foreground">

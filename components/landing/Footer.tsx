@@ -6,7 +6,7 @@ import { buildWhatsAppUrl, WHATSAPP_LINK_ATTRS } from "@/lib/whatsapp";
  * Minimal footer. The reward/WhatsApp narrative owns the page; the footer is
  * wayfinding + the SolaX partnership line for legitimacy.
  */
-export default function Footer2026() {
+export default function Footer() {
   return (
     <footer className="border-t border-border/60">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10">

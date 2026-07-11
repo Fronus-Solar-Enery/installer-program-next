@@ -48,12 +48,12 @@ Mood lane: **clean, trustworthy, premium-corporate** — craft over decoration. 
 
 ## 6. Section-by-section direction (all sections, full rethink)
 
-Current file map (rebuild/replace as needed): `components/landing/` → `LandingPage2026`, `Preloader`, `Header2026`, `Hero2026`, `ProofBar`, `ProductShowcase`, `HowItWorks2026`, `VideoTestimonials`, `FaqSection`, `FinalCTA`, `Footer2026`, `FloatingWhatsApp`. Keep the thin server wrapper in `app/(landing)/page.tsx` (it passes live `stats`).
+Current file map (rebuild/replace as needed): `components/landing/` → `LandingPage`, `Preloader`, `Header`, `Hero`, `ProofBar`, `ProductShowcase`, `HowItWorks2026`, `VideoTestimonials`, `FaqSection`, `FinalCTA`, `Footer`, `FloatingWhatsApp`. Keep the thin server wrapper in `app/(landing)/page.tsx` (it passes live `stats`).
 
 1. **Header** — floating glass island nav (`.lp-nav-island`), logo left, minimal links, WhatsApp "Join" button right. Mobile: morphing hamburger → fullscreen glass menu (classes exist).
 2. **Hero** — the decisive screen. Headline built around **"Install Fronus. Earn Rs 5,000 every time."** with the number in Bloxat, animated count-up (spring). One-line subhead naming Pakistan + paid-to-bank. Primary WhatsApp CTA + ghost portal login. Establish legitimacy instantly (SolaX co-brand cue near the top). Consider a real product render as a hero anchor.
 3. **Proof bar** — implement the **threshold-gated** model: show fixed value-prop tiles (`Rs 5,000 flat` · `Paid to your bank` · `SolaX-backed` · `Eligible after 1 Jul 2026`) now; render a live counter (from `stats`: installers / installations / rewardsPaid) **only when it crosses a credible floor** (e.g. installs ≥ 50), else fall back to the value-prop tile. One threshold constant, honest at every scale.
-4. **Product showcase** — the three real inverters from `lib/landingProducts.ts`, real renders in `public/products/*.webp` (3 angles each, swap on hover): **X1-Genki 6 kW** (single-phase), **X1-Genki 8/10/12 kW** (single-phase), **X3-Genki 10/15 kW** (three-phase). Each card: name, power tier, phase tag, `Rs 5,000` reward badge, blurb. Premium product glow (`.lp-product-glow`). Use `next/image`, webp already optimized.
+4. **Product showcase** — the three real inverters from `lib/landingProducts.ts`, real renders in `public/products/*.avif` (3 angles each, swap on hover): **X1-Genki 6 kW** (single-phase), **X1-Genki 8/10/12 kW** (single-phase), **X3-Genki 10/15 kW** (three-phase). Each card: name, power tier, phase tag, `Rs 5,000` reward badge, blurb. Premium product glow (`.lp-product-glow`). Use `next/image`, webp already optimized.
 5. **How It Works** — the **exact real flow**, five steps, no invented steps:
    1. **Get registered** (message us on WhatsApp; our team verifies your details & signs you up)
    2. **Submit a product video** — one video showing the product installed **and** the side-sticker serial number (both in a single clip), **eligible products only**

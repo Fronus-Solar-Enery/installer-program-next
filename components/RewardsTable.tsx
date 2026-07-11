@@ -366,7 +366,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
       <>
         <CardContent className="p-0! light:bg-muted/50">
           {/* Filters Display Section */}
-          <div className="flex justify-between p-4 bg-muted/30">
+          <div className="flex justify-between p-4 bg-background dark:bg-muted/30">
             <div className="flex items-center gap-2 *:font-mono">
               <p className="text-sm leading-none">Filters Applied:</p>
               {/* Sort - Always Show */}
@@ -579,31 +579,6 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                 </Select>
               </div>
 
-              {/* Payment Method Filter */}
-              <div className="space-y-2 w-full">
-                <span className="text-sm px-2">Payment Method</span>
-                <Select
-                  value={filters?.paymentMethod || "all"}
-                  onValueChange={(value) =>
-                    onFilterChange?.("paymentMethod", value)
-                  }
-                  name="paymentMethodSelect"
-                  disabled={loading}
-                >
-                  <SelectTrigger className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
-                    <SelectValue placeholder="All Methods" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Methods</SelectItem>
-                    {uniqueValues?.paymentMethods.map((method) => (
-                      <SelectItem key={method} value={method}>
-                        {method}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               {/* Installation Date Filter */}
               <div className="space-y-2 w-full">
                 <span className="text-sm px-2">Installation Date</span>
@@ -717,7 +692,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
               <div className="sticky top-0 z-10">
                 <div
                   className={cn(
-                    "flex w-full bg-muted/50 text-muted-foreground backdrop-blur-xl border-b border-border relative font-mono",
+                    "flex w-full bg-background dark:bg-muted/50 text-muted-foreground backdrop-blur-xl border-b border-border relative font-mono",
                     loading && "overflow-hidden",
                     !loading && "w-full",
                   )}
@@ -1240,7 +1215,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex items-center justify-between p-4 relative bg-muted dark:bg-muted/50 text-xs text-muted-foreground">
+        <CardFooter className="flex items-center justify-between p-4 relative bg-background dark:bg-muted/50 text-xs text-muted-foreground">
           {/* Pagination Controls */}
           <div className="text-sm text-muted-foreground inline-flex items-center gap-1">
             Show

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { IconWhatsapp, IconArrowRightUp } from "@/components/icons";
 import { buildWhatsAppUrl, WHATSAPP_LINK_ATTRS } from "@/lib/whatsapp";
 import type { LandingProduct } from "@/lib/landingProducts";
+import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
   product: LandingProduct;
@@ -42,14 +43,14 @@ export default function ProductCard({ product }: ProductCardProps) {
   const displayName = `${product.name} ${product.power}`;
 
   return (
-    <div className="group flex h-full flex-col overflow-hidden rounded-3xl border border-foreground/10 bg-card shadow-sm transition-shadow duration-500 hover:shadow-lg dark:border-white/8">
+    <div className="relative group flex h-[450px] flex-col overflow-hidden">
       <button
         type="button"
         aria-label={`${displayName} — show next angle`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={() => setView((v) => (v + 1) % product.views.length)}
-        className="relative block h-64 w-full cursor-pointer overflow-hidden bg-linear-to-b from-brand-300 to-brand-200 sm:h-72 dark:from-brand-1100 dark:to-brand-1200"
+        className="relative block squircle rounded-4xl size-full cursor-pointer overflow-hidden bg-linear-to-b from-brand-300 to-brand-300 dark:from-brand-1100 dark:to-brand-1100/20"
       >
         {product.views.map((src, i) => (
           <Image
@@ -58,8 +59,9 @@ export default function ProductCard({ product }: ProductCardProps) {
             alt={i === 0 ? `${displayName} inverter` : ""}
             aria-hidden={i !== 0}
             fill
+            loading="eager"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="select-none object-contain p-6 transition-[opacity,transform] duration-500 ease-out group-hover:scale-[1.03]"
+            className="px-10 pb-20 pt-0 select-none object-contain transition-all duration-500 ease-out group-hover:scale-[1.03]"
             style={{ opacity: i === view ? 1 : 0 }}
             draggable={false}
           />
@@ -70,47 +72,45 @@ export default function ProductCard({ product }: ProductCardProps) {
         </span>
       </button>
 
-      <div className="flex flex-1 flex-col gap-3 p-6">
-        <div className="flex items-center justify-between gap-2">
-          <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-            {product.phase}
-          </span>
-          <span className="text-sm text-muted-foreground">
-            {product.series}
-          </span>
-        </div>
+      <ProgressiveBlur
+        className="pointer-events-none absolute bottom-0 left-0 h-[50%] w-full rounded-4xl squircle"
+        blurIntensity={40}
+      />
+      <div className="flex flex-1 flex-col gap-3 p-6 absolute bottom-0 left-0 right-0 z-1">
+        <span className="rounded-full bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground w-max">
+          {product.phase}
+        </span>
 
         <h3 className="font-display text-2xl font-bold leading-tight">
-          {product.name}
-          <span className="text-brand-900 dark:text-brand-600">
-            {" "}
-            {product.power}
-          </span>
+          {product.name}  {product.power}
         </h3>
 
         <p className="flex-1 text-sm leading-relaxed text-muted-foreground">
           {product.blurb}
         </p>
-
-        <Button
-          asChild
-          variant="outline"
-          className="mt-2 w-full rounded-full border-brand-900/30 text-brand-1000 hover:bg-brand-900/5 hover:text-brand-1000 dark:border-brand-700/40 dark:text-brand-600 dark:hover:bg-brand-700/10 dark:hover:text-brand-600"
-        >
-          <a
-            href={buildWhatsAppUrl({
-              intent: "install-product",
-              product: displayName,
-              source: "product-card",
-            })}
-            {...WHATSAPP_LINK_ATTRS}
-          >
-            <IconWhatsapp fill className="mr-1.5 size-4" />
-            Install this &amp; earn {product.reward}
-            <IconArrowRightUp className="ml-2 size-3.5" />
-          </a>
-        </Button>
       </div>
     </div>
+  );
+}
+
+interface ProgressiveBlurProps {
+  className?: string;
+  blurIntensity?: number;
+}
+function ProgressiveBlur({
+  className = "",
+  blurIntensity = 10,
+}: ProgressiveBlurProps) {
+  return (
+    <div
+      className={cn(className)}
+      style={{
+        backdropFilter: `blur(${blurIntensity}px)`,
+        WebkitBackdropFilter: `blur(${blurIntensity}px)`,
+        mask: "linear-gradient(to top, black 0%, black 60%, rgba(0,0,0,0.95) 65%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.6) 80%, rgba(0,0,0,0.4) 85%, rgba(0,0,0,0.2) 90%, rgba(0,0,0,0.1) 95%, transparent 100%)",
+        WebkitMask:
+          "linear-gradient(to top, black 0%, black 60%, rgba(0,0,0,0.95) 65%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.6) 80%, rgba(0,0,0,0.4) 85%, rgba(0,0,0,0.2) 90%, rgba(0,0,0,0.1) 95%, transparent 100%)",
+      }}
+    />
   );
 }

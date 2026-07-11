@@ -79,29 +79,24 @@ export default function RewardsPage() {
   const refreshRelTime = useRelativeTime(lastUpdated);
   const isPageLoading = loading || isFetching;
 
-  // Sync dateRange with filters when popover opens
-  useEffect(() => {
-    if (
-      isCustomDateOpen &&
-      state.filters.customStartDate &&
-      state.filters.customEndDate
-    ) {
-      setDateRange({
-        from: new Date(state.filters.customStartDate),
-        to: new Date(state.filters.customEndDate),
-      });
-    } else if (!isCustomDateOpen) {
-      // Reset when popover closes
-      if (state.filters.dateRange !== "custom") {
-        setDateRange(undefined);
+  // Sync dateRange with filters on popover open/close — during render, not in an
+  // effect, to avoid a cascading re-render (https://react.dev/learn/you-might-not-need-an-effect).
+  const [prevCustomDateOpen, setPrevCustomDateOpen] =
+    useState(isCustomDateOpen);
+  if (isCustomDateOpen !== prevCustomDateOpen) {
+    setPrevCustomDateOpen(isCustomDateOpen);
+    if (isCustomDateOpen) {
+      if (state.filters.customStartDate && state.filters.customEndDate) {
+        setDateRange({
+          from: new Date(state.filters.customStartDate),
+          to: new Date(state.filters.customEndDate),
+        });
       }
+    } else if (state.filters.dateRange !== "custom") {
+      // Reset when popover closes
+      setDateRange(undefined);
     }
-  }, [
-    isCustomDateOpen,
-    state.filters.customStartDate,
-    state.filters.customEndDate,
-    state.filters.dateRange,
-  ]);
+  }
 
   // Debounce search to reduce re-renders (300ms delay)
   const debouncedSearch = useDebounce(state.filters.search, 300);
@@ -790,7 +785,7 @@ export default function RewardsPage() {
 
         {/* Date Range Filter Card */}
         <Card className="bg-transparent">
-          <CardHeader className="flex-row items-center justify-between w-full bg-muted dark:bg-muted/50 border-b border-border">
+          <CardHeader className="flex-row items-center justify-between w-full bg-background dark:bg-muted/50 border-b border-border">
             <CardTitle className="flex items-center gap-4 font-mono">
               <div className="text-lg font-semibold">
                 Rewards Database

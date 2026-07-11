@@ -1105,8 +1105,7 @@ export default function NewInstallerPage() {
                       </div>
 
                       <Switch
-                        name="certified"
-                        id="certified"
+                        label="Certified"
                         checked={certified}
                         onCheckedChange={(checked) =>
                           setCertified(checked as boolean)

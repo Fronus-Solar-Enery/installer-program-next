@@ -1,7 +1,7 @@
 /**
  * Product catalog for the Installer Program 2026 landing page.
  *
- * Sourced directly from /public/products/*.webp. Each product maps to its real
+ * Sourced directly from /public/products/*.avif. Each product maps to its real
  * render files (3 angles each) so the showcase can swap views on hover.
  *
  * Reward is flat Rs 5,000 PKR per eligible install (per blueprint §1).
@@ -50,11 +50,12 @@ export const LANDING_PRODUCTS: LandingProduct[] = [
     phase: "Single-phase",
     series: "X1-Genki",
     reward: "Rs 5,000",
-    blurb: "Higher-output single-phase hybrid for larger homes and small shops.",
+    blurb:
+      "Higher-output single-phase hybrid for larger homes and small shops.",
     views: [
-      "/products/X1-Genki-8kw+10kw+12kW-01.webp",
-      "/products/X1-Genki-8kw+10kw+12kW-02+.webp",
-      "/products/X1-Genki-8kw+10kw+12kW-03.webp",
+      "/products/X1-Genki-8kw-01.webp",
+      "/products/X1-Genki-8kw-02.webp",
+      "/products/X1-Genki-8kw-03.webp",
     ],
   },
   {
@@ -66,9 +67,9 @@ export const LANDING_PRODUCTS: LandingProduct[] = [
     reward: "Rs 5,000",
     blurb: "Three-phase hybrid built for commercial and industrial installs.",
     views: [
-      "/products/X3-Genki-10kw+15kW-01.webp",
-      "/products/X3-Genki-10kw+15kW-02.webp",
-      "/products/X3-Genki-10kw+15kW-03.webp",
+      "/products/X3-Genki-10kw-01.webp",
+      "/products/X3-Genki-10kw-02.webp",
+      "/products/X3-Genki-10kw-03.webp",
     ],
   },
 ];

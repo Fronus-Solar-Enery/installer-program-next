@@ -9,7 +9,7 @@ Fronus Solar Energy's installer rewards program. Solar installers (in Pakistan �
 1. **Internal team dashboard** (`app/(dashboard)/`) — ADMIN/MANAGER/USER staff manage installers, rewards, products, reports, team members, and settings.
 2. **Installer-facing pages** (`app/(standalone)/`) — installers sign in with their installer code + PIN to view their own stats. Outbound comms go through WhatsApp.
 
-Plus a public marketing landing page (`app/(landing)/`, components in `components/landing-2026/`).
+Plus a public marketing landing page (`app/(landing)/`, components in `components/landing/`).
 
 ## Stack
 
@@ -59,7 +59,7 @@ Next.js 16 App Router application. MongoDB via Mongoose. NextAuth v5 (JWT sessio
 
 - `app/(dashboard)/` — team-facing pages (dashboard, installers, rewards, reports, activity, batch-jobs, team, settings, profile). Its `layout.tsx` redirects unauthenticated users client-side — this is UX only, **not** security. The trust boundary is `withAuth` on the API routes.
 - `app/(standalone)/` — installer-facing pages (`auth/`, `installer/[installerCode]`, `my-stats`) with their own minimal layout, no dashboard chrome.
-- `app/(landing)/` — public marketing page, rendered from `components/landing-2026/`.
+- `app/(landing)/` — public marketing page, rendered from `components/landing/`.
 - `app/api/` — all API routes. Each resource folder contains `route.ts` for collection endpoints and `[id]/route.ts` for item endpoints.
 
 ### Key directories

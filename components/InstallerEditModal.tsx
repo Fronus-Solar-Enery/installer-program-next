@@ -60,6 +60,7 @@ import { InstallerCodeDisplay } from "@/app/(dashboard)/installers/register/Inst
 import { FormStep } from "@/components/ui/FormStep";
 import PageHeader from "./PageHeader";
 import IconDanger from "./icons/Danger";
+import { on } from "process";
 
 interface InstallerEditModalProps {
   open: boolean;
@@ -104,7 +105,6 @@ export default function InstallerEditModal({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [originalData, setOriginalData] =
     useState<Partial<InstallerData> | null>(null);
   const [originalCnic, setOriginalCnic] = useState<string>("");
@@ -181,9 +181,16 @@ export default function InstallerEditModal({
   const [certified, setCertified] = useState(false);
   const [companyName, setCompanyName] = useState("");
 
-  // Track if form has changes
-  useEffect(() => {
-    if (!originalData || loading) return;
+  // Auto-fill values derived at render (no effect): when the "same as" toggle
+  // is on, mirror the source field instead of syncing a copy via setState.
+  const effectiveWhatsapp = sameAsPhone
+    ? phoneInput.value
+    : whatsappInput.value;
+  const effectiveAccountTitle = sameAsName ? fullName : accountTitle;
+
+  // Derived: does the form differ from the loaded data? (no effect — computed during render)
+  const hasUnsavedChanges = useMemo(() => {
+    if (!originalData || loading) return false;
 
     const currentData = {
       fullName,
@@ -203,12 +210,10 @@ export default function InstallerEditModal({
       referrerCode: referrerCode || "",
     };
 
-    const hasChanges = Object.keys(currentData).some((key) => {
+    return Object.keys(currentData).some((key) => {
       const k = key as keyof typeof currentData;
       return currentData[k] !== (originalData[k] || "");
     });
-
-    setHasUnsavedChanges(hasChanges);
   }, [
     originalData,
     loading,
@@ -325,18 +330,22 @@ export default function InstallerEditModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [installerId]);
 
+  // Fetch on open. Legit effect (network sync); populating editable form state
+  // from async data has no render-derived equivalent, so the rule over-flags it.
   useEffect(() => {
     if (open && installerId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchData();
     }
   }, [open, installerId, fetchData]);
 
-  // Reset form when modal closes
+  // Reset transient form state when the modal closes (step, CNIC hook). Prop-
+  // driven reset — not derivable during render.
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(true);
       setCurrentStep(1);
-      setHasUnsavedChanges(false);
       setCnic("");
       setCnicDisplay("");
       setCnicChecked(false);
@@ -345,26 +354,15 @@ export default function InstallerEditModal({
     }
   }, [open, setCnic, setCnicDisplay, setCnicChecked]);
 
-  // Auto-sync effects
-  useEffect(() => {
-    if (sameAsPhone) {
-      setWhatsappNumber(phoneNumber);
-      whatsappInput.setValue(phoneInput.value);
-    }
-  }, [sameAsPhone, phoneNumber, phoneInput.value, whatsappInput]);
-
-  useEffect(() => {
-    if (sameAsName) setAccountTitle(fullName);
-  }, [sameAsName, fullName]);
-
-  useEffect(() => {
-    if (city) {
-      const cityProvince = CITY_TO_PROVINCE[city];
-      if (cityProvince) setProvince(cityProvince);
-      const cityDistrict = CITY_TO_DISTRICT[city];
-      if (cityDistrict) setDistrict(cityDistrict);
-    }
-  }, [city]);
+  // Auto-fill province/district when a city is picked (interactive only — the
+  // load path sets province/district directly from the fetched record).
+  const handleCityChange = (value: string) => {
+    setCity(value);
+    const cityProvince = CITY_TO_PROVINCE[value];
+    if (cityProvince) setProvince(cityProvince);
+    const cityDistrict = CITY_TO_DISTRICT[value];
+    if (cityDistrict) setDistrict(cityDistrict);
+  };
 
   // Handle district change and installer code regeneration
   useEffect(() => {
@@ -394,7 +392,7 @@ export default function InstallerEditModal({
   // Memoize validation functions
   const isStep1Valid = useCallback(() => {
     const phoneDigits = phoneNumber.replace(/\D/g, "");
-    const whatsappDigits = whatsappNumber.replace(/\D/g, "");
+    const whatsappDigits = effectiveWhatsapp.replace(/\D/g, "");
     return (
       cnicChecked &&
       cnic.length === 13 &&
@@ -405,7 +403,7 @@ export default function InstallerEditModal({
       whatsappDigits.length === 11 &&
       whatsappDigits.startsWith("03")
     );
-  }, [cnicChecked, cnic, cnicError, fullName, phoneNumber, whatsappNumber]);
+  }, [cnicChecked, cnic, cnicError, fullName, phoneNumber, effectiveWhatsapp]);
 
   const isStep2Valid = useCallback(() => {
     if (!city || !address.trim() || !district || !installerCode.trim()) {
@@ -428,7 +426,7 @@ export default function InstallerEditModal({
   ]);
 
   const isStep3Valid = useCallback(() => {
-    if (!bankName || !accountTitle.trim()) return false;
+    if (!bankName || !effectiveAccountTitle.trim()) return false;
     const selectedBank = BANKS.find((b) => b.label === bankName);
     const isDigital = selectedBank?.mobile || false;
     if (isDigital) {
@@ -436,7 +434,7 @@ export default function InstallerEditModal({
       return accountDigits.length === 11 && accountDigits.startsWith("03");
     }
     return accountNumber.trim().length > 0;
-  }, [bankName, accountTitle, accountNumber]);
+  }, [bankName, effectiveAccountTitle, accountNumber]);
 
   const isStep4Valid = useCallback(() => {
     if (referrerCode.trim() && !referrerData && !referrerError) return false;
@@ -487,7 +485,7 @@ export default function InstallerEditModal({
         cnic: cnicDisplay,
         phoneNumber: phoneNumberToDBFormat(phoneInput.value || phoneNumber),
         whatsappNumber: phoneNumberToDBFormat(
-          whatsappInput.value || whatsappNumber,
+          effectiveWhatsapp || whatsappNumber,
         ),
         address,
         city,
@@ -498,7 +496,7 @@ export default function InstallerEditModal({
         accountNumber: isDigitalPayment
           ? phoneNumberToDBFormat(accountNumberInput.value || accountNumber)
           : accountNumber,
-        accountTitle,
+        accountTitle: effectiveAccountTitle,
         certified,
       };
 
@@ -523,7 +521,6 @@ export default function InstallerEditModal({
 
       if (response.ok) {
         toast.success("Installer updated successfully");
-        setHasUnsavedChanges(false);
         onSuccess?.();
         onOpenChange(false);
       } else {
@@ -548,7 +545,6 @@ export default function InstallerEditModal({
 
   const confirmClose = () => {
     setShowCloseAlert(false);
-    setHasUnsavedChanges(false);
     onOpenChange(false);
   };
 
@@ -819,7 +815,7 @@ export default function InstallerEditModal({
                       <Input
                         id="whatsappNumber"
                         type="text"
-                        value={whatsappInput.value}
+                        value={effectiveWhatsapp}
                         onChange={(e) => {
                           whatsappInput.onChange(e.target.value);
                           setSameAsPhone(false);
@@ -847,14 +843,14 @@ export default function InstallerEditModal({
               />
 
               <Card className={CARD_SECTION_CLASS}>
-                <CardContent className="space-y-4 !p-0">
+                <CardContent className="space-y-4 p-0!">
                   <div className={GRID_2_COL_CLASS}>
                     <FormField
                       type="select"
                       label="City"
                       id="city"
                       value={city}
-                      onChange={setCity}
+                      onChange={handleCityChange}
                       placeholder="Select City"
                       icon={IconCity}
                       groups={cityGroups}
@@ -972,7 +968,7 @@ export default function InstallerEditModal({
                         <Input
                           id="accountTitle"
                           type="text"
-                          value={accountTitle}
+                          value={effectiveAccountTitle}
                           onChange={(e) => {
                             setAccountTitle(e.target.value);
                             setSameAsName(false);
@@ -1057,14 +1053,12 @@ export default function InstallerEditModal({
                       Certified Installer
                     </Label>
                   </div>
-
                   <Switch
-                    name="certified"
-                    id="certified"
                     checked={certified}
                     onCheckedChange={(checked) =>
                       setCertified(checked as boolean)
                     }
+                    label="Certified"
                   />
                 </div>
 
@@ -1185,7 +1179,7 @@ export default function InstallerEditModal({
               />
 
               <Card className={CARD_SECTION_CLASS}>
-                <CardContent className="space-y-6 !p-6">
+                <CardContent className="space-y-6 p-6!">
                   {/* Personal Info */}
                   <div>
                     <h3 className="text-sm font-semibold text-muted-foreground mb-3">
@@ -1217,7 +1211,7 @@ export default function InstallerEditModal({
                       <div>
                         <span className="text-muted-foreground">WhatsApp:</span>
                         <p className="font-medium">
-                          {whatsappInput.value || whatsappNumber}
+                          {effectiveWhatsapp || whatsappNumber}
                         </p>
                       </div>
                     </div>
@@ -1262,7 +1256,7 @@ export default function InstallerEditModal({
                         <span className="text-muted-foreground">
                           Account Title:
                         </span>
-                        <p className="font-medium">{accountTitle}</p>
+                        <p className="font-medium">{effectiveAccountTitle}</p>
                       </div>
                       <div className="col-span-2">
                         <span className="text-muted-foreground">

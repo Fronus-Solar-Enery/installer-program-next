@@ -3,38 +3,36 @@
 import { MotionConfig } from "motion/react";
 import type { LandingStats } from "./ProofBar";
 
-import Header2026 from "./Header2026";
-import Hero2026 from "./Hero2026";
-import ProofBar from "./ProofBar";
+import Header from "./Header";
+import Hero from "./Hero";
 import ProductShowcase from "./ProductShowcase";
-import HowItWorks2026 from "./HowItWorks2026";
+import HowItWorks from "./HowItWorks";
 import VideoTestimonials from "./VideoTestimonials";
 import FaqSection from "./FaqSection";
 import FinalCTA from "./FinalCTA";
-import Footer2026 from "./Footer2026";
+import Footer from "./Footer";
 import FloatingWhatsApp from "./FloatingWhatsApp";
 
-interface LandingPage2026Props {
+interface LandingPageProps {
   stats: LandingStats;
 }
 
-export default function LandingPage2026({ stats }: LandingPage2026Props) {
+export default function LandingPage({ stats }: LandingPageProps) {
   return (
     <MotionConfig reducedMotion="user">
       <div className="lp-2026 min-h-screen w-full max-w-full overflow-x-clip bg-background">
-        <Header2026 />
+        <Header />
 
         <main>
-          <Hero2026 />
-          <ProofBar stats={stats} />
+          <Hero stats={stats} />
           <ProductShowcase />
-          <HowItWorks2026 />
+          <HowItWorks />
           <VideoTestimonials />
           <FaqSection />
           <FinalCTA />
         </main>
 
-        <Footer2026 />
+        <Footer />
 
         <FloatingWhatsApp />
       </div>

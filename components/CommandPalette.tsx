@@ -86,9 +86,13 @@ export default function CommandPalette({
       command.description.toLowerCase().includes(search.toLowerCase()),
   );
 
-  useEffect(() => {
+  // Reset selection when the query changes — during render, not in an effect,
+  // to avoid a cascading re-render (https://react.dev/learn/you-might-not-need-an-effect).
+  const [prevSearch, setPrevSearch] = useState(search);
+  if (search !== prevSearch) {
+    setPrevSearch(search);
     setSelectedIndex(0);
-  }, [search]);
+  }
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
