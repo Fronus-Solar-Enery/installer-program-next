@@ -145,7 +145,7 @@ export default function TopNavbar() {
             <DropdownTrigger asChild>
               <Button
                 variant="secondary"
-                className="squircle-icon h-9 gap-2 pl-1 pr-3 text-left font-normal border border-border"
+                className="squircle-icon h-9 gap-2 pl-0.5 pr-1 text-left font-normal border border-border"
               >
                 <UserAvatar
                   user={session?.user}
@@ -173,7 +173,7 @@ export default function TopNavbar() {
                   className={cn(
                     "px-2.5 py-1 text-[10px] border-none rounded-md font-semibold bg-background!",
                     session?.user?.role === "ADMIN"
-                      ? "dark:bg-zinc-950/40 dark:text-rose-400"
+                      ? "bg-foreground/5 text-destructive-text-hover"
                       : session?.user?.role === "MANAGER"
                         ? "dark:bg-zinc-950/40 dark:text-cyan-400"
                         : "dark:bg-zinc-950/40 dark:text-zinc-400",
@@ -208,7 +208,7 @@ export default function TopNavbar() {
                   variant="ghost"
                   size="sm"
                   onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-                  className="w-full justify-start px-2 py-2 text-sm text-rose-500 hover:text-rose-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                  className="w-full justify-start px-2 py-2 text-sm text-destructive-text hover:text-destructive-text-hover hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                 >
                   <IconLogout2 className="mr-2" />
                   Logout
