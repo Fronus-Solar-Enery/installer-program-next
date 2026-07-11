@@ -524,17 +524,17 @@ export default function MyStatsPage() {
               className="grid grid-cols-1 md:grid-cols-2 gap-4"
             >
               <Card>
-                <CardHeader>
+                <CardHeader className="border-b border-border">
                   <CardTitle className="text-base">
                     Installation Trend
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pl-0!">
                   <InstallationTrendChart rewards={data.rewards} />
                 </CardContent>
               </Card>
               <Card>
-                <CardHeader>
+                <CardHeader className="border-b border-border">
                   <CardTitle className="text-base">
                     Product Distribution
                   </CardTitle>
@@ -548,7 +548,7 @@ export default function MyStatsPage() {
             {/* 7. Installation History */}
             <motion.div variants={slideUp}>
               <Card>
-                <CardHeader>
+                <CardHeader className="border-b border-border">
                   <CardTitle>Installation History</CardTitle>
                 </CardHeader>
                 <CardContent>

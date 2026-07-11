@@ -56,15 +56,29 @@ function ChartContainer({
 }) {
   const uniqueId = React.useId();
   const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
-  const [mounted, setMounted] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  // Only mount Recharts once the container actually has a size. Guards against
+  // the initial mount race, StrictMode double-render, and display:none parents
+  // (e.g. inactive tab panels) — all of which make Recharts measure -1/-1.
+  const [ready, setReady] = React.useState(false);
 
   React.useEffect(() => {
-    setMounted(true);
+    const el = containerRef.current;
+    if (!el) return;
+    const update = (w: number, h: number) => setReady(w > 0 && h > 0);
+    const ro = new ResizeObserver((entries) => {
+      const r = entries[0].contentRect;
+      update(r.width, r.height);
+    });
+    ro.observe(el);
+    update(el.clientWidth, el.clientHeight);
+    return () => ro.disconnect();
   }, []);
 
   return (
     <ChartContext.Provider value={{ config }}>
       <div
+        ref={containerRef}
         data-slot="chart"
         data-chart={chartId}
           className={cn(
@@ -74,7 +88,7 @@ function ChartContainer({
         {...props}
       >
         <ChartStyle id={chartId} config={config} />
-        {mounted && (
+        {ready && (
           <RechartsPrimitive.ResponsiveContainer width="100%" height="100%" minHeight={200}>
             {children}
           </RechartsPrimitive.ResponsiveContainer>

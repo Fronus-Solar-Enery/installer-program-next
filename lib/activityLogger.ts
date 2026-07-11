@@ -1,4 +1,5 @@
 import Activity, { ActivityType } from "@/models/Activity";
+import InstallerReward from "@/models/InstallerReward";
 import { Types } from "mongoose";
 
 interface LogActivityParams {
@@ -66,6 +67,30 @@ export async function getTargetActivities(
   limit: number = 50
 ) {
   return await Activity.find({ targetType, targetId })
+    .populate("performedBy", "name email")
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .lean();
+}
+
+/**
+ * Get all activities related to an installer: the installer record itself
+ * plus every reward belonging to it (single query, no per-reward round trips)
+ */
+export async function getInstallerActivities(
+  installerId: string,
+  limit: number = 200
+) {
+  const rewardIds = await InstallerReward.find({
+    installer: installerId,
+  }).distinct("_id");
+
+  return await Activity.find({
+    $or: [
+      { targetType: "Installer", targetId: installerId },
+      { targetType: "InstallerReward", targetId: { $in: rewardIds } },
+    ],
+  })
     .populate("performedBy", "name email")
     .sort({ createdAt: -1 })
     .limit(limit)

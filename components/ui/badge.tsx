@@ -25,7 +25,7 @@ const badgeVariants = cva(
           "border-transparent bg-emerald-500 text-white dark:bg-emerald-950/50 dark:text-emerald-400 focus-visible:outline-emerald-700 focus-visible:dark:outline-emerald-200",
 
         warning:
-          "border-transparent bg-yellow-500 text-white dark:bg-yellow-950/50 dark:text-yellow-500 focus-visible:outline-yellow-700 focus-visible:dark:outline-yellow-300",
+          "border-transparent bg-yellow-400 text-yellow-950 dark:bg-yellow-950/40 dark:text-yellow-500 focus-visible:outline-yellow-700 focus-visible:dark:outline-yellow-300",
       },
     },
     defaultVariants: {

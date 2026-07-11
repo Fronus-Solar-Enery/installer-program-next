@@ -206,6 +206,17 @@ export const RewardsTable = React.memo<RewardsTableProps>(
         // Get all columns with data-column attribute
         const allColumns = container.querySelectorAll("[data-column]");
 
+        // Neutralize flex-grow while measuring so scrollWidth reflects true
+        // content width, not the width the cell was already stretched to.
+        // (Measuring stretched cells feeds back and inflates minWidth, which
+        //  then forces a false horizontal scrollbar.) React reapplies the
+        //  grow styles on the next render.
+        allColumns.forEach((cell) => {
+          const el = cell as HTMLElement;
+          el.style.flexGrow = "0";
+          el.style.flexBasis = "auto";
+        });
+
         // Group cells by column
         const columnGroups: Record<string, HTMLElement[]> = {};
         allColumns.forEach((cell) => {
@@ -228,6 +239,15 @@ export const RewardsTable = React.memo<RewardsTableProps>(
             }
           });
           newWidths[columnName] = maxWidth;
+        });
+
+        // Restore grow so columns fill again. React won't rewrite these on the
+        // next render (its vdom already has flexGrow:1, unchanged), so we must
+        // set them back to match getColumnStyle explicitly.
+        allColumns.forEach((cell) => {
+          const el = cell as HTMLElement;
+          el.style.flexGrow = "1";
+          el.style.flexBasis = "0";
         });
 
         setColumnWidths(newWidths);
@@ -253,6 +273,18 @@ export const RewardsTable = React.memo<RewardsTableProps>(
     const activeColumnsLength = useMemo(
       () => Object.values(visibleColumns).filter(Boolean).length,
       [visibleColumns],
+    );
+
+    // Sum of measured column widths + fixed checkbox (48px) / actions (128px).
+    // Used as an explicit min-width on the table wrapper so it scrolls only
+    // when real content exceeds the container, and lets columns flex-grow to
+    // fill otherwise. Avoids CSS max-content/fit-content, which inflate here
+    // because they count flex-grow. ponytail: 48/128 mirror w-12/w-32.
+    const measuredColumnCount = Object.keys(columnWidths).length;
+    const totalColumnsWidth = useMemo(
+      () =>
+        Object.values(columnWidths).reduce((sum, w) => sum + w, 0) + 48 + 128,
+      [columnWidths],
     );
 
     const allSelected = useMemo(
@@ -316,9 +348,13 @@ export const RewardsTable = React.memo<RewardsTableProps>(
       [sortField, sortDirection],
     );
 
-    // Helper function to get column style with memoized width
+    // Helper function to get column style with memoized width.
+    // flexGrow/flexBasis let columns expand to fill available table width;
+    // minWidth (measured content) forces horizontal scroll when space is tight.
     const getColumnStyle = useCallback(
       (columnName: string) => ({
+        flexGrow: 1,
+        flexBasis: 0,
         minWidth: columnWidths[columnName]
           ? `${columnWidths[columnName]}px`
           : undefined,
@@ -670,7 +706,12 @@ export const RewardsTable = React.memo<RewardsTableProps>(
           >
             <div
               ref={measureRef}
-              className={loading ? "w-full" : "min-w-fit w-full"}
+              className="w-full"
+              style={
+                !loading && measuredColumnCount > 0
+                  ? { minWidth: `${totalColumnsWidth}px` }
+                  : undefined
+              }
             >
               {/* Sticky Header */}
               <div className="sticky top-0 z-10">
@@ -945,7 +986,6 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                           top: 0,
                           left: 0,
                           width: "100%",
-                          minWidth: "max-content",
                           height: `${virtualRow.size}px`,
                           transform: `translateY(${virtualRow.start}px)`,
                         }}

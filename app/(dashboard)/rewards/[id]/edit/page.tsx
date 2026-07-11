@@ -3,9 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { RewardStatus } from '@/types/rewards';
-import { PAYMENT_METHOD } from '@/lib/constants';
 import { useProducts } from '@/hooks/useProducts';
-import { useSettings } from '@/hooks/useSettings';
+import { usePaymentMethods, useSettings } from '@/hooks/useSettings';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,6 +27,7 @@ export default function EditRewardPage() {
   // Default to required while loading so PAID can't slip through un-gated.
   const { data: appSettings } = useSettings();
   const requireTid = appSettings?.requireTransactionIdForPaid ?? true;
+  const paymentMethods = usePaymentMethods();
 
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
@@ -362,8 +362,8 @@ export default function EditRewardPage() {
                   <SelectValue placeholder="Select payment method" />
                 </SelectTrigger>
                 <SelectContent>
-                  {PAYMENT_METHOD.map(method => (
-                    <SelectItem key={method.value} value={method.value}>{method.label}</SelectItem>
+                  {paymentMethods.map(method => (
+                    <SelectItem key={method} value={method}>{method}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

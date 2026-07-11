@@ -75,11 +75,18 @@ export default function RootLayout({
           id="register-sw"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
-            __html: `
+            __html:
+              process.env.NODE_ENV === "production"
+                ? `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
                   navigator.serviceWorker.register('/sw.js');
                 });
+              }
+            `
+                : `
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister()));
               }
             `,
           }}

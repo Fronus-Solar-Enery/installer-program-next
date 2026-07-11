@@ -1,31 +1,33 @@
 import { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
-import { getRecentActivities, getTargetActivities } from "@/lib/activityLogger";
+import {
+  getRecentActivities,
+  getTargetActivities,
+  getInstallerActivities,
+} from "@/lib/activityLogger";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
+import { withAuth } from "@/lib/authGuard";
 
 // GET activities
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest) => {
   try {
-    const session = await auth();
-
-    if (!session) {
-      return ApiResponse.unauthorized();
-    }
-
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
     const targetType = searchParams.get("targetType");
     const targetId = searchParams.get("targetId");
+    const installerId = searchParams.get("installerId");
     const limit = parseInt(searchParams.get("limit") || "100");
 
     let activities;
 
-    if (targetType && targetId) {
+    if (installerId) {
+      // All activities for an installer + its rewards in one query
+      activities = await getInstallerActivities(installerId, limit);
+    } else if (targetType && targetId) {
       // Get activities for a specific target
       activities = await getTargetActivities(
-        targetType as 'Installer' | 'InstallerReward' | 'TeamMember',
+        targetType as "Installer" | "InstallerReward" | "TeamMember",
         targetId,
         limit
       );
@@ -38,4 +40,4 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+});

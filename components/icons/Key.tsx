@@ -10,11 +10,14 @@ const IconKey: FC<IconProps> = ({
   return (
     <>
       {!fill ? (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             d="M15.6807 14.5874C19.1708 14.5874 22 11.7697 22 8.29392C22 4.81816 19.1708 2.00049 15.6807 2.00049C12.1907 2.00049 9.3615 4.81816 9.3615 8.29392C9.3615 9.90387 10.0963 11.0747 10.0963 11.0747L2.45441 18.6854C2.1115 19.0269 1.63143 19.9148 2.45441 20.7344L3.33616 21.6126C3.67905 21.9053 4.54119 22.3151 5.2466 21.6126L6.27531 20.5881C7.30403 21.6126 8.4797 21.0272 8.92058 20.4417C9.65538 19.4172 8.77362 18.3927 8.77362 18.3927L9.06754 18.1C10.4783 19.505 11.7128 18.6854 12.1537 18.1C12.8885 17.0755 12.1537 16.0509 12.1537 16.0509C11.8598 15.4655 11.272 15.4655 12.0067 14.7338L12.8885 13.8556C13.5939 14.441 15.0439 14.5874 15.6807 14.5874Z"
             stroke="currentColor"
@@ -29,11 +32,14 @@ const IconKey: FC<IconProps> = ({
           />
         </svg>
       ) : duotone ? (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             opacity={duotone ? opacity : "1"}
             fillRule="evenodd"
@@ -47,11 +53,14 @@ const IconKey: FC<IconProps> = ({
           />
         </svg>
       ) : (
-        <svg className={`size-4 ${className}`} width="24"
+        <svg
+          className={`size-4 ${className}`}
+          width="24"
           height="24"
           viewBox="0 0 24 24"
           fill="none"
-          xmlns="http://www.w3.org/2000/svg">
+          xmlns="http://www.w3.org/2000/svg"
+        >
           <path
             fillRule="evenodd"
             clipRule="evenodd"

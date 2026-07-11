@@ -1,6 +1,3 @@
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { getInstallerFromCookie } from "@/lib/installerAuth";
 import dbConnect from "@/lib/mongodb";
 import Installer from "@/models/Installer";
 import InstallerReward from "@/models/InstallerReward";
@@ -34,12 +31,5 @@ async function getLandingStats() {
 }
 
 export default async function Home() {
-  const session = await auth();
-  if (session?.user) redirect("/dashboard");
-
-  // installer_token is httpOnly, so the check must happen server-side.
-  const installerSession = await getInstallerFromCookie();
-  if (installerSession) redirect("/my-stats");
-
   return <LandingPage stats={await getLandingStats()} />;
 }

@@ -45,8 +45,14 @@ import {
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
+import { motion } from "motion/react";
 import { EASE_MOVE, EASE_MOVE_REVERSE, EASE_ENTER } from "@/lib/gsapEases";
 import { IconAltArrowLeft, IconInstaller } from "@/components/icons";
+
+// Same tap feel as components/ui/button.tsx
+const MotionLink = motion.create(Link);
+const TAP_SCALE = { scale: 0.96 };
+const TAP_SPRING = { type: "spring" as const, stiffness: 500, damping: 32 };
 
 // Types
 export interface SubNavItem {
@@ -615,14 +621,18 @@ function Sidebar({
                         className={cn(
                           // Only color/transform transition here — GSAP owns width/height,
                           // so `transition-all` would fight it every frame.
-                          "navitem-link flex items-center gap-2 px-3 py-3 rounded-2xl transition-[color,background-color,transform] duration-200 ease-fluid hover:no-underline active:scale-[0.98] w-full",
+                          "navitem-link flex items-center gap-2 px-3 py-3 rounded-2xl transition-[color,background-color] duration-200 ease-fluid hover:no-underline w-full",
                           collapsed ? "squircle-icon" : "squircle",
                           isAnySubItemActive
                             ? "bg-sidebar-primary text-primary font-medium"
                             : "[@media(hover:hover)]:hover:bg-sidebar-primary text-sidebar-accent-foreground/70 [@media(hover:hover)]:hover:text-sidebar-accent-foreground",
                         )}
                       >
-                        <div className="flex items-center gap-2 flex-1">
+                        <motion.div
+                          whileTap={TAP_SCALE}
+                          transition={TAP_SPRING}
+                          className="flex items-center gap-2 flex-1"
+                        >
                           <div className="flex items-center justify-center transition-all">
                             <item.Icon
                               className={cn("navitem-icon shrink-0 w-5 h-5")}
@@ -640,7 +650,7 @@ function Sidebar({
                           >
                             {item.title}
                           </span>
-                        </div>
+                        </motion.div>
                       </AccordionTrigger>
                     </PopoverTrigger>
                     {collapsed && (
@@ -663,18 +673,20 @@ function Sidebar({
                                   : "before:w-4 hover:before:w-2",
                               )}
                             >
-                              <Link
+                              <MotionLink
                                 key={subItem.href}
                                 href={subItem.href}
+                                whileTap={TAP_SCALE}
+                                transition={TAP_SPRING}
                                 className={cn(
-                                  "before-content relative mt-1 ml-5 px-3 py-2 rounded-2xl text-sm transition-[color,background-color,transform] duration-200 ease-fluid active:scale-[0.98] squircle flex items-center z-10",
+                                  "before-content relative mt-1 ml-5 px-3 py-2 rounded-2xl text-sm transition-[color,background-color] duration-200 ease-fluid squircle flex items-center z-10",
                                   isExactActive(subItem.href)
                                     ? "bg-sidebar-primary text-primary"
                                     : "[@media(hover:hover)]:hover:bg-sidebar-primary text-sidebar-accent-foreground/70 [@media(hover:hover)]:hover:text-sidebar-accent-foreground",
                                 )}
                               >
                                 {subItem.title}
-                              </Link>
+                              </MotionLink>
                             </div>
                           ))}
                         </div>
@@ -694,17 +706,19 @@ function Sidebar({
                                 : "before:w-4 hover:before:w-2",
                             )}
                           >
-                            <Link
+                            <MotionLink
                               href={subItem.href}
+                              whileTap={TAP_SCALE}
+                              transition={TAP_SPRING}
                               className={cn(
-                                "before-content relative mt-1 ml-1 px-3 py-2 rounded-2xl text-sm transition-[color,background-color,transform] duration-200 ease-fluid active:scale-[0.98] squircle flex items-center z-10",
+                                "before-content relative mt-1 ml-1 px-3 py-2 rounded-2xl text-sm transition-[color,background-color] duration-200 ease-fluid squircle flex items-center z-10",
                                 isExactActive(subItem.href)
                                   ? "bg-sidebar-primary text-primary"
                                   : "[@media(hover:hover)]:hover:bg-sidebar-primary text-sidebar-accent-foreground/70 [@media(hover:hover)]:hover:text-sidebar-accent-foreground",
                               )}
                             >
                               {subItem.title}
-                            </Link>
+                            </MotionLink>
                           </div>
                         ))}
                       </div>
@@ -780,12 +794,14 @@ interface NavItemProps {
 const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
   ({ to, Icon, label, badge, isActive, isExpanded }, ref) => {
     const content = (
-      <Link
+      <MotionLink
         title={label}
         ref={ref}
         href={to}
+        whileTap={TAP_SCALE}
+        transition={TAP_SPRING}
         className={cn(
-          "navitem-link flex items-center gap-2 px-3 py-3 rounded-2xl transition-all duration-200 w-full",
+          "navitem-link flex items-center gap-2 px-3 py-3 rounded-2xl transition-[color,background-color] duration-200 w-full",
           isExpanded ? "squircle" : "squircle-icon",
           isActive
             ? "bg-sidebar-primary text-primary font-medium"
@@ -810,7 +826,7 @@ const NavItemBase = forwardRef<HTMLAnchorElement, NavItemProps>(
           </span>
           <div className="flex items-center gap-2">{badge}</div>
         </div>
-      </Link>
+      </MotionLink>
     );
 
     return (

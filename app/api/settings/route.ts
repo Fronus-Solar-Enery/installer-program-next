@@ -44,6 +44,30 @@ export async function PUT(request: NextRequest) {
     await dbConnect();
 
     const body = await request.json();
+
+    // Payment methods: normalize + reject bad shapes before persisting.
+    if (body.paymentMethods !== undefined) {
+      if (!Array.isArray(body.paymentMethods)) {
+        return ApiResponse.badRequest('Payment methods must be a list');
+      }
+      const cleaned = [
+        ...new Set(
+          (body.paymentMethods as unknown[])
+            .map((m) => String(m).trim())
+            .filter(Boolean),
+        ),
+      ];
+      if (cleaned.length === 0) {
+        return ApiResponse.badRequest('At least one payment method is required');
+      }
+      if (cleaned.length > 20 || cleaned.some((m) => m.length > 40)) {
+        return ApiResponse.badRequest(
+          'Payment methods are limited to 20 entries of 40 characters each',
+        );
+      }
+      body.paymentMethods = cleaned;
+    }
+
     const settings = await getSettings();
 
     // Store old values for activity log

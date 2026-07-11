@@ -6,12 +6,5 @@ export enum RewardStatus {
   FAILED = "FAILED",
 }
 
-export const PAYMENT_METHODS = [
-  "Bank Transfer",
-  "Cheque",
-  "Cash",
-  "Online Payment",
-  "Mobile Banking",
-] as const;
-
-export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+// Payment method options live in Settings (admin-editable); defaults in
+// lib/constants PAYMENT_METHOD. Read them via usePaymentMethods().

@@ -959,11 +959,11 @@ export default function DashboardPage() {
                 <div className="w-full bg-muted rounded-full h-8 overflow-hidden">
                   <div className="flex h-full">
                     <div
-                      className="bg-primary transition-all duration-500 rounded-full shadow-lg"
+                      className="bg-accent transition-all duration-500 rounded-full shadow-lg"
                       style={{ width: `${grandTotalPaidPercentage}%` }}
                     />
                     <div
-                      className="bg-primary/50 transition-all duration-500 rounded-full shadow-lg"
+                      className="bg-muted transition-all duration-500 rounded-full shadow-lg"
                       style={{ width: `${grandTotalPendingPercentage}%` }}
                     />
                   </div>
@@ -1171,9 +1171,7 @@ export default function DashboardPage() {
                   Total Installations
                 </span>
                 <div className="text-right">
-                  <div className="text-2xl font-bold">
-                    {stats.totalInstallers}
-                  </div>
+                  <div className="text-2xl font-bold">{stats.totalRewards}</div>
                   <div className="text-xs text-muted-foreground">
                     Avg: {avgPerProduct} per product
                   </div>
@@ -1264,9 +1262,7 @@ export default function DashboardPage() {
                   Total Installations
                 </span>
                 <div className="text-right">
-                  <div className="text-2xl font-bold">
-                    {stats.totalInstallers}
-                  </div>
+                  <div className="text-2xl font-bold">{stats.totalRewards}</div>
                   <div className="text-xs text-muted-foreground">
                     Avg: {avgPerProduct} per product
                   </div>

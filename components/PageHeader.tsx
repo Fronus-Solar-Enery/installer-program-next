@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 interface PageHeaderProps {
   title: string | React.ReactNode;
   titleClassName?: string;
+  className?: string;
   description?: string | React.ReactNode;
   Icon?: React.ComponentType<IconProps> | React.ReactNode;
   action?: React.ReactNode;
@@ -14,6 +15,7 @@ export default function PageHeader({
   description,
   Icon,
   action,
+  className,
   titleClassName,
   iconFill = false,
 }: PageHeaderProps) {
@@ -31,14 +33,19 @@ export default function PageHeader({
   };
 
   return (
-    <div className="flex w-full flex-wrap items-center justify-between gap-4 py-6 lg:flex-nowrap">
+    <div
+      className={cn(
+        "flex w-full flex-wrap items-center justify-between gap-4 py-6 lg:flex-nowrap",
+        className,
+      )}
+    >
       <div className="flex items-center gap-4 ml-6">
         {renderIcon()}
         <div>
           <h1
             className={cn(
               "text-2xl font-medium text-foreground leading-none",
-              titleClassName
+              titleClassName,
             )}
           >
             {title}

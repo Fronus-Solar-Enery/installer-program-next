@@ -47,6 +47,9 @@ import {
 } from "@/components/DeleteConfirmationDialog";
 import { SETTINGS_CARDS } from "./settings-config";
 import { SwitchRow, ValueRow } from "./setting-row";
+import { PaymentMethodsCard } from "./payment-methods-card";
+import { PAYMENT_METHOD } from "@/lib/constants";
+import { useQueryClient } from "@tanstack/react-query";
 
 export interface SettingsData {
   allowInstallerCodeEdit?: boolean;
@@ -55,6 +58,7 @@ export interface SettingsData {
   requireTransactionIdForPaid?: boolean;
   autoSendWhatsAppOnPaid?: boolean;
   enableWhatsAppNotifications?: boolean;
+  paymentMethods?: string[];
   updatedAt?: string;
 }
 
@@ -74,6 +78,7 @@ const DEFAULT_SETTINGS: SettingsData = {
   requireTransactionIdForPaid: true,
   autoSendWhatsAppOnPaid: false,
   enableWhatsAppNotifications: false,
+  paymentMethods: PAYMENT_METHOD.map((m) => m.value),
 };
 
 export default function SettingsPage() {
@@ -99,6 +104,38 @@ export default function SettingsPage() {
   });
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [paymentMethodsSaving, setPaymentMethodsSaving] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleSavePaymentMethods = async (next: string[]) => {
+    // Save against originalSettings so pending switch toggles aren't committed.
+    const payload = { ...originalSettings, paymentMethods: next };
+    try {
+      setPaymentMethodsSaving(true);
+      const response = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Payment methods updated");
+        setSettings((prev) =>
+          prev ? { ...prev, paymentMethods: next } : prev,
+        );
+        setOriginalSettings(payload);
+        // Keep TanStack-cached settings (reward dialogs) in sync.
+        queryClient.invalidateQueries({ queryKey: ["settings"] });
+      } else {
+        toast.error(data.error || "Failed to update payment methods");
+      }
+    } catch {
+      toast.error("An error occurred while saving");
+    } finally {
+      setPaymentMethodsSaving(false);
+    }
+  };
 
   // Products (admin-editable, backed by the Product collection)
   const { data: products = [], isLoading: productsLoading } = useProducts(true);
@@ -410,6 +447,17 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
             ))}
+
+            {/* Payment Methods */}
+            <PaymentMethodsCard
+              methods={
+                settings?.paymentMethods?.length
+                  ? settings.paymentMethods
+                  : DEFAULT_SETTINGS.paymentMethods!
+              }
+              saving={paymentMethodsSaving}
+              onSave={handleSavePaymentMethods}
+            />
 
             {/* Products & Reward Amounts */}
             <Card className="lg:col-span-2">

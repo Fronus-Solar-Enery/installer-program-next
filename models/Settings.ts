@@ -1,4 +1,7 @@
 import mongoose, { Schema, Model } from "mongoose";
+import { PAYMENT_METHOD } from "@/lib/constants";
+
+export const DEFAULT_PAYMENT_METHODS = PAYMENT_METHOD.map((m) => m.value);
 
 export interface ISettings {
   _id?: string;
@@ -11,6 +14,7 @@ export interface ISettings {
   defaultReferralReward: number;
   requireTransactionIdForPaid: boolean;
   autoSendWhatsAppOnPaid: boolean;
+  paymentMethods: string[];
 
   // System Settings
   enableWhatsAppNotifications: boolean;
@@ -48,6 +52,10 @@ const SettingsSchema = new Schema<ISettings>(
     autoSendWhatsAppOnPaid: {
       type: Boolean,
       default: true,
+    },
+    paymentMethods: {
+      type: [String],
+      default: DEFAULT_PAYMENT_METHODS,
     },
 
     // System Settings

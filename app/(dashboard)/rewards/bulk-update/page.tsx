@@ -46,7 +46,9 @@ import BulkUploadProgressModal, {
 import Loading from "@/components/ui/loading";
 import IconDownloadMinimalistic from "@/components/icons/DownloadMinimalistic";
 
-function worksheetToJson(worksheet: ExcelJS.Worksheet): Record<string, unknown>[] {
+function worksheetToJson(
+  worksheet: ExcelJS.Worksheet,
+): Record<string, unknown>[] {
   const headers: string[] = [];
   worksheet.getRow(1).eachCell((cell, colNumber) => {
     headers[colNumber] = cell.value != null ? String(cell.value) : "";
@@ -130,8 +132,16 @@ export default function BulkUploadRewardsPage() {
       const ws = wb.addWorksheet("Rewards Template");
       ws.columns = [
         { header: "Serial Number", key: "Serial Number", width: 15 },
-        { header: "Installer Transaction ID", key: "Installer Transaction ID", width: 25 },
-        { header: "Referrer Transaction ID", key: "Referrer Transaction ID", width: 25 },
+        {
+          header: "Installer Transaction ID",
+          key: "Installer Transaction ID",
+          width: 25,
+        },
+        {
+          header: "Referrer Transaction ID",
+          key: "Referrer Transaction ID",
+          width: 25,
+        },
         { header: "Payment Method", key: "Payment Method", width: 25 },
       ];
       ws.addRows(template);
@@ -180,7 +190,7 @@ export default function BulkUploadRewardsPage() {
     return PAYMENT_METHOD.some(
       (pm) =>
         pm.value.toUpperCase() === normalizedMethod ||
-        pm.label.toUpperCase() === normalizedMethod
+        pm.label.toUpperCase() === normalizedMethod,
     );
   };
 
@@ -190,7 +200,7 @@ export default function BulkUploadRewardsPage() {
     const matched = PAYMENT_METHOD.find(
       (pm) =>
         pm.value.toUpperCase() === normalizedInput ||
-        pm.label.toUpperCase() === normalizedInput
+        pm.label.toUpperCase() === normalizedInput,
     );
     return matched ? matched.value : method;
   };
@@ -218,14 +228,14 @@ export default function BulkUploadRewardsPage() {
         issues.push("Payment status is required");
       } else if (!validateRewardStatus(reward.rewardStatus)) {
         issues.push(
-          `Invalid reward status "${reward.rewardStatus}" (must be: PAID, PENDING, or FAILED)`
+          `Invalid reward status "${reward.rewardStatus}" (must be: PAID, PENDING, or FAILED)`,
         );
       }
 
       // Sending date validation (always present - defaults to current date if not provided)
       if (reward.sendingDate && !validateDate(reward.sendingDate)) {
         issues.push(
-          `Invalid sending date format "${reward.sendingDate}" (expected: YYYY-MM-DD)`
+          `Invalid sending date format "${reward.sendingDate}" (expected: YYYY-MM-DD)`,
         );
       }
 
@@ -234,13 +244,13 @@ export default function BulkUploadRewardsPage() {
         !validatePaymentMethod(reward.paymentMethod)
       ) {
         issues.push(
-          `Invalid payment method "${reward.paymentMethod}" (must be: UBANK, UPaisa, or NayaPay)`
+          `Invalid payment method "${reward.paymentMethod}" (must be: UBANK, UPaisa, or NayaPay)`,
         );
       }
 
       return issues;
     },
-    []
+    [],
   );
 
   const handleFileChange = (file: File) => {
@@ -382,12 +392,12 @@ export default function BulkUploadRewardsPage() {
 
           // Check how many records had auto-filled dates
           const autoFilledCount = jsonData.filter(
-            (row) => !row["Sending Date"]?.toString().trim()
+            (row) => !row["Sending Date"]?.toString().trim(),
           ).length;
 
           if (autoFilledCount > 0) {
             toast.success(
-              `Loaded ${parsedRewards.length} records. ${autoFilledCount} sending date(s) auto-filled with current date (${defaultSendingDate})`
+              `Loaded ${parsedRewards.length} records. ${autoFilledCount} sending date(s) auto-filled with current date (${defaultSendingDate})`,
             );
           } else {
             toast.success(`Loaded ${parsedRewards.length} records from file`);
@@ -422,7 +432,7 @@ export default function BulkUploadRewardsPage() {
 
       reader.readAsArrayBuffer(file);
     },
-    [validateReward]
+    [validateReward],
   );
 
   const validateAgainstDatabase = async (rewards: RewardUpdate[]) => {
@@ -458,7 +468,7 @@ export default function BulkUploadRewardsPage() {
               rewardStatus,
               isValid: !reward.issues || reward.issues.length === 0,
             };
-          }
+          },
         );
 
         setPreview(updatedRewards);
@@ -501,7 +511,7 @@ export default function BulkUploadRewardsPage() {
     setPreview(validRecords);
     setTerminateDialogOpen(false);
     toast.success(
-      `Terminated ${invalidCount} invalid record(s). ${validRecords.length} valid record(s) remaining.`
+      `Terminated ${invalidCount} invalid record(s). ${validRecords.length} valid record(s) remaining.`,
     );
   };
 
@@ -535,8 +545,16 @@ export default function BulkUploadRewardsPage() {
       const ws = wb.addWorksheet("Invalid Records");
       ws.columns = [
         { header: "Serial Number", key: "Serial Number", width: 15 },
-        { header: "Installer Transaction ID", key: "Installer Transaction ID", width: 25 },
-        { header: "Referrer Transaction ID", key: "Referrer Transaction ID", width: 25 },
+        {
+          header: "Installer Transaction ID",
+          key: "Installer Transaction ID",
+          width: 25,
+        },
+        {
+          header: "Referrer Transaction ID",
+          key: "Referrer Transaction ID",
+          width: 25,
+        },
         { header: "Payment Method", key: "Payment Method", width: 25 },
         { header: "ISSUES", key: "ISSUES", width: 60 },
       ];
@@ -560,7 +578,7 @@ export default function BulkUploadRewardsPage() {
     const invalidRows = preview.filter((p) => !p.isValid);
     if (invalidRows.length > 0) {
       toast.error(
-        `Cannot upload: ${invalidRows.length} row(s) have validation issues. Please fix them first.`
+        `Cannot upload: ${invalidRows.length} row(s) have validation issues. Please fix them first.`,
       );
       return;
     }
@@ -623,15 +641,15 @@ export default function BulkUploadRewardsPage() {
                 progress: 100,
                 details: `Validated ${totalRecords} records`,
               }
-            : step
-        )
+            : step,
+        ),
       );
 
       // Step 2: Start updating rewards in chunks
       setUploadSteps((prev) =>
         prev.map((step) =>
-          step.id === "update" ? { ...step, status: "processing" } : step
-        )
+          step.id === "update" ? { ...step, status: "processing" } : step,
+        ),
       );
 
       // Process in chunks for real-time progress
@@ -679,7 +697,7 @@ export default function BulkUploadRewardsPage() {
           allErrors.push(
             `Chunk ${i / CHUNK_SIZE + 1} failed: ${
               err instanceof Error ? err.message : "Unknown error"
-            }`
+            }`,
           );
         }
 
@@ -699,8 +717,8 @@ export default function BulkUploadRewardsPage() {
                   description: `Processing ${currentBatch} of ${totalRecords} reward(s)`,
                   details: `Updated: ${totalSuccess} | Failed: ${totalFailed}`,
                 }
-              : step
-          )
+              : step,
+          ),
         );
 
         // Small delay between chunks to allow UI updates
@@ -718,8 +736,8 @@ export default function BulkUploadRewardsPage() {
                 details: `Updated ${totalSuccess} out of ${totalRecords} rewards`,
                 error: totalFailed > 0 ? `${totalFailed} failed` : undefined,
               }
-            : step
-        )
+            : step,
+        ),
       );
 
       if (totalSuccess === 0) {
@@ -731,8 +749,8 @@ export default function BulkUploadRewardsPage() {
                   status: "error",
                   error: "No rewards were updated successfully",
                 }
-              : step
-          )
+              : step,
+          ),
         );
         setError(`Update failed. Errors: ${allErrors.join(", ")}`);
         return;
@@ -742,8 +760,8 @@ export default function BulkUploadRewardsPage() {
       await new Promise((resolve) => setTimeout(resolve, 300));
       setUploadSteps((prev) =>
         prev.map((step) =>
-          step.id === "activity" ? { ...step, status: "processing" } : step
-        )
+          step.id === "activity" ? { ...step, status: "processing" } : step,
+        ),
       );
 
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -756,8 +774,8 @@ export default function BulkUploadRewardsPage() {
                 progress: 100,
                 details: `Logged ${totalSuccess} activities`,
               }
-            : step
-        )
+            : step,
+        ),
       );
 
       // Step 4: Complete
@@ -774,15 +792,15 @@ export default function BulkUploadRewardsPage() {
             : {
                 ...step,
                 status: step.status === "pending" ? "completed" : step.status,
-              }
-        )
+              },
+        ),
       );
 
       setSuccess(`Successfully updated ${totalSuccess} reward(s)!`);
 
       if (totalFailed > 0) {
         setError(
-          `${totalFailed} reward(s) failed. Check the logs for details.`
+          `${totalFailed} reward(s) failed. Check the logs for details.`,
         );
       }
     } catch (err: unknown) {
@@ -791,8 +809,8 @@ export default function BulkUploadRewardsPage() {
         prev.map((step) =>
           step.status === "processing"
             ? { ...step, status: "error", error: errorMessage }
-            : step
-        )
+            : step,
+        ),
       );
       setError("Failed to update rewards: " + errorMessage);
     } finally {
@@ -889,10 +907,10 @@ export default function BulkUploadRewardsPage() {
                     file
                       ? "FILE ALREADY SELECTED"
                       : fileReading
-                      ? "READING FILE..."
-                      : preview.length > 0
-                      ? "RECORDS IN PROGRESS"
-                      : "UPLOAD EXCEL FILE"
+                        ? "READING FILE..."
+                        : preview.length > 0
+                          ? "RECORDS IN PROGRESS"
+                          : "UPLOAD EXCEL FILE"
                   }
                   accept={{
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
@@ -943,14 +961,14 @@ export default function BulkUploadRewardsPage() {
                           {fileReadProgress < 25
                             ? "Starting file upload..."
                             : fileReadProgress < 65
-                            ? "Reading file data..."
-                            : fileReadProgress < 80
-                            ? "Parsing Excel workbook..."
-                            : fileReadProgress < 90
-                            ? "Extracting records..."
-                            : fileReadProgress < 98
-                            ? "Processing and validating..."
-                            : "Finalizing..."}
+                              ? "Reading file data..."
+                              : fileReadProgress < 80
+                                ? "Parsing Excel workbook..."
+                                : fileReadProgress < 90
+                                  ? "Extracting records..."
+                                  : fileReadProgress < 98
+                                    ? "Processing and validating..."
+                                    : "Finalizing..."}
                         </span>
                         <span className="font-semibold text-primary tabular-nums">
                           {fileReadProgress}%
@@ -1064,10 +1082,10 @@ export default function BulkUploadRewardsPage() {
               {loading
                 ? "Updating..."
                 : validating
-                ? "Validating..."
-                : fileReading
-                ? "Reading file..."
-                : `Update ${validCount} Valid Record(s)`}
+                  ? "Validating..."
+                  : fileReading
+                    ? "Reading file..."
+                    : `Update ${validCount} Valid Record(s)`}
             </Button>
             <Button
               type="button"
@@ -1140,8 +1158,8 @@ export default function BulkUploadRewardsPage() {
                             reward.rewardStatus === "PAID"
                               ? "default"
                               : reward.rewardStatus === "FAILED"
-                              ? "destructive"
-                              : "secondary"
+                                ? "destructive"
+                                : "secondary"
                           }
                         >
                           {reward.rewardStatus}
