@@ -28,7 +28,7 @@ export const metadata: Metadata = {
       "Join Pakistan's solar installer reward program. Earn a flat Rs 5,000 on every eligible Fronus-SolaX inverter installation.",
     images: [
       {
-        url: "og-image.jpeg",
+        url: "og-image-small.jpeg",
         width: 720,
         height: 790,
         alt: "Fronus Installer Program — Earn Rs 5,000 per Install",
