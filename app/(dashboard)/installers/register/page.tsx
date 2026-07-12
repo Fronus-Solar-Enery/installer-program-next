@@ -662,22 +662,6 @@ export default function NewInstallerPage() {
         Icon={IconUserPlus}
         iconFill
         description="Register a new Installer to the Installer Program"
-        action={
-          <Button
-            onClick={() => router.push("/installers/bulk-register")}
-            variant="outline"
-            disabled={loading || !googleAuthStatus?.isAuthenticated}
-            title={
-              !googleAuthStatus?.isAuthenticated
-                ? "Google Contacts authentication required"
-                : "Bulk Register"
-            }
-            className="gap-2"
-          >
-            Bulk Register
-            <IconLayer width={2} className="h-3.5 w-3.5" />
-          </Button>
-        }
       />
       {/* Main Form */}
       <Card>

@@ -102,7 +102,12 @@ import {
   SearchableSelect,
   SearchableSelectGroup,
 } from "@/components/ui/searchable-select";
-import { BANKS, CITY_TO_PROVINCE, PROVINCES, getBankLabel } from "@/lib/constants";
+import {
+  BANKS,
+  CITY_TO_PROVINCE,
+  PROVINCES,
+  getBankLabel,
+} from "@/lib/constants";
 import { InstallerAvatar } from "@/components/UserAvatar";
 import { Input } from "@/components/ui/input";
 
@@ -259,7 +264,9 @@ const InstallerRow = memo(
           style={columnStyles.bankDetails}
         >
           <div>
-            <div className="text-primary">{getBankLabel(installer.bankName ?? "") || "-"}</div>
+            <div className="text-primary">
+              {getBankLabel(installer.bankName ?? "") || "-"}
+            </div>
             <div className="text-xs">{installer.accountNumber}</div>
           </div>
         </div>
@@ -1046,21 +1053,6 @@ export default function InstallersPage() {
         }
         action={
           <>
-            <Button
-              onClick={() => router.push("/installers/bulk-register")}
-              variant="outline"
-              disabled={loading || !googleAuthStatus?.isAuthenticated}
-              title={
-                !googleAuthStatus?.isAuthenticated
-                  ? "Google Contacts authentication required"
-                  : "Bulk Register"
-              }
-              className="gap-2"
-            >
-              Bulk Register
-              <IconLayer width={2} className="h-3.5 w-3.5" />
-            </Button>
-
             {/* Register New Installer OR Authenticate Google Contacts */}
             {googleAuthStatus?.isAuthenticated ? (
               <Button

@@ -1,11 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import {
-  CITIES,
-  CITY_TO_PROVINCE,
-  PROVINCES,
-} from "@/lib/constants";
+import { CITIES, CITY_TO_PROVINCE, PROVINCES } from "@/lib/constants";
 import { useProducts } from "@/hooks/useProducts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -95,18 +91,20 @@ export default function NewRewardPage() {
   // Step 2: Product Details
   const [productModel, setProductModel] = useState("");
   const [cityOfInstallation, setCityOfInstallation] = useState("");
-  const [installationMonthYear, setInstallationMonthYear] = useState<string>(() => {
-    const now = new Date();
-    const month = now.toLocaleString("en-US", { month: "long" });
-    return `${month} ${now.getFullYear()}`;
-  });
+  const [installationMonthYear, setInstallationMonthYear] = useState<string>(
+    () => {
+      const now = new Date();
+      const month = now.toLocaleString("en-US", { month: "long" });
+      return `${month} ${now.getFullYear()}`;
+    },
+  );
 
   const { data: products = [] } = useProducts();
 
   // Memoize selected product details to avoid recalculation
   const selectedProduct = useMemo(
     () => products.find((p) => p.value === productModel),
-    [products, productModel]
+    [products, productModel],
   );
   const rewardAmount = selectedProduct?.reward || 0;
   const isBatteryProduct =
@@ -161,7 +159,7 @@ export default function NewRewardPage() {
             ),
           })),
       })),
-    [    ]
+    [],
   );
 
   // Check if form has data (for unsaved changes warning)
@@ -217,7 +215,7 @@ export default function NewRewardPage() {
 
       const installer = data.data.installers.find(
         (i: { installerCode: string }) =>
-          i.installerCode.toUpperCase() === code.toUpperCase()
+          i.installerCode.toUpperCase() === code.toUpperCase(),
       );
 
       if (!installer) {
@@ -249,7 +247,7 @@ export default function NewRewardPage() {
 
     try {
       const response = await fetch(
-        `/api/rewards/check-serial?serialNumber=${encodeURIComponent(serial)}`
+        `/api/rewards/check-serial?serialNumber=${encodeURIComponent(serial)}`,
       );
       const data = await response.json();
 
@@ -297,7 +295,7 @@ export default function NewRewardPage() {
   // Memoize step completion checks
   const isStep1Complete = useMemo(
     () => installerData !== null && serialValid,
-    [installerData, serialValid]
+    [installerData, serialValid],
   );
 
   const isStep2Complete = useMemo(
@@ -312,20 +310,20 @@ export default function NewRewardPage() {
       installationMonthYear,
       isBatteryProduct,
       inverterSerialNumber,
-    ]
+    ],
   );
 
   // Optimize navigation handlers with useCallback
   const handleStep1Next = useCallback(() => {
     if (!installerData) {
       toast.error(
-        "Installer code not verified. Please enter a valid installer code and wait for the green 'Valid' indicator."
+        "Installer code not verified. Please enter a valid installer code and wait for the green 'Valid' indicator.",
       );
       return;
     }
     if (!serialValid) {
       toast.error(
-        "Product serial number not verified. Please enter a unique serial number that hasn't been registered before."
+        "Product serial number not verified. Please enter a unique serial number that hasn't been registered before.",
       );
       return;
     }
@@ -335,13 +333,13 @@ export default function NewRewardPage() {
   const handleStep2Next = useCallback(() => {
     if (!productModel || !cityOfInstallation || !installationMonthYear) {
       toast.error(
-        "Please complete all fields: Product Model, City of Installation, and Installation Month & Year are required."
+        "Please complete all fields: Product Model, City of Installation, and Installation Month & Year are required.",
       );
       return;
     }
     if (isBatteryProduct && !inverterSerialNumber) {
       toast.error(
-        "Battery products require Inverter Serial Number. Please enter the serial number of the inverter used."
+        "Battery products require Inverter Serial Number. Please enter the serial number of the inverter used.",
       );
       return;
     }
@@ -473,7 +471,7 @@ export default function NewRewardPage() {
     setCityOfInstallation("");
     const now = new Date();
     setInstallationMonthYear(
-      `${now.toLocaleString("en-US", { month: "long" })} ${now.getFullYear()}`
+      `${now.toLocaleString("en-US", { month: "long" })} ${now.getFullYear()}`,
     );
     setInverterSerialNumber("");
     setRegistrationStatus("idle");
@@ -494,7 +492,7 @@ export default function NewRewardPage() {
       { number: 2, title: "Product Details" },
       { number: 3, title: "Review" },
     ],
-    []
+    [],
   );
 
   return (
@@ -504,18 +502,6 @@ export default function NewRewardPage() {
         Icon={IconReward}
         iconFill
         description="Register a new product for Rewards to the Installer Program"
-        action={
-          <Button
-            onClick={() => router.push("/rewards/bulk-register")}
-            variant="outline"
-            disabled={loading}
-            title="Bulk Register"
-            className="gap-2"
-          >
-            Bulk Register
-            <IconLayer width={2} />
-          </Button>
-        }
       />
 
       <Card className="mt-4">
@@ -548,7 +534,7 @@ export default function NewRewardPage() {
                   <div
                     className={cn(
                       "text-card-foreground space-y-6",
-                      CARD_SECTION_CLASS
+                      CARD_SECTION_CLASS,
                     )}
                   >
                     <div className="space-y-2">
@@ -775,7 +761,7 @@ export default function NewRewardPage() {
                   <div
                     className={cn(
                       "text-card-foreground space-y-6",
-                      CARD_SECTION_CLASS
+                      CARD_SECTION_CLASS,
                     )}
                   >
                     <div className={GRID_2_COL_CLASS}>
@@ -831,7 +817,9 @@ export default function NewRewardPage() {
                       <div className="space-y-2">
                         <Label htmlFor="installation-date" className="block">
                           Installation Month & Year{" "}
-                          <span className="text-destructive-text text-[10px]">✱</span>
+                          <span className="text-destructive-text text-[10px]">
+                            ✱
+                          </span>
                         </Label>
                         <MonthYearGridPicker
                           value={installationMonthYear}
@@ -895,7 +883,7 @@ export default function NewRewardPage() {
             <CardFooter
               className={cn(
                 "flex justify-between items-center my-6",
-                CARD_SECTION_CLASS
+                CARD_SECTION_CLASS,
               )}
             >
               <Button
