@@ -261,7 +261,7 @@ export default function InstallerDetailsPage() {
               <IconKey className="mr-2 size-4" />
               {resendPin.isPending ? "Sending…" : "Reset PIN"}
             </Button>
-            <Button onClick={() => setEditModalOpen(true)} variant="default">
+            <Button onClick={() => setEditModalOpen(true)} variant="secondary">
               <IconEdit2 className="mr-2" />
               Edit
             </Button>

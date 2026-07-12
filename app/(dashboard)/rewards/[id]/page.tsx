@@ -186,7 +186,11 @@ export default function RewardDetailsPage() {
         }
         action={
           <div className="flex gap-3">
-            <Button onClick={() => setEditModalOpen(true)} className="pl-3">
+            <Button
+              variant="secondary"
+              onClick={() => setEditModalOpen(true)}
+              className="pl-3"
+            >
               <IconEdit2 className="mr-2" />
               Edit
             </Button>
