@@ -90,8 +90,7 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-@variant dark (&:where(.dark, .dark *));
-@variant light (&:where(.light, .light *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
   --font-number: "Bloxat", sans-serif;
@@ -653,6 +652,34 @@ ol:has(li.my-toast) {
   }
 }
 
+/* Preloader — pure CSS so it animates in the pre-hydration loading.tsx shell. */
+@keyframes lp-breathe {
+  0%,
+  100% {
+    transform: scale(0.94);
+  }
+  50% {
+    transform: scale(1);
+  }
+}
+
+@keyframes lp-indeterminate {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(360%);
+  }
+}
+
+.lp-breathe {
+  animation: lp-breathe 2.4s ease-in-out infinite;
+}
+
+.lp-indeterminate {
+  animation: lp-indeterminate 1.2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lp-menu-link {
     opacity: 1;
@@ -662,6 +689,10 @@ ol:has(li.my-toast) {
     animation: none;
   }
   .lp-2026 [class*="animate-float"] {
+    animation: none;
+  }
+  .lp-breathe,
+  .lp-indeterminate {
     animation: none;
   }
 }

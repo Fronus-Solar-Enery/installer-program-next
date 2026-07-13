@@ -171,7 +171,7 @@ export function FormField(props: FormFieldProps) {
                 disabled={nonCheckboxProps.disabled}
                 className={cn(
                   nonCheckboxProps.icon && iconPosition === "left" && "pl-10",
-                  nonCheckboxProps.icon && iconPosition === "right" && "pr-10"
+                  nonCheckboxProps.icon && iconPosition === "right" && "pr-10",
                 )}
               />
               {nonCheckboxProps.icon && iconPosition === "right" && (
@@ -196,7 +196,9 @@ export function FormField(props: FormFieldProps) {
                   disabled={nonCheckboxProps.disabled}
                   className={cn(
                     nonCheckboxProps.icon && iconPosition === "left" && "pl-10",
-                    nonCheckboxProps.icon && iconPosition === "right" && "pr-10"
+                    nonCheckboxProps.icon &&
+                      iconPosition === "right" &&
+                      "pr-10",
                   )}
                 >
                   <SelectValue placeholder={nonCheckboxProps.placeholder} />
@@ -259,7 +261,7 @@ export function FormField(props: FormFieldProps) {
               className={cn(
                 error ? "border-destructive" : "",
                 nonCheckboxProps.icon && iconPosition === "left" && "pl-10",
-                nonCheckboxProps.icon && iconPosition === "right" && "pr-10"
+                nonCheckboxProps.icon && iconPosition === "right" && "pr-10",
               )}
               autoComplete={nonCheckboxProps.autocomplete}
             />

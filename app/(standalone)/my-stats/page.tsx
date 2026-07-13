@@ -549,9 +549,11 @@ export default function MyStatsPage() {
             <motion.div variants={slideUp}>
               <Card>
                 <CardHeader className="border-b border-border">
-                  <CardTitle>Installation History</CardTitle>
+                  <div className="text-lg font-semibold">
+                    Installation History
+                  </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-0!">
                   {data.rewards.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-6 text-center">
                       No installations yet. Your registered installations will
@@ -562,17 +564,19 @@ export default function MyStatsPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Product</TableHead>
+                            <TableHead className="pl-4">Product</TableHead>
                             <TableHead>Serial #</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
+                            <TableHead className="text-right pr-6">
+                              Amount
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {data.rewards.map((reward) => (
                             <TableRow key={reward._id}>
-                              <TableCell className="font-medium">
+                              <TableCell className="font-medium pl-4">
                                 {reward.productModel}
                               </TableCell>
                               <TableCell className="font-mono text-xs">
@@ -586,7 +590,7 @@ export default function MyStatsPage() {
                               <TableCell>
                                 <StatusBadge status={reward.rewardStatus} />
                               </TableCell>
-                              <TableCell className="text-right tabular-nums">
+                              <TableCell className="text-right tabular-nums pr-6">
                                 {rs(reward.rewardAmount)}
                               </TableCell>
                             </TableRow>

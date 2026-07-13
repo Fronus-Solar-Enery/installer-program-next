@@ -893,6 +893,17 @@ export default function NewInstallerPage() {
                           emptyMessage="No city found."
                           required
                         />
+                        
+                        <FormField
+                          type="text"
+                          label="District"
+                          id="district"
+                          value={district}
+                          onChange={() => {}}
+                          icon={IconMapPoint}
+                          placeholder="District will be auto-filled based on city"
+                          disabled
+                        />
 
                         <FormField
                           type="text"
@@ -901,18 +912,7 @@ export default function NewInstallerPage() {
                           value={province}
                           onChange={() => {}}
                           icon={IconMapPoint}
-                          placeholder="Enter complete address"
-                          disabled
-                        />
-
-                        <FormField
-                          type="text"
-                          label="District"
-                          id="district"
-                          value={district}
-                          onChange={() => {}}
-                          icon={IconMapPoint}
-                          placeholder="Enter complete address"
+                          placeholder="Province will be auto-filled based on city"
                           disabled
                         />
 

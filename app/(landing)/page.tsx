@@ -29,8 +29,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: "og-image.jpeg",
-        width: 720,
-        height: 790,
+        width: 1200,
+        height: 630,
         alt: "Fronus Installer Program — Earn Rs 5,000 per Install",
       },
     ],

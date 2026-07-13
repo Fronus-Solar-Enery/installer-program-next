@@ -51,7 +51,7 @@ import { IconAltArrowLeft, IconInstaller } from "@/components/icons";
 
 // Same tap feel as components/ui/button.tsx
 const MotionLink = motion.create(Link);
-const TAP_SCALE = { scale: 0.96 };
+const TAP_SCALE = { scale: 0.98 };
 const TAP_SPRING = { type: "spring" as const, stiffness: 500, damping: 32 };
 
 // Types
