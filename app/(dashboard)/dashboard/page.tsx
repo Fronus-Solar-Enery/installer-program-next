@@ -959,7 +959,7 @@ export default function DashboardPage() {
                 <div className="w-full bg-muted rounded-full h-8 overflow-hidden">
                   <div className="flex h-full">
                     <div
-                      className="bg-accent transition-all duration-500 rounded-full shadow-lg"
+                      className="bg-foreground transition-all duration-500 rounded-full shadow-lg"
                       style={{ width: `${grandTotalPaidPercentage}%` }}
                     />
                     <div

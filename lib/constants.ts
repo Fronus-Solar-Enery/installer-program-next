@@ -585,14 +585,30 @@ export const BANKS: Bank[] = [
   },
 ];
 
-export function getBankLabel(bankName: string): string {
-  if (!bankName) return bankName;
-  const bank = BANKS.find(
+function findBank(bankName: string): Bank | undefined {
+  return BANKS.find(
     (b) =>
       b.label === bankName ||
       b.value === bankName ||
       b.shortcut === bankName ||
       b.matchcase === bankName,
   );
+}
+
+export function getBankLabel(bankName: string): string {
+  if (!bankName) return bankName;
+  const bank = findBank(bankName);
   return bank ? bank.label : bankName;
+}
+
+// Official/registered bank name (matchcase) — used for payment-format exports.
+export function getBankMatchcase(bankName: string): string {
+  if (!bankName) return bankName;
+  const bank = findBank(bankName);
+  return bank ? bank.matchcase : bankName;
+}
+
+// True for mobile wallets (JazzCash, Easypaisa, …) whose account number is a phone number.
+export function isMobileBank(bankName: string): boolean {
+  return findBank(bankName)?.mobile === true;
 }

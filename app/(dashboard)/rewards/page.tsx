@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
+import { emitAppRefresh } from "@/lib/refreshBus";
 import { Button } from "@/components/ui/button";
 import PageHeader from "@/components/PageHeader";
 // Dynamic import: RewardEditModal is 46KB - only loaded when modal opens (~47KB bundle reduction)
@@ -68,6 +69,11 @@ export default function RewardsPage() {
 
   // Data state
   const [rewards, setRewards] = useState<RewardWithId[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [serverStatusStats, setServerStatusStats] = useState<
+    Array<{ _id: string; count: number; totalAmount: number }>
+  >([]);
+  const [uniqueInstallersCount, setUniqueInstallersCount] = useState(0);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(EMPTY_ARRAY);
   const [loading, setLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
@@ -110,8 +116,10 @@ export default function RewardsPage() {
     [state.filters, debouncedSearch],
   );
 
-  // Single-pass filtering, sorting, and statistics calculation
-  const { filtered, statistics, uniqueValues } = useOptimizedRewardsFilter({
+  // Single-pass filtering and sorting of the current server-fetched page.
+  // (Statistics from this hook only cover the fetched page, not the full
+  // matched set — the summary cards use serverCardStatistics instead.)
+  const { filtered, uniqueValues } = useOptimizedRewardsFilter({
     rewards,
     filters: optimizedFilters,
     sort: {
@@ -123,12 +131,39 @@ export default function RewardsPage() {
     },
   });
 
-  // Paginated rewards (only slice what we need to render)
-  const paginatedRewards = useMemo(() => {
-    const startIndex = (state.currentPage - 1) * state.itemsPerPage;
-    const endIndex = startIndex + state.itemsPerPage;
-    return filtered.slice(startIndex, endIndex);
-  }, [filtered, state.currentPage, state.itemsPerPage]);
+  // `rewards` is already the server-paginated page (skip/limit applied
+  // server-side) — render it directly instead of re-slicing by page math,
+  // which would silently drop the tail page's rows from the table.
+  const paginatedRewards = filtered;
+
+  // Real totals for the summary cards, computed server-side over the full
+  // matched query — not just the current page's rows.
+  const serverCardStatistics = useMemo(() => {
+    const byStatus = { PAID: 0, PENDING: 0, FAILED: 0 };
+    let totalAmount = 0;
+    let paidAmount = 0;
+    let pendingAmount = 0;
+    for (const s of serverStatusStats) {
+      totalAmount += s.totalAmount;
+      if (s._id === "PAID") {
+        byStatus.PAID = s.count;
+        paidAmount = s.totalAmount;
+      } else if (s._id === "PENDING") {
+        byStatus.PENDING = s.count;
+        pendingAmount = s.totalAmount;
+      } else if (s._id === "FAILED") {
+        byStatus.FAILED = s.count;
+      }
+    }
+    return {
+      totalRewards: totalCount,
+      totalAmount,
+      paidAmount,
+      pendingAmount,
+      uniqueInstallersCount,
+      byStatus,
+    };
+  }, [serverStatusStats, totalCount, uniqueInstallersCount]);
 
   // Reset to first page when filters or search change
   useEffect(() => {
@@ -240,6 +275,11 @@ export default function RewardsPage() {
 
       if (data.success) {
         setRewards(data.data.rewards);
+        setTotalCount(data.data.pagination?.total ?? 0);
+        setServerStatusStats(data.data.statistics?.byStatus ?? []);
+        setUniqueInstallersCount(
+          data.data.statistics?.uniqueInstallersCount ?? 0,
+        );
 
         // Extract unique team members (from first fetch only, cache for filters)
         if (!teamMembers.length) {
@@ -448,6 +488,7 @@ export default function RewardsPage() {
 
         if (response.ok) {
           await fetchRewards();
+          emitAppRefresh();
 
           // Remove from selection if selected
           dispatch({ type: "DESELECT_REWARD", payload: rewardId });
@@ -525,6 +566,7 @@ export default function RewardsPage() {
 
         // Refetch rewards
         await fetchRewards();
+        emitAppRefresh();
 
         // Clear selection
         dispatch({ type: "CLEAR_SELECTION" });
@@ -781,7 +823,7 @@ export default function RewardsPage() {
         />
 
         {/* Statistics Cards */}
-        <RewardsStatisticsCards statistics={statistics} />
+        <RewardsStatisticsCards statistics={serverCardStatistics} />
 
         {/* Date Range Filter Card */}
         <Card className="bg-transparent">
@@ -1027,7 +1069,7 @@ export default function RewardsPage() {
           <RewardsTable
             showFilters={showFilters}
             rewards={paginatedRewards}
-            totalRewards={filtered.length}
+            totalRewards={totalCount}
             totalUnfilteredRewards={rewards.length}
             loading={isPageLoading}
             visibleColumns={state.visibleColumns}

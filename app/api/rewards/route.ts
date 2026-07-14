@@ -82,24 +82,41 @@ export const GET = withAuth(
           .skip(skip)
           .limit(limit),
         InstallerReward.countDocuments(query),
-        // Only run expensive aggregation if stats are requested
+        // Only run expensive aggregation if stats are requested. Computed
+        // over the full matched query (not the paginated page) so the
+        // dashboard cards reflect the whole filtered set, not just page 1.
         includeStats
           ? InstallerReward.aggregate([
               { $match: query },
               {
-                $group: {
-                  _id: "$rewardStatus",
-                  count: { $sum: 1 },
-                  totalAmount: { $sum: "$rewardAmount" },
+                $facet: {
+                  byStatus: [
+                    {
+                      $group: {
+                        _id: "$rewardStatus",
+                        count: { $sum: 1 },
+                        totalAmount: { $sum: "$rewardAmount" },
+                      },
+                    },
+                  ],
+                  uniqueInstallers: [
+                    { $group: { _id: "$installer" } },
+                    { $count: "count" },
+                  ],
                 },
               },
             ])
           : Promise.resolve([]),
       ]);
 
+      const [statsFacet] = stats;
+
       return ApiResponse.success({
         rewards,
-        statistics: stats,
+        statistics: {
+          byStatus: statsFacet?.byStatus ?? [],
+          uniqueInstallersCount: statsFacet?.uniqueInstallers?.[0]?.count ?? 0,
+        },
         pagination: createPaginationMeta(total, page, limit),
       });
     } catch (error) {

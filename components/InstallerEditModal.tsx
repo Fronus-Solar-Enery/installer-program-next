@@ -10,6 +10,7 @@ import {
   PROVINCES,
 } from "@/lib/constants";
 import { toast } from "sonner";
+import { emitAppRefresh } from "@/lib/refreshBus";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -521,6 +522,7 @@ export default function InstallerEditModal({
 
       if (response.ok) {
         toast.success("Installer updated successfully");
+        emitAppRefresh();
         onSuccess?.();
         onOpenChange(false);
       } else {

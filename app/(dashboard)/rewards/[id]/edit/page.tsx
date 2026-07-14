@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { RewardStatus } from '@/types/rewards';
+import { emitAppRefresh } from '@/lib/refreshBus';
 import { useProducts } from '@/hooks/useProducts';
 import { usePaymentMethods, useSettings } from '@/hooks/useSettings';
 import { Button } from "@/components/ui/button";
@@ -144,6 +145,7 @@ export default function EditRewardPage() {
         throw new Error(data.error || 'Failed to update reward');
       }
 
+      emitAppRefresh();
       alert('Reward updated successfully!');
       router.push('/rewards');
     } catch (err: unknown) {

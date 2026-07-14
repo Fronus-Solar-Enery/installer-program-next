@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import Modal from "./Modal";
 import { useProducts } from "@/hooks/useProducts";
 import { toast } from "sonner";
+import { emitAppRefresh } from "@/lib/refreshBus";
 import { CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -383,6 +384,7 @@ export default function RewardEditModal({
       if (response.ok) {
         toast.success("Reward updated successfully");
         setHasUnsavedChanges(false);
+        emitAppRefresh();
         onSuccess?.();
         onOpenChange(false);
       } else {

@@ -34,6 +34,7 @@ import BulkUploadProgressModal, {
   UploadStep,
 } from "@/components/BulkUploadProgressModal";
 import { toast } from "sonner";
+import { emitAppRefresh } from "@/lib/refreshBus";
 import { FileDropzone } from "@/components/ui/drop-zone";
 import { IconLayer, IconTrashBin2 } from "@/components/icons";
 import IconExcel from "@/components/icons/Excel";
@@ -1031,6 +1032,7 @@ export default function BulkUploadInstallersPage() {
 
       setSuccess(`Successfully uploaded ${totalSuccess} installer(s)!`);
       toast.success(`Successfully uploaded ${totalSuccess} installer(s)!`);
+      if (totalSuccess > 0) emitAppRefresh();
 
       if (totalFailed > 0) {
         setError(

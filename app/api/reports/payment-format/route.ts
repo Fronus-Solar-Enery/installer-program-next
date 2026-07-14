@@ -6,7 +6,7 @@ import InstallerReward, { IInstallerReward } from "@/models/InstallerReward";
 import { IInstaller } from "@/models/Installer";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { FilterQuery } from "mongoose";
-import { getBankLabel } from "@/lib/constants";
+import { getBankMatchcase, isMobileBank } from "@/lib/constants";
 
 // Type for populated reward document
 interface PopulatedReward
@@ -33,6 +33,7 @@ interface PopulatedReward
 
 // Type for payment row in Excel
 interface PaymentRow {
+  "Serial Number": string;
   "To Account": string;
   Bank: string;
   Amount: number;
@@ -120,8 +121,11 @@ export async function GET(request: NextRequest) {
       const installer = populatedReward.installer;
       if (installer) {
         allPayments.push({
-          "To Account": installer.accountNumber || "",
-          Bank: getBankLabel(installer.bankName) || "",
+          "Serial Number": populatedReward.serialNumber || "",
+          "To Account": isMobileBank(installer.bankName)
+            ? formatPhoneNumber(installer.accountNumber || "")
+            : installer.accountNumber || "",
+          Bank: getBankMatchcase(installer.bankName) || "",
           Amount: populatedReward.rewardAmount || 0,
           Purpose: "Others",
           "Phone No.": formatPhoneNumber(installer.phoneNumber || ""),
@@ -139,8 +143,11 @@ export async function GET(request: NextRequest) {
         populatedReward.referrerRewardAmount > 0
       ) {
         allPayments.push({
-          "To Account": referrer.accountNumber || "",
-          Bank: getBankLabel(referrer.bankName) || "",
+          "Serial Number": populatedReward.serialNumber || "",
+          "To Account": isMobileBank(referrer.bankName)
+            ? formatPhoneNumber(referrer.accountNumber || "")
+            : referrer.accountNumber || "",
+          Bank: getBankMatchcase(referrer.bankName) || "",
           Amount: populatedReward.referrerRewardAmount || 0,
           Purpose: "Others",
           "Phone No.": formatPhoneNumber(referrer.phoneNumber || ""),
@@ -154,6 +161,7 @@ export async function GET(request: NextRequest) {
 
     // Set columns and widths for better readability; numFmt '@' forces text format
     worksheet.columns = [
+      { header: "Serial Number", key: "Serial Number", width: 18, style: { numFmt: "@" } },
       { header: "To Account", key: "To Account", width: 20, style: { numFmt: "@" } },
       { header: "Bank", key: "Bank", width: 25, style: { numFmt: "@" } },
       { header: "Amount", key: "Amount", width: 12, style: { numFmt: "@" } },
@@ -164,6 +172,7 @@ export async function GET(request: NextRequest) {
     // Convert every value to a string so cells store text, not numbers
     allPayments.forEach((payment) => {
       worksheet.addRow({
+        "Serial Number": String(payment["Serial Number"]),
         "To Account": String(payment["To Account"]),
         Bank: String(payment.Bank),
         Amount: String(payment.Amount),

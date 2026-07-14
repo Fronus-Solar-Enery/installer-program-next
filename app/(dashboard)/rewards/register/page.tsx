@@ -6,6 +6,7 @@ import { useProducts } from "@/hooks/useProducts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { toast } from "sonner";
+import { emitAppRefresh } from "@/lib/refreshBus";
 import Loading from "@/components/ui/loading";
 import { StepHeader } from "@/components/StepHeader";
 import { FormField } from "@/components/ui/form-field";
@@ -426,6 +427,7 @@ export default function NewRewardPage() {
         id: data.data?._id,
       });
       setRegistrationStatus("success");
+      emitAppRefresh();
     } catch (err: unknown) {
       // Handle network errors and other exceptions
       let errorMsg = "Network error: Unable to connect to the server";

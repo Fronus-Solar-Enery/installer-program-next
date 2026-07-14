@@ -40,6 +40,7 @@ import { FileDropzone } from "@/components/ui/drop-zone";
 import { IconLayer, IconReward, IconTrashBin2 } from "@/components/icons";
 import IconExcel from "@/components/icons/Excel";
 import { toast } from "sonner";
+import { emitAppRefresh } from "@/lib/refreshBus";
 import BulkUploadProgressModal, {
   UploadStep,
 } from "@/components/BulkUploadProgressModal";
@@ -119,34 +120,27 @@ export default function BulkUploadRewardsPage() {
   const downloadTemplate = async () => {
     setDownloadingTemplate(true);
     try {
-      const template = [
-        {
-          "Serial Number": "SN123456",
-          "Installer Transaction ID": "TXN001",
-          "Referrer Transaction ID": "TXN002 (optional)",
-          "Payment Method": "UBANK (optional)",
-        },
-      ];
+      // Template is pre-filled from the database with every PENDING/FAILED
+      // reward's serial number (same source as the payment format).
+      const response = await fetch("/api/reports/bulk-update-template");
 
-      const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet("Rewards Template");
-      ws.columns = [
-        { header: "Serial Number", key: "Serial Number", width: 15 },
-        {
-          header: "Installer Transaction ID",
-          key: "Installer Transaction ID",
-          width: 25,
-        },
-        {
-          header: "Referrer Transaction ID",
-          key: "Referrer Transaction ID",
-          width: 25,
-        },
-        { header: "Payment Method", key: "Payment Method", width: 25 },
-      ];
-      ws.addRows(template);
+      if (!response.ok) {
+        throw new Error("Failed to download template");
+      }
 
-      await downloadWorkbook(wb, "rewards_bulk_update_template.xlsx");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `rewards_bulk_update_template_${Date.now()}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Template downloaded with pending & failed rewards");
+    } catch (error) {
+      console.error("Failed to download template:", error);
+      toast.error("Failed to download template");
     } finally {
       setTimeout(() => setDownloadingTemplate(false), 500);
     }
@@ -797,6 +791,7 @@ export default function BulkUploadRewardsPage() {
       );
 
       setSuccess(`Successfully updated ${totalSuccess} reward(s)!`);
+      if (totalSuccess > 0) emitAppRefresh();
 
       if (totalFailed > 0) {
         setError(

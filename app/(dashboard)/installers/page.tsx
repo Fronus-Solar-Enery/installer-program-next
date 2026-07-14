@@ -51,6 +51,7 @@ import { TeamRole } from "@/types/roles";
 import PageHeader from "@/components/PageHeader";
 import IconLayer from "@/components/icons/Layer";
 import { cn } from "@/lib/utils";
+import { emitAppRefresh } from "@/lib/refreshBus";
 import { useRelativeTime } from "@/lib/getRelativeTime";
 import {
   IconActivity,
@@ -594,6 +595,7 @@ export default function InstallersPage() {
 
         // Refetch installers
         await fetchInstallers();
+        emitAppRefresh();
 
         // Clear selection
         setSelectedInstallers(new Set());

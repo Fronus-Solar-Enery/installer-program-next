@@ -35,6 +35,7 @@ import { FileDropzone } from "@/components/ui/drop-zone";
 import { IconLayer, IconTrashBin2 } from "@/components/icons";
 import IconExcel from "@/components/icons/Excel";
 import { toast } from "sonner";
+import { emitAppRefresh } from "@/lib/refreshBus";
 import BulkUploadProgressModal, {
   UploadStep,
 } from "@/components/BulkUploadProgressModal";
@@ -1028,6 +1029,7 @@ export default function BulkCreateRewardsPage() {
       );
 
       setSuccess(`Successfully created ${totalSuccess} reward(s)!`);
+      if (totalSuccess > 0) emitAppRefresh();
 
       if (totalFailed > 0) {
         setError(
