@@ -63,6 +63,20 @@ export const PUT = withAuth(
         return ApiResponse.notFound("Reward not found");
       }
 
+      // Reject a Transaction ID already used by a different reward.
+      const newTxnId = validation.data.transactionId?.trim();
+      if (newTxnId) {
+        const dupe = await InstallerReward.exists({
+          _id: { $ne: id },
+          transactionId: newTxnId,
+        });
+        if (dupe) {
+          return ApiResponse.conflict(
+            `Transaction ID "${newTxnId}" is already used by another reward`,
+          );
+        }
+      }
+
       const becomingPaid =
         previous.rewardStatus !== RewardStatus.PAID &&
         validation.data.rewardStatus === RewardStatus.PAID;

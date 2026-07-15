@@ -6,6 +6,12 @@ import { useSession } from "next-auth/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
+import {
+  Dropdown,
+  DropdownContent,
+  DropdownTrigger,
+  useDropdown,
+} from "@/components/ui/dropdown";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,8 +27,17 @@ import {
   IconAward,
   IconEdit2,
   IconTrashBin2,
+  IconMoney,
+  IconCloseCircle,
 } from "@/components/icons";
-import { useDeleteReward, useRewardDetails } from "@/hooks/useRewardDetails";
+import { cn } from "@/lib/utils";
+import {
+  useDeleteReward,
+  useMarkRewardPaid,
+  useRewardDetails,
+} from "@/hooks/useRewardDetails";
+import { RewardStatus } from "@/types/rewards";
+import { toast } from "sonner";
 import {
   deriveRewardPageState,
   getPaymentBlockers,
@@ -105,6 +120,131 @@ function PageSkeleton() {
   );
 }
 
+function KebabIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={cn("size-5", className)}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="5" r="1.75" />
+      <circle cx="12" cy="12" r="1.75" />
+      <circle cx="12" cy="19" r="1.75" />
+    </svg>
+  );
+}
+
+// Rendered inside <Dropdown> so it can close the menu after an action fires.
+function MenuItem({
+  icon,
+  label,
+  onSelect,
+  disabled,
+  className,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onSelect: () => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const { close } = useDropdown();
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      disabled={disabled}
+      onClick={() => {
+        close();
+        onSelect();
+      }}
+      className={cn(
+        "w-full justify-start px-2 py-2 text-sm bg-transparent rounded-lg",
+        className,
+      )}
+    >
+      {icon}
+      {label}
+    </Button>
+  );
+}
+
+interface RewardActionsMenuProps {
+  pageState: "blocked" | "payable" | "paid" | "failed";
+  canDelete: boolean;
+  markFailedPending: boolean;
+  onEdit: () => void;
+  onMarkPaid: () => void;
+  onMarkFailed: () => void;
+  onDelete: () => void;
+}
+
+function RewardActionsMenu({
+  pageState,
+  canDelete,
+  markFailedPending,
+  onEdit,
+  onMarkPaid,
+  onMarkFailed,
+  onDelete,
+}: RewardActionsMenuProps) {
+  const paidLabel =
+    pageState === "paid"
+      ? "Edit payment"
+      : pageState === "failed"
+        ? "Retry payment"
+        : "Mark as Paid";
+
+  return (
+    <Dropdown>
+      <DropdownTrigger asChild>
+        <Button
+          variant="secondary"
+          size="icon"
+          aria-label="Reward actions"
+          className="border border-border"
+        >
+          <KebabIcon />
+        </Button>
+      </DropdownTrigger>
+      <DropdownContent align="right" className="w-52">
+        <div className="space-y-1 p-2">
+          <MenuItem
+            icon={<IconEdit2 className="mr-2" />}
+            label="Edit"
+            onSelect={onEdit}
+          />
+          <MenuItem
+            icon={<IconMoney className="mr-2" duotone />}
+            label={paidLabel}
+            onSelect={onMarkPaid}
+          />
+          {pageState !== "failed" && (
+            <MenuItem
+              icon={<IconCloseCircle className="mr-2" />}
+              label="Mark as Failed"
+              onSelect={onMarkFailed}
+              disabled={markFailedPending}
+              className="text-destructive-text hover:text-destructive-text-hover"
+            />
+          )}
+        </div>
+        {canDelete && (
+          <div className="border-t border-border p-2">
+            <MenuItem
+              icon={<IconTrashBin2 className="mr-2" />}
+              label="Delete"
+              onSelect={onDelete}
+              className="text-destructive-text hover:bg-red-50 hover:text-destructive-text-hover dark:hover:bg-red-900/20"
+            />
+          </div>
+        )}
+      </DropdownContent>
+    </Dropdown>
+  );
+}
+
 export default function RewardDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -119,7 +259,18 @@ export default function RewardDetailsPage() {
   const rewardQuery = useRewardDetails(rewardId);
   const reward = rewardQuery.data;
   const deleteReward = useDeleteReward(rewardId);
+  const setRewardStatus = useMarkRewardPaid(rewardId);
   const reduceMotion = useReducedMotion();
+
+  const handleMarkFailed = () =>
+    setRewardStatus.mutate(
+      { rewardStatus: RewardStatus.FAILED },
+      {
+        onSuccess: () => toast.success("Reward marked as failed"),
+        onError: (error) =>
+          toast.error(error.message || "Failed to update reward"),
+      },
+    );
 
   const canDelete =
     session?.user?.role === TeamRole.ADMIN ||
@@ -185,26 +336,15 @@ export default function RewardDetailsPage() {
           </span>
         }
         action={
-          <div className="flex gap-3">
-            <Button
-              variant="secondary"
-              onClick={() => setEditModalOpen(true)}
-              className="pl-3"
-            >
-              <IconEdit2 className="mr-2" />
-              Edit
-            </Button>
-            {canDelete && (
-              <Button
-                variant="destructive"
-                onClick={() => setDeleteDialogOpen(true)}
-                className="pl-3"
-              >
-                <IconTrashBin2 className="mr-2 size-4" />
-                Delete
-              </Button>
-            )}
-          </div>
+          <RewardActionsMenu
+            pageState={pageState}
+            canDelete={canDelete}
+            markFailedPending={setRewardStatus.isPending}
+            onEdit={() => setEditModalOpen(true)}
+            onMarkPaid={() => setMarkPaidOpen(true)}
+            onMarkFailed={handleMarkFailed}
+            onDelete={() => setDeleteDialogOpen(true)}
+          />
         }
         Icon={
           <Button
@@ -224,6 +364,8 @@ export default function RewardDetailsPage() {
         pendingDays={pendingDays}
         blockers={blockers}
         onMarkPaid={() => setMarkPaidOpen(true)}
+        onMarkFailed={handleMarkFailed}
+        markFailedPending={setRewardStatus.isPending}
         onEdit={() => setEditModalOpen(true)}
       />
 

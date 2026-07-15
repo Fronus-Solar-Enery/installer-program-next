@@ -78,8 +78,11 @@ export function useMarkRewardPaid(rewardId: string) {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          rewardStatus: RewardStatus.PAID,
+          // Spread first, then default: `input.rewardStatus` is `undefined` in
+          // mark/retry mode and must NOT clobber the PAID default (it did before,
+          // JSON.stringify then dropped the key and the status never changed).
           ...input,
+          rewardStatus: input.rewardStatus ?? RewardStatus.PAID,
         }),
       });
       const data = await parseJsonOrThrow(res, "Failed to mark reward paid");

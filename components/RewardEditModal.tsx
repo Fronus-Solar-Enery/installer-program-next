@@ -3,7 +3,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Modal from "./Modal";
 import { useProducts } from "@/hooks/useProducts";
+import { usePaymentMethods } from "@/hooks/useSettings";
+import { useTransactionIdCheck } from "@/hooks/useTransactionIdCheck";
+import { CITIES, CITY_TO_PROVINCE, PROVINCES } from "@/lib/constants";
+import { RewardStatus } from "@/types/rewards";
 import { toast } from "sonner";
+import { MonthYearGridPicker } from "@/components/ui/month-year-grid-picker";
 import { emitAppRefresh } from "@/lib/refreshBus";
 import { CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,6 +26,7 @@ import {
   IconEdit2,
   IconAltArrowLeft,
   IconAltArrowRight,
+  IconCity,
 } from "@/components/icons";
 import Loading from "@/components/ui/loading";
 import PageHeader from "./PageHeader";
@@ -39,14 +45,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import IconDanger from "./icons/Danger";
 
-// Payment fields (status, method, transaction IDs, sending date) are edited
-// via the Mark as Paid dialog on the reward detail page — this modal only
-// edits product data.
 interface RewardData {
   serialNumber: string;
   rewardAmount: number;
   productModel: string;
   inverterSerialNumber?: string;
+  cityOfInstallation?: string;
+  installationDate?: string;
+  rewardStatus?: RewardStatus;
+  transactionId?: string;
+  referrerTransactionId?: string;
+  paymentMethod?: string;
+  sendingDate?: string;
   installer?: {
     installerCode: string;
     fullName: string;
@@ -55,6 +65,29 @@ interface RewardData {
     installerCode: string;
     fullName: string;
   };
+}
+
+const STATUS_OPTIONS = [
+  { value: RewardStatus.PENDING, label: "Pending" },
+  { value: RewardStatus.PAID, label: "Paid" },
+  { value: RewardStatus.FAILED, label: "Failed" },
+];
+
+// ISO date <-> "Month YYYY" for the MonthYearGridPicker (matches register page).
+function formatMonthYear(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.toLocaleString("en-US", { month: "long" })} ${d.getFullYear()}`;
+}
+
+function monthYearToISO(value: string): string | undefined {
+  if (!value.trim()) return undefined;
+  const [monthName, yearStr] = value.split(" ");
+  const monthIndex = new Date(`${monthName} 1, 2000`).getMonth();
+  const year = parseInt(yearStr, 10);
+  if (Number.isNaN(monthIndex) || Number.isNaN(year)) return undefined;
+  return new Date(year, monthIndex, 1).toISOString();
 }
 
 interface RewardEditModalProps {
@@ -76,17 +109,19 @@ export default function RewardEditModal({
   onSuccess,
 }: RewardEditModalProps) {
   const { data: products = [] } = useProducts();
+  const paymentMethods = usePaymentMethods();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [reward, setReward] = useState<RewardData | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showCloseAlert, setShowCloseAlert] = useState(false);
-  const [originalData, setOriginalData] = useState<Partial<RewardData> | null>(
-    null,
-  );
+  const [originalData, setOriginalData] = useState<Record<
+    string,
+    string
+  > | null>(null);
 
-  // Form fields
+  // Form fields — product
   const [serialNumber, setSerialNumber] = useState("");
   const [originalSerialNumber, setOriginalSerialNumber] = useState(""); // Track original value
   const [serialNumberValidation, setSerialNumberValidation] = useState<{
@@ -100,6 +135,36 @@ export default function RewardEditModal({
   });
   const [productModel, setProductModel] = useState("");
   const [inverterSerialNumber, setInverterSerialNumber] = useState("");
+  const [cityOfInstallation, setCityOfInstallation] = useState("");
+  const [installationMonthYear, setInstallationMonthYear] = useState("");
+
+  // Form fields — payment
+  const [rewardStatus, setRewardStatus] = useState<RewardStatus>(
+    RewardStatus.PENDING,
+  );
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [transactionId, setTransactionId] = useState("");
+  const [originalTransactionId, setOriginalTransactionId] = useState("");
+  const [referrerTransactionId, setReferrerTransactionId] = useState("");
+  const [sendingDate, setSendingDate] = useState("");
+
+  const txnValidation = useTransactionIdCheck(
+    transactionId,
+    originalTransactionId,
+    rewardId,
+  );
+  const txnChanged =
+    transactionId.trim() !== originalTransactionId.trim() &&
+    transactionId.trim() !== "";
+
+  // Keep a retired payment method selectable on old records.
+  const methodOptions = useMemo(
+    () =>
+      paymentMethod && !paymentMethods.includes(paymentMethod)
+        ? [paymentMethod, ...paymentMethods]
+        : paymentMethods,
+    [paymentMethod, paymentMethods],
+  );
 
   // Memoize selected product to avoid recalculation
   const selectedProduct = useMemo(
@@ -112,6 +177,31 @@ export default function RewardEditModal({
       (selectedProduct?.isBattery && selectedProduct?.requiresInverter) ||
       false,
     [selectedProduct],
+  );
+
+  // Reward amount follows the selected product (like the register page); it is
+  // not directly editable. Falls back to the stored amount until products load.
+  const rewardAmount = selectedProduct?.reward ?? reward?.rewardAmount ?? 0;
+
+  // Memoize city groups (by province) for the searchable select — matches the
+  // register page's city picker.
+  const cityGroups = useMemo(
+    () =>
+      PROVINCES.map((province) => ({
+        label: province,
+        options: CITIES.filter((c) => CITY_TO_PROVINCE[c] === province)
+          .sort()
+          .map((c) => ({
+            value: c,
+            label: (
+              <div className="flex items-end gap-2">
+                {c}
+                <p className="text-muted-foreground text-[10px]">{province}</p>
+              </div>
+            ),
+          })),
+      })),
+    [],
   );
 
   // Memoize product groups for select dropdown
@@ -159,11 +249,26 @@ export default function RewardEditModal({
       const r = data.data;
       setReward(r);
 
-      // Store original data for change detection
+      const status = (r.rewardStatus as RewardStatus) || RewardStatus.PENDING;
+      const method = r.paymentMethod || "";
+      const txnId = r.transactionId || "";
+      const refTxnId = r.referrerTransactionId || "";
+      const sending = r.sendingDate ? r.sendingDate.slice(0, 10) : "";
+      const city = r.cityOfInstallation || "";
+      const monthYear = formatMonthYear(r.installationDate);
+
+      // Store original data for change detection (all as strings)
       setOriginalData({
         serialNumber: r.serialNumber || "",
         productModel: r.productModel || "",
         inverterSerialNumber: r.inverterSerialNumber || "",
+        cityOfInstallation: city,
+        installationMonthYear: monthYear,
+        rewardStatus: status,
+        paymentMethod: method,
+        transactionId: txnId,
+        referrerTransactionId: refTxnId,
+        sendingDate: sending,
       });
 
       // Populate form fields
@@ -171,6 +276,14 @@ export default function RewardEditModal({
       setOriginalSerialNumber(r.serialNumber || ""); // Store original value
       setProductModel(r.productModel || "");
       setInverterSerialNumber(r.inverterSerialNumber || "");
+      setCityOfInstallation(city);
+      setInstallationMonthYear(monthYear);
+      setRewardStatus(status);
+      setPaymentMethod(method);
+      setTransactionId(txnId);
+      setOriginalTransactionId(txnId);
+      setReferrerTransactionId(refTxnId);
+      setSendingDate(sending);
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to load reward";
@@ -190,19 +303,38 @@ export default function RewardEditModal({
   useEffect(() => {
     if (!originalData || loading) return;
 
-    const currentData = {
+    const currentData: Record<string, string> = {
       serialNumber,
       productModel,
       inverterSerialNumber,
+      cityOfInstallation,
+      installationMonthYear,
+      rewardStatus,
+      paymentMethod,
+      transactionId,
+      referrerTransactionId,
+      sendingDate,
     };
 
-    const hasChanges = Object.keys(currentData).some((key) => {
-      const k = key as keyof typeof currentData;
-      return currentData[k] !== (originalData[k] || "");
-    });
+    const hasChanges = Object.keys(currentData).some(
+      (key) => currentData[key] !== (originalData[key] || ""),
+    );
 
     setHasUnsavedChanges(hasChanges);
-  }, [originalData, loading, serialNumber, productModel, inverterSerialNumber]);
+  }, [
+    originalData,
+    loading,
+    serialNumber,
+    productModel,
+    inverterSerialNumber,
+    cityOfInstallation,
+    installationMonthYear,
+    rewardStatus,
+    paymentMethod,
+    transactionId,
+    referrerTransactionId,
+    sendingDate,
+  ]);
 
   // Warn on browser close/reload if there are unsaved changes
   useEffect(() => {
@@ -321,7 +453,8 @@ export default function RewardEditModal({
   const steps = useMemo(
     () => [
       { number: 1, title: "Product Details" },
-      { number: 2, title: "Review" },
+      { number: 2, title: "Payment & Details" },
+      { number: 3, title: "Review" },
     ],
     [],
   );
@@ -349,6 +482,12 @@ export default function RewardEditModal({
     serialNumberValidation,
   ]);
 
+  // Payment step is valid unless the transaction ID is a duplicate / mid-check.
+  const isStep2Valid = useMemo(
+    () => !txnValidation.isChecking && txnValidation.isValid,
+    [txnValidation],
+  );
+
   // Navigation handlers
   const handleNext = useCallback(() => {
     if (currentStep === 1 && !isStep1Valid) {
@@ -358,8 +497,12 @@ export default function RewardEditModal({
       );
       return;
     }
+    if (currentStep === 2 && !isStep2Valid) {
+      toast.error("Transaction ID is already used by another reward");
+      return;
+    }
     setCurrentStep(currentStep + 1);
-  }, [currentStep, isStep1Valid, isBatteryProduct]);
+  }, [currentStep, isStep1Valid, isStep2Valid, isBatteryProduct]);
 
   const handlePrev = useCallback(() => {
     setCurrentStep(currentStep - 1);
@@ -376,6 +519,17 @@ export default function RewardEditModal({
           serialNumber,
           productModel,
           inverterSerialNumber,
+          cityOfInstallation: cityOfInstallation.trim() || undefined,
+          installationDate: monthYearToISO(installationMonthYear),
+          rewardAmount,
+          rewardStatus,
+          paymentMethod: paymentMethod || undefined,
+          // Send empty string (not undefined) so clearing the field persists.
+          transactionId: transactionId.trim(),
+          referrerTransactionId: reward?.referrer
+            ? referrerTransactionId.trim()
+            : undefined,
+          sendingDate: sendingDate || undefined,
         }),
       });
 
@@ -442,8 +596,8 @@ export default function RewardEditModal({
           description={
             <>
               <p className="mt-1 text-sm text-muted-foreground">
-                Update product details and serial numbers. Payment is recorded
-                from the reward page via Mark as Paid.
+                Update product, installation and payment details for this
+                reward.
               </p>
             </>
           }
@@ -455,7 +609,7 @@ export default function RewardEditModal({
           <div>
             {/* Step Progress Skeleton */}
             <div className="flex justify-between items-center my-8">
-              {[1, 2].map((i) => (
+              {[1, 2, 3].map((i) => (
                 <div
                   key={i}
                   className="flex flex-col items-center w-full gap-2"
@@ -636,7 +790,9 @@ export default function RewardEditModal({
                           type="text"
                           id="serialNumber"
                           value={serialNumber}
-                          onChange={(e) => setSerialNumber(e.target.value)}
+                          onChange={(e) =>
+                            setSerialNumber(e.target.value.toUpperCase())
+                          }
                           placeholder="e.g., SN123456789ABC"
                           required
                           className="pl-10 uppercase"
@@ -714,27 +870,165 @@ export default function RewardEditModal({
                         required
                       />
                     )}
+                    {/* City of Installation */}
+                    <FormField
+                      type="select"
+                      label="City of Installation"
+                      id="cityOfInstallation"
+                      value={cityOfInstallation}
+                      onChange={setCityOfInstallation}
+                      placeholder="Select installation city"
+                      hint="City where the product was installed"
+                      icon={IconCity}
+                      groups={cityGroups}
+                      searchable
+                      searchPlaceholder="Type city name..."
+                      emptyMessage="City not found. Please try another spelling."
+                    />
+
+                    {/* Reward Amount (auto-calculated from product) */}
                     <FormField
                       type="text"
                       label="Reward Amount"
                       id="rewardAmount"
-                      value={`Rs. ${(
-                        selectedProduct?.reward ||
-                        reward?.rewardAmount ||
-                        0
-                      ).toLocaleString()}`}
+                      value={`Rs. ${rewardAmount.toLocaleString()}`}
                       onChange={() => {}}
                       disabled
-                      hint="Based on product model"
+                      hint="Automatically calculated based on selected product"
                       icon={IconReward}
                     />
+
+                    {/* Installation Month & Year */}
+                    <div className="space-y-2">
+                      <Label htmlFor="installationDate" className="block">
+                        Installation Month &amp; Year
+                      </Label>
+                      <MonthYearGridPicker
+                        value={installationMonthYear}
+                        onChange={setInstallationMonthYear}
+                        id="installationDate"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Month and year the product was installed
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Step 2: Review */}
+            {/* Step 2: Payment & Details */}
             {currentStep === 2 && (
+              <div className="space-y-4 mb-6">
+                <StepHeader
+                  icon={IconReward}
+                  title="Payment & Details"
+                  description="Update payment status, method and transaction details"
+                />
+
+                <div className="space-y-6">
+                  <div className={cn(GRID_2_COL_CLASS, CARD_SECTION_CLASS)}>
+                    <FormField
+                      type="select"
+                      label="Reward Status"
+                      id="rewardStatus"
+                      value={rewardStatus}
+                      onChange={(v) => setRewardStatus(v as RewardStatus)}
+                      placeholder="Select status"
+                      hint="Current payment status"
+                      icon={IconReward}
+                      options={STATUS_OPTIONS}
+                    />
+
+                    <FormField
+                      type="select"
+                      label="Payment Method"
+                      id="paymentMethod"
+                      value={paymentMethod}
+                      onChange={setPaymentMethod}
+                      placeholder="Select method"
+                      hint="How the reward was paid"
+                      options={methodOptions.map((m) => ({ value: m, label: m }))}
+                    />
+
+                    {/* Transaction ID with live duplicate check */}
+                    <div className="space-y-2">
+                      <Label htmlFor="transactionId" className="block">
+                        Transaction ID
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          type="text"
+                          id="transactionId"
+                          value={transactionId}
+                          onChange={(e) => setTransactionId(e.target.value)}
+                          placeholder="e.g., TXN-2026-00123"
+                          className="font-mono pr-16"
+                          aria-invalid={!txnValidation.isValid}
+                        />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          {txnValidation.isChecking ? (
+                            <Loading />
+                          ) : txnChanged ? (
+                            <HyperText
+                              className={cn(
+                                "tracking-widest text-xs uppercase pointer-events-none select-none leading-none",
+                                txnValidation.isValid
+                                  ? "text-success-text"
+                                  : "text-destructive-text",
+                              )}
+                            >
+                              {txnValidation.isValid ? "Valid" : "Invalid"}
+                            </HyperText>
+                          ) : null}
+                        </div>
+                      </div>
+                      <p
+                        className={cn(
+                          "text-xs",
+                          !txnValidation.isValid && txnChanged
+                            ? "text-destructive-text"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        {txnValidation.isChecking
+                          ? "⏳ Checking transaction ID..."
+                          : txnChanged
+                            ? txnValidation.isValid
+                              ? `✓ ${txnValidation.message}`
+                              : `✗ ${txnValidation.message}`
+                            : "Payment reference — leave blank if unpaid"}
+                      </p>
+                    </div>
+
+                    <FormField
+                      type="date"
+                      label="Sending Date"
+                      id="sendingDate"
+                      value={sendingDate}
+                      onChange={setSendingDate}
+                      hint="Date the payment was sent"
+                    />
+
+                    {reward?.referrer && (
+                      <FormField
+                        type="text"
+                        label="Referrer Transaction ID"
+                        id="referrerTransactionId"
+                        value={referrerTransactionId}
+                        onChange={setReferrerTransactionId}
+                        placeholder={`Payment to ${reward.referrer.fullName}`}
+                        hint="Referrer payment reference"
+                        className="font-mono"
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Review */}
+            {currentStep === 3 && (
               <div className="space-y-4">
                 <StepHeader
                   icon={IconReward}
@@ -818,18 +1112,70 @@ export default function RewardEditModal({
                         </div>
                       )}
                       <div>
+                        <span className="text-muted-foreground">City:</span>
+                        <p className="font-medium">
+                          {cityOfInstallation || "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">
+                          Installation:
+                        </span>
+                        <p className="font-medium">
+                          {installationMonthYear || "—"}
+                        </p>
+                      </div>
+                      <div>
                         <span className="text-muted-foreground">
                           Reward Amount:
                         </span>
                         <p className="font-medium text-success-text">
-                          Rs.{" "}
-                          {(
-                            selectedProduct?.reward ||
-                            reward?.rewardAmount ||
-                            0
-                          ).toLocaleString()}
+                          Rs. {rewardAmount.toLocaleString()}
                         </p>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Information */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+                      Payment Information
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Status:</span>
+                        <p className="font-medium capitalize">
+                          {rewardStatus.toLowerCase()}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Method:</span>
+                        <p className="font-medium">{paymentMethod || "—"}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">
+                          Transaction ID:
+                        </span>
+                        <p className="font-medium font-mono">
+                          {transactionId || "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">
+                          Sending Date:
+                        </span>
+                        <p className="font-medium">{sendingDate || "—"}</p>
+                      </div>
+                      {reward?.referrer && (
+                        <div>
+                          <span className="text-muted-foreground">
+                            Referrer Txn ID:
+                          </span>
+                          <p className="font-medium font-mono">
+                            {referrerTransactionId || "—"}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -854,11 +1200,14 @@ export default function RewardEditModal({
                 Previous
               </Button>
 
-              {currentStep < 2 ? (
+              {currentStep < 3 ? (
                 <Button
                   type="button"
                   onClick={handleNext}
-                  disabled={currentStep === 1 && !isStep1Valid}
+                  disabled={
+                    (currentStep === 1 && !isStep1Valid) ||
+                    (currentStep === 2 && !isStep2Valid)
+                  }
                   className="gap-1 pr-3"
                 >
                   Next
@@ -868,7 +1217,7 @@ export default function RewardEditModal({
                 <Button
                   type="button"
                   onClick={handleSaveChanges}
-                  disabled={saving}
+                  disabled={saving || !isStep2Valid}
                   className="gap-2"
                 >
                   {saving ? (

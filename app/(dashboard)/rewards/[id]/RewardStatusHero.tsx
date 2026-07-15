@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/CopyButton";
+import Loading from "@/components/ui/loading";
 import { cn } from "@/lib/utils";
 import {
   IconCheckCircle,
@@ -78,6 +79,8 @@ interface RewardStatusHeroProps {
   pendingDays: number;
   blockers: string[];
   onMarkPaid: () => void;
+  onMarkFailed: () => void;
+  markFailedPending?: boolean;
   onEdit: () => void;
 }
 
@@ -87,6 +90,8 @@ export default function RewardStatusHero({
   pendingDays,
   blockers,
   onMarkPaid,
+  onMarkFailed,
+  markFailedPending,
   onEdit,
 }: RewardStatusHeroProps) {
   const reduceMotion = useReducedMotion();
@@ -147,10 +152,26 @@ export default function RewardStatusHero({
 
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             {state === "payable" && (
-              <Button size="lg" onClick={onMarkPaid}>
-                <IconMoney className="mr-2 size-4" duotone />
-                Mark as Paid
-              </Button>
+              <>
+                <Button size="lg" onClick={onMarkPaid}>
+                  <IconMoney className="mr-2 size-4" duotone />
+                  Mark as Paid
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={onMarkFailed}
+                  disabled={markFailedPending}
+                  className="text-destructive-text hover:text-destructive-text"
+                >
+                  {markFailedPending ? (
+                    <Loading className="mr-2" />
+                  ) : (
+                    <IconCloseCircle className="mr-2 size-4" duotone />
+                  )}
+                  Mark as Failed
+                </Button>
+              </>
             )}
             {state === "blocked" && (
               <Button variant="outline" onClick={onEdit}>
@@ -168,12 +189,6 @@ export default function RewardStatusHero({
                   Edit details
                 </Button>
               </>
-            )}
-            {state === "paid" && (
-              <Button variant="outline" onClick={onMarkPaid}>
-                <IconEdit2 className="mr-2 size-4" duotone />
-                Edit payment
-              </Button>
             )}
           </div>
         </div>

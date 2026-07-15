@@ -129,6 +129,7 @@ export const updateRewardSchema = z.object({
     .string()
     .min(1, "Inverter serial number is required")
     .optional(),
+  installationDate: z.string().or(z.date()).optional(),
   rewardAmount: z.number().min(0, "Reward amount must be positive").optional(),
   rewardStatus: z.enum(RewardStatus).optional(),
   transactionId: z.string().optional(),

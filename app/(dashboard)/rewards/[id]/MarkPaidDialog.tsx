@@ -26,8 +26,11 @@ import {
   useMarkRewardPaid,
   type RewardDetails,
 } from "@/hooks/useRewardDetails";
+import { useTransactionIdCheck } from "@/hooks/useTransactionIdCheck";
 import { RewardStatus } from "@/types/rewards";
 import { IconSave } from "@/components/icons";
+import { HyperText } from "@/components/ui/hypertext";
+import { cn } from "@/lib/utils";
 
 const STATUS_OPTIONS = [
   { value: RewardStatus.PENDING, label: "Pending" },
@@ -76,35 +79,65 @@ function MarkPaidForm({
   );
   const [fieldError, setFieldError] = useState<string | null>(null);
 
-  // In edit mode the status is user-controlled; mark/retry always resolve PAID.
-  const willBePaid = edit ? status === RewardStatus.PAID : true;
-  const requireTxn =
-    (settings?.requireTransactionIdForPaid ?? true) && willBePaid;
+  const txnCheck = useTransactionIdCheck(
+    transactionId,
+    reward.transactionId || "",
+    reward._id,
+  );
+  const txnChanged =
+    transactionId.trim() !== (reward.transactionId || "").trim() &&
+    transactionId.trim() !== "";
+
+  // Status resolution: edit mode is user-controlled. In mark/retry mode the
+  // status follows the transaction ID — with an ID it's PAID, blank keeps it
+  // PENDING (so "Mark as Paid" can be saved without an ID).
+  const resolvedStatus: RewardStatus = edit
+    ? status
+    : transactionId.trim()
+      ? RewardStatus.PAID
+      : RewardStatus.PENDING;
+  const requireTxnSetting = settings?.requireTransactionIdForPaid ?? true;
 
   const handleSubmit = () => {
-    if (requireTxn && !transactionId.trim()) {
-      setFieldError("Transaction ID is required");
+    // Block on a duplicate transaction ID (server also guards this).
+    if (!txnCheck.isValid) {
+      setFieldError("Transaction ID already used");
+      return;
+    }
+    // Require an ID only when a reward is *becoming* paid (matches the server).
+    // Editing an already-paid reward may clear the ID without being blocked.
+    const becomingPaid =
+      reward.rewardStatus !== RewardStatus.PAID &&
+      resolvedStatus === RewardStatus.PAID;
+    if (becomingPaid && requireTxnSetting && !transactionId.trim()) {
+      setFieldError("Transaction ID is required to mark as paid");
       return;
     }
     setFieldError(null);
     markPaid.mutate(
       {
-        transactionId: transactionId.trim() || undefined,
+        // Send the trimmed value (empty string included) so clearing the field
+        // actually persists — `|| undefined` would drop the key and leave the
+        // old transaction ID in the database.
+        transactionId: transactionId.trim(),
         referrerTransactionId: reward.referrer
-          ? referrerTransactionId.trim() || undefined
+          ? referrerTransactionId.trim()
           : undefined,
         paymentMethod,
         sendingDate,
-        rewardStatus: edit ? status : undefined,
+        rewardStatus: resolvedStatus,
       },
       {
         onSuccess: () => {
+          const paid = resolvedStatus === RewardStatus.PAID;
           toast.success(
             edit
-              ? status === RewardStatus.PAID
+              ? paid
                 ? "Payment details updated"
-                : `Status changed to ${status.toLowerCase()}`
-              : `Rs. ${(reward.rewardAmount ?? 0).toLocaleString()} recorded as paid`,
+                : `Status changed to ${resolvedStatus.toLowerCase()}`
+              : paid
+                ? `Rs. ${(reward.rewardAmount ?? 0).toLocaleString()} recorded as paid`
+                : "Saved as pending — add a transaction ID to mark it paid",
           );
           onOpenChange(false);
         },
@@ -140,23 +173,55 @@ function MarkPaidForm({
         )}
 
         <div className="space-y-1.5">
-          <Label htmlFor="mark-paid-txn">
-            Transaction ID
-            {requireTxn && <span className="text-destructive-text"> *</span>}
-          </Label>
-          <Input
-            id="mark-paid-txn"
-            value={transactionId}
-            onChange={(e) => setTransactionId(e.target.value)}
-            placeholder="e.g. TXN-2026-00123"
-            className="font-mono"
-            aria-invalid={!!fieldError}
-            autoFocus
-          />
-          {fieldError && (
+          <Label htmlFor="mark-paid-txn">Transaction ID</Label>
+          <div className="relative">
+            <Input
+              id="mark-paid-txn"
+              value={transactionId}
+              onChange={(e) => setTransactionId(e.target.value)}
+              placeholder="e.g. TXN-2026-00123"
+              className="font-mono pr-16"
+              aria-invalid={!!fieldError || !txnCheck.isValid}
+              autoFocus
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {txnCheck.isChecking ? (
+                <Loading />
+              ) : txnChanged ? (
+                <HyperText
+                  className={cn(
+                    "tracking-widest text-xs uppercase pointer-events-none select-none leading-none",
+                    txnCheck.isValid
+                      ? "text-success-text"
+                      : "text-destructive-text",
+                  )}
+                >
+                  {txnCheck.isValid ? "Valid" : "Invalid"}
+                </HyperText>
+              ) : null}
+            </div>
+          </div>
+          {fieldError ? (
             <p role="alert" className="text-xs text-destructive-text">
               {fieldError}
             </p>
+          ) : txnChanged && txnCheck.message ? (
+            <p
+              className={cn(
+                "text-xs",
+                txnCheck.isValid
+                  ? "text-muted-foreground"
+                  : "text-destructive-text",
+              )}
+            >
+              {txnCheck.isValid ? `✓ ${txnCheck.message}` : `✗ ${txnCheck.message}`}
+            </p>
+          ) : (
+            !edit && (
+              <p className="text-xs text-muted-foreground">
+                Leave blank to save as pending.
+              </p>
+            )
           )}
         </div>
 
@@ -214,7 +279,9 @@ function MarkPaidForm({
         </Button>
         <Button
           onClick={handleSubmit}
-          disabled={markPaid.isPending}
+          disabled={
+            markPaid.isPending || txnCheck.isChecking || !txnCheck.isValid
+          }
           className="pl-3"
         >
           {markPaid.isPending ? (
