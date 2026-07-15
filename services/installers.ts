@@ -4,6 +4,7 @@ import { HydratedDocument } from "mongoose";
 import Installer, { IInstaller } from "@/models/Installer";
 import {
   sendInstallerRegistrationMessage,
+  sendInstallerWelcomeTemplate,
   formatInstallerWhatsAppMessage,
   type DeliveryMethod,
 } from "@/lib/whatsappService";
@@ -152,7 +153,10 @@ async function syncGoogleContactOnUpdate(
  */
 export async function regenerateAndSendPin(
   installer: HydratedDocument<IInstaller>,
-  performedById: string
+  performedById: string,
+  // "template" (register) reaches new installers outside the 24h window;
+  // "free-form" (PIN reset) requires an open window.
+  channel: "free-form" | "template" = "free-form"
 ): Promise<{
   whatsappSent: boolean;
   error?: string;
@@ -188,15 +192,16 @@ export async function regenerateAndSendPin(
     };
   }
 
-  const result = await sendInstallerRegistrationMessage(
-    {
-      fullName: installer.fullName,
-      whatsappNumber: installer.whatsappNumber,
-      installerCode: installer.installerCode,
-      pin: plainPin,
-    },
-    performedById
-  );
+  const messageInput = {
+    fullName: installer.fullName,
+    whatsappNumber: installer.whatsappNumber,
+    installerCode: installer.installerCode,
+    pin: plainPin,
+  };
+  const result =
+    channel === "template"
+      ? await sendInstallerWelcomeTemplate(messageInput, performedById)
+      : await sendInstallerRegistrationMessage(messageInput, performedById);
 
   // If free-form delivery failed, generate manual fallback
   if (!result.success) {
@@ -251,7 +256,7 @@ export async function createInstaller(
   await createGoogleContactForInstaller(installer);
 
   const { whatsappSent, plainPin, whatsappMessage, whatsappUrl, deliveryMethod } =
-    await regenerateAndSendPin(installer, registeredById);
+    await regenerateAndSendPin(installer, registeredById, "template");
 
   return {
     installer: await findInstallerByIdOrCode(

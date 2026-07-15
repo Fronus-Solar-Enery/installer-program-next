@@ -352,6 +352,17 @@ export function RegistrationModal({
                   </div>
                 )}
 
+                {deliveryMethod === "template" && (
+                  <div className="bg-success/10 border border-success/30 rounded-2xl p-4 space-y-1">
+                    <p className="text-sm font-medium text-success">
+                      ✓ Welcome message sent via WhatsApp
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Credentials delivered using the hello_installer template
+                    </p>
+                  </div>
+                )}
+
                 {deliveryMethod === "blocked" && (
                   <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 space-y-3 text-left">
                     <p className="text-sm font-medium text-amber-600 dark:text-amber-400">

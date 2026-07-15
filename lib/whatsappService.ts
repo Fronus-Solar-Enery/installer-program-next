@@ -31,7 +31,13 @@ const GRAPH_API_VERSION = "v22.0";
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 const MAX_RETRY_ATTEMPTS = 3;
 
-export type DeliveryMethod = "free-form" | "blocked";
+export type DeliveryMethod = "free-form" | "template" | "blocked";
+
+// hello_installer: approved Meta template used to reach freshly-registered
+// installers OUTSIDE the 24h window. Header {{1}} = name; body {{1}} = code,
+// {{2}} = PIN.
+const HELLO_INSTALLER_TEMPLATE = "hello_installer";
+const HELLO_INSTALLER_LANG = "en";
 
 interface WhatsAppMessage {
   phoneNumber: string;
@@ -437,6 +443,209 @@ export function formatInstallerWhatsAppMessage(installer: {
     : "";
 
   return { text, whatsappUrl };
+}
+
+// ─── Template send (hello_installer) ─────────────────────────────────────────
+
+/**
+ * Build the Meta template component params for hello_installer.
+ * Header {{1}} = full name; Body {{1}} = installer code, {{2}} = PIN.
+ * Pure + exported so the positional param mapping is unit-testable.
+ */
+export function buildWelcomeTemplateComponents(installer: {
+  fullName: string;
+  installerCode: string;
+  pin: string;
+}) {
+  return [
+    {
+      type: "header",
+      parameters: [{ type: "text", text: installer.fullName }],
+    },
+    {
+      type: "body",
+      parameters: [
+        { type: "text", text: installer.installerCode },
+        { type: "text", text: installer.pin },
+      ],
+    },
+  ];
+}
+
+/**
+ * Send a template message via Meta Cloud API. Unlike free-form, templates are
+ * NOT gated by the 24h window.
+ */
+async function sendTemplateMessage(
+  to: string,
+  components: ReturnType<typeof buildWelcomeTemplateComponents>,
+  accessToken: string,
+  phoneNumberId: string,
+): Promise<{
+  success: boolean;
+  error?: string;
+  errorCode?: number;
+  httpStatus?: number;
+}> {
+  const response = await fetch(
+    `https://graph.facebook.com/${GRAPH_API_VERSION}/${phoneNumberId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to,
+        type: "template",
+        template: {
+          name: HELLO_INSTALLER_TEMPLATE,
+          language: { code: HELLO_INSTALLER_LANG },
+          components,
+        },
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as Record<
+      string,
+      unknown
+    >;
+    const errorObj = body?.error as Record<string, unknown> | undefined;
+    return {
+      success: false,
+      error: `WhatsApp API error ${response.status}: ${
+        (errorObj?.message as string) || response.statusText
+      }`,
+      errorCode: errorObj?.code as number | undefined,
+      httpStatus: response.status,
+    };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Send the hello_installer welcome template (name + installer code + PIN).
+ * The only path that reaches a freshly-registered installer, since templates
+ * deliver outside the 24h customer-service window. Retries transient (5xx/429)
+ * failures only. Respects the enableWhatsAppNotifications setting.
+ */
+export async function sendInstallerWelcomeTemplate(
+  installer: {
+    fullName: string;
+    whatsappNumber: string;
+    installerCode: string;
+    pin: string;
+  },
+  performedBy: string,
+): Promise<SendResult> {
+  try {
+    const phoneNumberId = process.env.META_WHATSAPP_PHONE_NUMBER_ID;
+    const accessToken = process.env.META_WHATSAPP_ACCESS_TOKEN;
+
+    if (!phoneNumberId || !accessToken) {
+      logger.warn(
+        "WhatsApp template disabled: META_WHATSAPP_PHONE_NUMBER_ID / META_WHATSAPP_ACCESS_TOKEN not set",
+      );
+      return { success: false, error: "WhatsApp service not configured" };
+    }
+
+    const settings = await getSettings();
+    if (!settings.enableWhatsAppNotifications) {
+      return {
+        success: false,
+        error: "WhatsApp notifications disabled in settings",
+      };
+    }
+
+    const to = normalizePhone(installer.whatsappNumber);
+    const components = buildWelcomeTemplateComponents(installer);
+
+    // Point the audit trail at the installer record, not the staff member.
+    const record = await Installer.findOne({
+      whatsappNumber: whatsappStorageFormat(installer.whatsappNumber),
+    }).select("_id fullName");
+    const activityTarget = record
+      ? {
+          targetType: "Installer" as const,
+          targetId: record._id as string,
+          targetName: record.fullName,
+        }
+      : { targetType: "TeamMember" as const, targetId: performedBy };
+
+    let lastError: string | undefined;
+
+    for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+      const result = await sendTemplateMessage(
+        to,
+        components,
+        accessToken,
+        phoneNumberId,
+      );
+
+      if (result.success) {
+        await logActivity({
+          type: ActivityType.WHATSAPP_SENT,
+          performedBy,
+          ...activityTarget,
+          description: `WhatsApp welcome template sent to ${installer.whatsappNumber}`,
+          metadata: {
+            whatsappNumber: installer.whatsappNumber,
+            mode: "template",
+            template: HELLO_INSTALLER_TEMPLATE,
+            attempt,
+          },
+        });
+        return { success: true, deliveryMethod: "template" };
+      }
+
+      lastError = result.error;
+
+      // Permanent Graph 4xx (bad template, invalid number, …) — no retry.
+      if (
+        result.httpStatus !== undefined &&
+        result.httpStatus >= 400 &&
+        result.httpStatus < 500 &&
+        result.httpStatus !== 429
+      ) {
+        logger.warn("WhatsApp template rejected — permanent error, no retry", {
+          phoneNumber: installer.whatsappNumber,
+          attempt,
+          httpStatus: result.httpStatus,
+          errorCode: result.errorCode,
+        });
+        break;
+      }
+
+      if (attempt < MAX_RETRY_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, attempt * 1000));
+      }
+    }
+
+    await logActivity({
+      type: ActivityType.WHATSAPP_FAILED,
+      performedBy,
+      ...activityTarget,
+      description: `Failed to send WhatsApp welcome template to ${installer.whatsappNumber}`,
+      metadata: {
+        whatsappNumber: installer.whatsappNumber,
+        mode: "template",
+        errorMessage: lastError,
+      },
+    });
+
+    return { success: false, error: lastError, deliveryMethod: "blocked" };
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    logger.error("Failed to send WhatsApp welcome template", {
+      error: errorMessage,
+    });
+    return { success: false, error: errorMessage, deliveryMethod: "blocked" };
+  }
 }
 
 // ─── High-level send functions ───────────────────────────────────────────────
