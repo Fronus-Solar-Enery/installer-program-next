@@ -39,7 +39,7 @@ export default function PageHeader({
         className,
       )}
     >
-      <div className="flex items-center gap-4 ml-6">
+      <div className="flex items-center gap-4 ml-3">
         {renderIcon()}
         <div>
           <h1
