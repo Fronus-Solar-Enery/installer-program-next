@@ -93,7 +93,7 @@ export function AccountHealthCard({
   return (
     <section
       className={cn(
-        "squircle rounded-3xl border border-border p-4 space-y-4",
+        "squircle rounded-3xl border border-border p-4 space-y-4 flex flex-col",
         health.suspended && "border-destructive/40 bg-destructive/5",
         className,
       )}
@@ -101,12 +101,7 @@ export function AccountHealthCard({
     >
       <header className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div
-            className={cn(
-              "dark:bg-background bg-muted p-1.5 rounded-xl",
-              copy.tone,
-            )}
-          >
+          <div className={cn(copy.tone)}>
             <Icon className="size-10" aria-hidden="true" />
           </div>
           <div>
@@ -117,7 +112,11 @@ export function AccountHealthCard({
               Account Health
             </h3>
             {/* The gauge states the count itself — no need to say it twice. */}
-            {!isGauge && (
+            {!isGauge ? (
+              <p className="text-xs text-muted-foreground">
+                {health.activeWarnings} of {health.threshold} warnings
+              </p>
+            ) : (
               <p className="text-xs text-muted-foreground">
                 {health.activeWarnings} of {health.threshold} warnings
               </p>
@@ -208,12 +207,15 @@ export function AccountHealthCard({
         </ul>
       )}
 
-      {!compact && health.warnings.length === 0 && !health.suspended && (
-        <p className="text-sm text-muted-foreground">
-          No active warnings. Warnings stop counting six months after they are
-          issued.
-        </p>
-      )}
+      {!isGauge &&
+        !compact &&
+        health.warnings.length === 0 &&
+        !health.suspended && (
+          <p className="text-sm text-muted-foreground">
+            No active warnings. Warnings stop counting six months after they are
+            issued.
+          </p>
+        )}
     </section>
   );
 }

@@ -334,12 +334,12 @@ export default function MyStatsPage() {
   return (
     <div className="min-h-screen bg-muted/70 dark:bg-background">
       <title>{PAGE_TITLE}</title>
-      <div className="max-w-5xl mx-auto p-4 space-y-6">
+      <div className="max-w-5xl mx-auto p-4 space-y-3">
         {/* Hero Header Card */}
 
         {/* Top row: Logo + Actions */}
-        <div className="flex items-center justify-between mb-8 bg-card/60 backdrop-blur-md squircle rounded-full p-4 sticky top-4 z-100 border border-border">
-          <ProgramLogo className="w-24 sm:w-28 h-10!" />
+        <div className="flex items-center justify-between bg-card/60 backdrop-blur-md squircle rounded-full p-4 sticky top-4 z-100 border border-border">
+          <ProgramLogo className="w-24 sm:w-24 h-10!" />
           <HeaderMenu
             onShare={handleShare}
             onChangePin={() => setChangePinOpen(true)}
@@ -350,14 +350,14 @@ export default function MyStatsPage() {
         {data ? (
           <Card>
             {/* Middle row: Avatar + Identity */}
-            <div className="flex flex-wrap items-center gap-5 p-4">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-5 p-4">
               {/* Initials Avatar */}
-              <div className="size-16 rounded-full bg-card/50 flex items-center justify-center text-2xl font-bold text-foreground shrink-0 ring-2 ring-border">
+              <div className="size-12 sm:size-16 rounded-full bg-card/50 flex items-center justify-center sm:text-2xl font-bold text-foreground shrink-0 ring-2 ring-border">
                 {getInitials(data.installer.fullName)}
               </div>
 
               <div>
-                <h1 className="text-2xl font-bold text-foreground tracking-tight">
+                <h1 className="sm:text-2xl font-bold text-foreground tracking-tight">
                   {data.installer.fullName}
                 </h1>
                 <p className="text-muted-foreground text-sm">
@@ -438,7 +438,7 @@ export default function MyStatsPage() {
             variants={staggerContainer}
             initial="hidden"
             animate="show"
-            className="space-y-6"
+            className="space-y-3"
           >
             {/* 1.5 Suspension banner — the most consequential thing on the page,
                 so it sits above everything else the installer might act on. */}
@@ -460,58 +460,62 @@ export default function MyStatsPage() {
             <motion.div variants={slideUp}>
               <MotivationalNudge rewards={data.rewards} />
             </motion.div>
+            <div className="space-y-3 grid grid-cols-1 sm:grid-cols-2 sm:gap-3">
+              {/* 2.5 Account Health */}
+              {data.health && (
+                <motion.div
+                  variants={slideUp}
+                  className="col-span-2 sm:col-span-1 mb-3 sm:mb-0"
+                >
+                  <AccountHealthCard
+                    health={data.health}
+                    audience="installer"
+                    variant="gauge"
+                    className="bg-card squircle h-full"
+                  />
+                </motion.div>
+              )}
 
-            {/* 2.5 Account Health */}
-            {data.health && (
-              <motion.div variants={slideUp}>
-                <AccountHealthCard
-                  health={data.health}
-                  audience="installer"
-                  variant="gauge"
-                />
-              </motion.div>
-            )}
-
-            {/* 3. Stats Cards */}
-            <motion.div
-              variants={slideUp}
-              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"
-            >
-              {/* <StatCard
+              {/* 3. Stats Cards */}
+              <motion.div
+                variants={slideUp}
+                className="grid grid-rows-1 sm:grid-rows-3 gap-3"
+              >
+                {/* <StatCard
                 label="Total Earned"
                 value={data.stats.paidRewards}
                 prefix="Rs. "
                 icon={TrendingUp}
                 color="bg-success/15 text-success-text"
               /> */}
-              <StatCard
-                label="Installations"
-                value={data.stats.installationCount}
-                icon={Package}
-                color="bg-brand-700/15 text-brand-800 dark:text-brand-600"
-              />
-              <StatCard
-                label="Pending"
-                value={data.stats.pendingRewards}
-                prefix="Rs. "
-                icon={Clock}
-                color="bg-yellow-500/15 text-yellow-700 dark:text-yellow-400"
-              />
-              {/* <StatCard
+                <StatCard
+                  label="Total Installations"
+                  value={data.stats.installationCount}
+                  icon={Package}
+                  color="bg-brand-700/15 text-brand-800 dark:text-brand-600"
+                />
+                <StatCard
+                  label="Pending Rewards"
+                  value={data.stats.pendingRewards}
+                  prefix="Rs. "
+                  icon={Clock}
+                  color="bg-yellow-500/15 text-yellow-700 dark:text-yellow-400"
+                />
+                {/* <StatCard
                 label="Referral Earnings"
                 value={data.stats.referralEarnings}
                 prefix="Rs. "
                 icon={Users}
                 color="bg-sky-500/15 text-sky-700 dark:text-sky-400"
               /> */}
-              <StatCard
-                label="This Month"
-                value={thisMonthCount}
-                icon={Calendar}
-                color="bg-purple-500/15 text-purple-700 dark:text-purple-400"
-              />
-            </motion.div>
-
+                <StatCard
+                  label="Installed This Month"
+                  value={thisMonthCount}
+                  icon={Calendar}
+                  color="bg-purple-500/15 text-purple-700 dark:text-purple-400"
+                />
+              </motion.div>
+            </div>
             {/* 4. Milestone Progress */}
             {/* <motion.div variants={slideUp}>
               <MilestoneProgress
@@ -522,7 +526,7 @@ export default function MyStatsPage() {
             {/* 5 & 6. Charts Row */}
             <motion.div
               variants={slideUp}
-              className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              className="grid grid-cols-1 md:grid-cols-2 gap-3"
             >
               <Card>
                 <CardHeader className="border-b border-border">
@@ -685,7 +689,7 @@ export default function MyStatsPage() {
             </div>
 
             {/* Charts Row - 2 cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Card>
                 <CardHeader>
                   <Skeleton className="h-5 w-40" />
@@ -712,7 +716,7 @@ export default function MyStatsPage() {
               <CardContent>
                 <div className="space-y-3">
                   {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="flex gap-4">
+                    <div key={i} className="flex gap-3">
                       <Skeleton className="h-4 w-24" />
                       <Skeleton className="h-4 w-32" />
                       <Skeleton className="h-4 w-20" />

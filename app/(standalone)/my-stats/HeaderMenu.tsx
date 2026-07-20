@@ -54,17 +54,20 @@ export function HeaderMenu({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
         aria-label={open ? "Close menu" : "Open menu"}
-        className="flex size-9 items-center justify-center rounded-full bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-2 focus-visible:outline-ring cursor-pointer"
+        className={cn(
+          "flex size-9 items-center justify-center squircle rounded-full text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-2 focus-visible:outline-ring cursor-pointer relative",
+          open && "bg-secondary",
+        )}
       >
         {/* Three bars that morph into a cross while the menu is open. */}
-        <span className="relative block size-4" aria-hidden="true">
+        <div className="relative size-4">
           {[
-            { key: "top", closedY: -4, openRotate: 45, closedWidth: "1rem" },
+            { key: "top", closedY: -4, openRotate: 45, closedWidth: "1.1rem" },
             {
               key: "bottom",
               closedY: 4,
               openRotate: -45,
-              closedWidth: "0.75rem",
+              closedWidth: "0.6rem",
             },
           ].map((bar) => (
             <motion.span
@@ -80,7 +83,7 @@ export function HeaderMenu({
               transition={spring}
             />
           ))}
-        </span>
+        </div>
       </PopoverTrigger>
 
       <AnimatePresence>
