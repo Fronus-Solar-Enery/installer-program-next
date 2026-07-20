@@ -40,6 +40,11 @@ import { useDeleteInstaller } from "@/hooks/useInstallers";
 import ProfileSidebar from "./ProfileSidebar";
 import StatsRow from "./StatsRow";
 import ProductsTable, { ProductsTableSkeleton } from "./ProductsTable";
+import { AccountHealthCard } from "@/components/AccountHealthCard";
+import {
+  useAccountHealth,
+  useUnsuspendInstaller,
+} from "@/hooks/useAccountHealth";
 import ActivityTimeline, { ActivityTimelineSkeleton } from "./ActivityTimeline";
 import PinDialog from "./PinDialog";
 
@@ -121,9 +126,24 @@ export default function InstallerDetailsPage() {
   const revealPin = useRevealInstallerPin(installerId);
   const deleteInstaller = useDeleteInstaller();
 
+  const healthQuery = useAccountHealth(installer?._id);
+  const unsuspend = useUnsuspendInstaller(installerId);
+
   const isAdmin =
     session?.user?.role === TeamRole.ADMIN ||
     session?.user?.role === TeamRole.MANAGER;
+
+  // Unsuspending is ADMIN-only (the route enforces it), unlike the broader
+  // `isAdmin` above which also covers managers.
+  const canUnsuspend = session?.user?.role === TeamRole.ADMIN;
+
+  const handleUnsuspend = () => {
+    unsuspend.mutate(undefined, {
+      onSuccess: () => toast.success("Suspension lifted and warnings cleared"),
+      onError: (err) =>
+        toast.error(err.message || "Failed to lift suspension"),
+    });
+  };
 
   const handleRevealPin = () => {
     revealPin.mutate(undefined, {
@@ -306,6 +326,23 @@ export default function InstallerDetailsPage() {
         {/* Right: stats + tabs */}
         <main className="min-w-0 space-y-6">
           {statistics && <StatsRow statistics={statistics} />}
+
+          {healthQuery.data && (
+            <div className="space-y-3">
+              <AccountHealthCard health={healthQuery.data} />
+              {canUnsuspend && healthQuery.data.suspended && (
+                <Button
+                  variant="outline"
+                  onClick={handleUnsuspend}
+                  disabled={unsuspend.isPending}
+                >
+                  {unsuspend.isPending
+                    ? "Lifting suspension..."
+                    : "Lift suspension & clear warnings"}
+                </Button>
+              )}
+            </div>
+          )}
 
           <Tabs defaultValue="products">
             <TabsList>

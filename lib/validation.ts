@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { TeamRole } from "@/types/roles";
-import { RewardStatus } from "@/types/rewards";
+import { RewardStatus, ProductStatus } from "@/types/rewards";
 
 // Title Case: capitalize first letter of each word
 export function toTitleCase(str: string): string {
@@ -104,6 +104,21 @@ export const registerInstallerSchema = z.object({
 export const updateInstallerSchema = registerInstallerSchema.partial();
 
 // Installer Reward Schemas
+
+// A rejected product must say why — the reason is what drives the warning
+// system, so an unexplained rejection is never accepted.
+const requiresRejectionReason = (data: {
+  productStatus?: ProductStatus;
+  rejectionReason?: string;
+}) =>
+  data.productStatus !== ProductStatus.REJECTED ||
+  Boolean(data.rejectionReason?.trim());
+
+const REJECTION_REASON_ISSUE = {
+  message: "Rejection reason is required when the product is rejected",
+  path: ["rejectionReason"],
+};
+
 export const registerRewardSchema = z.object({
   installerCode: z.string().min(1, "Installer code is required").toUpperCase(),
   cityOfInstallation: z.string().min(2, "City of installation is required"),
@@ -113,10 +128,12 @@ export const registerRewardSchema = z.object({
   installationDate: z.string().optional(),
   rewardAmount: z.number().min(0, "Reward amount must be positive"),
   rewardStatus: z.enum(RewardStatus).default(RewardStatus.PENDING),
+  productStatus: z.enum(ProductStatus).default(ProductStatus.ELIGIBLE),
+  rejectionReason: z.string().optional(),
   transactionId: z.string().optional(),
   sendingDate: z.string().or(z.date()).optional(),
   paymentMethod: z.string().optional(),
-});
+}).refine(requiresRejectionReason, REJECTION_REASON_ISSUE);
 
 export const updateRewardSchema = z.object({
   serialNumber: z.string().min(1, "Serial number is required").optional(),
@@ -132,12 +149,14 @@ export const updateRewardSchema = z.object({
   installationDate: z.string().or(z.date()).optional(),
   rewardAmount: z.number().min(0, "Reward amount must be positive").optional(),
   rewardStatus: z.enum(RewardStatus).optional(),
+  productStatus: z.enum(ProductStatus).optional(),
+  rejectionReason: z.string().optional(),
   transactionId: z.string().optional(),
   referrerTransactionId: z.string().optional(),
   referrerRewardAmount: z.number().min(0).optional(),
   sendingDate: z.string().or(z.date()).optional(),
   paymentMethod: z.string().optional(),
-});
+}).refine(requiresRejectionReason, REJECTION_REASON_ISSUE);
 
 // Product Schemas
 export const productSchema = z.object({

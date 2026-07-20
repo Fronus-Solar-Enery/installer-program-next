@@ -4,6 +4,7 @@ import InstallerReward from "@/models/InstallerReward";
 import { RewardStatus } from "@/types/rewards";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { getInstallerFromCookie } from "@/lib/installerAuth";
+import { getAccountHealth } from "@/lib/warnings";
 
 // GET — the logged-in installer's own dashboard data.
 // Auth: installer_token cookie (not NextAuth) — data scoped to that installer only.
@@ -16,14 +17,14 @@ export async function GET() {
 
     await dbConnect();
 
-    const [installer, rewards, referredInstallers, referralRewards] =
+    const [installer, rewards, referredInstallers, referralRewards, health] =
       await Promise.all([
         Installer.findById(session.installerId).select(
           "installerCode fullName companyName city district certified createdAt"
         ),
         InstallerReward.find({ installer: session.installerId })
           .select(
-            "productModel serialNumber installationDate rewardStatus rewardAmount createdAt"
+            "productModel serialNumber installationDate rewardStatus productStatus rejectionReason rewardAmount createdAt"
           )
           .sort({ createdAt: -1 }),
         Installer.find({ referrer: session.installerId }).select(
@@ -32,6 +33,7 @@ export async function GET() {
         InstallerReward.find({ referrer: session.installerId })
           .select("referrerRewardAmount rewardStatus installerCode createdAt")
           .sort({ createdAt: -1 }),
+        getAccountHealth(session.installerId),
       ]);
 
     if (!installer) {
@@ -58,6 +60,7 @@ export async function GET() {
       },
       rewards,
       referredInstallers,
+      health,
     });
   } catch (error) {
     return handleApiError(error);

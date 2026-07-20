@@ -1,3 +1,5 @@
+import { ProductStatus } from "@/types/rewards";
+
 /**
  * Shared helpers for bulk-upload validation routes (installers, rewards, and
  * future entities). The per-entity validation rules differ, but the in-batch
@@ -28,4 +30,45 @@ export class BatchDuplicateTracker {
   indexOf(key: string): number | undefined {
     return this.seen.get(key);
   }
+}
+
+/**
+ * Read the Product Status / Rejection Reason cells of a bulk-update row.
+ *
+ * Blank Product Status means "leave it as it is" — the sheet is primarily a
+ * payment sheet, so an empty column must never silently reset eligibility.
+ * Labels are matched case-insensitively and accept either the display label
+ * ("Not Eligible") or the stored enum value ("NOT_ELIGIBLE").
+ */
+export function parseProductStatusCells(
+  statusCell: unknown,
+  reasonCell: unknown
+): { productStatus?: ProductStatus; rejectionReason?: string; issue?: string } {
+  const raw = statusCell?.toString().trim() ?? "";
+  const reason = reasonCell?.toString().trim() || undefined;
+
+  if (!raw) return { rejectionReason: undefined };
+
+  const normalized = raw.toUpperCase().replace(/[\s-]+/g, "_");
+  const match = Object.values(ProductStatus).find((s) => s === normalized);
+
+  if (!match) {
+    return {
+      issue: `Invalid product status "${raw}" (must be: Eligible, Not Eligible, or Rejected)`,
+    };
+  }
+
+  if (match !== ProductStatus.REJECTED) {
+    // A reason only belongs to a rejection; drop a stale one.
+    return { productStatus: match, rejectionReason: undefined };
+  }
+
+  if (!reason) {
+    return {
+      productStatus: match,
+      issue: "Rejection reason is required when the product is rejected",
+    };
+  }
+
+  return { productStatus: match, rejectionReason: reason };
 }

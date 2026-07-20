@@ -25,7 +25,12 @@ import {
 } from "@/components/icons";
 import { useRelativeTime } from "@/lib/getRelativeTime";
 import { useDebounce } from "@/hooks/useDebounce";
-import { useRewardsState } from "@/hooks/useRewardsState";
+import {
+  useRewardsState,
+  type RewardsFilters,
+  type RewardsColumnVisibility,
+} from "@/hooks/useRewardsState";
+import { buildRewardsFilterParams } from "@/lib/rewardsFilterParams";
 import {
   useOptimizedRewardsFilter,
   type RewardWithId,
@@ -175,89 +180,9 @@ export default function RewardsPage() {
     try {
       setLoading(true);
       setIsFetching(true);
-      const params = new URLSearchParams();
-
-      // Server-side search
-      if (debouncedSearch) {
-        params.append("search", debouncedSearch);
-      }
-
-      // Only add non-default filter values to reduce API payload
-      if (state.filters.rewardStatus && state.filters.rewardStatus !== "ALL") {
-        params.append("rewardStatus", state.filters.rewardStatus);
-      }
-      if (
-        state.filters.paymentMethod &&
-        state.filters.paymentMethod !== "all"
-      ) {
-        params.append("paymentMethod", state.filters.paymentMethod);
-      }
-      if (
-        state.filters.installationDate &&
-        state.filters.installationDate !== ""
-      ) {
-        params.append("installationDate", state.filters.installationDate);
-      }
-      if (state.filters.productModel && state.filters.productModel !== "all") {
-        params.append("productModel", state.filters.productModel);
-      }
-      if (state.filters.teamMember && state.filters.teamMember !== "all") {
-        params.append("registeredBy", state.filters.teamMember);
-      }
-
-      // Date range filter
-      if (state.filters.dateRange !== "all") {
-        const now = new Date();
-        const todayStart = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate(),
-        );
-
-        let startDate: Date | null = null;
-        let endDate: Date | null = null;
-
-        switch (state.filters.dateRange) {
-          case "today":
-            startDate = todayStart;
-            endDate = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
-            break;
-          case "week":
-            startDate = new Date(
-              todayStart.getTime() - 7 * 24 * 60 * 60 * 1000,
-            );
-            endDate = now;
-            break;
-          case "month":
-            startDate = new Date(
-              todayStart.getTime() - 30 * 24 * 60 * 60 * 1000,
-            );
-            endDate = now;
-            break;
-          case "year":
-            startDate = new Date(
-              todayStart.getTime() - 365 * 24 * 60 * 60 * 1000,
-            );
-            endDate = now;
-            break;
-          case "custom":
-            if (state.filters.customStartDate) {
-              startDate = new Date(state.filters.customStartDate);
-            }
-            if (state.filters.customEndDate) {
-              endDate = new Date(state.filters.customEndDate);
-              endDate.setHours(23, 59, 59, 999);
-            }
-            break;
-        }
-
-        if (startDate) {
-          params.append("startDate", startDate.toISOString());
-        }
-        if (endDate) {
-          params.append("endDate", endDate.toISOString());
-        }
-      }
+      // One shared builder for list + export so the download always matches
+      // the filters on screen.
+      const params = buildRewardsFilterParams(state.filters, debouncedSearch);
 
       // Server-side pagination
       params.append("page", state.currentPage.toString());
@@ -329,35 +254,12 @@ export default function RewardsPage() {
 
     fetchIfMounted();
 
-    // Check for search result ID from navbar (for deep linking)
-    const params = new URLSearchParams(window.location.search);
-    const searchId = params.get("id");
-    if (searchId && isMounted) {
-      dispatch({ type: "OPEN_EDIT_MODAL", payload: searchId });
-
-      // Scroll to the row after rewards are loaded
-      const scrollTimeout = setTimeout(() => {
-        const element = document.getElementById(`reward-${searchId}`);
-        if (element && isMounted) {
-          element.scrollIntoView({ behavior: "smooth", block: "center" });
-          element.classList.add("bg-primary/10");
-          const highlightTimeout = setTimeout(() => {
-            if (isMounted) {
-              element.classList.remove("bg-primary/10");
-            }
-          }, 2000);
-          timeoutIds.push(highlightTimeout);
-        }
-      }, 500);
-      timeoutIds.push(scrollTimeout);
-    }
-
     // Cleanup function to prevent memory leaks
     return () => {
       isMounted = false;
       timeoutIds.forEach(clearTimeout);
     };
-  }, [fetchRewards, dispatch]);
+  }, [fetchRewards]);
 
   // Listen for global refresh events
   useEffect(() => {
@@ -375,14 +277,7 @@ export default function RewardsPage() {
       dispatch({
         type: "SET_FILTER",
         payload: {
-          key: key as
-            | "rewardStatus"
-            | "sendingDate"
-            | "paymentMethod"
-            | "installationDate"
-            | "productModel"
-            | "teamMember"
-            | "search",
+          key: key as keyof RewardsFilters,
           value,
         },
       });
@@ -402,24 +297,7 @@ export default function RewardsPage() {
   );
 
   const handleToggleColumn = useCallback(
-    (
-      column:
-        | "serialNumber"
-        | "installerCode"
-        | "installer"
-        | "productModel"
-        | "cityOfInstallation"
-        | "rewardAmount"
-        | "rewardStatus"
-        | "paymentMethod"
-        | "transactionId"
-        | "sendingDate"
-        | "inverterSerialNumber"
-        | "registeredBy"
-        | "referrerName"
-        | "referrerTransactionId"
-        | "referrerReward",
-    ) => {
+    (column: keyof RewardsColumnVisibility) => {
       dispatch({ type: "TOGGLE_COLUMN", payload: column });
     },
     [dispatch],
@@ -628,25 +506,13 @@ export default function RewardsPage() {
     try {
       toast.loading("Generating report...");
 
-      const queryParams = new URLSearchParams({
-        rewardStatus:
-          state.filters.rewardStatus !== "ALL"
-            ? state.filters.rewardStatus
-            : "",
-        sendingDate: state.filters.sendingDate || "",
-        paymentMethod:
-          state.filters.paymentMethod !== "all"
-            ? state.filters.paymentMethod
-            : "",
-        installationDate: state.filters.installationDate || "",
-        productModel:
-          state.filters.productModel !== "all"
-            ? state.filters.productModel
-            : "",
-        teamMember:
-          state.filters.teamMember !== "all" ? state.filters.teamMember : "",
-        format: "excel",
-      });
+      // Same params as the list fetch, so the file contains exactly the rows
+      // the current filters are showing.
+      const queryParams = buildRewardsFilterParams(
+        state.filters,
+        state.filters.search,
+      );
+      queryParams.append("format", "excel");
 
       const response = await fetch(`/api/reports/rewards?${queryParams}`);
 
@@ -758,10 +624,19 @@ export default function RewardsPage() {
         return;
       }
 
+      // The sending-date range clears as a pair, not as one field.
+      if (key === "sendingRange") {
+        dispatch({
+          type: "SET_FILTERS",
+          payload: { sendingStart: "", sendingEnd: "" },
+        });
+        return;
+      }
+
       let value = "";
       if (key === "rewardStatus") {
         value = "ALL";
-      } else if (key === "sendingDate") {
+      } else if (key === "installationDate") {
         value = "";
       } else {
         value = "all";
@@ -770,14 +645,7 @@ export default function RewardsPage() {
       dispatch({
         type: "SET_FILTER",
         payload: {
-          key: key as
-            | "rewardStatus"
-            | "sendingDate"
-            | "paymentMethod"
-            | "installationDate"
-            | "productModel"
-            | "teamMember"
-            | "search",
+          key: key as keyof RewardsFilters,
           value,
         },
       });

@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { CopyButton } from "@/components/CopyButton";
+import { InstallerCodeLink } from "@/components/InstallerCodeLink";
+import { ProductStatus, PRODUCT_STATUS_LABELS } from "@/types/rewards";
 import { IconEdit2, IconTrashBin2 } from "@/components/icons";
 import type { RewardWithId } from "@/hooks/useOptimizedRewardsFilter";
 import type { ColumnVisibility } from "@/hooks/useRewardsState";
@@ -57,13 +59,28 @@ export const RewardsTableRow = React.memo<RewardsTableRowProps>(
         {visibleColumns.installerCode && (
           <TableCell>
             <div className="flex items-center">
-              {reward.installerCode}
+              <InstallerCodeLink
+                installerId={reward.installer?._id}
+                code={reward.installerCode}
+              />
               <CopyButton text={reward.installerCode} label="Installer Code" />
             </div>
           </TableCell>
         )}
         {visibleColumns.installer && (
-          <TableCell>{reward.installer?.fullName || "N/A"}</TableCell>
+          <TableCell>
+            {reward.installer?.fullName ? (
+              <InstallerCodeLink
+                installerId={reward.installer._id}
+                code={reward.installerCode}
+                className="font-sans"
+              >
+                {reward.installer.fullName}
+              </InstallerCodeLink>
+            ) : (
+              "N/A"
+            )}
+          </TableCell>
         )}
         {visibleColumns.serialNumber && (
           <TableCell className="font-medium">
@@ -97,6 +114,29 @@ export const RewardsTableRow = React.memo<RewardsTableRowProps>(
               }
             >
               {reward.rewardStatus}
+            </Badge>
+          </TableCell>
+        )}
+        {visibleColumns.productStatus && (
+          <TableCell>
+            <Badge
+              variant={
+                reward.productStatus === ProductStatus.ELIGIBLE
+                  ? "success"
+                  : reward.productStatus === ProductStatus.NOT_ELIGIBLE
+                  ? "secondary"
+                  : "destructive"
+              }
+              // The reason a claim was refused is the useful detail here, and
+              // there is no room for it in the cell.
+              title={reward.rejectionReason || undefined}
+            >
+              {
+                PRODUCT_STATUS_LABELS[
+                  (reward.productStatus as ProductStatus) ??
+                    ProductStatus.ELIGIBLE
+                ]
+              }
             </Badge>
           </TableCell>
         )}

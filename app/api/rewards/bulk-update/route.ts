@@ -6,7 +6,9 @@ import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { BUSINESS_RULES } from "@/lib/constants";
 import { getSettings } from "@/models/Settings";
-import { RewardStatus } from "@/types/rewards";
+import { RewardStatus, ProductStatus } from "@/types/rewards";
+import { syncWarningForReward } from "@/lib/warnings";
+import { logger } from "@/lib/logger";
 import mongoose from "mongoose";
 
 interface RewardUpdateInput {
@@ -14,6 +16,8 @@ interface RewardUpdateInput {
   transactionId: string;
   referrerTransactionId?: string;
   rewardStatus: string;
+  productStatus?: string;
+  rejectionReason?: string;
   sendingDate?: string;
   paymentMethod?: string;
   isValid?: boolean;
@@ -88,6 +92,15 @@ export const POST = withAuth(
       };
       const bulkOps: BulkWriteOp[] = [];
 
+      // Warning re-evaluations deferred until after the bulk write lands.
+      const warningSyncs: {
+        _id: mongoose.Types.ObjectId | string;
+        installer: mongoose.Types.ObjectId | string;
+        serialNumber: string;
+        productStatus?: string;
+        rejectionReason?: string;
+      }[] = [];
+
       // Activity logs to create
       const activitiesToCreate: {
         type: string;
@@ -122,12 +135,40 @@ export const POST = withAuth(
           continue;
         }
 
+        // Product status the row will end up with — the incoming value when the
+        // sheet supplies one, otherwise whatever the reward already has.
+        const effectiveProductStatus =
+          (rewardUpdate.productStatus as ProductStatus | undefined) ||
+          existingReward.productStatus ||
+          ProductStatus.ELIGIBLE;
+
+        // Only eligible products can be paid. Blocking it here as well as in the
+        // template stops a hand-edited sheet from paying out a rejected claim.
+        if (
+          rewardUpdate.rewardStatus === RewardStatus.PAID &&
+          effectiveProductStatus !== ProductStatus.ELIGIBLE
+        ) {
+          results.failed++;
+          results.errors.push(
+            `Serial number ${rewardUpdate.serialNumber} is ${effectiveProductStatus} and cannot be marked PAID`
+          );
+          continue;
+        }
+
         // Build update data
         const updateData: Record<string, unknown> = {
           transactionId: rewardUpdate.transactionId,
           rewardStatus: rewardUpdate.rewardStatus,
           updatedBy: session.user.id,
         };
+
+        if (rewardUpdate.productStatus) {
+          updateData.productStatus = rewardUpdate.productStatus;
+          updateData.rejectionReason =
+            rewardUpdate.productStatus === ProductStatus.REJECTED
+              ? rewardUpdate.rejectionReason
+              : undefined;
+        }
 
         if (rewardUpdate.referrerTransactionId) {
           updateData.referrerTransactionId = rewardUpdate.referrerTransactionId;
@@ -162,6 +203,21 @@ export const POST = withAuth(
           },
         });
 
+        // Only rows whose product status the sheet actually set need their
+        // warning re-evaluated after the write.
+        if (rewardUpdate.productStatus) {
+          warningSyncs.push({
+            _id: existingReward._id,
+            installer: existingReward.installer,
+            serialNumber: rewardUpdate.serialNumber,
+            productStatus: effectiveProductStatus,
+            rejectionReason:
+              effectiveProductStatus === ProductStatus.REJECTED
+                ? rewardUpdate.rejectionReason
+                : undefined,
+          });
+        }
+
         results.success++;
         results.successfulSerials.push(rewardUpdate.serialNumber);
       }
@@ -178,6 +234,20 @@ export const POST = withAuth(
           results.successfulSerials = [];
 
           return ApiResponse.serverError("Bulk update failed");
+        }
+      }
+
+      // Issue or revoke warnings for the rows whose product status changed.
+      // Sequential on purpose: suspension reads the installer's live warning
+      // count, and two rows for the same installer must not race on it.
+      for (const sync of warningSyncs) {
+        try {
+          await syncWarningForReward(sync, session.user.id);
+        } catch (err) {
+          logger.error("Bulk warning sync failed", {
+            serialNumber: sync.serialNumber,
+            error: String(err),
+          });
         }
       }
 
