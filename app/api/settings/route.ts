@@ -7,6 +7,7 @@ import { TeamRole } from '@/models/TeamMember';
 import { logActivity } from '@/lib/activityLogger';
 import { ActivityType } from '@/models/Activity';
 import { Document } from 'mongoose';
+import { FALSE_CLAIM_REASON } from '@/lib/constants';
 
 // GET settings
 export async function GET(request: NextRequest) {
@@ -66,6 +67,41 @@ export async function PUT(request: NextRequest) {
         );
       }
       body.paymentMethods = cleaned;
+    }
+
+    // Rejection reasons: same normalization, plus the False Claim reason is
+    // force-kept. The warning system keys off that exact string, so letting it
+    // be dropped here would silently disable warnings entirely.
+    if (body.rejectionReasons !== undefined) {
+      if (!Array.isArray(body.rejectionReasons)) {
+        return ApiResponse.badRequest('Rejection reasons must be a list');
+      }
+      const cleaned = [
+        ...new Set(
+          (body.rejectionReasons as unknown[])
+            .map((r) => String(r).trim())
+            .filter(Boolean),
+        ),
+      ];
+      if (cleaned.length > 20 || cleaned.some((r) => r.length > 60)) {
+        return ApiResponse.badRequest(
+          'Rejection reasons are limited to 20 entries of 60 characters each',
+        );
+      }
+      if (!cleaned.includes(FALSE_CLAIM_REASON)) {
+        cleaned.unshift(FALSE_CLAIM_REASON);
+      }
+      body.rejectionReasons = cleaned;
+    }
+
+    if (body.warningThreshold !== undefined) {
+      const threshold = Number(body.warningThreshold);
+      if (!Number.isInteger(threshold) || threshold < 1 || threshold > 50) {
+        return ApiResponse.badRequest(
+          'Warning threshold must be a whole number between 1 and 50',
+        );
+      }
+      body.warningThreshold = threshold;
     }
 
     const settings = await getSettings();

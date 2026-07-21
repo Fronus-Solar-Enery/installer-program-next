@@ -78,7 +78,12 @@ import { EmptyState } from "@/components/EmptyState";
 import Loading from "@/components/ui/loading";
 import { RewardsTableRow } from "./RewardsTableRow";
 import type { RewardWithId } from "@/hooks/useOptimizedRewardsFilter";
-import type { ColumnVisibility, Filters } from "@/hooks/useRewardsState";
+import type {
+  ColumnVisibility,
+  Filters,
+  RewardsFilters,
+} from "@/hooks/useRewardsState";
+import { ProductStatus, PRODUCT_STATUS_LABELS } from "@/types/rewards";
 import IconSortVertical from "./icons/SortVertical";
 import { Label } from "@/components/ui/label";
 import {
@@ -110,19 +115,9 @@ interface RewardsTableProps {
   bulkDeleting: boolean;
   showFilters: boolean;
   lastUpdatedText: string;
-  filters?: {
-    search?: string;
-    rewardStatus?: string;
-    sendingDate?: string;
-    paymentMethod?: string;
-    installationDate?: string;
-    productModel?: string;
-    teamMember?: string;
-    dateRange?: "all" | "today" | "week" | "month" | "year" | "custom";
-    customStartDate?: string;
-    customEndDate?: string;
-    updatedAt?: string;
-  };
+  // Mirrors the page's filter state rather than redeclaring it — the local copy
+  // had already drifted from the real shape.
+  filters?: Partial<RewardsFilters>;
   teamMembers?: TeamMember[];
   uniqueValues?: {
     paymentMethods: string[];
@@ -388,6 +383,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   {sortField === "cityOfInstallation" && "City"}
                   {sortField === "rewardAmount" && "Amount"}
                   {sortField === "rewardStatus" && "Status"}
+                  {sortField === "productStatus" && "Product Status"}
                   {sortField === "sendingDate" && "Sending Date"}
                   {sortField === "referrerRewardAmount" && "Referrer Reward"}
                   {sortField === "createdAt" && "Registered"}
@@ -533,8 +529,30 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                 </div>
               )}
 
-              {/* Sending Date Filter */}
-              {filters?.sendingDate && (
+              {/* Product Status Filter */}
+              {filters?.productStatus && filters.productStatus !== "all" && (
+                <div className="text-xs flex items-center gap-1 text-muted-foreground">
+                  Product:
+                  <Badge
+                    variant="outline"
+                    className="gap-1 [&>svg]:pointer-events-auto h-5.5"
+                    id="filtersProductStatus"
+                  >
+                    {
+                      PRODUCT_STATUS_LABELS[
+                        filters.productStatus as ProductStatus
+                      ]
+                    }
+                    <IconClose
+                      className="size-4! cursor-pointer"
+                      onClick={() => onClearFilter?.("productStatus")}
+                    />
+                  </Badge>
+                </div>
+              )}
+
+              {/* Sending Date range */}
+              {(filters?.sendingStart || filters?.sendingEnd) && (
                 <div className="text-xs flex items-center gap-1 text-muted-foreground">
                   Sending Date:
                   <Badge
@@ -542,10 +560,11 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                     className="gap-1 [&>svg]:pointer-events-auto h-5.5"
                     id="filtersSendingDate"
                   >
-                    {new Date(filters.sendingDate).toLocaleDateString()}
+                    {filters.sendingStart || "Any"} to{" "}
+                    {filters.sendingEnd || "Any"}
                     <IconClose
                       className="size-4! cursor-pointer"
-                      onClick={() => onClearFilter?.("sendingDate")}
+                      onClick={() => onClearFilter?.("sendingRange")}
                     />
                   </Badge>
                 </div>
@@ -577,6 +596,65 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                     <SelectItem value="FAILED">Failed</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Product Status Filter */}
+              <div className="space-y-2 w-full">
+                <span className="text-sm px-2">Product Status</span>
+                <Select
+                  value={filters?.productStatus || "all"}
+                  onValueChange={(value) =>
+                    onFilterChange?.("productStatus", value)
+                  }
+                  name="productStatusSelect"
+                  disabled={loading}
+                >
+                  <SelectTrigger className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
+                    <SelectValue placeholder="All Products" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Products</SelectItem>
+                    <SelectItem value={ProductStatus.ELIGIBLE}>
+                      Eligible
+                    </SelectItem>
+                    <SelectItem value={ProductStatus.NOT_ELIGIBLE}>
+                      Not Eligible
+                    </SelectItem>
+                    <SelectItem value={ProductStatus.REJECTED}>
+                      Rejected
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sending Date range */}
+              <div className="space-y-2 w-full">
+                <span className="text-sm px-2">Sending Date</span>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    aria-label="Sending date from"
+                    value={filters?.sendingStart || ""}
+                    max={filters?.sendingEnd || undefined}
+                    onChange={(e) =>
+                      onFilterChange?.("sendingStart", e.target.value)
+                    }
+                    className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors"
+                    disabled={loading}
+                  />
+                  <span className="text-xs text-muted-foreground">to</span>
+                  <Input
+                    type="date"
+                    aria-label="Sending date to"
+                    value={filters?.sendingEnd || ""}
+                    min={filters?.sendingStart || undefined}
+                    onChange={(e) =>
+                      onFilterChange?.("sendingEnd", e.target.value)
+                    }
+                    className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors"
+                    disabled={loading}
+                  />
+                </div>
               </div>
 
               {/* Installation Date Filter */}
@@ -720,12 +798,12 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                     Product
                   </div>
                   <div
-                    data-column="location"
+                    data-column="productStatus"
                     className="px-4 py-3 text-sm font-medium cursor-pointer whitespace-nowrap select-none transition-colors hover:text-foreground"
-                    onClick={() => onToggleSort("cityOfInstallation")}
-                    style={getColumnStyle("location")}
+                    onClick={() => onToggleSort("productStatus")}
+                    style={getColumnStyle("productStatus")}
                   >
-                    Location{getSortIcon("cityOfInstallation")}
+                    Product Status{getSortIcon("productStatus")}
                   </div>
                   <div
                     data-column="installerReward"
@@ -827,15 +905,12 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                         </div>
                       </div>
 
-                      {/* Location */}
+                      {/* Product Status */}
                       <div
-                        className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                        style={getColumnStyle("location")}
+                        className="px-4 py-3 items-center"
+                        style={getColumnStyle("productStatus")}
                       >
-                        <div className="space-y-1.5">
-                          <div className="h-4 bg-muted rounded w-20 animate-pulse" />
-                          <div className="h-3 bg-muted rounded w-16 animate-pulse" />
-                        </div>
+                        <div className="h-5 bg-muted rounded-full w-20 animate-pulse" />
                       </div>
 
                       {/* Installer Reward */}
@@ -1020,16 +1095,33 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                           </div>
                         </div>
                         <div
-                          data-column="location"
-                          className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
-                          style={getColumnStyle("location")}
+                          data-column="productStatus"
+                          className="px-4 py-3 items-center"
+                          style={getColumnStyle("productStatus")}
                         >
-                          <div>
-                            <div>{reward.cityOfInstallation}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {reward.installer?.district}
-                            </div>
-                          </div>
+                          <Badge
+                            variant={
+                              reward.productStatus === ProductStatus.ELIGIBLE
+                                ? "success"
+                                : reward.productStatus ===
+                                    ProductStatus.NOT_ELIGIBLE
+                                  ? "secondary"
+                                  : "destructive"
+                            }
+                          >
+                            {
+                              PRODUCT_STATUS_LABELS[
+                                (reward.productStatus as ProductStatus) ??
+                                  ProductStatus.ELIGIBLE
+                              ]
+                            }
+                          </Badge>
+                          {reward.productStatus === ProductStatus.REJECTED &&
+                            reward.rejectionReason && (
+                              <div className="mt-1 text-xs text-muted-foreground">
+                                {reward.rejectionReason}
+                              </div>
+                            )}
                         </div>
                         <div
                           data-column="installerReward"

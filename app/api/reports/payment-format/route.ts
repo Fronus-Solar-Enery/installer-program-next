@@ -7,6 +7,7 @@ import { IInstaller } from "@/models/Installer";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { FilterQuery } from "mongoose";
 import { getBankMatchcase, isMobileBank } from "@/lib/constants";
+import { ProductStatus } from "@/types/rewards";
 
 // Type for populated reward document
 interface PopulatedReward
@@ -86,9 +87,11 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
-    // Query for both PENDING and FAILED rewards
+    // Query for both PENDING and FAILED rewards, eligible products only —
+    // a rejected or out-of-program claim must never reach a payment file.
     const query: FilterQuery<IInstallerReward> = {
       rewardStatus: { $in: ["PENDING", "FAILED"] },
+      productStatus: ProductStatus.ELIGIBLE,
     };
 
     if (startDate || endDate) {

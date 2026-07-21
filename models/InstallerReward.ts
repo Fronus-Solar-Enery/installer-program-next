@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import mongoose, { Schema, Model, Types } from "mongoose";
-import { RewardStatus } from "@/types/rewards";
+import { RewardStatus, ProductStatus } from "@/types/rewards";
 import Product from "@/models/Product";
 
 // Re-export for backward compatibility
-export { RewardStatus };
+export { RewardStatus, ProductStatus };
 
 export interface IInstallerReward {
   _id?: string;
@@ -23,6 +23,8 @@ export interface IInstallerReward {
   accountNumber: string;
   accountTitle: string;
   rewardStatus: RewardStatus;
+  productStatus: ProductStatus;
+  rejectionReason?: string;
   transactionId?: string;
   rewardAmount: number;
   referrerTransactionId?: string;
@@ -110,6 +112,16 @@ const InstallerRewardSchema = new Schema<IInstallerReward>(
       default: RewardStatus.PENDING,
       required: true,
     },
+    productStatus: {
+      type: String,
+      enum: Object.values(ProductStatus),
+      default: ProductStatus.ELIGIBLE,
+      required: true,
+    },
+    rejectionReason: {
+      type: String,
+      trim: true,
+    },
     transactionId: {
       type: String,
       trim: true,
@@ -190,6 +202,9 @@ InstallerRewardSchema.index({ installer: 1 });
 InstallerRewardSchema.index({ installerCode: 1 });
 InstallerRewardSchema.index({ referrer: 1 });
 InstallerRewardSchema.index({ rewardStatus: 1 });
+InstallerRewardSchema.index({ productStatus: 1 });
+// Payment format / templates select ELIGIBLE rows by payment state.
+InstallerRewardSchema.index({ productStatus: 1, rewardStatus: 1 });
 InstallerRewardSchema.index({ cityOfInstallation: 1 });
 InstallerRewardSchema.index({ productModel: 1 });
 InstallerRewardSchema.index({ sendingDate: 1 });

@@ -90,6 +90,16 @@ export const SETTINGS_CARDS: SettingsCardConfig[] = [
         label: "Auto Send WhatsApp on Paid",
         description: "Automatically send WhatsApp when marked as PAID",
       },
+      {
+        kind: "value",
+        key: "warningThreshold",
+        label: "Warnings Before Suspension",
+        dialogTitle: "Warnings Before Suspension",
+        dialogDescription:
+          "Number of active warnings that suspends an installer account. Warnings stop counting six months after they are issued.",
+        type: "number",
+        format: (s) => `${s?.warningThreshold ?? 5} warnings`,
+      },
     ],
   },
   {

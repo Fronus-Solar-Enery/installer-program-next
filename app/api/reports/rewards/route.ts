@@ -6,9 +6,8 @@ import InstallerReward, { IInstallerReward } from '@/models/InstallerReward';
 import { IInstaller } from '@/models/Installer';
 import { ITeamMember } from '@/models/TeamMember';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
-import { escapeRegex } from '@/lib/queryBuilder';
 import { getBankLabel } from '@/lib/constants';
-import { FilterQuery } from 'mongoose';
+import { buildRewardsQuery } from '@/lib/rewardsQuery';
 
 // Type for populated reward document
 interface PopulatedReward extends Omit<IInstallerReward, 'installer' | 'referrer' | 'registeredBy'> {
@@ -64,35 +63,10 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'json';
-    const rewardStatus = searchParams.get('rewardStatus');
-    const productModel = searchParams.get('productModel');
-    const city = searchParams.get('city');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
 
-    const query: FilterQuery<IInstallerReward> = {};
-
-    if (rewardStatus && rewardStatus !== 'all') {
-      query.rewardStatus = rewardStatus;
-    }
-
-    if (productModel) {
-      query.productModel = { $regex: escapeRegex(productModel), $options: 'i' };
-    }
-
-    if (city) {
-      query.cityOfInstallation = { $regex: escapeRegex(city), $options: 'i' };
-    }
-
-    if (startDate || endDate) {
-      query.sendingDate = {};
-      if (startDate) {
-        query.sendingDate.$gte = new Date(startDate);
-      }
-      if (endDate) {
-        query.sendingDate.$lte = new Date(endDate);
-      }
-    }
+    // Same builder the rewards list uses, so the export is exactly the filtered
+    // set the user is looking at.
+    const query = buildRewardsQuery(searchParams);
 
     const rewards = await InstallerReward.find(query)
       .populate('installer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')

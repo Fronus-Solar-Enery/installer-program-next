@@ -10,7 +10,6 @@ import {
   Users,
   Calendar,
   Share2,
-  Settings,
   LogOut,
   Copy,
 } from "lucide-react";
@@ -43,21 +42,16 @@ import { InstallationTrendChart } from "@/components/InstallationTrendChart";
 import { ProductDistributionChart } from "@/components/ProductDistributionChart";
 import { MotivationalNudge } from "@/components/MotivationalNudge";
 import { staggerContainer, slideUp } from "@/lib/motion";
-import {
-  IconAward,
-  IconGift,
-  IconLogout2,
-  IconSave,
-  IconShare,
-} from "@/components/icons";
+import { IconAward, IconGift, IconSave } from "@/components/icons";
 import { getInitials } from "@/lib/getInitials";
-import dynamic from "next/dynamic";
-const ThemeToggle = dynamic(
-  () => import("@/components/theme-toggle").then((m) => m.ThemeToggle),
-  { ssr: false },
-);
 import Loading from "@/components/ui/loading";
 import { CopyButton } from "@/components/CopyButton";
+import {
+  AccountHealthCard,
+  type AccountHealthData,
+} from "@/components/AccountHealthCard";
+import { HeaderMenu } from "./HeaderMenu";
+import { ProductStatus, PRODUCT_STATUS_LABELS } from "@/types/rewards";
 
 const PAGE_TITLE = "My Stats — Fronus Installer Program";
 
@@ -85,6 +79,8 @@ interface MyStatsData {
     serialNumber: string;
     installationDate?: string;
     rewardStatus: "PENDING" | "PAID" | "FAILED";
+    productStatus?: ProductStatus;
+    rejectionReason?: string;
     rewardAmount: number;
     createdAt: string;
   }>;
@@ -94,6 +90,7 @@ interface MyStatsData {
     fullName: string;
     createdAt: string;
   }>;
+  health: AccountHealthData;
 }
 
 const rs = (n: number) => `Rs. ${n.toLocaleString()}`;
@@ -341,38 +338,13 @@ export default function MyStatsPage() {
         {/* Hero Header Card */}
 
         {/* Top row: Logo + Actions */}
-        <div className="flex items-center justify-between mb-8 bg-card/60 backdrop-blur-md squircle rounded-full p-4 sticky top-4 z-100 border border-border">
-          <ProgramLogo className="w-24 sm:w-28 h-10!" />
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={handleShare}
-              className="size-9"
-              title="Share profile"
-            >
-              <IconShare className="size-4" />
-            </Button>
-            <ThemeToggle triggerClass="text-foreground/80 hover:text-foreground bg-muted hover:bg-muted/80 border-none size-9 rounded-full [&>svg]:size-4!" />
-            <Button
-              variant="secondary"
-              size="icon"
-              onClick={() => setChangePinOpen(true)}
-              className="size-9"
-              title="Change PIN"
-            >
-              <Settings className="size-4" />
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleLogout}
-              className="h-9 border-none gap-2 pr-2.5"
-              title="Sign out"
-            >
-              Logout
-              <IconLogout2 className="size-4" />
-            </Button>
-          </div>
+        <div className="flex items-center justify-between bg-card/60 backdrop-blur-md squircle rounded-full p-4 sticky top-4 z-100 border border-border">
+          <ProgramLogo className="w-24 sm:w-24 h-10!" />
+          <HeaderMenu
+            onShare={handleShare}
+            onChangePin={() => setChangePinOpen(true)}
+            onLogout={handleLogout}
+          />
         </div>
 
         {data ? (
@@ -395,7 +367,7 @@ export default function MyStatsPage() {
                   {data.installer.city}, {data.installer.district}
                 </p>
               </div>
-              <div className="space-y-0.5 ml-auto text-right">
+              <div className="space-y-0.5 sm:ml-auto text-right flex sm:block gap-2">
                 <div className="text-muted-foreground text-xs">
                   Member since
                 </div>
@@ -411,7 +383,7 @@ export default function MyStatsPage() {
                 <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
                   Installer Code
                 </p>
-                <div className="transition-colors cursor-pointer p-0 h-max font-mono font-bold text-2xl flex items-center">
+                <div className="transition-colors cursor-pointer p-0 h-max font-mono font-bold text-sm sm:text-2xl flex items-center">
                   {data.installer.installerCode}
                   <CopyButton
                     text={data.installer.installerCode}
@@ -421,13 +393,15 @@ export default function MyStatsPage() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-muted-foreground text-[10px] font-bold  uppercase tracking-wider mb-0.5">
+                <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-wider mb-0.5">
                   Total Earned
                 </p>
-                <p className="text-2xl font-bold text-foreground tabular-nums font-mono">
+                <p className="text-sm sm:text-2xl font-bold text-foreground tabular-nums font-mono">
                   <AnimatedCounter
                     value={data.stats.paidRewards}
-                    prefix="Rs. "
+                    prefix="Rs."
+                    compact
+                    compactThreshold={100000}
                   />
                 </p>
               </div>
@@ -466,10 +440,41 @@ export default function MyStatsPage() {
             animate="show"
             className="space-y-3"
           >
+            {/* 1.5 Suspension banner — the most consequential thing on the page,
+                so it sits above everything else the installer might act on. */}
+            {data.health?.suspended && (
+              <motion.div
+                variants={slideUp}
+                role="alert"
+                className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive"
+              >
+                <p className="font-medium">Your account is suspended</p>
+                <p className="mt-1 text-destructive/90">
+                  New reward claims will not be processed. Contact the Fronus
+                  team to have your account reviewed.
+                </p>
+              </motion.div>
+            )}
+
             {/* 2. Motivational Nudge */}
             <motion.div variants={slideUp}>
               <MotivationalNudge rewards={data.rewards} />
             </motion.div>
+            <div className="space-y-3 grid grid-cols-1 sm:grid-cols-2 sm:gap-3">
+              {/* 2.5 Account Health */}
+              {data.health && (
+                <motion.div
+                  variants={slideUp}
+                  className="col-span-2 sm:col-span-1 mb-3 sm:mb-0"
+                >
+                  <AccountHealthCard
+                    health={data.health}
+                    audience="installer"
+                    variant="gauge"
+                    className="bg-card squircle h-full"
+                  />
+                </motion.div>
+              )}
 
               {/* 3. Stats Cards */}
               <motion.div
@@ -568,6 +573,7 @@ export default function MyStatsPage() {
                             <TableHead>Serial #</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead>Product</TableHead>
                             <TableHead className="text-right pr-6">
                               Amount
                             </TableHead>
@@ -589,6 +595,27 @@ export default function MyStatsPage() {
                               </TableCell>
                               <TableCell>
                                 <StatusBadge status={reward.rewardStatus} />
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    reward.productStatus ===
+                                    ProductStatus.NOT_ELIGIBLE
+                                      ? "secondary"
+                                      : reward.productStatus ===
+                                          ProductStatus.REJECTED
+                                        ? "destructive"
+                                        : "success"
+                                  }
+                                  title={reward.rejectionReason || undefined}
+                                >
+                                  {
+                                    PRODUCT_STATUS_LABELS[
+                                      (reward.productStatus as ProductStatus) ??
+                                        ProductStatus.ELIGIBLE
+                                    ]
+                                  }
+                                </Badge>
                               </TableCell>
                               <TableCell className="text-right tabular-nums pr-6">
                                 {rs(reward.rewardAmount)}

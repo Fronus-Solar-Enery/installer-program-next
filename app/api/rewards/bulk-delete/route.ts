@@ -7,6 +7,7 @@ import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { logActivity } from "@/lib/activityLogger";
 import { ActivityType } from "@/models/Activity";
 import { getClientInfo } from "@/lib/requestUtils";
+import Warning from "@/models/Warning";
 
 interface BulkDeleteResult {
   successCount: number;
@@ -69,6 +70,18 @@ export const POST = withAuth(
 
           // Delete reward from database
           await reward.deleteOne();
+
+          // The claim is gone, so its warning must stop counting.
+          await Warning.updateOne(
+            { reward: reward._id, revokedAt: null },
+            {
+              $set: {
+                revokedAt: new Date(),
+                revokedBy: session.user.id,
+                revokedNote: "Reward deleted",
+              },
+            }
+          );
 
           // Log activity (non-blocking)
           try {

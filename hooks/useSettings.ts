@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
-import { PAYMENT_METHOD } from "@/lib/constants";
+import { PAYMENT_METHOD, DEFAULT_REJECTION_REASONS } from "@/lib/constants";
 
 // Read-only view of the settings the client needs to honor. Add fields here as
 // more settings gain UI behavior.
 export interface AppSettings {
   requireTransactionIdForPaid: boolean;
   paymentMethods?: string[];
+  rejectionReasons?: string[];
+  warningThreshold?: number;
 }
 
 export function useSettings() {
@@ -32,4 +34,12 @@ export function usePaymentMethods(): string[] {
   return data?.paymentMethods?.length
     ? data.paymentMethods
     : PAYMENT_METHOD.map((m) => m.value);
+}
+
+/** Admin-configurable rejection reasons, falling back to the built-in list. */
+export function useRejectionReasons(): string[] {
+  const { data } = useSettings();
+  return data?.rejectionReasons?.length
+    ? data.rejectionReasons
+    : DEFAULT_REJECTION_REASONS;
 }

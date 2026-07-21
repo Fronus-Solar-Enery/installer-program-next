@@ -48,7 +48,8 @@ import {
 import { SETTINGS_CARDS } from "./settings-config";
 import { SwitchRow, ValueRow } from "./setting-row";
 import { PaymentMethodsCard } from "./payment-methods-card";
-import { PAYMENT_METHOD } from "@/lib/constants";
+import { RejectionReasonsCard } from "./rejection-reasons-card";
+import { PAYMENT_METHOD, DEFAULT_REJECTION_REASONS } from "@/lib/constants";
 import { useQueryClient } from "@tanstack/react-query";
 
 export interface SettingsData {
@@ -59,6 +60,8 @@ export interface SettingsData {
   autoSendWhatsAppOnPaid?: boolean;
   enableWhatsAppNotifications?: boolean;
   paymentMethods?: string[];
+  rejectionReasons?: string[];
+  warningThreshold?: number;
   updatedAt?: string;
 }
 
@@ -79,6 +82,8 @@ const DEFAULT_SETTINGS: SettingsData = {
   autoSendWhatsAppOnPaid: false,
   enableWhatsAppNotifications: false,
   paymentMethods: PAYMENT_METHOD.map((m) => m.value),
+  rejectionReasons: DEFAULT_REJECTION_REASONS,
+  warningThreshold: 5,
 };
 
 export default function SettingsPage() {
@@ -105,13 +110,20 @@ export default function SettingsPage() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [paymentMethodsSaving, setPaymentMethodsSaving] = useState(false);
+  const [rejectionReasonsSaving, setRejectionReasonsSaving] = useState(false);
   const queryClient = useQueryClient();
 
-  const handleSavePaymentMethods = async (next: string[]) => {
+  // Shared by every list-valued setting (payment methods, rejection reasons).
+  const saveListSetting = async (
+    key: "paymentMethods" | "rejectionReasons",
+    next: string[],
+    label: string,
+    setSaving: (value: boolean) => void,
+  ) => {
     // Save against originalSettings so pending switch toggles aren't committed.
-    const payload = { ...originalSettings, paymentMethods: next };
+    const payload = { ...originalSettings, [key]: next };
     try {
-      setPaymentMethodsSaving(true);
+      setSaving(true);
       const response = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -120,22 +132,36 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        toast.success("Payment methods updated");
-        setSettings((prev) =>
-          prev ? { ...prev, paymentMethods: next } : prev,
-        );
+        toast.success(`${label} updated`);
+        setSettings((prev) => (prev ? { ...prev, [key]: next } : prev));
         setOriginalSettings(payload);
         // Keep TanStack-cached settings (reward dialogs) in sync.
         queryClient.invalidateQueries({ queryKey: ["settings"] });
       } else {
-        toast.error(data.error || "Failed to update payment methods");
+        toast.error(data.error || `Failed to update ${label.toLowerCase()}`);
       }
     } catch {
       toast.error("An error occurred while saving");
     } finally {
-      setPaymentMethodsSaving(false);
+      setSaving(false);
     }
   };
+
+  const handleSavePaymentMethods = (next: string[]) =>
+    saveListSetting(
+      "paymentMethods",
+      next,
+      "Payment methods",
+      setPaymentMethodsSaving,
+    );
+
+  const handleSaveRejectionReasons = (next: string[]) =>
+    saveListSetting(
+      "rejectionReasons",
+      next,
+      "Rejection reasons",
+      setRejectionReasonsSaving,
+    );
 
   // Products (admin-editable, backed by the Product collection)
   const { data: products = [], isLoading: productsLoading } = useProducts(true);
@@ -457,6 +483,17 @@ export default function SettingsPage() {
               }
               saving={paymentMethodsSaving}
               onSave={handleSavePaymentMethods}
+            />
+
+            {/* Rejection Reasons */}
+            <RejectionReasonsCard
+              reasons={
+                settings?.rejectionReasons?.length
+                  ? settings.rejectionReasons
+                  : DEFAULT_SETTINGS.rejectionReasons!
+              }
+              saving={rejectionReasonsSaving}
+              onSave={handleSaveRejectionReasons}
             />
 
             {/* Products & Reward Amounts */}

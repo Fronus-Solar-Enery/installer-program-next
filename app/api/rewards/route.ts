@@ -1,12 +1,13 @@
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/mongodb";
-import InstallerReward, { IInstallerReward } from "@/models/InstallerReward";
+import InstallerReward from "@/models/InstallerReward";
 import Installer from "@/models/Installer";
 import { registerRewardSchema } from "@/lib/validation";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { validateBody, getSearchParams } from "@/lib/validateRequest";
-import { QueryBuilder, parseSortParams } from "@/lib/queryBuilder";
+import { parseSortParams } from "@/lib/queryBuilder";
+import { buildRewardsQuery } from "@/lib/rewardsQuery";
 import { getPaginationParams, createPaginationMeta, LIST_MAX_LIMIT } from "@/lib/pagination";
 import { getSettings } from "@/models/Settings";
 import { RewardStatus } from "@/types/rewards";
@@ -15,6 +16,7 @@ import {
   sendReferralRewardMessage,
 } from "@/lib/whatsappService";
 import { logger } from "@/lib/logger";
+import { syncWarningForReward } from "@/lib/warnings";
 
 // GET all rewards with filtering
 export const GET = withAuth(
@@ -30,38 +32,8 @@ export const GET = withAuth(
       });
       const { field: sortBy, order: sortOrder } = parseSortParams(params.raw);
 
-      // Build query using QueryBuilder
-      const searchTerm = params.getString("search");
-
-      const query = new QueryBuilder<IInstallerReward>()
-        // Server-side search across multiple fields
-        .search(
-          [
-            "serialNumber",
-            "transactionId",
-            "referrerTransactionId",
-            "installerCode",
-          ],
-          searchTerm,
-        )
-        .enumFilter("rewardStatus", params.getString("rewardStatus"))
-        .filter("productModel", params.getString("productModel"), {
-          regex: true,
-        })
-        .filter("cityOfInstallation", params.getString("city"), { regex: true })
-        .ref("registeredBy", params.getString("registeredBy"))
-        .filter(
-          "installerCode",
-          params.getString("installerCode")?.toUpperCase(),
-        )
-        .ref("installer", params.getString("installer"))
-        .filter("paymentMethod", params.getString("paymentMethod"))
-        .dateRange(
-          "createdAt",
-          params.getString("startDate"),
-          params.getString("endDate"),
-        )
-        .build();
+      // Shared with the rewards export so a download always matches the screen.
+      const query = buildRewardsQuery(params.raw);
 
       // Check if stats are requested (skip expensive aggregation when not needed)
       const includeStats = params.getString("includeStats") === "true";
@@ -182,6 +154,14 @@ export const POST = withAuth(
 
       // Create reward
       const reward = await InstallerReward.create(rewardData);
+
+      // A reward registered as a false claim issues its warning immediately,
+      // and suspends the installer if that tips them over the threshold.
+      await syncWarningForReward(
+        reward,
+        session.user.id,
+        installer.fullName,
+      );
 
       // WhatsApp notifications — fire-and-forget, never block the response.
       if (reward.rewardStatus === RewardStatus.PAID) {
