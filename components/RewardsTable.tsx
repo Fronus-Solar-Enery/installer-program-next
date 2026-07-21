@@ -692,7 +692,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
               <div className="sticky top-0 z-10">
                 <div
                   className={cn(
-                    "flex w-full bg-background dark:bg-muted/50 text-muted-foreground backdrop-blur-xl border-b border-border relative font-mono",
+                    "flex w-full bg-background dark:bg-muted/50 text-muted-foreground backdrop-blur-xl border-y border-border relative font-mono",
                     loading && "overflow-hidden",
                     !loading && "w-full",
                   )}
