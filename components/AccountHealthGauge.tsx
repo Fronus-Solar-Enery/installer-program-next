@@ -10,24 +10,21 @@ import {
 } from "motion/react";
 import { cn } from "@/lib/utils";
 
-// Dial geometry, in viewBox units. Proportions follow the reference gauge:
-// a true semicircle of 12 sub-arcs, band thickness 0.41 of the outer radius.
-// The segment count is fixed rather than derived from the threshold — the fill
-// is percentage-driven, so segments are a visual scale, not one-per-warning.
-const SEGMENT_COUNT = 12;
+// Each warning is drawn as a run of segments rather than a single tick, so the
+// arc stays dense and readable at the small thresholds this program uses
+// (5 warnings -> 30 segments) while every segment still maps to a real warning.
+const SEGMENTS_PER_WARNING = 6;
 
-const START_ANGLE = -90; // left end of the arc; 0 is straight up
-const END_ANGLE = 90;
-const OUTER_RADIUS = 130;
-const ARC_WIDTH = 0.41; // band thickness as a fraction of the outer radius
-const INNER_RADIUS = OUTER_RADIUS * (1 - ARC_WIDTH);
-const CORNER_RADIUS = 9;
-const GAP_ANGLE = 1.72; // 0.03rad of padding between neighbouring segments
+// Arc sweeps past horizontal on both sides, matching the reference dial.
+const START_ANGLE = -100;
+const END_ANGLE = 100;
 
-const VIEW_WIDTH = 280;
-const VIEW_HEIGHT = 156;
-const CENTER_X = 140;
-const CENTER_Y = 140;
+const RADIUS = 108;
+const SEGMENT_LENGTH = 28;
+const SEGMENT_WIDTH = 9;
+const BOX_WIDTH = 280;
+const CENTER_Y = 138;
+const BOX_HEIGHT = 196;
 
 const SWEEP_MS = 900;
 
@@ -36,57 +33,6 @@ const SWEEP_MS = 900;
 // light and dark card backgrounds.
 const RAMP_STOPS = [0, 50, 100];
 const RAMP_COLORS = ["#ef4444", "#fbbf24", "#10b981"];
-
-/** Point on the dial. 0deg points straight up, positive turns clockwise. */
-function polar(radius: number, degrees: number) {
-  const rad = (degrees * Math.PI) / 180;
-  return {
-    x: CENTER_X + radius * Math.sin(rad),
-    y: CENTER_Y - radius * Math.cos(rad),
-  };
-}
-
-/**
- * Path for one tapered segment: an annular sector, narrower at its inner edge
- * than its outer one because both edges follow their own arc. A rotated div
- * can't do this — its sides stay parallel — and clip-path can taper but cannot
- * round the corners.
- *
- * Corners are rounded by stroking the shape in its own colour with
- * `stroke-linejoin: round`, so the path is inset by half the stroke on every
- * side to keep the painted result on the intended radii.
- */
-function segmentPath(angle: number, halfSweep: number) {
-  const inset = CORNER_RADIUS / 2;
-  const innerR = INNER_RADIUS + inset;
-  const outerR = OUTER_RADIUS - inset;
-
-  // Trim the sweep by the same inset, measured at the mid-radius, so gaps
-  // between segments stay even once the stroke fattens each one.
-  const midR = (innerR + outerR) / 2;
-  const angularInset = ((inset / midR) * 180) / Math.PI;
-  const half = Math.max(halfSweep - angularInset, 0.5);
-
-  const a0 = angle - half;
-  const a1 = angle + half;
-
-  const o0 = polar(outerR, a0);
-  const o1 = polar(outerR, a1);
-  const i0 = polar(innerR, a0);
-  const i1 = polar(innerR, a1);
-
-  const p = (n: number) => n.toFixed(2);
-
-  return [
-    `M ${p(o0.x)} ${p(o0.y)}`,
-    // Outer edge, sweeping clockwise.
-    `A ${outerR} ${outerR} 0 0 1 ${p(o1.x)} ${p(o1.y)}`,
-    `L ${p(i1.x)} ${p(i1.y)}`,
-    // Inner edge, back anticlockwise.
-    `A ${innerR} ${innerR} 0 0 0 ${p(i0.x)} ${p(i0.y)}`,
-    "Z",
-  ].join(" ");
-}
 
 export interface AccountHealthGaugeProps {
   activeWarnings: number;
@@ -104,13 +50,13 @@ export interface AccountHealthGaugeProps {
 const GaugeSegment = memo(function GaugeSegment({
   progress,
   color,
-  d,
+  angle,
   fillAtPercent,
   stepPercent,
 }: {
   progress: MotionValue<number>;
   color: MotionValue<string>;
-  d: string;
+  angle: number;
   /** Progress value at which this segment is fully lit. */
   fillAtPercent: number;
   stepPercent: number;
@@ -125,21 +71,34 @@ const GaugeSegment = memo(function GaugeSegment({
   );
 
   return (
-    <>
+    // Spoke pivots about the gauge centre (its own bottom edge); the bar rides
+    // at the far end. Rotation lives here rather than on the animated bar
+    // because motion applies translate before rotate, which would swing each
+    // bar about its own edge instead.
+    <span
+      aria-hidden="true"
+      className="absolute"
+      style={{
+        width: SEGMENT_WIDTH,
+        height: RADIUS + SEGMENT_LENGTH,
+        left: "50%",
+        top: CENTER_Y - (RADIUS + SEGMENT_LENGTH),
+        marginLeft: -SEGMENT_WIDTH / 2,
+        transformOrigin: "50% 100%",
+        transform: `rotate(${angle}deg)`,
+      }}
+    >
       {/* Empty track, always visible. */}
-      <path
-        d={d}
-        className="fill-muted stroke-muted"
-        strokeWidth={CORNER_RADIUS}
-        strokeLinejoin="round"
-      />
-      <motion.path
-        d={d}
-        style={{ opacity, fill: color, stroke: color }}
-        strokeWidth={CORNER_RADIUS}
-        strokeLinejoin="round"
-      />
-    </>
+      <span
+        className="relative block w-full rounded-full bg-muted"
+        style={{ height: SEGMENT_LENGTH }}
+      >
+        <motion.span
+          className="absolute inset-0 block rounded-full"
+          style={{ opacity, backgroundColor: color }}
+        />
+      </span>
+    </span>
   );
 });
 
@@ -159,7 +118,7 @@ export function AccountHealthGauge({
 }: AccountHealthGaugeProps) {
   const reduceMotion = useReducedMotion();
 
-  const totalSegments = SEGMENT_COUNT;
+  const totalSegments = Math.max(threshold, 1) * SEGMENTS_PER_WARNING;
   const remaining = Math.max(threshold - activeWarnings, 0);
 
   // Headline figure. Rounded, but never rounded up to 100% while a warning is
@@ -173,8 +132,7 @@ export function AccountHealthGauge({
         ? 100
         : Math.min(99, Math.max(1, Math.round(rawPercent)));
 
-  const pitch = (END_ANGLE - START_ANGLE) / totalSegments;
-  const halfSweep = (pitch - GAP_ANGLE) / 2;
+  const step = (END_ANGLE - START_ANGLE) / (totalSegments - 1);
   const stepPercent = 100 / totalSegments;
 
   // Single source of truth for the whole dial.
@@ -196,75 +154,43 @@ export function AccountHealthGauge({
   );
 
   return (
-    <div
-      className={cn(
-        "flex w-full flex-col items-center justify-between",
-        className,
-      )}
-    >
-      {/* Fills whatever width it is given; the viewBox fixes the aspect ratio.
-          `container-type: inline-size` is what makes the readout's cqw units
-          resolve against this box — without it they fall back to the viewport
-          and the text stops tracking the dial. */}
+    <div className={cn("flex flex-col items-center", className)}>
       <div
-        className="relative w-full"
-        style={{ containerType: "inline-size" }}
+        className="relative"
+        style={{ width: BOX_WIDTH, height: BOX_HEIGHT }}
         role="meter"
         aria-valuenow={remaining}
         aria-valuemin={0}
         aria-valuemax={threshold}
         aria-label={`${remaining} of ${threshold} warnings remaining before suspension`}
       >
-        <svg
-          viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
-          className="h-auto w-full"
-          aria-hidden="true"
-        >
-          {Array.from({ length: totalSegments }).map((_, index) => (
-            <GaugeSegment
-              key={index}
-              progress={progress}
-              color={color}
-              // Segment centres sit at the middle of each pitch slot.
-              d={segmentPath(START_ANGLE + pitch * (index + 0.5), halfSweep)}
-              fillAtPercent={(index + 1) * stepPercent}
-              stepPercent={stepPercent}
-            />
-          ))}
-        </svg>
+        {Array.from({ length: totalSegments }).map((_, index) => (
+          <GaugeSegment
+            key={index}
+            progress={progress}
+            color={color}
+            angle={START_ANGLE + index * step}
+            fillAtPercent={(index + 1) * stepPercent}
+            stepPercent={stepPercent}
+          />
+        ))}
 
         {/* Readout sits inside the arc. The "%" is a sibling of the digits so it
             stays put as they change width. */}
-        {/* Anchored from the bottom: the semicircle's baseline sits at the foot
-            of the box, so the readout stacks upward into the arc. */}
         <div
           className="absolute inset-x-0 flex flex-col items-center"
-          style={{ bottom: "6%" }}
+          style={{ top: CENTER_Y - 62 }}
         >
           <motion.span
             className="flex items-start font-semibold leading-none"
             style={{ color }}
           >
-            {/* Sized in cqw so the readout tracks the dial at any width, with
-                clamps so it stays legible when the card is narrow and doesn't
-                run away when it is wide. */}
-            <span
-              className="tabular-nums leading-none"
-              style={{ fontSize: "clamp(1.75rem, 13cqw, 4rem)" }}
-            >
+            <span className="text-5xl tabular-nums leading-none">
               {displayPercent}
             </span>
-            <span
-              className="leading-none"
-              style={{ fontSize: "clamp(0.875rem, 6cqw, 2rem)" }}
-            >
-              %
-            </span>
+            <span className="text-2xl leading-none">%</span>
           </motion.span>
-          <span
-            className="mt-1.5 text-muted-foreground"
-            style={{ fontSize: "clamp(0.7rem, 4cqw, 1.125rem)" }}
-          >
+          <span className="mt-2 text-sm text-muted-foreground">
             Account Health
           </span>
         </div>

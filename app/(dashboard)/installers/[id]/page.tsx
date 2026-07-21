@@ -140,7 +140,8 @@ export default function InstallerDetailsPage() {
   const handleUnsuspend = () => {
     unsuspend.mutate(undefined, {
       onSuccess: () => toast.success("Suspension lifted and warnings cleared"),
-      onError: (err) => toast.error(err.message || "Failed to lift suspension"),
+      onError: (err) =>
+        toast.error(err.message || "Failed to lift suspension"),
     });
   };
 
