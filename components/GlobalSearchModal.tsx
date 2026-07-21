@@ -253,10 +253,7 @@ export default function GlobalSearchModal({
       if (type === "installer") {
         router.push(`/installers/${id}`);
       } else {
-        // Open the reward's detail page. This used to push `/rewards?id=…`,
-        // which the list page read as "open the edit dialog" — so a search hit
-        // dropped the user straight into an edit form they never asked for.
-        router.push(`/rewards/${id}`);
+        router.push(`/rewards?id=${id}`);
       }
     },
     [searchQuery, onOpenChange, router, saveRecentSearch]

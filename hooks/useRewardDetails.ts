@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { RewardStatus, ProductStatus } from "@/types/rewards";
+import { RewardStatus } from "@/types/rewards";
 
 export interface RewardDetails {
   _id: string;
@@ -27,8 +27,6 @@ export interface RewardDetails {
   registeredBy?: { name: string; email: string };
   updatedBy?: { name: string; email: string };
   rewardStatus: RewardStatus;
-  productStatus?: ProductStatus;
-  rejectionReason?: string;
   rewardAmount?: number;
   referrerRewardAmount?: number;
   transactionId?: string;

@@ -169,14 +169,7 @@ export function HeaderMenu({
                       }}
                       transition={spring}
                     >
-                      <ThemeToggle
-                        iconOnly={false}
-                        iconClasses="size-4"
-                        triggerClass={cn(
-                          "h-auto justify-start hover:text-foreground",
-                          ITEM_CLASS,
-                        )}
-                      />
+                      <ThemeToggle />
                     </motion.div>
                   </div>
                   <div className="h-px bg-border" role="separator" />

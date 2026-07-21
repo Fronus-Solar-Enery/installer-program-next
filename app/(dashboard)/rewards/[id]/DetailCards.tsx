@@ -18,11 +18,7 @@ import {
 import IconUserPlus from "@/components/icons/UserPlus";
 import DetailRow from "./DetailRow";
 import type { RewardDetails } from "@/hooks/useRewardDetails";
-import {
-  RewardStatus,
-  ProductStatus,
-  PRODUCT_STATUS_LABELS,
-} from "@/types/rewards";
+import { RewardStatus } from "@/types/rewards";
 
 function formatDate(
   date?: string,
@@ -97,28 +93,6 @@ export function ProductPassportCard({ reward }: { reward: RewardDetails }) {
     <SectionCard title="Product" Icon={IconBoxMinimalistic}>
       <dl className="divide-y divide-border">
         <DetailRow label="Product Model" value={reward.productModel} valueClassName="font-medium" />
-        <DetailRow
-          label="Product Status"
-          value={
-            PRODUCT_STATUS_LABELS[
-              (reward.productStatus as ProductStatus) ?? ProductStatus.ELIGIBLE
-            ]
-          }
-          valueClassName={
-            reward.productStatus === ProductStatus.REJECTED
-              ? "font-medium text-destructive"
-              : reward.productStatus === ProductStatus.NOT_ELIGIBLE
-              ? "font-medium text-muted-foreground"
-              : "font-medium text-emerald-600 dark:text-emerald-400"
-          }
-        />
-        {reward.productStatus === ProductStatus.REJECTED && (
-          <DetailRow
-            label="Rejection Reason"
-            value={reward.rejectionReason}
-            valueClassName="font-medium"
-          />
-        )}
         <DetailRow
           label="Serial #"
           value={reward.serialNumber}

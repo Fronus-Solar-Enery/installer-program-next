@@ -28,10 +28,6 @@ export interface IInstaller {
   pinAttempts?: number;
   pinLockedUntil?: Date;
   lastCustomerMessageAt?: Date;
-  // Suspension is a durable flag; the warnings behind it live in the Warning
-  // collection and are counted at read time (see lib/warnings.ts).
-  suspendedAt?: Date | null;
-  suspendedBy?: Types.ObjectId | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -157,15 +153,6 @@ const InstallerSchema = new Schema<IInstaller>(
     },
     lastCustomerMessageAt: {
       type: Date,
-    },
-    suspendedAt: {
-      type: Date,
-      default: null,
-    },
-    suspendedBy: {
-      type: Schema.Types.ObjectId,
-      ref: 'TeamMember',
-      default: null,
     },
   },
   {

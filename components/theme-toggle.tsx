@@ -14,7 +14,21 @@ import IconMoon from "./icons/Moon";
 import IconSun2 from "./icons/Sun2";
 import { cn } from "@/lib/utils";
 
+// Types
 type Theme = "light" | "dark" | "system";
+
+// Get icon for current theme
+const getThemeIcon = (theme: string | undefined) => {
+  switch (theme) {
+    case "dark":
+      return <IconMoon className="w-5 h-5" />;
+    case "light":
+      return <IconSun2 className="w-5 h-5" />;
+    case "system":
+    default:
+      return <IconNotebookMinimalistic className="w-5 h-5" />;
+  }
+};
 
 // Theme options
 const THEME_OPTIONS = [
@@ -36,39 +50,28 @@ const THEME_OPTIONS = [
 ];
 
 interface ThemeToggleProps {
-  iconClasses?: string;
   triggerClass?: string;
-  iconOnly?: boolean;
-  children?: React.ReactNode;
 }
 
-export function ThemeToggle({
-  triggerClass,
-  iconClasses,
-  iconOnly = true,
-  children,
-}: ThemeToggleProps) {
+export function ThemeToggle({ triggerClass }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
 
-  const currentOption =
-    THEME_OPTIONS.find((o) => o.value === theme) ?? THEME_OPTIONS[2];
-  const CurrentIcon = currentOption.Icon;
+  // Get current theme icon
+  const currentIcon = React.useMemo(() => getThemeIcon(theme), [theme]);
 
   return (
     <Dropdown>
       <DropdownTrigger asChild>
-        {children ?? (
-          <Button
-            variant="ghost"
-            size={iconOnly ? "icon" : "default"}
-            className={
-              triggerClass ?? "hover:border border-border rounded-full"
-            }
-          >
-            <CurrentIcon className={cn("w-5 h-5", iconClasses)} />
-            {!iconOnly && currentOption.label}
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "hover:border border-border rounded-full",
+            triggerClass,
+          )}
+        >
+          {currentIcon}
+        </Button>
       </DropdownTrigger>
       <DropdownContent align="right" className="w-28">
         <div className="p-2 flex flex-col gap-1">
@@ -99,7 +102,7 @@ interface ThemeOptionProps {
   label: string;
   Icon: React.ComponentType<{ className?: string; duotone?: boolean }>;
   isActive: boolean;
-  onSelect: (theme: Theme) => void;
+  onSelect: (theme: string) => void;
 }
 
 function ThemeOption({

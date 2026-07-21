@@ -3,23 +3,6 @@ export const BUSINESS_RULES = {
   MAX_BULK_BATCH_SIZE: 500,
 } as const;
 
-// The one rejection reason that issues a warning against the installer. Kept as
-// a constant (not just a Settings row) because the whole warning system keys off
-// this exact string — the settings UI is not allowed to delete or rename it.
-export const FALSE_CLAIM_REASON = "False Claim";
-
-export const DEFAULT_REJECTION_REASONS = [
-  FALSE_CLAIM_REASON,
-  "Duplicate Serial Number",
-  "Serial Number Not Found",
-  "Product Out of Program",
-  "Installation Not Verified",
-];
-
-// Active warnings older than this stop counting toward suspension. Applied as a
-// query bound at read time, so expiry is always correct with no sweeper job.
-export const WARNING_EXPIRY_MONTHS = 6;
-
 export const PAYMENT_METHOD = [
   { value: "UBANK", label: "UBANK" },
   { value: "UPaisa", label: "UPaisa" },
