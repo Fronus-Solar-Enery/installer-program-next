@@ -16,7 +16,9 @@ import {
   sendReferralRewardMessage,
 } from "@/lib/whatsappService";
 import { logger } from "@/lib/logger";
-import { syncWarningForReward } from "@/lib/warnings";
+import { logActivity } from "@/lib/activityLogger";
+import { ActivityType } from "@/models/Activity";
+import { getClientInfo } from "@/lib/requestUtils";
 
 // GET all rewards with filtering
 export const GET = withAuth(
@@ -155,13 +157,22 @@ export const POST = withAuth(
       // Create reward
       const reward = await InstallerReward.create(rewardData);
 
-      // A reward registered as a false claim issues its warning immediately,
-      // and suspends the installer if that tips them over the threshold.
-      await syncWarningForReward(
-        reward,
-        session.user.id,
-        installer.fullName,
-      );
+      await logActivity({
+        type: ActivityType.REWARD_REGISTERED,
+        performedBy: session.user.id,
+        targetType: "InstallerReward",
+        targetId: reward._id,
+        targetName: `${installer.installerCode} - ${reward.serialNumber}`,
+        description: `Registered reward for ${installer.fullName} (${installer.installerCode}) — ${reward.productModel}, serial ${reward.serialNumber}`,
+        metadata: {
+          installerCode: installer.installerCode,
+          serialNumber: reward.serialNumber,
+          productModel: reward.productModel,
+          rewardAmount: reward.rewardAmount,
+          rewardStatus: reward.rewardStatus,
+        },
+        ...getClientInfo(request),
+      });
 
       // WhatsApp notifications — fire-and-forget, never block the response.
       if (reward.rewardStatus === RewardStatus.PAID) {

@@ -17,7 +17,6 @@ export interface RewardsColumnVisibility {
   cityOfInstallation: boolean;
   rewardAmount: boolean;
   rewardStatus: boolean;
-  productStatus: boolean;
   paymentMethod: boolean;
   transactionId: boolean;
   sendingDate: boolean;
@@ -31,7 +30,6 @@ export interface RewardsColumnVisibility {
 // Rewards-specific filters extending base date filters
 export interface RewardsFilters extends BaseDateFilters {
   rewardStatus: string;
-  productStatus: string;
   // Reward sending date, filtered as an inclusive range. This replaced a single
   // `sendingDate` string that compared an ISO datetime against a date and so
   // never matched anything.
@@ -48,7 +46,6 @@ export interface RewardsFilters extends BaseDateFilters {
 // Initial values
 const initialFilters: RewardsFilters = {
   rewardStatus: "ALL",
-  productStatus: "all",
   sendingStart: "",
   sendingEnd: "",
   paymentMethod: "all",
@@ -70,7 +67,6 @@ const initialColumnVisibility: RewardsColumnVisibility = {
   cityOfInstallation: false,
   rewardAmount: true,
   rewardStatus: true,
-  productStatus: true,
   paymentMethod: false,
   transactionId: false,
   sendingDate: false,

@@ -83,7 +83,6 @@ import type {
   Filters,
   RewardsFilters,
 } from "@/hooks/useRewardsState";
-import { ProductStatus, PRODUCT_STATUS_LABELS } from "@/types/rewards";
 import IconSortVertical from "./icons/SortVertical";
 import { Label } from "@/components/ui/label";
 import {
@@ -383,7 +382,6 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   {sortField === "cityOfInstallation" && "City"}
                   {sortField === "rewardAmount" && "Amount"}
                   {sortField === "rewardStatus" && "Status"}
-                  {sortField === "productStatus" && "Product Status"}
                   {sortField === "sendingDate" && "Sending Date"}
                   {sortField === "referrerRewardAmount" && "Referrer Reward"}
                   {sortField === "createdAt" && "Registered"}
@@ -529,28 +527,6 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                 </div>
               )}
 
-              {/* Product Status Filter */}
-              {filters?.productStatus && filters.productStatus !== "all" && (
-                <div className="text-xs flex items-center gap-1 text-muted-foreground">
-                  Product:
-                  <Badge
-                    variant="outline"
-                    className="gap-1 [&>svg]:pointer-events-auto h-5.5"
-                    id="filtersProductStatus"
-                  >
-                    {
-                      PRODUCT_STATUS_LABELS[
-                        filters.productStatus as ProductStatus
-                      ]
-                    }
-                    <IconClose
-                      className="size-4! cursor-pointer"
-                      onClick={() => onClearFilter?.("productStatus")}
-                    />
-                  </Badge>
-                </div>
-              )}
-
               {/* Sending Date range */}
               {(filters?.sendingStart || filters?.sendingEnd) && (
                 <div className="text-xs flex items-center gap-1 text-muted-foreground">
@@ -598,34 +574,6 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                 </Select>
               </div>
 
-              {/* Product Status Filter */}
-              <div className="space-y-2 w-full">
-                <span className="text-sm px-2">Product Status</span>
-                <Select
-                  value={filters?.productStatus || "all"}
-                  onValueChange={(value) =>
-                    onFilterChange?.("productStatus", value)
-                  }
-                  name="productStatusSelect"
-                  disabled={loading}
-                >
-                  <SelectTrigger className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors data-[state=open]:bg-muted/80">
-                    <SelectValue placeholder="All Products" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Products</SelectItem>
-                    <SelectItem value={ProductStatus.ELIGIBLE}>
-                      Eligible
-                    </SelectItem>
-                    <SelectItem value={ProductStatus.NOT_ELIGIBLE}>
-                      Not Eligible
-                    </SelectItem>
-                    <SelectItem value={ProductStatus.REJECTED}>
-                      Rejected
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
 
               {/* Sending Date range */}
               <div className="space-y-2 w-full">
@@ -798,14 +746,6 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                     Product
                   </div>
                   <div
-                    data-column="productStatus"
-                    className="px-4 py-3 text-sm font-medium cursor-pointer whitespace-nowrap select-none transition-colors hover:text-foreground"
-                    onClick={() => onToggleSort("productStatus")}
-                    style={getColumnStyle("productStatus")}
-                  >
-                    Product Status{getSortIcon("productStatus")}
-                  </div>
-                  <div
                     data-column="installerReward"
                     className="px-4 py-3 text-sm font-medium whitespace-nowrap select-none"
                     style={getColumnStyle("installerReward")}
@@ -903,14 +843,6 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                           <div className="h-4 bg-muted rounded w-32 animate-pulse" />
                           <div className="h-3 bg-muted rounded w-24 animate-pulse" />
                         </div>
-                      </div>
-
-                      {/* Product Status */}
-                      <div
-                        className="px-4 py-3 items-center"
-                        style={getColumnStyle("productStatus")}
-                      >
-                        <div className="h-5 bg-muted rounded-full w-20 animate-pulse" />
                       </div>
 
                       {/* Installer Reward */}
@@ -1093,35 +1025,6 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                               {reward.productModel || <Unavailable />}
                             </div>
                           </div>
-                        </div>
-                        <div
-                          data-column="productStatus"
-                          className="px-4 py-3 items-center"
-                          style={getColumnStyle("productStatus")}
-                        >
-                          <Badge
-                            variant={
-                              reward.productStatus === ProductStatus.ELIGIBLE
-                                ? "success"
-                                : reward.productStatus ===
-                                    ProductStatus.NOT_ELIGIBLE
-                                  ? "secondary"
-                                  : "destructive"
-                            }
-                          >
-                            {
-                              PRODUCT_STATUS_LABELS[
-                                (reward.productStatus as ProductStatus) ??
-                                  ProductStatus.ELIGIBLE
-                              ]
-                            }
-                          </Badge>
-                          {reward.productStatus === ProductStatus.REJECTED &&
-                            reward.rejectionReason && (
-                              <div className="mt-1 text-xs text-muted-foreground">
-                                {reward.rejectionReason}
-                              </div>
-                            )}
                         </div>
                         <div
                           data-column="installerReward"

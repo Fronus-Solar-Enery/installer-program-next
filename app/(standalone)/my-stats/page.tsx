@@ -46,12 +46,7 @@ import { IconAward, IconGift, IconSave } from "@/components/icons";
 import { getInitials } from "@/lib/getInitials";
 import Loading from "@/components/ui/loading";
 import { CopyButton } from "@/components/CopyButton";
-import {
-  AccountHealthCard,
-  type AccountHealthData,
-} from "@/components/AccountHealthCard";
 import { HeaderMenu } from "./HeaderMenu";
-import { ProductStatus, PRODUCT_STATUS_LABELS } from "@/types/rewards";
 
 const PAGE_TITLE = "My Stats — Fronus Installer Program";
 
@@ -79,8 +74,6 @@ interface MyStatsData {
     serialNumber: string;
     installationDate?: string;
     rewardStatus: "PENDING" | "PAID" | "FAILED";
-    productStatus?: ProductStatus;
-    rejectionReason?: string;
     rewardAmount: number;
     createdAt: string;
   }>;
@@ -90,7 +83,6 @@ interface MyStatsData {
     fullName: string;
     createdAt: string;
   }>;
-  health: AccountHealthData;
 }
 
 const rs = (n: number) => `Rs. ${n.toLocaleString()}`;
@@ -440,37 +432,10 @@ export default function MyStatsPage() {
             animate="show"
             className="space-y-6"
           >
-            {/* 1.5 Suspension banner — the most consequential thing on the page,
-                so it sits above everything else the installer might act on. */}
-            {data.health?.suspended && (
-              <motion.div
-                variants={slideUp}
-                role="alert"
-                className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive"
-              >
-                <p className="font-medium">Your account is suspended</p>
-                <p className="mt-1 text-destructive/90">
-                  New reward claims will not be processed. Contact the Fronus
-                  team to have your account reviewed.
-                </p>
-              </motion.div>
-            )}
-
             {/* 2. Motivational Nudge */}
             <motion.div variants={slideUp}>
               <MotivationalNudge rewards={data.rewards} />
             </motion.div>
-
-            {/* 2.5 Account Health */}
-            {data.health && (
-              <motion.div variants={slideUp}>
-                <AccountHealthCard
-                  health={data.health}
-                  audience="installer"
-                  variant="gauge"
-                />
-              </motion.div>
-            )}
 
             {/* 3. Stats Cards */}
             <motion.div
@@ -569,7 +534,6 @@ export default function MyStatsPage() {
                             <TableHead>Serial #</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>Product</TableHead>
                             <TableHead className="text-right pr-6">
                               Amount
                             </TableHead>
@@ -591,27 +555,6 @@ export default function MyStatsPage() {
                               </TableCell>
                               <TableCell>
                                 <StatusBadge status={reward.rewardStatus} />
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant={
-                                    reward.productStatus ===
-                                    ProductStatus.NOT_ELIGIBLE
-                                      ? "secondary"
-                                      : reward.productStatus ===
-                                          ProductStatus.REJECTED
-                                        ? "destructive"
-                                        : "success"
-                                  }
-                                  title={reward.rejectionReason || undefined}
-                                >
-                                  {
-                                    PRODUCT_STATUS_LABELS[
-                                      (reward.productStatus as ProductStatus) ??
-                                        ProductStatus.ELIGIBLE
-                                    ]
-                                  }
-                                </Badge>
                               </TableCell>
                               <TableCell className="text-right tabular-nums pr-6">
                                 {rs(reward.rewardAmount)}

@@ -4,7 +4,6 @@ import ExcelJS from "exceljs";
 import dbConnect from "@/lib/mongodb";
 import InstallerReward, { IInstallerReward } from "@/models/InstallerReward";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
-import { ProductStatus } from "@/types/rewards";
 
 // Pre-filled bulk-update template: one row per PENDING/FAILED reward, serial
 // number populated from the database so staff only fill in transaction IDs.
@@ -20,12 +19,9 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
-    // Only eligible products are payable, so rejected and out-of-program
-    // claims never reach the sheet staff fill in transaction IDs on.
     const rewards = await InstallerReward.find(
       {
         rewardStatus: { $in: ["PENDING", "FAILED"] },
-        productStatus: ProductStatus.ELIGIBLE,
       },
       { serialNumber: 1, _id: 0 }
     )
@@ -40,10 +36,6 @@ export async function GET(request: NextRequest) {
       { header: "Installer Transaction ID", key: "Installer Transaction ID", width: 25, style: { numFmt: "@" } },
       { header: "Referrer Transaction ID", key: "Referrer Transaction ID", width: 25, style: { numFmt: "@" } },
       { header: "Payment Method", key: "Payment Method", width: 20, style: { numFmt: "@" } },
-      // Left blank on purpose: an empty Product Status means "leave unchanged",
-      // so the sheet only alters eligibility where staff explicitly type it.
-      { header: "Product Status", key: "Product Status", width: 18, style: { numFmt: "@" } },
-      { header: "Rejection Reason", key: "Rejection Reason", width: 26, style: { numFmt: "@" } },
     ];
 
     rewards.forEach((reward) => {
@@ -52,8 +44,6 @@ export async function GET(request: NextRequest) {
         "Installer Transaction ID": "",
         "Referrer Transaction ID": "",
         "Payment Method": "UBANK",
-        "Product Status": "",
-        "Rejection Reason": "",
       });
     });
 

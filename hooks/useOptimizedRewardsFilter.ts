@@ -10,8 +10,6 @@ export interface RewardWithId {
   cityOfInstallation: string;
   rewardAmount: number;
   rewardStatus: string;
-  productStatus?: string;
-  rejectionReason?: string;
   paymentMethod?: string;
   transactionId?: string;
   referrerTransactionId?: string;
@@ -49,7 +47,6 @@ export interface RewardWithId {
 
 export interface RewardsFilters {
   rewardStatus: string;
-  productStatus: string;
   sendingStart: string;
   sendingEnd: string;
   paymentMethod: string;
@@ -160,10 +157,6 @@ export function useOptimizedRewardsFilter({
       // Apply filters
       if (filters.rewardStatus && filters.rewardStatus !== "ALL") {
         if (reward.rewardStatus !== filters.rewardStatus) return false;
-      }
-
-      if (filters.productStatus && filters.productStatus !== "all") {
-        if (reward.productStatus !== filters.productStatus) return false;
       }
 
       // Inclusive sending-date range. Compared on the calendar day so a stored

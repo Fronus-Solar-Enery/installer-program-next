@@ -1,8 +1,5 @@
 import mongoose, { Schema, Model } from "mongoose";
-import {
-  PAYMENT_METHOD,
-  DEFAULT_REJECTION_REASONS,
-} from "@/lib/constants";
+import { PAYMENT_METHOD } from "@/lib/constants";
 
 export const DEFAULT_PAYMENT_METHODS = PAYMENT_METHOD.map((m) => m.value);
 
@@ -18,10 +15,6 @@ export interface ISettings {
   requireTransactionIdForPaid: boolean;
   autoSendWhatsAppOnPaid: boolean;
   paymentMethods: string[];
-  rejectionReasons: string[];
-
-  // Warning Settings
-  warningThreshold: number;
 
   // System Settings
   enableWhatsAppNotifications: boolean;
@@ -63,18 +56,6 @@ const SettingsSchema = new Schema<ISettings>(
     paymentMethods: {
       type: [String],
       default: DEFAULT_PAYMENT_METHODS,
-    },
-    rejectionReasons: {
-      type: [String],
-      default: DEFAULT_REJECTION_REASONS,
-    },
-
-    // Warning Settings
-    warningThreshold: {
-      type: Number,
-      default: 5,
-      min: 1,
-      max: 50,
     },
 
     // System Settings

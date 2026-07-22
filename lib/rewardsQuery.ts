@@ -26,7 +26,6 @@ export function buildRewardsQuery(
       get("search")
     )
     .enumFilter("rewardStatus", get("rewardStatus"))
-    .enumFilter("productStatus", get("productStatus"))
     .filter("productModel", get("productModel"), { regex: true })
     .filter("cityOfInstallation", get("city"), { regex: true })
     .filter("paymentMethod", get("paymentMethod"))

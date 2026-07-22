@@ -5,8 +5,9 @@ import { Types } from "mongoose";
 interface LogActivityParams {
   type: ActivityType;
   performedBy: string | Types.ObjectId;
-  targetType: "Installer" | "InstallerReward" | "TeamMember";
-  targetId: string | Types.ObjectId;
+  targetType: "Installer" | "InstallerReward" | "TeamMember" | "Product";
+  // Omitted on bulk summary rows, which describe a batch rather than one entity.
+  targetId?: string | Types.ObjectId;
   targetName?: string;
   description: string;
   metadata?: Record<string, unknown>;

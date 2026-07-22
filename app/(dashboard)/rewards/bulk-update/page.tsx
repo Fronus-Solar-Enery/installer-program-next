@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { ProductStatus, PRODUCT_STATUS_LABELS } from "@/types/rewards";
-import { parseProductStatusCells } from "@/lib/bulkValidation";
 import { useRouter } from "next/navigation";
 import ExcelJS from "exceljs";
 import { Button } from "@/components/ui/button";
@@ -90,8 +88,6 @@ interface RewardUpdate {
   transactionId: string;
   referrerTransactionId?: string;
   rewardStatus: string;
-  productStatus?: ProductStatus;
-  rejectionReason?: string;
   sendingDate?: string;
   paymentMethod?: string;
   issues: string[];
@@ -339,14 +335,6 @@ export default function BulkUploadRewardsPage() {
             const referrerTransactionId =
               row["Referrer Transaction ID"]?.toString().trim() || undefined;
             const serialNumber = row["Serial Number"]?.toString().trim() || "";
-            const {
-              productStatus,
-              rejectionReason,
-              issue: productStatusIssue,
-            } = parseProductStatusCells(
-              row["Product Status"],
-              row["Rejection Reason"],
-            );
 
             // First validate the data to determine if there are issues
             const tempReward = {
@@ -359,19 +347,6 @@ export default function BulkUploadRewardsPage() {
             };
 
             const issues = validateReward(tempReward);
-            if (productStatusIssue) issues.push(productStatusIssue);
-
-            // Only eligible products are payable. A sheet that rejects a claim
-            // must not also mark it paid in the same row.
-            if (
-              productStatus &&
-              productStatus !== ProductStatus.ELIGIBLE &&
-              transactionId
-            ) {
-              issues.push(
-                `A ${productStatus} product cannot be paid — clear the transaction ID`,
-              );
-            }
 
             // Determine payment status based on validation and transaction ID
             let rewardStatus: string;
@@ -391,8 +366,6 @@ export default function BulkUploadRewardsPage() {
               transactionId,
               referrerTransactionId,
               rewardStatus,
-              productStatus,
-              rejectionReason,
               sendingDate: rawSendingDate || defaultSendingDate,
               paymentMethod: normalizePaymentMethod(rawPaymentMethod),
             };
@@ -559,10 +532,6 @@ export default function BulkUploadRewardsPage() {
         "Installer Transaction ID": record.transactionId,
         "Referrer Transaction ID": record.referrerTransactionId || "",
         "Payment Method": record.paymentMethod || "",
-        "Product Status": record.productStatus
-          ? PRODUCT_STATUS_LABELS[record.productStatus]
-          : "",
-        "Rejection Reason": record.rejectionReason || "",
         ISSUES: record.issues.join(" | "),
       }));
 
@@ -581,8 +550,6 @@ export default function BulkUploadRewardsPage() {
           width: 25,
         },
         { header: "Payment Method", key: "Payment Method", width: 25 },
-        { header: "Product Status", key: "Product Status", width: 18 },
-        { header: "Rejection Reason", key: "Rejection Reason", width: 26 },
         { header: "ISSUES", key: "ISSUES", width: 60 },
       ];
       ws.addRows(excelData);
@@ -1145,7 +1112,6 @@ export default function BulkUploadRewardsPage() {
                     <TableHead>Transaction ID</TableHead>
                     <TableHead>Ref. Transaction</TableHead>
                     <TableHead>Reward Status</TableHead>
-                    <TableHead>Product Status</TableHead>
                     <TableHead>Method</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Issues</TableHead>
@@ -1193,28 +1159,6 @@ export default function BulkUploadRewardsPage() {
                         >
                           {reward.rewardStatus}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {reward.productStatus ? (
-                          <Badge
-                            variant={
-                              reward.productStatus === ProductStatus.ELIGIBLE
-                                ? "success"
-                                : reward.productStatus ===
-                                    ProductStatus.NOT_ELIGIBLE
-                                  ? "secondary"
-                                  : "destructive"
-                            }
-                            title={reward.rejectionReason || undefined}
-                          >
-                            {PRODUCT_STATUS_LABELS[reward.productStatus]}
-                          </Badge>
-                        ) : (
-                          // Blank column means the sheet leaves eligibility as it is.
-                          <span className="text-xs text-muted-foreground">
-                            Unchanged
-                          </span>
-                        )}
                       </TableCell>
                       <TableCell>{reward.paymentMethod || "-"}</TableCell>
                       <TableCell className="text-sm">

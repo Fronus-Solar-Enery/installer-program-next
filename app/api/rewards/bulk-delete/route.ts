@@ -7,7 +7,7 @@ import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { logActivity } from "@/lib/activityLogger";
 import { ActivityType } from "@/models/Activity";
 import { getClientInfo } from "@/lib/requestUtils";
-import Warning from "@/models/Warning";
+import { logger } from "@/lib/logger";
 
 interface BulkDeleteResult {
   successCount: number;
@@ -71,18 +71,6 @@ export const POST = withAuth(
           // Delete reward from database
           await reward.deleteOne();
 
-          // The claim is gone, so its warning must stop counting.
-          await Warning.updateOne(
-            { reward: reward._id, revokedAt: null },
-            {
-              $set: {
-                revokedAt: new Date(),
-                revokedBy: session.user.id,
-                revokedNote: "Reward deleted",
-              },
-            }
-          );
-
           // Log activity (non-blocking)
           try {
             await logActivity({
@@ -112,6 +100,28 @@ export const POST = withAuth(
 
       // Wait for all deletions to complete
       await Promise.allSettled(deletePromises);
+
+      // One summary row for the activity feed, alongside the per-item rows above.
+      if (result.successCount > 0) {
+        try {
+          await logActivity({
+            type: ActivityType.REWARD_DELETED,
+            performedBy: session.user.id,
+            targetType: "InstallerReward",
+            description: `Bulk deleted ${result.successCount} reward(s)`,
+            metadata: {
+              summary: true,
+              count: result.successCount,
+              failed: result.failCount,
+            },
+            ...clientInfo,
+          });
+        } catch (summaryErr) {
+          logger.error("Failed to create bulk summary activity", {
+            error: String(summaryErr),
+          });
+        }
+      }
 
       return ApiResponse.success(
         result,

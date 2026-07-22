@@ -235,7 +235,7 @@ export async function regenerateAndSendPin(
  */
 export async function createInstaller(
   input: RegisterInstallerInput,
-  registeredById: string
+  actor: InstallerActor
 ): Promise<{
   installer: HydratedDocument<IInstaller> | null;
   whatsappFailed: boolean;
@@ -250,13 +250,23 @@ export async function createInstaller(
 
   const installer = await Installer.create({
     ...input,
-    registeredBy: registeredById,
+    registeredBy: actor.userId,
+  });
+
+  await logActivity({
+    type: ActivityType.INSTALLER_REGISTERED,
+    performedBy: actor.userId,
+    targetType: "Installer",
+    targetId: installer._id,
+    targetName: installer.fullName,
+    description: `Registered installer ${installer.installerCode} (${installer.fullName})`,
+    ...actor.clientInfo,
   });
 
   await createGoogleContactForInstaller(installer);
 
   const { whatsappSent, plainPin, whatsappMessage, whatsappUrl, deliveryMethod } =
-    await regenerateAndSendPin(installer, registeredById, "template");
+    await regenerateAndSendPin(installer, actor.userId, "template");
 
   return {
     installer: await findInstallerByIdOrCode(
@@ -328,7 +338,10 @@ export async function updateInstaller(
  * Google Contact as a side effect. Throws InstallerServiceError on 404 / when
  * rewards still reference it.
  */
-export async function deleteInstaller(idOrCode: string): Promise<void> {
+export async function deleteInstaller(
+  idOrCode: string,
+  actor: InstallerActor
+): Promise<void> {
   const installer = await findInstallerByIdOrCode(idOrCode);
   if (!installer) {
     throw new InstallerServiceError("Installer not found", 404);
@@ -343,6 +356,9 @@ export async function deleteInstaller(idOrCode: string): Promise<void> {
       400
     );
   }
+
+  // Capture identity before the document is removed.
+  const { _id, installerCode, fullName } = installer;
 
   if (installer.googleContactId) {
     try {
@@ -364,4 +380,14 @@ export async function deleteInstaller(idOrCode: string): Promise<void> {
   }
 
   await installer.deleteOne();
+
+  await logActivity({
+    type: ActivityType.INSTALLER_DELETED,
+    performedBy: actor.userId,
+    targetType: "Installer",
+    targetId: _id,
+    targetName: fullName,
+    description: `Deleted installer ${installerCode} (${fullName})`,
+    ...actor.clientInfo,
+  });
 }

@@ -8,6 +8,7 @@ import { validateBody, getSearchParams } from "@/lib/validateRequest";
 import { QueryBuilder, parseSortParams } from "@/lib/queryBuilder";
 import { getPaginationParams, createPaginationMeta, LIST_MAX_LIMIT } from "@/lib/pagination";
 import { createInstaller, InstallerServiceError } from "@/services/installers";
+import { getClientInfo } from "@/lib/requestUtils";
 
 // GET all installers with filtering
 export const GET = withAuth(
@@ -65,7 +66,10 @@ export const POST = withAuth(
       await dbConnect();
 
       const { installer, whatsappFailed, plainPin, whatsappMessage, whatsappUrl, deliveryMethod } =
-        await createInstaller(validation.data, session.user.id);
+        await createInstaller(validation.data, {
+          userId: session.user.id,
+          clientInfo: getClientInfo(request),
+        });
 
       return ApiResponse.success(
         { installer, whatsappFailed, pin: plainPin, whatsappMessage, whatsappUrl, deliveryMethod },

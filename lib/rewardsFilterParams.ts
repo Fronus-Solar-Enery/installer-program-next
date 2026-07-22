@@ -19,9 +19,6 @@ export function buildRewardsFilterParams(
   if (filters.rewardStatus && filters.rewardStatus !== "ALL") {
     params.append("rewardStatus", filters.rewardStatus);
   }
-  if (filters.productStatus && filters.productStatus !== "all") {
-    params.append("productStatus", filters.productStatus);
-  }
   if (filters.paymentMethod && filters.paymentMethod !== "all") {
     params.append("paymentMethod", filters.paymentMethod);
   }

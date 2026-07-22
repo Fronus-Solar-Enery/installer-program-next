@@ -14,16 +14,16 @@ export enum ActivityType {
   REWARD_MARKED_PAID = 'REWARD_MARKED_PAID',
   REWARD_MARKED_FAILED = 'REWARD_MARKED_FAILED',
 
-  // Warning / Suspension Activities
-  WARNING_ISSUED = 'WARNING_ISSUED',
-  WARNING_REVOKED = 'WARNING_REVOKED',
-  INSTALLER_SUSPENDED = 'INSTALLER_SUSPENDED',
-  INSTALLER_UNSUSPENDED = 'INSTALLER_UNSUSPENDED',
-
   // Team Activities
   TEAM_MEMBER_REGISTERED = 'TEAM_MEMBER_REGISTERED',
   TEAM_MEMBER_UPDATED = 'TEAM_MEMBER_UPDATED',
   TEAM_MEMBER_DELETED = 'TEAM_MEMBER_DELETED',
+  TEAM_MEMBER_PASSWORD_CHANGED = 'TEAM_MEMBER_PASSWORD_CHANGED',
+
+  // Product Activities
+  PRODUCT_CREATED = 'PRODUCT_CREATED',
+  PRODUCT_UPDATED = 'PRODUCT_UPDATED',
+  PRODUCT_DELETED = 'PRODUCT_DELETED',
 
   // WhatsApp Notifications
   WHATSAPP_SENT = 'WHATSAPP_SENT',
@@ -36,8 +36,8 @@ export interface IActivity {
   _id?: string;
   type: ActivityType;
   performedBy: Types.ObjectId; // Team member who performed the action
-  targetType: 'Installer' | 'InstallerReward' | 'TeamMember';
-  targetId: Types.ObjectId; // ID of the affected entity
+  targetType: 'Installer' | 'InstallerReward' | 'TeamMember' | 'Product';
+  targetId?: Types.ObjectId; // ID of the affected entity (omitted on bulk summary rows)
   targetName?: string; // Human-readable name for quick reference
   description: string; // Human-readable description
   metadata?: {
@@ -67,13 +67,14 @@ const ActivitySchema = new Schema<IActivity>(
     },
     targetType: {
       type: String,
-      enum: ['Installer', 'InstallerReward', 'TeamMember'],
+      enum: ['Installer', 'InstallerReward', 'TeamMember', 'Product'],
       required: true,
       index: true,
     },
     targetId: {
+      // Omitted on bulk summary rows, which describe a batch rather than one entity.
       type: Schema.Types.ObjectId,
-      required: true,
+      required: false,
       index: true,
     },
     targetName: {

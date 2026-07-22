@@ -6,8 +6,7 @@ import { useProducts } from "@/hooks/useProducts";
 import { usePaymentMethods } from "@/hooks/useSettings";
 import { useTransactionIdCheck } from "@/hooks/useTransactionIdCheck";
 import { CITIES, CITY_TO_PROVINCE, PROVINCES } from "@/lib/constants";
-import { RewardStatus, ProductStatus } from "@/types/rewards";
-import { ProductStatusFields } from "@/components/ProductStatusFields";
+import { RewardStatus } from "@/types/rewards";
 import { toast } from "sonner";
 import { MonthYearGridPicker } from "@/components/ui/month-year-grid-picker";
 import { emitAppRefresh } from "@/lib/refreshBus";
@@ -54,8 +53,6 @@ interface RewardData {
   cityOfInstallation?: string;
   installationDate?: string;
   rewardStatus?: RewardStatus;
-  productStatus?: ProductStatus;
-  rejectionReason?: string;
   transactionId?: string;
   referrerTransactionId?: string;
   paymentMethod?: string;
@@ -145,10 +142,6 @@ export default function RewardEditModal({
   const [rewardStatus, setRewardStatus] = useState<RewardStatus>(
     RewardStatus.PENDING,
   );
-  const [productStatus, setProductStatus] = useState<ProductStatus>(
-    ProductStatus.ELIGIBLE,
-  );
-  const [rejectionReason, setRejectionReason] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [transactionId, setTransactionId] = useState("");
   const [originalTransactionId, setOriginalTransactionId] = useState("");
@@ -263,9 +256,6 @@ export default function RewardEditModal({
       const sending = r.sendingDate ? r.sendingDate.slice(0, 10) : "";
       const city = r.cityOfInstallation || "";
       const monthYear = formatMonthYear(r.installationDate);
-      const prodStatus =
-        (r.productStatus as ProductStatus) || ProductStatus.ELIGIBLE;
-      const rejReason = r.rejectionReason || "";
 
       // Store original data for change detection (all as strings)
       setOriginalData({
@@ -275,8 +265,6 @@ export default function RewardEditModal({
         cityOfInstallation: city,
         installationMonthYear: monthYear,
         rewardStatus: status,
-        productStatus: prodStatus,
-        rejectionReason: rejReason,
         paymentMethod: method,
         transactionId: txnId,
         referrerTransactionId: refTxnId,
@@ -291,8 +279,6 @@ export default function RewardEditModal({
       setCityOfInstallation(city);
       setInstallationMonthYear(monthYear);
       setRewardStatus(status);
-      setProductStatus(prodStatus);
-      setRejectionReason(rejReason);
       setPaymentMethod(method);
       setTransactionId(txnId);
       setOriginalTransactionId(txnId);
@@ -324,8 +310,6 @@ export default function RewardEditModal({
       cityOfInstallation,
       installationMonthYear,
       rewardStatus,
-      productStatus,
-      rejectionReason,
       paymentMethod,
       transactionId,
       referrerTransactionId,
@@ -346,8 +330,6 @@ export default function RewardEditModal({
     cityOfInstallation,
     installationMonthYear,
     rewardStatus,
-    productStatus,
-    rejectionReason,
     paymentMethod,
     transactionId,
     referrerTransactionId,
@@ -541,10 +523,6 @@ export default function RewardEditModal({
           installationDate: monthYearToISO(installationMonthYear),
           rewardAmount,
           rewardStatus,
-          productStatus,
-          // Cleared rather than left stale when the product is not rejected.
-          rejectionReason:
-            productStatus === ProductStatus.REJECTED ? rejectionReason : "",
           paymentMethod: paymentMethod || undefined,
           // Send empty string (not undefined) so clearing the field persists.
           transactionId: transactionId.trim(),
@@ -892,14 +870,6 @@ export default function RewardEditModal({
                         required
                       />
                     )}
-                    {/* Product eligibility + rejection reason */}
-                    <ProductStatusFields
-                      productStatus={productStatus}
-                      rejectionReason={rejectionReason}
-                      onProductStatusChange={setProductStatus}
-                      onRejectionReasonChange={setRejectionReason}
-                      idPrefix="edit"
-                    />
 
                     {/* City of Installation */}
                     <FormField

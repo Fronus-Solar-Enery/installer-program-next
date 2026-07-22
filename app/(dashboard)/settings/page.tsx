@@ -48,8 +48,7 @@ import {
 import { SETTINGS_CARDS } from "./settings-config";
 import { SwitchRow, ValueRow } from "./setting-row";
 import { PaymentMethodsCard } from "./payment-methods-card";
-import { RejectionReasonsCard } from "./rejection-reasons-card";
-import { PAYMENT_METHOD, DEFAULT_REJECTION_REASONS } from "@/lib/constants";
+import { PAYMENT_METHOD } from "@/lib/constants";
 import { useQueryClient } from "@tanstack/react-query";
 
 export interface SettingsData {
@@ -60,8 +59,6 @@ export interface SettingsData {
   autoSendWhatsAppOnPaid?: boolean;
   enableWhatsAppNotifications?: boolean;
   paymentMethods?: string[];
-  rejectionReasons?: string[];
-  warningThreshold?: number;
   updatedAt?: string;
 }
 
@@ -82,8 +79,6 @@ const DEFAULT_SETTINGS: SettingsData = {
   autoSendWhatsAppOnPaid: false,
   enableWhatsAppNotifications: false,
   paymentMethods: PAYMENT_METHOD.map((m) => m.value),
-  rejectionReasons: DEFAULT_REJECTION_REASONS,
-  warningThreshold: 5,
 };
 
 export default function SettingsPage() {
@@ -110,12 +105,11 @@ export default function SettingsPage() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [paymentMethodsSaving, setPaymentMethodsSaving] = useState(false);
-  const [rejectionReasonsSaving, setRejectionReasonsSaving] = useState(false);
   const queryClient = useQueryClient();
 
-  // Shared by every list-valued setting (payment methods, rejection reasons).
+  // Shared by every list-valued setting (currently just payment methods).
   const saveListSetting = async (
-    key: "paymentMethods" | "rejectionReasons",
+    key: "paymentMethods",
     next: string[],
     label: string,
     setSaving: (value: boolean) => void,
@@ -153,14 +147,6 @@ export default function SettingsPage() {
       next,
       "Payment methods",
       setPaymentMethodsSaving,
-    );
-
-  const handleSaveRejectionReasons = (next: string[]) =>
-    saveListSetting(
-      "rejectionReasons",
-      next,
-      "Rejection reasons",
-      setRejectionReasonsSaving,
     );
 
   // Products (admin-editable, backed by the Product collection)
@@ -483,17 +469,6 @@ export default function SettingsPage() {
               }
               saving={paymentMethodsSaving}
               onSave={handleSavePaymentMethods}
-            />
-
-            {/* Rejection Reasons */}
-            <RejectionReasonsCard
-              reasons={
-                settings?.rejectionReasons?.length
-                  ? settings.rejectionReasons
-                  : DEFAULT_SETTINGS.rejectionReasons!
-              }
-              saving={rejectionReasonsSaving}
-              onSave={handleSaveRejectionReasons}
             />
 
             {/* Products & Reward Amounts */}

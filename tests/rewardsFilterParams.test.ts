@@ -4,7 +4,6 @@ import type { RewardsFilters } from "@/hooks/useRewardsState";
 
 const base: RewardsFilters = {
   rewardStatus: "ALL",
-  productStatus: "all",
   sendingStart: "",
   sendingEnd: "",
   paymentMethod: "all",
@@ -27,11 +26,9 @@ describe("buildRewardsFilterParams", () => {
     const params = buildRewardsFilterParams({
       ...base,
       rewardStatus: "ALL",
-      productStatus: "all",
       paymentMethod: "all",
     });
     expect(params.get("rewardStatus")).toBeNull();
-    expect(params.get("productStatus")).toBeNull();
     expect(params.get("paymentMethod")).toBeNull();
   });
 
@@ -40,7 +37,6 @@ describe("buildRewardsFilterParams", () => {
       {
         ...base,
         rewardStatus: "PENDING",
-        productStatus: "REJECTED",
         paymentMethod: "UBANK",
         productModel: "Inverter X",
         teamMember: "team-1",
@@ -50,7 +46,6 @@ describe("buildRewardsFilterParams", () => {
 
     expect(params.get("search")).toBe("SN123");
     expect(params.get("rewardStatus")).toBe("PENDING");
-    expect(params.get("productStatus")).toBe("REJECTED");
     expect(params.get("paymentMethod")).toBe("UBANK");
     expect(params.get("productModel")).toBe("Inverter X");
     expect(params.get("registeredBy")).toBe("team-1");

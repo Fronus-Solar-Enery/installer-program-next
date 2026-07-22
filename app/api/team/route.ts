@@ -6,6 +6,9 @@ import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { validateBody } from "@/lib/validateRequest";
 import { registerTeamMemberSchema } from "@/lib/validation";
 import bcrypt from "bcryptjs";
+import { logActivity } from "@/lib/activityLogger";
+import { ActivityType } from "@/models/Activity";
+import { getClientInfo } from "@/lib/requestUtils";
 
 // GET all team members (ADMIN/MANAGER only)
 export const GET = withAuth(
@@ -75,6 +78,16 @@ export const POST = withAuth(
         role: teamMember.role,
         createdAt: teamMember.createdAt,
       };
+
+      await logActivity({
+        type: ActivityType.TEAM_MEMBER_REGISTERED,
+        performedBy: session.user.id,
+        targetType: "TeamMember",
+        targetId: teamMember._id,
+        targetName: teamMember.name,
+        description: `Created team member ${teamMember.name} (${teamMember.email}) as ${teamMember.role}`,
+        ...getClientInfo(request),
+      });
 
       return ApiResponse.success(
         memberResponse,

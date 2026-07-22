@@ -9,6 +9,7 @@ import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { logActivity } from "@/lib/activityLogger";
 import { ActivityType } from "@/models/Activity";
 import { getClientInfo } from "@/lib/requestUtils";
+import { logger } from "@/lib/logger";
 
 interface BulkDeleteResult {
   successCount: number;
@@ -121,6 +122,28 @@ export const POST = withAuth(
 
       // Wait for all database deletions to complete
       await Promise.allSettled(dbDeletePromises);
+
+      // One summary row for the activity feed, alongside the per-item rows above.
+      if (result.successCount > 0) {
+        try {
+          await logActivity({
+            type: ActivityType.INSTALLER_DELETED,
+            performedBy: session.user.id,
+            targetType: "Installer",
+            description: `Bulk deleted ${result.successCount} installer(s)`,
+            metadata: {
+              summary: true,
+              count: result.successCount,
+              failed: result.failCount,
+            },
+            ...clientInfo,
+          });
+        } catch (summaryErr) {
+          logger.error("Failed to create bulk summary activity", {
+            error: String(summaryErr),
+          });
+        }
+      }
 
       // Create batch job for Google Contacts deletion (if any)
       if (googleContactsToDelete.length > 0) {

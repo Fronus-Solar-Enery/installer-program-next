@@ -5,6 +5,7 @@ import Installer from "@/models/Installer";
 import InstallerReward from "@/models/InstallerReward";
 import TeamMember from "@/models/TeamMember";
 import Activity from "@/models/Activity";
+import { logger } from "@/lib/logger";
 
 interface RewardDataInput {
   timestamp: string;
@@ -366,6 +367,28 @@ export async function POST(request: NextRequest) {
       } catch (activityErr) {
         console.error("Failed to create some activity logs:", activityErr);
         // Don't fail the operation if activity logging fails
+      }
+    }
+
+    // One summary row for the activity feed, alongside the per-item rows above.
+    if (results.successful > 0) {
+      try {
+        await Activity.create({
+          type: "REWARD_REGISTERED",
+          description: `Bulk registered ${results.successful} reward(s) via upload`,
+          performedBy: session.user.id,
+          targetType: "InstallerReward",
+          metadata: {
+            summary: true,
+            method: "bulk_register",
+            count: results.successful,
+            failed: results.failed,
+          },
+        });
+      } catch (summaryErr) {
+        logger.error("Failed to create bulk summary activity", {
+          error: String(summaryErr),
+        });
       }
     }
 

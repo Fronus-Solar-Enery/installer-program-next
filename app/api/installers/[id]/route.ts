@@ -131,7 +131,10 @@ export const DELETE = withAuth(
       await dbConnect();
 
       const { id } = await context.params;
-      await deleteInstaller(id);
+      await deleteInstaller(id, {
+        userId: session.user.id,
+        clientInfo: getClientInfo(request),
+      });
 
       return ApiResponse.success(null, "Installer deleted successfully");
     } catch (error) {

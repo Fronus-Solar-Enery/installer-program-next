@@ -5,6 +5,9 @@ import { updateTeamMemberSchema } from "@/lib/validation";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { validateBody } from "@/lib/validateRequest";
+import { logActivity, getChanges } from "@/lib/activityLogger";
+import { ActivityType } from "@/models/Activity";
+import { getClientInfo } from "@/lib/requestUtils";
 
 // GET single team member
 export const GET = withAuth(
@@ -60,11 +63,34 @@ export const PUT = withAuth(
         return ApiResponse.forbidden("Managers cannot assign admin role");
       }
 
+      const before = teamMember.toObject() as unknown as Record<string, unknown>;
+
       // Update team member
       Object.assign(teamMember, validatedData);
       await teamMember.save();
 
       const { password, ...teamMemberWithoutPassword } = teamMember.toObject();
+
+      // Diff without secrets: never let a password value reach the audit log.
+      const { password: _pw, ...auditableInput } = validatedData as Record<
+        string,
+        unknown
+      >;
+      const changes = getChanges(before, auditableInput);
+      const changedFields = Object.keys(changes);
+      if (_pw !== undefined) changedFields.push("password");
+      if (changedFields.length > 0) {
+        await logActivity({
+          type: ActivityType.TEAM_MEMBER_UPDATED,
+          performedBy: session.user.id,
+          targetType: "TeamMember",
+          targetId: teamMember._id,
+          targetName: teamMember.name,
+          description: `Updated team member ${teamMember.name}: ${changedFields.join(", ")}`,
+          metadata: { changes },
+          ...getClientInfo(request),
+        });
+      }
 
       return ApiResponse.success(
         teamMemberWithoutPassword,
@@ -103,7 +129,18 @@ export const DELETE = withAuth(
         return ApiResponse.error("You cannot delete your own account", 400);
       }
 
+      const { _id, name, email, role } = teamMember;
       await teamMember.deleteOne();
+
+      await logActivity({
+        type: ActivityType.TEAM_MEMBER_DELETED,
+        performedBy: session.user.id,
+        targetType: "TeamMember",
+        targetId: _id,
+        targetName: name,
+        description: `Deleted team member ${name} (${email}, ${role})`,
+        ...getClientInfo(request),
+      });
 
       return ApiResponse.success(null, "Team member deleted successfully");
     } catch (error) {

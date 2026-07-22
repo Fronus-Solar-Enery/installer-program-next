@@ -5,6 +5,7 @@ import Installer, { IInstaller } from "@/models/Installer";
 import Activity from "@/models/Activity";
 import { CITY_TO_DISTRICT, DISTRICT_CODES } from "@/lib/constants";
 import { toTitleCase } from "@/lib/validation";
+import { logger } from "@/lib/logger";
 
 interface BulkInstallerData extends Partial<IInstaller> {
   isValid?: boolean;
@@ -351,6 +352,28 @@ export async function POST(req: NextRequest) {
       } catch (activityErr) {
         console.error("Failed to create some activity logs:", activityErr);
         // Don't fail the operation if activity logging fails
+      }
+    }
+
+    // One summary row for the activity feed, alongside the per-item rows above.
+    if (results.success > 0) {
+      try {
+        await Activity.create({
+          type: "INSTALLER_REGISTERED",
+          description: `Bulk registered ${results.success} installer(s) via upload`,
+          performedBy: session.user.id,
+          targetType: "Installer",
+          metadata: {
+            summary: true,
+            method: "bulk_register",
+            count: results.success,
+            failed: results.failed,
+          },
+        });
+      } catch (summaryErr) {
+        logger.error("Failed to create bulk summary activity", {
+          error: String(summaryErr),
+        });
       }
     }
 

@@ -38,10 +38,6 @@ import {
   GRID_2_COL_CLASS,
 } from "@/lib/registration-styles";
 import { MonthYearGridPicker } from "@/components/ui/month-year-grid-picker";
-import { ProductStatusFields } from "@/components/ProductStatusFields";
-import { AccountHealthCard } from "@/components/AccountHealthCard";
-import { useAccountHealth } from "@/hooks/useAccountHealth";
-import { ProductStatus } from "@/types/rewards";
 
 interface ValidationError {
   path?: string[];
@@ -85,10 +81,6 @@ export default function NewRewardPage() {
       fullName: string;
     };
   } | null>(null);
-  const [productStatus, setProductStatus] = useState<ProductStatus>(
-    ProductStatus.ELIGIBLE,
-  );
-  const [rejectionReason, setRejectionReason] = useState("");
   const [serialNumber, setSerialNumber] = useState("");
   const [serialValidating, setSerialValidating] = useState(false);
   const [serialTouched, setSerialTouched] = useState(false);
@@ -244,7 +236,6 @@ export default function NewRewardPage() {
 
   // Warning/suspension standing for the resolved installer, so the team sees it
   // before filing another claim against an account that is already in trouble.
-  const { data: installerHealth } = useAccountHealth(installerData?._id);
 
   // Optimized validation for serial number using dedicated check-serial endpoint
   const validateSerialNumber = useCallback(async (serial: string) => {
@@ -392,11 +383,6 @@ export default function NewRewardPage() {
           cityOfInstallation,
           rewardAmount,
           installationDate,
-          productStatus,
-          rejectionReason:
-            productStatus === ProductStatus.REJECTED
-              ? rejectionReason
-              : undefined,
         }),
       });
 
@@ -699,11 +685,6 @@ export default function NewRewardPage() {
                       </div>
                     )}
 
-                    {/* Standing of the installer this claim is being filed for */}
-                    {installerData && installerHealth && (
-                      <AccountHealthCard health={installerHealth} />
-                    )}
-
                     {/* Serial Number - Only show after installer validation */}
                     {installerData && (
                       <div className="space-y-2">
@@ -817,15 +798,6 @@ export default function NewRewardPage() {
                         disabled
                         aria-label="Reward amount in Pakistani Rupees"
                         aria-readonly="true"
-                      />
-
-                      {/* Product eligibility + rejection reason */}
-                      <ProductStatusFields
-                        productStatus={productStatus}
-                        rejectionReason={rejectionReason}
-                        onProductStatusChange={setProductStatus}
-                        onRejectionReasonChange={setRejectionReason}
-                        idPrefix="register"
                       />
 
                       {/* City of Installation */}

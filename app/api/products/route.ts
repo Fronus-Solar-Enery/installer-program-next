@@ -6,6 +6,9 @@ import { productSchema } from "@/lib/validation";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { validateBody, getSearchParams } from "@/lib/validateRequest";
+import { logActivity } from "@/lib/activityLogger";
+import { ActivityType } from "@/models/Activity";
+import { getClientInfo } from "@/lib/requestUtils";
 
 // GET all products (any authenticated role — dropdowns need this too)
 export const GET = withAuth(
@@ -31,7 +34,7 @@ export const GET = withAuth(
 
 // CREATE product
 export const POST = withAuth(
-  async (request: NextRequest) => {
+  async (request: NextRequest, context: RouteContext, session: AuthSession) => {
     try {
       const validation = await validateBody(request, productSchema);
       if (!validation.success) return validation.response;
@@ -45,6 +48,16 @@ export const POST = withAuth(
       }
 
       const product = await Product.create({ ...validation.data, order });
+
+      await logActivity({
+        type: ActivityType.PRODUCT_CREATED,
+        performedBy: session.user.id,
+        targetType: "Product",
+        targetId: product._id,
+        targetName: product.name,
+        description: `Created product "${product.name}" (reward ${product.reward})`,
+        ...getClientInfo(request),
+      });
 
       return ApiResponse.success(product, "Product created successfully", 201);
     } catch (error) {

@@ -6,7 +6,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { CopyButton } from "@/components/CopyButton";
 import { InstallerCodeLink } from "@/components/InstallerCodeLink";
-import { ProductStatus, PRODUCT_STATUS_LABELS } from "@/types/rewards";
 import { IconEdit2, IconTrashBin2 } from "@/components/icons";
 import type { RewardWithId } from "@/hooks/useOptimizedRewardsFilter";
 import type { ColumnVisibility } from "@/hooks/useRewardsState";
@@ -114,29 +113,6 @@ export const RewardsTableRow = React.memo<RewardsTableRowProps>(
               }
             >
               {reward.rewardStatus}
-            </Badge>
-          </TableCell>
-        )}
-        {visibleColumns.productStatus && (
-          <TableCell>
-            <Badge
-              variant={
-                reward.productStatus === ProductStatus.ELIGIBLE
-                  ? "success"
-                  : reward.productStatus === ProductStatus.NOT_ELIGIBLE
-                  ? "secondary"
-                  : "destructive"
-              }
-              // The reason a claim was refused is the useful detail here, and
-              // there is no room for it in the cell.
-              title={reward.rejectionReason || undefined}
-            >
-              {
-                PRODUCT_STATUS_LABELS[
-                  (reward.productStatus as ProductStatus) ??
-                    ProductStatus.ELIGIBLE
-                ]
-              }
             </Badge>
           </TableCell>
         )}

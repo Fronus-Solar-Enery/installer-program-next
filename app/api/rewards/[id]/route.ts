@@ -6,12 +6,13 @@ import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { validateBody } from "@/lib/validateRequest";
 import { TeamRole } from "@/models/TeamMember";
-import { RewardStatus, ProductStatus } from "@/types/rewards";
+import { RewardStatus } from "@/types/rewards";
 import { getSettings } from "@/models/Settings";
 import { sendRewardPaymentMessage } from "@/lib/whatsappService";
 import { logger } from "@/lib/logger";
-import { syncWarningForReward } from "@/lib/warnings";
-import Warning from "@/models/Warning";
+import { logActivity } from "@/lib/activityLogger";
+import { ActivityType } from "@/models/Activity";
+import { getClientInfo } from "@/lib/requestUtils";
 
 const POPULATE = [
   {
@@ -59,7 +60,7 @@ export const PUT = withAuth(
 
       const { id } = await context.params;
       const previous = await InstallerReward.findById(id).select(
-        "rewardStatus transactionId productStatus",
+        "rewardStatus transactionId",
       );
       if (!previous) {
         return ApiResponse.notFound("Reward not found");
@@ -83,19 +84,9 @@ export const PUT = withAuth(
         previous.rewardStatus !== RewardStatus.PAID &&
         validation.data.rewardStatus === RewardStatus.PAID;
 
-      // Only eligible products can be paid. Checked against the status the
-      // reward will actually have after this update, so a single request cannot
-      // reject a claim and pay it at the same time.
-      if (becomingPaid) {
-        const effectiveProductStatus =
-          validation.data.productStatus ?? previous.productStatus;
-        if (effectiveProductStatus !== ProductStatus.ELIGIBLE) {
-          return ApiResponse.badRequest(
-            `A ${effectiveProductStatus} product cannot be marked PAID`,
-            { productStatus: ["Product must be eligible to be paid"] },
-          );
-        }
-      }
+      const becomingFailed =
+        previous.rewardStatus !== RewardStatus.FAILED &&
+        validation.data.rewardStatus === RewardStatus.FAILED;
 
       // Enforce Transaction ID before allowing a reward to be marked PAID.
       const settings = becomingPaid ? await getSettings() : null;
@@ -126,13 +117,6 @@ export const PUT = withAuth(
         whatsappNumber?: string;
       } | null;
 
-      // Keep the warning in step with the product status: rejecting as a false
-      // claim issues one, correcting the status back revokes it.
-      await syncWarningForReward(
-        reward,
-        session.user.id,
-        installer?.fullName ?? "",
-      );
       if (
         becomingPaid &&
         installer?.fullName &&
@@ -158,6 +142,33 @@ export const PUT = withAuth(
         }
       }
 
+      const activityType = becomingPaid
+        ? ActivityType.REWARD_MARKED_PAID
+        : becomingFailed
+          ? ActivityType.REWARD_MARKED_FAILED
+          : ActivityType.REWARD_UPDATED;
+      await logActivity({
+        type: activityType,
+        performedBy: session.user.id,
+        targetType: "InstallerReward",
+        targetId: reward._id,
+        targetName: `${reward.installerCode} - ${reward.serialNumber}`,
+        description: `${
+          becomingPaid
+            ? "Marked reward PAID"
+            : becomingFailed
+              ? "Marked reward FAILED"
+              : "Updated reward"
+        } for ${installer?.fullName ?? reward.installerCode} (serial ${reward.serialNumber})`,
+        metadata: {
+          serialNumber: reward.serialNumber,
+          previousStatus: previous.rewardStatus,
+          newStatus: reward.rewardStatus,
+          transactionId: reward.transactionId,
+        },
+        ...getClientInfo(request),
+      });
+
       return ApiResponse.success(reward, "Reward updated successfully");
     } catch (error) {
       return handleApiError(error);
@@ -178,17 +189,16 @@ export const DELETE = withAuth(
         return ApiResponse.notFound("Reward not found");
       }
 
-      // The claim is gone, so the warning it produced must stop counting.
-      await Warning.updateOne(
-        { reward: reward._id, revokedAt: null },
-        {
-          $set: {
-            revokedAt: new Date(),
-            revokedBy: session.user.id,
-            revokedNote: "Reward deleted",
-          },
-        },
-      );
+      await logActivity({
+        type: ActivityType.REWARD_DELETED,
+        performedBy: session.user.id,
+        targetType: "InstallerReward",
+        targetId: reward._id,
+        targetName: `${reward.installerCode} - ${reward.serialNumber}`,
+        description: `Deleted reward for ${reward.installerCode} (serial ${reward.serialNumber})`,
+        metadata: { serialNumber: reward.serialNumber },
+        ...getClientInfo(request),
+      });
 
       return ApiResponse.success(null, "Reward deleted successfully");
     } catch (error) {
