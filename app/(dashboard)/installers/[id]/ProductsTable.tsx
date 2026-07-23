@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { IconBoxMinimalistic } from "@/components/icons";
+import { IconBoxMinimalistic, IconEye } from "@/components/icons";
 import type { InstallerProduct } from "@/hooks/useInstallerDetails";
 import Unavailable from "@/components/ui/not-avaiable";
 
@@ -116,14 +116,14 @@ export default function ProductsTable({
                   </TableCell>
                   <TableCell className="pr-5 text-right">
                     <Button
-                      variant="link"
-                      className="h-auto p-0"
+                      variant="secondary"
+                      className="h-8 gap-2 pl-2 pr-3"
                       onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
                         router.push(`/rewards/${product._id}`);
                       }}
                     >
-                      View
+                      <IconEye /> View
                     </Button>
                   </TableCell>
                 </TableRow>

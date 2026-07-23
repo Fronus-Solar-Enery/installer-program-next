@@ -29,7 +29,7 @@ function SectionHeading({
 }) {
   return (
     <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-      <Icon className="size-3.5" duotone />
+      <Icon className="size-3.5" />
       {children}
     </h3>
   );
@@ -154,7 +154,7 @@ export default function ProfileSidebar({
               <div className="flex min-w-0 items-center gap-2.5">
                 <IconSmartphone2
                   className="size-4 shrink-0 text-muted-foreground"
-                  duotone
+                  // duotone
                 />
                 <div className="min-w-0">
                   <div className="text-[11px] text-muted-foreground">Phone</div>
