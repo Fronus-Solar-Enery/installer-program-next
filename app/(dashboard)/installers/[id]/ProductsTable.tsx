@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { IconBoxMinimalistic } from "@/components/icons";
 import type { InstallerProduct } from "@/hooks/useInstallerDetails";
+import Unavailable from "@/components/ui/not-avaiable";
 
 function statusVariant(status: string) {
   if (status === "PAID") return "success" as const;
@@ -74,7 +75,8 @@ export default function ProductsTable({
                 <TableHead>City</TableHead>
                 <TableHead className="text-right">Reward</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Installed</TableHead>
+                <TableHead>TID</TableHead>
+                <TableHead>Installed in</TableHead>
                 <TableHead className="pr-5 text-right">
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -94,7 +96,7 @@ export default function ProductsTable({
                     {product.productModel}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {product.cityOfInstallation || "—"}
+                    {product.cityOfInstallation || <Unavailable />}
                   </TableCell>
                   <TableCell className="text-right font-semibold text-success-text">
                     Rs. {product.rewardAmount?.toLocaleString()}
@@ -103,6 +105,9 @@ export default function ProductsTable({
                     <Badge variant={statusVariant(product.rewardStatus)}>
                       {product.rewardStatus}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="font-mono">
+                    {product.transactionId || <Unavailable />}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {product.installationDate

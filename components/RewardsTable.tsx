@@ -6,6 +6,7 @@ import React, {
   useRef,
   useEffect,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { motion, AnimatePresence } from "motion/react";
@@ -67,30 +68,14 @@ import {
   IconLayer,
   IconActivity,
   IconAdd,
-  IconInfoCircle,
   IconClose,
   IconSortFromTopToBottom,
   IconSortFromBottomToTop,
-  IconSetting4,
-  IconCheck,
 } from "@/components/icons";
 import { EmptyState } from "@/components/EmptyState";
-import Loading from "@/components/ui/loading";
-import { RewardsTableRow } from "./RewardsTableRow";
 import type { RewardWithId } from "@/hooks/useOptimizedRewardsFilter";
-import type {
-  ColumnVisibility,
-  Filters,
-  RewardsFilters,
-} from "@/hooks/useRewardsState";
+import type { ColumnVisibility, RewardsFilters } from "@/hooks/useRewardsState";
 import IconSortVertical from "./icons/SortVertical";
-import { Label } from "@/components/ui/label";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { InstallerAvatar } from "./UserAvatar";
 import Unavailable from "./ui/not-avaiable";
 
@@ -574,7 +559,6 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                 </Select>
               </div>
 
-
               {/* Sending Date range */}
               <div className="space-y-2 w-full">
                 <span className="text-sm px-2">Sending Date</span>
@@ -987,44 +971,53 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                           className="px-4 py-3 text-sm flex items-center whitespace-nowrap gap-2"
                           style={getColumnStyle("installer")}
                         >
-                          <InstallerAvatar user={reward.installer?.fullName} />
-                          <div>
+                          <Link
+                            href={`/installers/${reward.installer?._id}`}
+                            className="flex items-center gap-2"
+                          >
+                            <InstallerAvatar
+                              user={reward.installer?.fullName}
+                            />
                             <div>
-                              {reward.installer?.fullName || <Unavailable />}
+                              <div>
+                                {reward.installer?.fullName || <Unavailable />}
+                              </div>
+                              <div className="text-xs text-muted-foreground flex items-center font-mono">
+                                {reward.installerCode}
+                                <CopyButton
+                                  text={reward.installerCode}
+                                  label="Installer Code"
+                                  className="size-3.5! mr-1.5"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </div>
                             </div>
-                            <div className="text-xs text-muted-foreground flex items-center font-mono">
-                              {reward.installerCode}
-                              <CopyButton
-                                text={reward.installerCode}
-                                label="Installer Code"
-                                className="size-3.5! ml-1.5"
-                              />
-                            </div>
-                          </div>
+                          </Link>
                         </div>
                         <div
                           data-column="product"
                           className="px-4 py-3 text-sm flex items-center whitespace-nowrap"
                           style={getColumnStyle("product")}
                         >
-                          <div>
-                            <div
-                              className="flex items-center cursor-pointer font-medium font-mono"
-                              onClick={() =>
-                                router.push(`/rewards/${reward._id}`)
-                              }
-                            >
-                              {reward.serialNumber}
-                              <CopyButton
-                                text={reward.serialNumber}
-                                label="Serial Number"
-                                className="size-3.5! ml-1.5"
-                              />
+                          <Link
+                            href={`/rewards/${reward._id}`}
+                            className="font-medium font-mono cursor-pointer"
+                          >
+                            <div>
+                              <div className="flex items-center">
+                                {reward.serialNumber}
+                                <CopyButton
+                                  text={reward.serialNumber}
+                                  label="Serial Number"
+                                  className="size-3.5! ml-1.5"
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              </div>
+                              <div className="text-xs text-muted-foreground font-normal font-sans">
+                                {reward.productModel || <Unavailable />}
+                              </div>
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              {reward.productModel || <Unavailable />}
-                            </div>
-                          </div>
+                          </Link>
                         </div>
                         <div
                           data-column="installerReward"

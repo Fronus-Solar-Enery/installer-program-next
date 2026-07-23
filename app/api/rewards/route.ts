@@ -35,7 +35,7 @@ export const GET = withAuth(
       const { field: sortBy, order: sortOrder } = parseSortParams(params.raw);
 
       // Shared with the rewards export so a download always matches the screen.
-      const query = buildRewardsQuery(params.raw);
+      const query = await buildRewardsQuery(params.raw);
 
       // Check if stats are requested (skip expensive aggregation when not needed)
       const includeStats = params.getString("includeStats") === "true";

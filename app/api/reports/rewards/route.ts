@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 
     // Same builder the rewards list uses, so the export is exactly the filtered
     // set the user is looking at.
-    const query = buildRewardsQuery(searchParams);
+    const query = await buildRewardsQuery(searchParams);
 
     const rewards = await InstallerReward.find(query)
       .populate('installer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')

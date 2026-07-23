@@ -1,6 +1,7 @@
 import { FilterQuery } from "mongoose";
 import { IInstallerReward } from "@/models/InstallerReward";
-import { QueryBuilder } from "@/lib/queryBuilder";
+import { QueryBuilder, escapeRegex } from "@/lib/queryBuilder";
+import Installer from "@/models/Installer";
 
 /**
  * The one place reward list filters are turned into a Mongo query.
@@ -10,9 +11,9 @@ import { QueryBuilder } from "@/lib/queryBuilder";
  * drifted: the export silently ignored payment method, team member, sending
  * date and installation date.
  */
-export function buildRewardsQuery(
+export async function buildRewardsQuery(
   params: URLSearchParams
-): FilterQuery<IInstallerReward> {
+): Promise<FilterQuery<IInstallerReward>> {
   const get = (key: string) => {
     const value = params.get(key)?.trim();
     // "all"/"ALL" are the list page's "no filter" sentinels, not real values.
@@ -20,11 +21,8 @@ export function buildRewardsQuery(
     return value;
   };
 
-  return new QueryBuilder<IInstallerReward>()
-    .search(
-      ["serialNumber", "transactionId", "referrerTransactionId", "installerCode"],
-      get("search")
-    )
+  const searchValue = get("search");
+  const builder = new QueryBuilder<IInstallerReward>()
     .enumFilter("rewardStatus", get("rewardStatus"))
     .filter("productModel", get("productModel"), { regex: true })
     .filter("cityOfInstallation", get("city"), { regex: true })
@@ -38,6 +36,30 @@ export function buildRewardsQuery(
       "installationDate",
       get("installationStart"),
       get("installationEnd")
-    )
-    .build();
+    );
+
+  if (searchValue) {
+    const pattern = escapeRegex(searchValue);
+    const $or: FilterQuery<IInstallerReward>["$or"] = [
+      { serialNumber: { $regex: pattern, $options: "i" } },
+      { transactionId: { $regex: pattern, $options: "i" } },
+      { referrerTransactionId: { $regex: pattern, $options: "i" } },
+      { installerCode: { $regex: pattern, $options: "i" } },
+    ];
+
+    const matchingInstallers = await Installer.find(
+      { fullName: { $regex: pattern, $options: "i" } },
+      { _id: 1 }
+    ).lean();
+
+    if (matchingInstallers.length > 0) {
+      $or.push({
+        installer: { $in: matchingInstallers.map((i) => i._id) },
+      });
+    }
+
+    builder.raw({ $or });
+  }
+
+  return builder.build();
 }
