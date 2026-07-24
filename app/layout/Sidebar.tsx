@@ -144,6 +144,11 @@ const DEFAULT_NAV_ITEMS: NavItem[] = [
         href: "/rewards/bulk-update",
         show: true,
       },
+      {
+        title: "Archives",
+        href: "/rewards/archives",
+        show: (role) => role === TeamRole.ADMIN || role === TeamRole.MANAGER,
+      },
     ],
   },
   {

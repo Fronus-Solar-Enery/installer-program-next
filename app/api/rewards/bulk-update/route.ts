@@ -110,6 +110,15 @@ export const POST = withAuth(
           continue;
         }
 
+        // Never overwrite an already-PAID reward via bulk update.
+        if (existingReward.rewardStatus === RewardStatus.PAID) {
+          results.failed++;
+          results.errors.push(
+            `Serial number ${rewardUpdate.serialNumber} is already PAID and cannot be overwritten via bulk update`
+          );
+          continue;
+        }
+
         // Enforce Transaction ID before allowing a reward to be marked PAID.
         if (
           requireTransactionIdForPaid &&

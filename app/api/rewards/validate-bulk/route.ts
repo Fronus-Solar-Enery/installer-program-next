@@ -12,6 +12,8 @@ interface RewardUpdate {
   rewardStatus: string;
   sendingDate?: string;
   paymentMethod?: string;
+  installerCode?: string;
+  accountTitle?: string;
   issues: string[];
   isValid: boolean;
 }
@@ -19,6 +21,9 @@ interface RewardUpdate {
 interface ExistingRewardLean {
   serialNumber: string;
   referrer?: unknown;
+  rewardStatus: string;
+  installerCode?: string;
+  accountTitle?: string;
 }
 
 export const POST = withAuth(
@@ -36,11 +41,23 @@ export const POST = withAuth(
       const serialNumbers = rewards.map((r: RewardUpdate) => r.serialNumber);
       const existingRewards = await InstallerReward.find(
         { serialNumber: { $in: serialNumbers } },
-        { serialNumber: 1, referrer: 1, _id: 0 }
+        {
+          serialNumber: 1,
+          referrer: 1,
+          rewardStatus: 1,
+          installerCode: 1,
+          accountTitle: 1,
+          _id: 0,
+        }
       ).lean<ExistingRewardLean[]>();
 
       const existingSerialNumbers = new Set(
         existingRewards.map((r) => r.serialNumber.toUpperCase())
+      );
+
+      // Map serial (upper) -> existing reward for status / display lookups
+      const existingBySerial = new Map(
+        existingRewards.map((r) => [r.serialNumber.toUpperCase(), r])
       );
 
       const rewardsWithReferrer = new Set(
@@ -57,11 +74,19 @@ export const POST = withAuth(
         (reward: RewardUpdate, index: number) => {
           const newIssues: string[] = [...reward.issues];
           const serialUpper = reward.serialNumber.toUpperCase();
+          const existing = existingBySerial.get(serialUpper);
 
           // Check if serial number exists in database
           if (!existingSerialNumbers.has(serialUpper)) {
             newIssues.push(
               `Serial number "${reward.serialNumber}" not found in database`
+            );
+          }
+
+          // Never overwrite an already-PAID reward via bulk update
+          if (existing?.rewardStatus === "PAID") {
+            newIssues.push(
+              `Serial number "${reward.serialNumber}" is already PAID and cannot be overwritten via bulk update`
             );
           }
 
@@ -94,6 +119,8 @@ export const POST = withAuth(
 
           return {
             ...reward,
+            installerCode: existing?.installerCode ?? reward.installerCode,
+            accountTitle: existing?.accountTitle ?? reward.accountTitle,
             issues: newIssues,
             isValid: newIssues.length === 0,
           };

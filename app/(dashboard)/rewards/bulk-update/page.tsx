@@ -37,7 +37,12 @@ import {
 import PageHeader from "@/components/PageHeader";
 import { PAYMENT_METHOD } from "@/lib/constants";
 import { FileDropzone } from "@/components/ui/drop-zone";
-import { IconLayer, IconReward, IconTrashBin2 } from "@/components/icons";
+import {
+  IconInfoCircle,
+  IconLayer,
+  IconReward,
+  IconTrashBin2,
+} from "@/components/icons";
 import IconExcel from "@/components/icons/Excel";
 import { toast } from "sonner";
 import { emitAppRefresh } from "@/lib/refreshBus";
@@ -90,6 +95,8 @@ interface RewardUpdate {
   rewardStatus: string;
   sendingDate?: string;
   paymentMethod?: string;
+  installerCode?: string;
+  accountTitle?: string;
   issues: string[];
   isValid: boolean;
 }
@@ -651,6 +658,7 @@ export default function BulkUploadRewardsPage() {
       let totalSuccess = 0;
       let totalFailed = 0;
       const allErrors: string[] = [];
+      const allSuccessfulSerials: string[] = [];
 
       for (let i = 0; i < validRewards.length; i += CHUNK_SIZE) {
         const chunk = validRewards.slice(i, i + CHUNK_SIZE);
@@ -678,6 +686,10 @@ export default function BulkUploadRewardsPage() {
           if (response.ok) {
             totalSuccess += data.data?.success || 0;
             totalFailed += data.data?.failed || 0;
+
+            if (data.data?.successfulSerials?.length) {
+              allSuccessfulSerials.push(...data.data.successfulSerials);
+            }
 
             if (data.data?.errors && data.data.errors.length > 0) {
               allErrors.push(...data.data.errors);
@@ -793,6 +805,31 @@ export default function BulkUploadRewardsPage() {
       setSuccess(`Successfully updated ${totalSuccess} reward(s)!`);
       if (totalSuccess > 0) emitAppRefresh();
 
+      // Archive the successfully-updated records for this file (best-effort).
+      if (allSuccessfulSerials.length > 0) {
+        try {
+          const archiveRes = await fetch("/api/reward-archives", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fileName: file?.name || "bulk_update.xlsx",
+              serialNumbers: allSuccessfulSerials,
+              successCount: totalSuccess,
+              failedCount: totalFailed,
+              totalRowsInFile: preview.length,
+            }),
+          });
+          if (archiveRes.ok) {
+            const archiveData = await archiveRes.json();
+            toast.success(
+              `Archived as "${archiveData.data?.archiveName ?? "batch"}"`,
+            );
+          }
+        } catch (archiveErr) {
+          console.error("Failed to archive updated records:", archiveErr);
+        }
+      }
+
       if (totalFailed > 0) {
         setError(
           `${totalFailed} reward(s) failed. Check the logs for details.`,
@@ -824,20 +861,32 @@ export default function BulkUploadRewardsPage() {
         title="Bulk Update Rewards"
         description="Update multiple reward records at once using an Excel file"
         action={
-          <Button variant="ghost" onClick={() => router.push("/rewards")}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Rewards
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/rewards/archives")}
+            >
+              <IconLayer className="h-4 w-4 mr-2" />
+              View Archives
+            </Button>
+            <Button variant="ghost" onClick={() => router.push("/rewards")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Rewards
+            </Button>
+          </div>
         }
       />
       {/* Instructions Card */}
       <Card className="grid grid-cols-1 lg:grid-cols-2">
-        <div>
+        <div className="flex flex-col ">
           <CardHeader>
-            <CardTitle>Instructions</CardTitle>
+            <CardTitle className="flex items-center gap-2 leading-none">
+              <IconInfoCircle className="size-6" />
+              Instructions
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
+          <CardContent className="flex flex-col">
+            <div className="flex-1">
               <p className="text-sm text-muted-foreground mb-2">
                 1. Download the template file and fill in the reward update data
               </p>
@@ -850,34 +899,31 @@ export default function BulkUploadRewardsPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 4. Click &quot;Update All Valid Records&quot; to finalize
               </p>
-              <div className="flex gap-2 flex-wrap">
-                <Button
-                  onClick={downloadTemplate}
-                  variant="outline"
-                  disabled={downloadingTemplate}
-                  className="gap-2"
-                >
-                  {downloadingTemplate ? (
-                    <Loading />
-                  ) : (
-                    <IconDownloadMinimalistic />
-                  )}
-                  {downloadingTemplate ? "Downloading..." : "Download Template"}
-                </Button>
-                <Button
-                  onClick={downloadPaymentFormat}
-                  variant="outline"
-                  className="gap-2"
-                  disabled={downloadingPaymentFormat}
-                >
-                  {downloadingPaymentFormat ? <Loading /> : <IconReward />}
-                  {downloadingPaymentFormat
-                    ? "Downloading..."
-                    : "Payment Format"}
-                </Button>
-              </div>
             </div>
-
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                onClick={downloadTemplate}
+                variant="outline"
+                className="gap-2 pr-5 pl-3.5"
+                disabled={downloadingTemplate}
+              >
+                {downloadingTemplate ? (
+                  <Loading />
+                ) : (
+                  <IconDownloadMinimalistic />
+                )}
+                {downloadingTemplate ? "Downloading..." : "Download Template"}
+              </Button>
+              <Button
+                onClick={downloadPaymentFormat}
+                variant="outline"
+                className="gap-2 pr-5 pl-3.5"
+                disabled={downloadingPaymentFormat}
+              >
+                {downloadingPaymentFormat ? <Loading /> : <IconReward />}
+                {downloadingPaymentFormat ? "Downloading..." : "Payment Format"}
+              </Button>
+            </div>
             {/* <div className="pt-4 border-t border-border">
               <p className="text-sm font-medium mb-2">Validation Rules:</p>
               <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
@@ -1108,6 +1154,8 @@ export default function BulkUploadRewardsPage() {
                   <TableRow>
                     <TableHead className="w-12">#</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Installer Code</TableHead>
+                    <TableHead>Account Title</TableHead>
                     <TableHead>Serial Number</TableHead>
                     <TableHead>Transaction ID</TableHead>
                     <TableHead>Ref. Transaction</TableHead>
@@ -1137,6 +1185,12 @@ export default function BulkUploadRewardsPage() {
                             Invalid
                           </Badge>
                         )}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {reward.installerCode || "-"}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {reward.accountTitle || "-"}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
                         {reward.serialNumber}

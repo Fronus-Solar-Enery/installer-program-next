@@ -33,6 +33,8 @@ interface PopulatedReward
 
 // Type for payment row in Excel
 interface PaymentRow {
+  "Installer Code": string;
+  "Reward Account Title": string;
   "Serial Number": string;
   "To Account": string;
   Bank: string;
@@ -121,6 +123,8 @@ export async function GET(request: NextRequest) {
       const installer = populatedReward.installer;
       if (installer) {
         allPayments.push({
+          "Installer Code": installer.installerCode || "",
+          "Reward Account Title": installer.accountTitle || "",
           "Serial Number": populatedReward.serialNumber || "",
           "To Account": isMobileBank(installer.bankName)
             ? formatPhoneNumber(installer.accountNumber || "")
@@ -143,6 +147,8 @@ export async function GET(request: NextRequest) {
         populatedReward.referrerRewardAmount > 0
       ) {
         allPayments.push({
+          "Installer Code": referrer.installerCode || "",
+          "Reward Account Title": referrer.accountTitle || "",
           "Serial Number": populatedReward.serialNumber || "",
           "To Account": isMobileBank(referrer.bankName)
             ? formatPhoneNumber(referrer.accountNumber || "")
@@ -161,6 +167,8 @@ export async function GET(request: NextRequest) {
 
     // Set columns and widths for better readability; numFmt '@' forces text format
     worksheet.columns = [
+      { header: "Installer Code", key: "Installer Code", width: 16, style: { numFmt: "@" } },
+      { header: "Reward Account Title", key: "Reward Account Title", width: 28, style: { numFmt: "@" } },
       { header: "Serial Number", key: "Serial Number", width: 18, style: { numFmt: "@" } },
       { header: "To Account", key: "To Account", width: 20, style: { numFmt: "@" } },
       { header: "Bank", key: "Bank", width: 25, style: { numFmt: "@" } },
@@ -172,6 +180,8 @@ export async function GET(request: NextRequest) {
     // Convert every value to a string so cells store text, not numbers
     allPayments.forEach((payment) => {
       worksheet.addRow({
+        "Installer Code": String(payment["Installer Code"]),
+        "Reward Account Title": String(payment["Reward Account Title"]),
         "Serial Number": String(payment["Serial Number"]),
         "To Account": String(payment["To Account"]),
         Bank: String(payment.Bank),
