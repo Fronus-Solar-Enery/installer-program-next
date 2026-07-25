@@ -103,7 +103,7 @@ export default function ActivityPage() {
   };
 
   const getActivityVariant = (
-    type: string
+    type: string,
   ): "default" | "destructive" | "outline" | "secondary" => {
     if (type.includes("DELETED")) return "destructive";
     if (type.includes("REGISTERED") || type.includes("PAID")) return "default";
@@ -205,7 +205,7 @@ export default function ActivityPage() {
                   >
                     {filterType}
                   </Button>
-                )
+                ),
               )}
             </div>
           </CardContent>
@@ -259,7 +259,7 @@ export default function ActivityPage() {
                         <div className="relative shrink-0">
                           <div
                             className={`p-2 rounded-lg ${getActivityBgColor(
-                              activity.type
+                              activity.type,
                             )}`}
                           >
                             {getActivityIcon(activity.type)}
@@ -273,7 +273,7 @@ export default function ActivityPage() {
 
                         {/* Content */}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-4 mb-2">
+                          <div className="flex items-start justify-between gap-4 space-y-1">
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium">
                                 {getActivityTitle(activity)}
@@ -325,12 +325,12 @@ export default function ActivityPage() {
                                   year: "numeric",
                                   hour: "2-digit",
                                   minute: "2-digit",
-                                }
+                                },
                               )}
                             </span>
                             {activity.targetName &&
                               !activity.type.includes(
-                                "INSTALLER_REGISTERED"
+                                "INSTALLER_REGISTERED",
                               ) && (
                                 <>
                                   <span className="text-muted-foreground/50">
@@ -354,7 +354,7 @@ export default function ActivityPage() {
                                   <AlertDescription>
                                     <dl className="space-y-2">
                                       {Object.entries(
-                                        activity.metadata.changes
+                                        activity.metadata.changes,
                                       ).map(([key, value]) => (
                                         <div key={key} className="text-xs">
                                           <dt className="font-medium capitalize">
@@ -409,7 +409,7 @@ export default function ActivityPage() {
                         Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
                         {Math.min(
                           currentPage * itemsPerPage,
-                          filteredActivities.length
+                          filteredActivities.length,
                         )}{" "}
                         of {filteredActivities.length} activities
                       </span>
