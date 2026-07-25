@@ -117,6 +117,30 @@ async function syncGoogleContactOrThrow(
 }
 
 /**
+ * Audit-log a Google Contact create/update so it shows on the activity feed and
+ * the installer's activity timeline. Fire-and-forget (logActivity never throws).
+ */
+async function logContactActivity(
+  installer: HydratedDocument<IInstaller>,
+  created: boolean,
+  actor: InstallerActor
+): Promise<void> {
+  await logActivity({
+    type: created
+      ? ActivityType.INSTALLER_CONTACT_CREATED
+      : ActivityType.INSTALLER_CONTACT_UPDATED,
+    performedBy: actor.userId,
+    targetType: "Installer",
+    targetId: installer._id,
+    targetName: installer.fullName,
+    description: `${created ? "Created" : "Updated"} Google contact for ${
+      installer.installerCode
+    } (${installer.fullName})`,
+    ...actor.clientInfo,
+  });
+}
+
+/**
  * Generate a fresh 6-digit PIN for an installer, store its bcrypt hash, and
  * deliver the plain-text PIN to the installer via WhatsApp. The plain PIN is
  * never returned to callers — WhatsApp is the only delivery channel.
@@ -246,6 +270,9 @@ export async function createInstaller(
     ...actor.clientInfo,
   });
 
+  // Contact was created above (before save) — record it on the activity feed.
+  await logContactActivity(installer, true, actor);
+
   const { whatsappSent, plainPin, whatsappMessage, whatsappUrl, deliveryMethod } =
     await regenerateAndSendPin(installer, actor.userId, "template");
 
@@ -291,9 +318,12 @@ export async function updateInstaller(
   // Hard gate: sync Google Contacts with the NEW values BEFORE persisting. If
   // the sync throws (GoogleContactError), the installer is never saved, so the
   // DB stays exactly as it was and the user can retry / authenticate.
+  const contactCreated = !installer.googleContactId; // no id yet → sync creates
   await syncGoogleContactOrThrow(installer);
 
   await installer.save();
+
+  await logContactActivity(installer, contactCreated, actor);
 
   const changes = getChanges(originalData, input);
   const changedFields = Object.keys(changes);
@@ -325,17 +355,21 @@ export async function updateInstaller(
  * and InstallerServiceError(404) when the installer is not found.
  */
 export async function syncInstallerGoogleContact(
-  idOrCode: string
+  idOrCode: string,
+  actor: InstallerActor
 ): Promise<HydratedDocument<IInstaller> | null> {
   const installer = await findInstallerByIdOrCode(idOrCode);
   if (!installer) {
     throw new InstallerServiceError("Installer not found", 404);
   }
 
+  const contactCreated = !installer.googleContactId;
   await syncGoogleContactOrThrow(installer);
   if (installer.isModified("googleContactId")) {
     await installer.save();
   }
+
+  await logContactActivity(installer, contactCreated, actor);
 
   return findInstallerByIdOrCode(
     String(installer._id),

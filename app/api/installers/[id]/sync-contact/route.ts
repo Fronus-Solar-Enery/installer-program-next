@@ -7,6 +7,7 @@ import {
   InstallerServiceError,
 } from "@/services/installers";
 import { GoogleContactError } from "@/lib/googleContacts";
+import { getClientInfo } from "@/lib/requestUtils";
 
 // POST - Create (or re-sync) this installer's Google Contact. Used by the
 // detail page for records that have no googleContactId yet.
@@ -16,7 +17,10 @@ export const POST = withAuth(
       await dbConnect();
 
       const { id } = await context.params;
-      const installer = await syncInstallerGoogleContact(id);
+      const installer = await syncInstallerGoogleContact(id, {
+        userId: session.user.id,
+        clientInfo: getClientInfo(request),
+      });
 
       return ApiResponse.success(
         installer,
