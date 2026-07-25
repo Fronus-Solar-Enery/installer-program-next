@@ -21,6 +21,41 @@ export interface ContactData {
 }
 
 /**
+ * Raised by the strict (…OrThrow) contact helpers so a caller can BLOCK the
+ * surrounding operation and tell the user *why* it failed:
+ *  - "not_authenticated" → Google Contacts isn't connected (an admin must
+ *    authenticate) — retrying the same action won't help until they do.
+ *  - "sync_failed"       → authenticated, but the API call failed (network,
+ *    quota, conflict) — retryable.
+ * The lenient `createGoogleContact` / `updateGoogleContact` wrappers swallow
+ * this and return null/false so bulk jobs stay non-fatal.
+ */
+export class GoogleContactError extends Error {
+  constructor(
+    message: string,
+    public readonly reason: "not_authenticated" | "sync_failed"
+  ) {
+    super(message);
+    this.name = "GoogleContactError";
+  }
+}
+
+/** Pull the most useful human-readable message out of a caught API error. */
+function contactErrorMessage(error: unknown): string {
+  if (error && typeof error === "object" && "response" in error) {
+    const apiError = error as {
+      response?: { data?: { error?: { message?: string } } };
+    };
+    const msg = apiError.response?.data?.error?.message;
+    if (msg) return `Google Contacts sync failed: ${msg}`;
+  }
+  if (error instanceof Error && error.message) {
+    return `Google Contacts sync failed: ${error.message}`;
+  }
+  return "Google Contacts sync failed";
+}
+
+/**
  * Formats phone number to +92XXXXXXXXXX format
  * Examples:
  *   03001234567 -> +923001234567
@@ -73,19 +108,26 @@ async function getOrCreateContactGroup(
   groupName: string
 ): Promise<string | null> {
   try {
-    // List all contact groups
-    const groups = await people.contactGroups.list();
+    // People API returns only 30 groups per page by default. With >30 groups,
+    // an existing group past the first page looks missing — and re-creating it
+    // fails with a duplicate-name error (returns null → STRICT delete + throw).
+    // Page through everything (pageSize max is 1000) before deciding to create.
+    let pageToken: string | undefined;
+    do {
+      const groups = await people.contactGroups.list({
+        pageSize: 1000,
+        pageToken,
+      });
+      const existingGroup = groups.data.contactGroups?.find(
+        (group: any) => group.name === groupName
+      );
+      if (existingGroup?.resourceName) {
+        return existingGroup.resourceName;
+      }
+      pageToken = groups.data.nextPageToken ?? undefined;
+    } while (pageToken);
 
-    // Find existing group
-    const existingGroup = groups.data.contactGroups?.find(
-      (group: any) => group.name === groupName
-    );
-
-    if (existingGroup?.resourceName) {
-      return existingGroup.resourceName;
-    }
-
-    // Create new group if doesn't exist
+    // Create new group if it genuinely doesn't exist
     const newGroup = await people.contactGroups.create({
       requestBody: {
         contactGroup: {
@@ -347,18 +389,22 @@ export async function preloadContactGroups(
   }
 }
 
-export async function createGoogleContact(
+/**
+ * Strict create: throws {@link GoogleContactError} on any failure so the caller
+ * can block (used by single installer register/edit). Returns the resourceName.
+ */
+export async function createGoogleContactOrThrow(
   data: ContactData,
   preloadedGroups?: { allGroup?: string; centerGroups?: Map<string, string> }
-): Promise<string | null> {
+): Promise<string> {
   try {
     const authClient = await getAuthClient();
 
     if (!authClient) {
-      console.warn(
-        "Google Contacts not authenticated. Skipping contact creation."
+      throw new GoogleContactError(
+        "Google Contacts is not connected. Authenticate Google Contacts to continue.",
+        "not_authenticated"
       );
-      return null;
     }
 
     // Format contact name based on referrer code
@@ -677,7 +723,13 @@ export async function createGoogleContact(
       }
     }
 
-    return response.data.resourceName || null;
+    if (!response.data.resourceName) {
+      throw new GoogleContactError(
+        "Google Contacts did not return a contact id",
+        "sync_failed"
+      );
+    }
+    return response.data.resourceName;
   } catch (error: unknown) {
     console.error("Error creating Google contact:", error);
     if (error && typeof error === "object" && "response" in error) {
@@ -694,22 +746,43 @@ export async function createGoogleContact(
       console.error("Error message:", error.message);
     }
     await handleGoogleAuthError(error);
+    if (error instanceof GoogleContactError) throw error;
+    throw new GoogleContactError(contactErrorMessage(error), "sync_failed");
+  }
+}
+
+/**
+ * Lenient create: never throws, returns null on failure. Used by bulk batch
+ * jobs where one bad row must not abort the batch.
+ */
+export async function createGoogleContact(
+  data: ContactData,
+  preloadedGroups?: { allGroup?: string; centerGroups?: Map<string, string> }
+): Promise<string | null> {
+  try {
+    return await createGoogleContactOrThrow(data, preloadedGroups);
+  } catch {
     return null;
   }
 }
 
-export async function updateGoogleContact(
+/**
+ * Strict update: throws {@link GoogleContactError} on failure so the caller can
+ * block (used by single installer edit). Group-membership sync remains
+ * best-effort (its own inner try/catch); only the core field update blocks.
+ */
+export async function updateGoogleContactOrThrow(
   resourceName: string,
   data: ContactData
-): Promise<boolean> {
+): Promise<void> {
   try {
     const authClient = await getAuthClient();
 
     if (!authClient) {
-      console.warn(
-        "Google Contacts not authenticated. Skipping contact update."
+      throw new GoogleContactError(
+        "Google Contacts is not connected. Authenticate Google Contacts to continue.",
+        "not_authenticated"
       );
-      return false;
     }
 
     const people = google.people({ version: "v1", auth: authClient });
@@ -840,7 +913,8 @@ export async function updateGoogleContact(
       const allDistrictShorts = Object.values(DISTRICT_CODES);
 
       // Get list of all contact groups to identify district groups
-      const allGroups = await people.contactGroups.list();
+      // (pageSize:1000 — default is only 30, which would miss most districts).
+      const allGroups = await people.contactGroups.list({ pageSize: 1000 });
       const districtGroupIds =
         allGroups.data.contactGroups
           ?.filter(
@@ -897,11 +971,26 @@ export async function updateGoogleContact(
     } catch (groupError) {
       console.error("Error updating contact groups:", groupError);
     }
-
-    return true;
   } catch (error) {
     console.error("Error updating Google contact:", error);
     await handleGoogleAuthError(error);
+    if (error instanceof GoogleContactError) throw error;
+    throw new GoogleContactError(contactErrorMessage(error), "sync_failed");
+  }
+}
+
+/**
+ * Lenient update: never throws, returns true/false. Kept for any non-blocking
+ * caller (currently none, but mirrors the create pair).
+ */
+export async function updateGoogleContact(
+  resourceName: string,
+  data: ContactData
+): Promise<boolean> {
+  try {
+    await updateGoogleContactOrThrow(resourceName, data);
+    return true;
+  } catch {
     return false;
   }
 }

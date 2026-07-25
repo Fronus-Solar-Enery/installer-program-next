@@ -28,12 +28,21 @@ import {
   IconKey,
   IconTrashBin2,
 } from "@/components/icons";
+import IconUserPlus from "@/components/icons/UserPlus";
+import {
+  Dropdown,
+  DropdownContent,
+  DropdownTrigger,
+  useDropdown,
+} from "@/components/ui/dropdown";
+import { cn } from "@/lib/utils";
 import {
   useInstallerActivities,
   useInstallerDetails,
   useInstallerRewards,
   useResendInstallerPin,
   useRevealInstallerPin,
+  useSyncInstallerContact,
   type ResendPinResult,
 } from "@/hooks/useInstallerDetails";
 import { useDeleteInstaller } from "@/hooks/useInstallers";
@@ -96,6 +105,126 @@ function PageSkeleton() {
   );
 }
 
+function KebabIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={cn("size-5", className)}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="5" r="1.75" />
+      <circle cx="12" cy="12" r="1.75" />
+      <circle cx="12" cy="19" r="1.75" />
+    </svg>
+  );
+}
+
+// Rendered inside <Dropdown> so it can close the menu after an action fires.
+function MenuItem({
+  icon,
+  label,
+  onSelect,
+  disabled,
+  className,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onSelect: () => void;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const { close } = useDropdown();
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      disabled={disabled}
+      onClick={() => {
+        close();
+        onSelect();
+      }}
+      className={cn(
+        "w-full justify-start px-2 py-2 text-sm bg-transparent rounded-lg",
+        className,
+      )}
+    >
+      {icon}
+      {label}
+    </Button>
+  );
+}
+
+interface InstallerActionsMenuProps {
+  showCreateContact: boolean;
+  creatingContact: boolean;
+  onCreateContact: () => void;
+  resendingPin: boolean;
+  onResetPin: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  isAdmin: boolean;
+}
+
+function InstallerActionsMenu({
+  showCreateContact,
+  creatingContact,
+  onCreateContact,
+  resendingPin,
+  onResetPin,
+  onEdit,
+  onDelete,
+  isAdmin,
+}: InstallerActionsMenuProps) {
+  return (
+    <Dropdown>
+      <DropdownTrigger asChild>
+        <Button
+          variant="secondary"
+          size="icon"
+          aria-label="Installer actions"
+          className="border border-border"
+        >
+          <KebabIcon />
+        </Button>
+      </DropdownTrigger>
+      <DropdownContent align="right" className="w-52">
+        <div className="space-y-1 p-2">
+          {showCreateContact && (
+            <MenuItem
+              icon={<IconUserPlus className="mr-2" />}
+              label={creatingContact ? "Creating…" : "Create Google Contact"}
+              onSelect={onCreateContact}
+              disabled={creatingContact}
+            />
+          )}
+          <MenuItem
+            icon={<IconKey className="mr-2" />}
+            label={resendingPin ? "Sending…" : "Reset PIN"}
+            onSelect={onResetPin}
+            disabled={resendingPin}
+          />
+          <MenuItem
+            icon={<IconEdit2 className="mr-2" />}
+            label="Edit"
+            onSelect={onEdit}
+          />
+        </div>
+        {isAdmin && (
+          <div className="border-t border-border p-2">
+            <MenuItem
+              icon={<IconTrashBin2 className="mr-2" />}
+              label="Delete"
+              onSelect={onDelete}
+              className="text-destructive-text hover:bg-red-50 hover:text-destructive-text-hover dark:hover:bg-red-900/20"
+            />
+          </div>
+        )}
+      </DropdownContent>
+    </Dropdown>
+  );
+}
+
 export default function InstallerDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -119,6 +248,7 @@ export default function InstallerDetailsPage() {
 
   const resendPin = useResendInstallerPin(installerId);
   const revealPin = useRevealInstallerPin(installerId);
+  const syncContact = useSyncInstallerContact(installerId);
   const deleteInstaller = useDeleteInstaller();
 
   const isAdmin =
@@ -146,6 +276,17 @@ export default function InstallerDetailsPage() {
         setRevealedPin(null);
       },
       onError: (err) => toast.error(err.message || "Failed to resend PIN"),
+    });
+  };
+
+  const handleCreateContact = () => {
+    syncContact.mutate(undefined, {
+      onSuccess: () => {
+        toast.success("Google contact created");
+        queryClient.invalidateQueries({ queryKey: ["installer", installerId] });
+      },
+      onError: (err) =>
+        toast.error(err.message || "Failed to create Google contact"),
     });
   };
 
@@ -251,29 +392,16 @@ export default function InstallerDetailsPage() {
         }
         description={`Installer Code: ${installer.installerCode}`}
         action={
-          <div className="flex flex-wrap gap-2 sm:gap-3 ml-6 lg:ml-0">
-            <Button
-              variant="outline"
-              onClick={handleResendPin}
-              disabled={resendPin.isPending}
-              title="Generate a new login PIN and send it to the installer via WhatsApp (also unlocks a locked account)"
-            >
-              <IconKey className="mr-2 size-4" />
-              {resendPin.isPending ? "Sending…" : "Reset PIN"}
-            </Button>
-            <Button onClick={() => setEditModalOpen(true)} variant="secondary">
-              <IconEdit2 className="mr-2" />
-              Edit
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={!isAdmin}
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              <IconTrashBin2 className="mr-2 h-4.5 w-4.5" />
-              Delete
-            </Button>
-          </div>
+          <InstallerActionsMenu
+            showCreateContact={!installer.googleContactId}
+            creatingContact={syncContact.isPending}
+            onCreateContact={handleCreateContact}
+            resendingPin={resendPin.isPending}
+            onResetPin={handleResendPin}
+            onEdit={() => setEditModalOpen(true)}
+            onDelete={() => setDeleteDialogOpen(true)}
+            isAdmin={isAdmin}
+          />
         }
         Icon={
           <>

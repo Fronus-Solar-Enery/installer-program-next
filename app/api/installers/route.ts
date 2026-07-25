@@ -8,6 +8,7 @@ import { validateBody, getSearchParams } from "@/lib/validateRequest";
 import { QueryBuilder, parseSortParams } from "@/lib/queryBuilder";
 import { getPaginationParams, createPaginationMeta, LIST_MAX_LIMIT } from "@/lib/pagination";
 import { createInstaller, InstallerServiceError } from "@/services/installers";
+import { GoogleContactError } from "@/lib/googleContacts";
 import { getClientInfo } from "@/lib/requestUtils";
 
 // GET all installers with filtering
@@ -79,6 +80,15 @@ export const POST = withAuth(
     } catch (error) {
       if (error instanceof InstallerServiceError) {
         return ApiResponse.error(error.message, error.status);
+      }
+      if (error instanceof GoogleContactError) {
+        // Hard gate: installer was NOT created because its Google Contact
+        // couldn't be synced. reason lets the UI show retry vs authenticate.
+        return ApiResponse.error(
+          error.message,
+          error.reason === "not_authenticated" ? 409 : 502,
+          { contactSync: { failed: true, reason: error.reason } }
+        );
       }
       return handleApiError(error);
     }

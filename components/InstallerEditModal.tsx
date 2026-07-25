@@ -105,6 +105,10 @@ export default function InstallerEditModal({
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [contactSyncReason, setContactSyncReason] = useState<
+    "not_authenticated" | "sync_failed" | null
+  >(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [originalData, setOriginalData] =
     useState<Partial<InstallerData> | null>(null);
@@ -476,8 +480,26 @@ export default function InstallerEditModal({
     setCurrentStep(currentStep - 1);
   }, [currentStep]);
 
+  // Kick off the Google OAuth flow so an admin can connect Google Contacts
+  // when the edit is blocked because it isn't authenticated.
+  const handleAuthenticateGoogle = async () => {
+    try {
+      const res = await fetch("/api/google-auth/initiate");
+      const data = await res.json();
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
+      } else {
+        toast.error(data.error || "Failed to start Google authentication");
+      }
+    } catch {
+      toast.error("Failed to start Google authentication");
+    }
+  };
+
   const handleSaveChanges = async () => {
     setSaving(true);
+    setSaveError(null);
+    setContactSyncReason(null);
 
     try {
       // Use the hook values (which are already masked) for conversion
@@ -526,11 +548,30 @@ export default function InstallerEditModal({
         onSuccess?.();
         onOpenChange(false);
       } else {
-        toast.error(data.error || "Failed to update installer");
+        // Google Contacts is a hard gate: on failure the installer was NOT
+        // saved. Surface the actual error + offer retry / connect.
+        const contactSync = (
+          data.errors as { contactSync?: { reason?: string } } | undefined
+        )?.contactSync;
+        setContactSyncReason(
+          contactSync?.reason === "not_authenticated" ||
+            contactSync?.reason === "sync_failed"
+            ? contactSync.reason
+            : null,
+        );
+        const message =
+          data.message || data.error || "Failed to update installer";
+        setSaveError(message);
+        toast.error(message);
       }
     } catch (error) {
       console.error("Failed to update installer:", error);
-      toast.error("An error occurred while updating");
+      const message =
+        error instanceof Error
+          ? error.message
+          : "An error occurred while updating";
+      setSaveError(message);
+      toast.error(message);
     } finally {
       setSaving(false);
     }
@@ -1309,6 +1350,50 @@ export default function InstallerEditModal({
                   </div>
                 </CardContent>
               </Card>
+            </div>
+          )}
+
+          {/* Save error — Google Contacts is a hard gate, so a failed sync
+              means the installer was NOT updated. Offer retry / connect. */}
+          {saveError && (
+            <div className="mt-6 rounded-3xl border border-destructive/30 bg-destructive/10 p-5 space-y-3">
+              <div className="flex items-start gap-3">
+                <IconDanger className="size-5 shrink-0 text-destructive-text" fill />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-destructive-text">
+                    Update failed — changes were not saved
+                  </p>
+                  <p className="text-sm text-destructive-text/90 whitespace-pre-wrap">
+                    {saveError}
+                  </p>
+                  {contactSyncReason === "not_authenticated" && (
+                    <p className="text-xs text-muted-foreground">
+                      Google Contacts must be connected before installers can be
+                      edited.
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                {contactSyncReason === "not_authenticated" ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleAuthenticateGoogle}
+                  >
+                    Connect Google Contacts
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSaveChanges}
+                    disabled={saving}
+                  >
+                    {saving ? "Retrying…" : "Retry"}
+                  </Button>
+                )}
+              </div>
             </div>
           )}
 

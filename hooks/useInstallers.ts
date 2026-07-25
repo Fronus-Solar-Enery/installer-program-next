@@ -58,6 +58,32 @@ export function useInstallers() {
   });
 }
 
+// Create (or re-sync) an installer's Google Contact from the list table.
+// mutate(installerId). Throws the real error message; refreshes the list on
+// success so the "create contact" icon disappears.
+export function useCreateInstallerContact() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (installerId: string) => {
+      const response = await fetch(
+        `/api/installers/${installerId}/sync-contact`,
+        { method: "POST" },
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          data.message || data.error || "Failed to create Google contact",
+        );
+      }
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["installers"] });
+    },
+  });
+}
+
 export function useDeleteInstaller() {
   const queryClient = useQueryClient();
 

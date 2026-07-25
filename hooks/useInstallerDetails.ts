@@ -19,6 +19,7 @@ export interface InstallerDetails {
   referrerCode?: string;
   createdAt: string;
   updatedAt?: string;
+  googleContactId?: string;
   referrer?: {
     installerCode: string;
     fullName: string;
@@ -141,6 +142,19 @@ export function useResendInstallerPin(installerId: string) {
         whatsappMessage: data.data?.whatsappMessage || null,
         whatsappUrl: data.data?.whatsappUrl || null,
       };
+    },
+  });
+}
+
+// Create (or re-sync) this installer's Google Contact. Used by the detail page
+// for records with no googleContactId. Throws the real error message on failure.
+export function useSyncInstallerContact(installerId: string) {
+  return useMutation({
+    mutationFn: async (): Promise<void> => {
+      const res = await fetch(`/api/installers/${installerId}/sync-contact`, {
+        method: "POST",
+      });
+      await parseJsonOrThrow(res, "Failed to create Google contact");
     },
   });
 }

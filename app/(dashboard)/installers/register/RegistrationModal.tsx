@@ -30,6 +30,13 @@ interface RegistrationModalProps {
   installerName?: string;
   errorMessage?: string;
   onRedirect: () => void;
+  /** Re-submit the same registration (used to retry a failed Google Contact sync). */
+  onRetry?: () => void;
+  /** Set when the failure was a Google Contacts sync failure. */
+  contactSyncReason?: "not_authenticated" | "sync_failed" | null;
+  /** Kick off the Google OAuth flow (admins only). */
+  onAuthenticateGoogle?: () => void;
+  canAuthenticateGoogle?: boolean;
   onViewInstaller?: () => void;
   whatsappFailed?: boolean;
   deliveryMethod?: string | null;
@@ -54,6 +61,10 @@ export function RegistrationModal({
   installerName,
   errorMessage,
   onRedirect,
+  onRetry,
+  contactSyncReason,
+  onAuthenticateGoogle,
+  canAuthenticateGoogle,
   onViewInstaller,
   whatsappFailed,
   deliveryMethod,
@@ -597,6 +608,16 @@ export function RegistrationModal({
                   </div>
                 </div>
 
+                {/* Google Contacts is a hard gate — tell the user what to do. */}
+                {contactSyncReason === "not_authenticated" && (
+                  <p className="text-xs text-muted-foreground">
+                    Google Contacts must be connected before installers can be
+                    registered.
+                    {!canAuthenticateGoogle &&
+                      " Ask an administrator to connect it."}
+                  </p>
+                )}
+
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-2">
                   <Button
@@ -606,9 +627,24 @@ export function RegistrationModal({
                   >
                     Close
                   </Button>
-                  <Button className="flex-1" onClick={onRedirect}>
-                    Try Again
-                  </Button>
+                  {contactSyncReason === "not_authenticated" ? (
+                    <Button
+                      className="flex-1"
+                      onClick={onAuthenticateGoogle}
+                      disabled={!canAuthenticateGoogle || !onAuthenticateGoogle}
+                    >
+                      Connect Google Contacts
+                    </Button>
+                  ) : (
+                    <Button
+                      className="flex-1"
+                      onClick={onRetry ?? onRedirect}
+                    >
+                      {contactSyncReason === "sync_failed"
+                        ? "Retry"
+                        : "Try Again"}
+                    </Button>
+                  )}
                 </div>
               </div>
             </motion.div>

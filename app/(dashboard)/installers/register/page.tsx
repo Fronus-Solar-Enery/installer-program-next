@@ -97,6 +97,9 @@ export default function NewInstallerPage() {
     id?: string;
   } | null>(null);
   const [registrationError, setRegistrationError] = useState<string>("");
+  const [contactSyncReason, setContactSyncReason] = useState<
+    "not_authenticated" | "sync_failed" | null
+  >(null);
   const [whatsappFailed, setWhatsappFailed] = useState(false);
   const [whatsappMessage, setWhatsappMessage] = useState<string | null>(null);
   const [whatsappUrl, setWhatsappUrl] = useState<string | null>(null);
@@ -392,6 +395,7 @@ export default function NewInstallerPage() {
   const handleSubmit = async () => {
     setLoading(true);
     setRegistrationStatus("registering");
+    setContactSyncReason(null);
 
     try {
       // Use the hook values (which are already masked) for conversion
@@ -466,6 +470,18 @@ export default function NewInstallerPage() {
         else if (data.message) {
           errorMessage = data.message;
         }
+
+        // Google Contacts is a hard gate — capture the reason so the modal can
+        // offer Retry (sync_failed) or Connect (not_authenticated).
+        const contactSync = (
+          data.errors as { contactSync?: { reason?: string } } | undefined
+        )?.contactSync;
+        setContactSyncReason(
+          contactSync?.reason === "not_authenticated" ||
+            contactSync?.reason === "sync_failed"
+            ? contactSync.reason
+            : null,
+        );
 
         setRegistrationError(errorMessage);
         setRegistrationStatus("error");
@@ -608,6 +624,10 @@ export default function NewInstallerPage() {
         installerCode={registeredInstaller?.code}
         installerName={registeredInstaller?.name}
         errorMessage={registrationError}
+        contactSyncReason={contactSyncReason}
+        onRetry={handleSubmit}
+        onAuthenticateGoogle={handleAuthenticateGoogle}
+        canAuthenticateGoogle={isAdmin}
         whatsappFailed={whatsappFailed}
         deliveryMethod={deliveryMethod}
         pin={registrationPin}

@@ -15,8 +15,8 @@ import {
 } from "@/lib/validation";
 import { getSettings } from "@/models/Settings";
 import {
-  createGoogleContact,
-  updateGoogleContact,
+  createGoogleContactOrThrow,
+  updateGoogleContactOrThrow,
   deleteGoogleContact,
 } from "@/lib/googleContacts";
 import {
@@ -96,53 +96,24 @@ async function assertReferrerWithinLimit(referrerCode: string): Promise<void> {
 }
 
 /**
- * Create the installer's Google Contact and persist the returned id.
- * Fire-and-forget: contact-sync failures are logged, never fatal.
+ * Blocking Google Contacts sync for a single installer. Creates the contact if
+ * none exists yet, otherwise updates it. Throws {@link GoogleContactError} on
+ * failure — the caller must NOT persist the installer unless this resolves.
+ * Mutates `installer.googleContactId` when a new contact is created.
  */
-async function createGoogleContactForInstaller(
+async function syncGoogleContactOrThrow(
   installer: HydratedDocument<IInstaller>
 ): Promise<void> {
-  try {
-    const googleContactId = await createGoogleContact(
-      prepareInstallerContactData(installer)
-    );
-
-    if (googleContactId) {
-      installer.googleContactId = googleContactId;
-      await installer.save();
-      console.log("✓ Google contact created:", googleContactId);
-    } else {
-      console.warn("⚠ Google contact creation returned null");
-    }
-  } catch (error) {
-    console.error("✗ Failed to create Google contact:", error);
-    if (error instanceof Error) {
-      console.error("Error details:", error.message);
-    }
-  }
-}
-
-/**
- * Keep the installer's Google Contact in sync after an update, creating one if
- * it does not yet exist. Non-fatal by design.
- */
-async function syncGoogleContactOnUpdate(
-  installer: HydratedDocument<IInstaller>
-): Promise<void> {
-  if (!installer.googleContactId) {
-    await createGoogleContactForInstaller(installer);
-    return;
-  }
-
-  try {
-    await updateGoogleContact(
+  if (installer.googleContactId) {
+    await updateGoogleContactOrThrow(
       installer.googleContactId,
       prepareInstallerContactData(installer)
     );
-    console.log("✓ Google contact updated successfully");
-  } catch (error) {
-    console.error("Failed to update Google contact:", error);
+    return;
   }
+  installer.googleContactId = await createGoogleContactOrThrow(
+    prepareInstallerContactData(installer)
+  );
 }
 
 /**
@@ -248,10 +219,22 @@ export async function createInstaller(
     await assertReferrerWithinLimit(input.referrerCode);
   }
 
-  const installer = await Installer.create({
-    ...input,
-    registeredBy: actor.userId,
-  });
+  // Build the document but DON'T persist yet — the Google Contact is a hard
+  // gate: create it first so a sync failure leaves nothing behind (throws
+  // GoogleContactError, which the route surfaces with a retry / authenticate).
+  const installer = new Installer({ ...input, registeredBy: actor.userId });
+  await syncGoogleContactOrThrow(installer);
+
+  try {
+    await installer.save();
+  } catch (error) {
+    // Installer couldn't be persisted (e.g. duplicate code/CNIC) after the
+    // contact was created — remove the orphan so a retry starts clean.
+    if (installer.googleContactId) {
+      await deleteGoogleContact(installer.googleContactId).catch(() => {});
+    }
+    throw error;
+  }
 
   await logActivity({
     type: ActivityType.INSTALLER_REGISTERED,
@@ -262,8 +245,6 @@ export async function createInstaller(
     description: `Registered installer ${installer.installerCode} (${installer.fullName})`,
     ...actor.clientInfo,
   });
-
-  await createGoogleContactForInstaller(installer);
 
   const { whatsappSent, plainPin, whatsappMessage, whatsappUrl, deliveryMethod } =
     await regenerateAndSendPin(installer, actor.userId, "template");
@@ -306,6 +287,12 @@ export async function updateInstaller(
   }
 
   Object.assign(installer, input);
+
+  // Hard gate: sync Google Contacts with the NEW values BEFORE persisting. If
+  // the sync throws (GoogleContactError), the installer is never saved, so the
+  // DB stays exactly as it was and the user can retry / authenticate.
+  await syncGoogleContactOrThrow(installer);
+
   await installer.save();
 
   const changes = getChanges(originalData, input);
@@ -325,7 +312,30 @@ export async function updateInstaller(
     });
   }
 
-  await syncGoogleContactOnUpdate(installer);
+  return findInstallerByIdOrCode(
+    String(installer._id),
+    INSTALLER_POPULATE_OPTIONS.full
+  );
+}
+
+/**
+ * Create (or re-sync) the Google Contact for an existing installer — used by
+ * the detail-page "Create Google Contact" action for records that predate the
+ * mandatory-sync gate. Throws GoogleContactError on failure (route surfaces it)
+ * and InstallerServiceError(404) when the installer is not found.
+ */
+export async function syncInstallerGoogleContact(
+  idOrCode: string
+): Promise<HydratedDocument<IInstaller> | null> {
+  const installer = await findInstallerByIdOrCode(idOrCode);
+  if (!installer) {
+    throw new InstallerServiceError("Installer not found", 404);
+  }
+
+  await syncGoogleContactOrThrow(installer);
+  if (installer.isModified("googleContactId")) {
+    await installer.save();
+  }
 
   return findInstallerByIdOrCode(
     String(installer._id),

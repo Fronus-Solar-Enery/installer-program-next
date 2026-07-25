@@ -16,6 +16,7 @@ import {
   deleteInstaller,
   InstallerServiceError,
 } from "@/services/installers";
+import { GoogleContactError } from "@/lib/googleContacts";
 
 // GET single installer with stats
 export const GET = withAuth(
@@ -118,6 +119,15 @@ export const PUT = withAuth(
         return error.status === 404
           ? ApiResponse.notFound(error.message)
           : ApiResponse.badRequest(error.message);
+      }
+      if (error instanceof GoogleContactError) {
+        // Hard gate: the edit was NOT saved because the Google Contact couldn't
+        // be synced. reason lets the UI show retry vs authenticate.
+        return ApiResponse.error(
+          error.message,
+          error.reason === "not_authenticated" ? 409 : 502,
+          { contactSync: { failed: true, reason: error.reason } },
+        );
       }
       return handleApiError(error);
     }

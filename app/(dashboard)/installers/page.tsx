@@ -72,6 +72,7 @@ import {
   IconWhatsapp,
 } from "@/components/icons";
 import IconTrashBin2 from "@/components/icons/TrashBin2";
+import IconUserPlus from "@/components/icons/UserPlus";
 import { EmptyState } from "@/components/EmptyState";
 import Loading from "@/components/ui/loading";
 import { motion, AnimatePresence } from "motion/react";
@@ -88,6 +89,7 @@ import IconSortVertical from "@/components/icons/SortVertical";
 import {
   useInstallers,
   useDeleteInstaller,
+  useCreateInstallerContact,
   type InstallerWithId,
 } from "@/hooks/useInstallers";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -128,6 +130,8 @@ interface InstallerRowProps {
     bankDetails: React.CSSProperties;
     actions: React.CSSProperties;
   };
+  creatingContactId: string | null;
+  onCreateContact: (installer: InstallerWithId) => void;
   toggleSelection: (id: string) => void;
   setSelectedInstallerId: (id: string) => void;
   setEditModalOpen: (open: boolean) => void;
@@ -148,6 +152,8 @@ const InstallerRow = memo(
     isAdmin,
     deletingId,
     columnStyles,
+    creatingContactId,
+    onCreateContact,
     toggleSelection,
     setSelectedInstallerId,
     setEditModalOpen,
@@ -272,34 +278,67 @@ const InstallerRow = memo(
           </div>
         </div>
         <div
-          className="px-4 py-3 text-sm flex items-center gap-4"
+          className="px-4 py-3 text-sm flex items-center justify-end gap-3"
           style={columnStyles.actions}
         >
-          <button
-            onClick={() => {
-              setSelectedInstallerId(installer._id);
-              setEditModalOpen(true);
-            }}
-            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            title="Edit"
-          >
-            <IconEdit2 className="size-5" />
-          </button>
-          <button
-            title="Delete"
-            disabled={!isAdmin || deletingId === installer._id}
-            className="text-destructive-text hover:text-destructive-text-hover transition-colors cursor-pointer"
-            onClick={() =>
-              setDeleteDialogState({
-                open: true,
-                status: "confirm",
-                installerId: installer._id,
-                installerName: installer.fullName,
-              })
-            }
-          >
-            <IconTrashBin2 className="size-5" />
-          </button>
+          <TooltipProvider delayDuration={200}>
+            {!installer.googleContactId && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => onCreateContact(installer)}
+                    disabled={creatingContactId === installer._id}
+                    className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Create Google contact"
+                  >
+                    {creatingContactId === installer._id ? (
+                      <Loading />
+                    ) : (
+                      <IconUserPlus className="size-5" />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Create Google contact</TooltipContent>
+              </Tooltip>
+            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => {
+                    setSelectedInstallerId(installer._id);
+                    setEditModalOpen(true);
+                  }}
+                  className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  aria-label="Edit"
+                >
+                  <IconEdit2 className="size-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Edit</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  disabled={!isAdmin || deletingId === installer._id}
+                  className="text-destructive-text hover:text-destructive-text-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Delete"
+                  onClick={() =>
+                    setDeleteDialogState({
+                      open: true,
+                      status: "confirm",
+                      installerId: installer._id,
+                      installerName: installer.fullName,
+                    })
+                  }
+                >
+                  <IconTrashBin2 className="size-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isAdmin ? "Delete" : "Admin only"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
     );
@@ -322,6 +361,24 @@ export default function InstallersPage() {
     dataUpdatedAt,
   } = useInstallers();
   const deleteInstaller = useDeleteInstaller();
+  const createContact = useCreateInstallerContact();
+  const [creatingContactId, setCreatingContactId] = useState<string | null>(
+    null,
+  );
+
+  const handleCreateContact = useCallback(
+    (installer: InstallerWithId) => {
+      setCreatingContactId(installer._id);
+      createContact.mutate(installer._id, {
+        onSuccess: () =>
+          toast.success(`Google contact created for ${installer.fullName}`),
+        onError: (err) =>
+          toast.error(err.message || "Failed to create Google contact"),
+        onSettled: () => setCreatingContactId(null),
+      });
+    },
+    [createContact],
+  );
   const loading = isLoading || isFetching;
   const installers = useMemo(
     () => queryData?.installers || [],
@@ -1001,9 +1058,10 @@ export default function InstallersPage() {
         flexGrow: 1,
       } as React.CSSProperties,
       actions: {
-        width: 96,
-        minWidth: 96,
-        maxWidth: 96,
+        // Fits 3 icons + gaps + px-4 padding without overflow.
+        width: 140,
+        minWidth: 140,
+        maxWidth: 140,
         flexShrink: 0,
         flexGrow: 0,
       } as React.CSSProperties,
@@ -1751,7 +1809,7 @@ export default function InstallersPage() {
                       Bank Details
                     </div>
                     <div
-                      className="px-4 py-3 text-sm font-semibold whitespace-nowrap select-none"
+                      className="px-4 py-3 text-sm font-semibold whitespace-nowrap select-none flex justify-end"
                       style={columnStyles.actions}
                     >
                       Actions
@@ -1856,6 +1914,8 @@ export default function InstallersPage() {
                           isAdmin={isAdmin}
                           deletingId={deletingId}
                           columnStyles={columnStyles}
+                          creatingContactId={creatingContactId}
+                          onCreateContact={handleCreateContact}
                           toggleSelection={toggleSelection}
                           setSelectedInstallerId={setSelectedInstallerId}
                           setEditModalOpen={setEditModalOpen}
