@@ -1,5 +1,8 @@
 import mongoose, { Schema, Model, Types } from 'mongoose';
 import { whatsappStorageFormat } from '@/lib/phoneUtils';
+// Side-effect import: registers the referenced model so .populate() works in a
+// serverless instance where no other route loaded it first.
+import '@/models/TeamMember';
 
 export interface IInstaller {
   _id?: string;

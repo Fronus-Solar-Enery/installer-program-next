@@ -1,4 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
+// Side-effect import: registers the referenced model so .populate() works in a
+// serverless instance where no other route loaded it first.
+import "@/models/TeamMember";
 
 export interface IBatchJob extends Document {
   _id: mongoose.Types.ObjectId;

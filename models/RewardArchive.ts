@@ -1,4 +1,7 @@
 import mongoose, { Schema, Model, Types } from "mongoose";
+// Side-effect import: registers the referenced model so .populate() works in a
+// serverless instance where no other route loaded it first.
+import "@/models/TeamMember";
 
 // One snapshot row per successfully-updated reward in a bulk-update file.
 export interface IRewardArchiveRecord {

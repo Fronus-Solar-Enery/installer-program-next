@@ -2,6 +2,11 @@
 import mongoose, { Schema, Model, Types } from "mongoose";
 import { RewardStatus } from "@/types/rewards";
 import Product from "@/models/Product";
+// Side-effect imports: registering these guarantees .populate("installer" |
+// "referrer" | "registeredBy" | "updatedBy") works even in a serverless
+// instance where no other route loaded them first.
+import "@/models/Installer";
+import "@/models/TeamMember";
 
 // Re-export for backward compatibility
 export { RewardStatus };
