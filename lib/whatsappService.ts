@@ -422,6 +422,18 @@ export function buildRegistrationMessage(installer: {
 // ─── Manual fallback ─────────────────────────────────────────────────────────
 
 /**
+ * wa.me deep link with the message pre-filled. Empty string when we have no
+ * number to send to, so callers can hide the button.
+ */
+export function waMeUrl(
+  whatsappNumber: string | undefined,
+  text: string,
+): string {
+  if (!whatsappNumber) return "";
+  return `https://wa.me/${normalizePhone(whatsappNumber)}?text=${encodeURIComponent(text)}`;
+}
+
+/**
  * Format a WhatsApp message with installer credentials for manual sharing.
  * Used when auto-send is disabled or the 24h window has expired.
  * Returns the text and a wa.me deep link the team member can tap.
@@ -433,16 +445,7 @@ export function formatInstallerWhatsAppMessage(installer: {
   whatsappNumber?: string;
 }): { text: string; whatsappUrl: string } {
   const text = buildRegistrationMessage(installer);
-
-  const normalizedNumber = installer.whatsappNumber
-    ? normalizePhone(installer.whatsappNumber)
-    : undefined;
-
-  const whatsappUrl = normalizedNumber
-    ? `https://wa.me/${normalizedNumber}?text=${encodeURIComponent(text)}`
-    : "";
-
-  return { text, whatsappUrl };
+  return { text, whatsappUrl: waMeUrl(installer.whatsappNumber, text) };
 }
 
 // ─── Template send (hello_installer) ─────────────────────────────────────────
@@ -666,6 +669,73 @@ export async function sendInstallerRegistrationMessage(
   return sendWhatsAppMessage({
     phoneNumber: installer.whatsappNumber,
     freeFormText: buildRegistrationMessage(installer),
+    performedBy,
+  });
+}
+
+/**
+ * Single source of truth for the "reward claim registered" message. Both
+ * auto-send and the manual fallback consume this so the text can't drift.
+ */
+export function buildRewardRegisteredMessage(reward: {
+  fullName: string;
+  serialNumber: string;
+  productModel: string;
+  rewardAmount: number;
+}): string {
+  return [
+    `Hi ${reward.fullName},`,
+    "",
+    "Your reward claim has been registered with the Fronus-SolaX Installer Program 2026.",
+    "",
+    `Product: *${reward.productModel}*`,
+    `Serial Number: *\`${reward.serialNumber}\`*`,
+    `Reward Amount: *Rs. ${reward.rewardAmount.toLocaleString()}*`,
+    "",
+    "We'll notify you as soon as the payment is processed.",
+    "Track your claims at https://installer.fronus.com",
+  ].join("\n");
+}
+
+/**
+ * Reward-registered text plus a wa.me deep link, for manual sharing when
+ * auto-send is disabled or the 24h window has expired.
+ */
+export function formatRewardWhatsAppMessage(reward: {
+  fullName: string;
+  serialNumber: string;
+  productModel: string;
+  rewardAmount: number;
+  whatsappNumber?: string;
+}): { text: string; whatsappUrl: string } {
+  const text = buildRewardRegisteredMessage(reward);
+  return { text, whatsappUrl: waMeUrl(reward.whatsappNumber, text) };
+}
+
+/**
+ * Send the reward-claim-registered notification to the installer.
+ * Free-form only — requires open 24h customer service window.
+ */
+export async function sendRewardRegisteredMessage(
+  reward: {
+    installer: {
+      fullName: string;
+      whatsappNumber: string;
+    };
+    serialNumber: string;
+    productModel: string;
+    rewardAmount: number;
+  },
+  performedBy: string,
+): Promise<SendResult> {
+  return sendWhatsAppMessage({
+    phoneNumber: reward.installer.whatsappNumber,
+    freeFormText: buildRewardRegisteredMessage({
+      fullName: reward.installer.fullName,
+      serialNumber: reward.serialNumber,
+      productModel: reward.productModel,
+      rewardAmount: reward.rewardAmount,
+    }),
     performedBy,
   });
 }

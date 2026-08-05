@@ -64,7 +64,12 @@ export default function BulkUploadProgressModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent hideClose className="p-0 gap-0">
+      <DialogContent
+        hideClose
+        className="p-0 gap-0"
+        // A stray click outside must not dismiss an in-flight bulk job.
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <VisuallyHidden>
           <DialogTitle></DialogTitle>
           <DialogDescription></DialogDescription>
@@ -196,17 +201,14 @@ export default function BulkUploadProgressModal({
           </div>
         </div>
 
-        {/* Footer */}
-        {/* <div className="p-6 border-t border-border">
-          <Button
-            variant={"secondary"}
-            onClick={onClose}
-            className="w-full"
-            disabled={!allCompleted || hasError}
-          >
-            Close
-          </Button>
-        </div> */}
+        {/* Footer — the only way out once the job has settled. */}
+        {onClose && (allCompleted || hasError) && (
+          <div className="p-6 border-t border-border">
+            <Button variant="secondary" onClick={onClose} className="w-full">
+              Close
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

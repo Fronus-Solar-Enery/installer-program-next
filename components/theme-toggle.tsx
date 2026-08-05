@@ -61,12 +61,15 @@ export function ThemeToggle({
           <Button
             variant="ghost"
             size={iconOnly ? "icon" : "default"}
-            className={
-              triggerClass ?? "hover:border border-border rounded-full"
-            }
+            className={cn(
+              "flex items-center border border-transparent",
+              triggerClass ?? "hover:border-border rounded-full",
+            )}
           >
             <CurrentIcon className={cn("w-5 h-5", iconClasses)} />
-            {!iconOnly && currentOption.label}
+            {!iconOnly ? (
+              <span className="ml-2">{currentOption.label}</span>
+            ) : null}
           </Button>
         )}
       </DropdownTrigger>

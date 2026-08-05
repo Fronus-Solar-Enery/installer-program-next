@@ -14,6 +14,9 @@ import { RewardStatus } from "@/types/rewards";
 import {
   sendRewardPaymentMessage,
   sendReferralRewardMessage,
+  sendRewardRegisteredMessage,
+  formatRewardWhatsAppMessage,
+  type DeliveryMethod,
 } from "@/lib/whatsappService";
 import { logger } from "@/lib/logger";
 import { logActivity } from "@/lib/activityLogger";
@@ -174,6 +177,48 @@ export const POST = withAuth(
         ...getClientInfo(request),
       });
 
+      // Claim-registered notification. Awaited (not fire-and-forget) because
+      // the UI needs the outcome to offer manual sharing when the 24h window
+      // is shut. A PAID-on-create reward gets the payment message instead.
+      let whatsappFailed = false;
+      let whatsappMessage: string | undefined;
+      let whatsappUrl: string | undefined;
+      let deliveryMethod: DeliveryMethod | undefined;
+
+      if (reward.rewardStatus !== RewardStatus.PAID) {
+        const sendResult = await sendRewardRegisteredMessage(
+          {
+            installer: {
+              fullName: installer.fullName,
+              whatsappNumber: installer.whatsappNumber,
+            },
+            serialNumber: reward.serialNumber,
+            productModel: reward.productModel,
+            rewardAmount: reward.rewardAmount,
+          },
+          session.user.id,
+        ).catch((e) => {
+          logger.error("Reward-registered WhatsApp failed", {
+            error: String(e),
+          });
+          return { success: false, deliveryMethod: "blocked" as DeliveryMethod };
+        });
+
+        deliveryMethod = sendResult.deliveryMethod;
+        if (!sendResult.success) {
+          whatsappFailed = true;
+          const fallback = formatRewardWhatsAppMessage({
+            fullName: installer.fullName,
+            serialNumber: reward.serialNumber,
+            productModel: reward.productModel,
+            rewardAmount: reward.rewardAmount,
+            whatsappNumber: installer.whatsappNumber,
+          });
+          whatsappMessage = fallback.text;
+          whatsappUrl = fallback.whatsappUrl;
+        }
+      }
+
       // WhatsApp notifications — fire-and-forget, never block the response.
       if (reward.rewardStatus === RewardStatus.PAID) {
         sendRewardPaymentMessage(
@@ -223,7 +268,13 @@ export const POST = withAuth(
         .populate("updatedBy", "name email role");
 
       return ApiResponse.success(
-        populatedReward,
+        {
+          reward: populatedReward,
+          whatsappFailed,
+          whatsappMessage,
+          whatsappUrl,
+          deliveryMethod,
+        },
         "Reward registered successfully",
         201,
       );

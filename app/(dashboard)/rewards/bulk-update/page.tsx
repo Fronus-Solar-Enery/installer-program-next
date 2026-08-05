@@ -835,6 +835,18 @@ export default function BulkUploadRewardsPage() {
           `${totalFailed} reward(s) failed. Check the logs for details.`,
         );
       }
+
+      // Let the completed steps read for a beat, then dismiss and clear the
+      // form so the page is ready for the next file.
+      setTimeout(() => {
+        setShowProgressModal(false);
+        setFile(null);
+        setPreview([]);
+        setUploadSteps([]);
+        setProcessedRecords(0);
+        setSuccessCount(0);
+        setFailedCount(0);
+      }, 1500);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setUploadSteps((prev) =>
@@ -1295,12 +1307,7 @@ export default function BulkUploadRewardsPage() {
         processedRecords={processedRecords}
         successCount={successCount}
         failedCount={failedCount}
-        onClose={() => {
-          setShowProgressModal(false);
-          if (success) {
-            setTimeout(() => router.push("/rewards"), 500);
-          }
-        }}
+        onClose={() => setShowProgressModal(false)}
       />
     </div>
   );

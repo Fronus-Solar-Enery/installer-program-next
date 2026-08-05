@@ -60,6 +60,10 @@ export default function NewRewardPage() {
     id?: string;
   } | null>(null);
   const [registrationError, setRegistrationError] = useState<string>("");
+  const [whatsappFailed, setWhatsappFailed] = useState(false);
+  const [deliveryMethod, setDeliveryMethod] = useState<string | null>(null);
+  const [whatsappMessage, setWhatsappMessage] = useState<string | null>(null);
+  const [whatsappUrl, setWhatsappUrl] = useState<string | null>(null);
 
   // Step 1: Validation
   const [installerCode, setInstallerCode] = useState("");
@@ -427,8 +431,12 @@ export default function NewRewardPage() {
         serialNumber,
         installerCode: installerData.installerCode,
         rewardAmount,
-        id: data.data?._id,
+        id: data.data?.reward?._id,
       });
+      setWhatsappFailed(Boolean(data.data?.whatsappFailed));
+      setDeliveryMethod(data.data?.deliveryMethod || null);
+      setWhatsappMessage(data.data?.whatsappMessage || null);
+      setWhatsappUrl(data.data?.whatsappUrl || null);
       setRegistrationStatus("success");
       emitAppRefresh();
     } catch (err: unknown) {
@@ -482,6 +490,10 @@ export default function NewRewardPage() {
     setRegistrationStatus("idle");
     setRegisteredReward(null);
     setRegistrationError("");
+    setWhatsappFailed(false);
+    setDeliveryMethod(null);
+    setWhatsappMessage(null);
+    setWhatsappUrl(null);
   }, []);
 
   const handleViewReward = useCallback(() => {
@@ -950,6 +962,10 @@ export default function NewRewardPage() {
               errorMessage={registrationError}
               onRedirect={handleRedirectAfterRegistration}
               onViewReward={handleViewReward}
+              whatsappFailed={whatsappFailed}
+              deliveryMethod={deliveryMethod}
+              whatsappMessage={whatsappMessage || undefined}
+              whatsappUrl={whatsappUrl || undefined}
             />
           )}
         </div>

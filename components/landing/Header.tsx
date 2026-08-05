@@ -78,7 +78,7 @@ export default function Header2026() {
           </Link>
 
           <div className="flex items-center gap-2">
-            <Button
+            {/* <Button
               size="sm"
               asChild
               className="lp-magnetic hidden rounded-full bg-brand-900 text-white hover:bg-brand-1000 sm:inline-flex dark:bg-brand-700 dark:text-brand-1200 dark:hover:bg-brand-600"
@@ -90,8 +90,8 @@ export default function Header2026() {
                 <IconWhatsapp fill className="mr-1.5 size-4" />
                 Join on WhatsApp
               </a>
-            </Button>
-            <ThemeToggle />
+            </Button> */}
+            <ThemeToggle iconOnly={false} iconClasses="size-4.5" />
           </div>
         </motion.header>
       </div>

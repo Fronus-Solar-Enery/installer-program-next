@@ -14,7 +14,6 @@ import { buildWhatsAppUrl, WHATSAPP_LINK_ATTRS } from "@/lib/whatsapp";
 import { REWARD_AMOUNT_PKR } from "@/lib/landingProducts";
 import { slideUp, staggerContainer } from "@/lib/motion";
 import ProofBar from "./ProofBar";
-import type { LandingStats } from "./ProofBar";
 
 function AnimatedCounter({ value }: { value: number }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -67,10 +66,7 @@ function RewardReceipt() {
   );
 }
 
-interface LandingPageProps {
-  stats: LandingStats;
-}
-export default function Hero({ stats }: LandingPageProps) {
+export default function Hero() {
   return (
     <section className="min-h-screen flex flex-col justify-between">
       <div
@@ -183,7 +179,7 @@ export default function Hero({ stats }: LandingPageProps) {
           <RewardReceipt />
         </div>
       </div>
-      <ProofBar stats={stats} />
+      <ProofBar />
     </section>
   );
 }

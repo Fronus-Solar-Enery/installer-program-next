@@ -169,7 +169,12 @@ export function RegistrationModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" hideClose={true}>
+      <DialogContent
+        className="sm:max-w-md"
+        hideClose={true}
+        // Registration outcome must be dismissed deliberately, not by a stray click.
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <AnimatePresence mode="wait">
           {/* Registering State */}
           {status === "registering" && (

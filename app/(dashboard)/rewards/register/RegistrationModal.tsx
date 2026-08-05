@@ -10,8 +10,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { IconCheck, IconClose, IconBarcode } from "@/components/icons";
+import {
+  IconCheck,
+  IconClose,
+  IconBarcode,
+  IconWhatsapp,
+} from "@/components/icons";
 import Loading from "@/components/ui/loading";
+import { HyperText } from "@/components/ui/hypertext";
+import { toast } from "sonner";
 
 interface RegistrationStep {
   id: string;
@@ -29,6 +36,11 @@ interface RegistrationModalProps {
   errorMessage?: string;
   onRedirect: () => void;
   onViewReward?: () => void;
+  /** True when the claim-registered WhatsApp could not be delivered. */
+  whatsappFailed?: boolean;
+  deliveryMethod?: string | null;
+  whatsappMessage?: string;
+  whatsappUrl?: string;
 }
 
 const REGISTRATION_STEPS: RegistrationStep[] = [
@@ -48,6 +60,10 @@ export function RegistrationModal({
   errorMessage,
   onRedirect,
   onViewReward,
+  whatsappFailed,
+  deliveryMethod,
+  whatsappMessage,
+  whatsappUrl,
 }: RegistrationModalProps) {
   const [progress, setProgress] = useState(0);
   const [countdown, setCountdown] = useState(5);
@@ -110,9 +126,11 @@ export function RegistrationModal({
     };
   }, [status, open]);
 
-  // Handle countdown for success state
+  // Handle countdown for success state.
+  // Paused while the installer still needs to be messaged manually.
   useEffect(() => {
     if (status !== "success" || !open) return;
+    if (whatsappFailed) return;
 
     if (countdown <= 0) {
       onRedirect();
@@ -124,13 +142,18 @@ export function RegistrationModal({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [countdown, status, open, onRedirect]);
+  }, [countdown, status, open, onRedirect, whatsappFailed]);
 
   const progressPercentage = ((5 - countdown) / 5) * 100;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" hideClose={true}>
+      <DialogContent
+        className="sm:max-w-md"
+        hideClose={true}
+        // Registration outcome must be dismissed deliberately, not by a stray click.
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <AnimatePresence mode="wait">
           {/* Registering State */}
           {status === "registering" && (
@@ -158,7 +181,7 @@ export function RegistrationModal({
                     // Calculate cumulative weight up to this step
                     const cumulativeWeight = REGISTRATION_STEPS.slice(
                       0,
-                      index
+                      index,
                     ).reduce((sum, s) => sum + s.weight, 0);
                     const stepThreshold = cumulativeWeight * 100;
                     const stepEndThreshold =
@@ -174,7 +197,7 @@ export function RegistrationModal({
                       ? Math.min(
                           ((progress - stepThreshold) / (step.weight * 100)) *
                             100,
-                          100
+                          100,
                         )
                       : 0;
 
@@ -185,14 +208,14 @@ export function RegistrationModal({
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 }}
                         className={cn(
-                          "relative flex items-center gap-3 p-3 rounded-2xl overflow-hidden transition-colors duration-300",
-                          isCompleted && "bg-success/5"
+                          "relative flex items-center gap-3 p-3 rounded-2xl overflow-hidden border border-border/40 bg-muted/10 transition-colors duration-300",
+                          isCompleted && "border-transparent bg-success/5",
                         )}
                       >
                         {/* Animated progress bar background for current step */}
                         {isCurrent && (
                           <motion.div
-                            className="absolute inset-0 bg-primary/5"
+                            className="absolute inset-0 bg-primary/5 rounded-r-lg"
                             style={{ width: `${stepProgress}%` }}
                             transition={{ duration: 0.1, ease: "linear" }}
                           />
@@ -204,8 +227,9 @@ export function RegistrationModal({
                             className={cn(
                               "flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300",
                               isCompleted && "bg-success/20 text-success-text",
-                              isCurrent && "bg-primary text-primary-foreground",
-                              isPending && "bg-muted text-muted-foreground"
+                              isCurrent &&
+                                "bg-primary/10 text-primary-foreground",
+                              isPending && "bg-muted text-muted-foreground",
                             )}
                           >
                             {isCompleted ? (
@@ -229,7 +253,7 @@ export function RegistrationModal({
                               "text-sm font-medium transition-colors duration-300",
                               isCompleted && "text-success-text",
                               isCurrent && "text-foreground",
-                              isPending && "text-muted-foreground"
+                              isPending && "text-muted-foreground",
                             )}
                           >
                             {step.label}
@@ -266,7 +290,7 @@ export function RegistrationModal({
                 </motion.div>
 
                 {/* Success Message */}
-                <div className="space-y-2">
+                <div className="space-y-2 mb-6">
                   <DialogTitle className="text-2xl font-bold text-success-text">
                     Reward Registered Successfully!
                   </DialogTitle>
@@ -276,53 +300,113 @@ export function RegistrationModal({
                 </div>
 
                 {/* Reward Details */}
-                <div className="bg-muted/50 rounded-3xl p-4 space-y-3">
-                  <div className="flex items-center justify-center gap-2">
-                    <IconBarcode className="w-5 h-5 text-primary" />
+                <div className="border border-border bg-muted/15 rounded-3xl p-4 space-y-3">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <IconBarcode className="size-18 text-primary" fill />
                     <span className="font-semibold text-lg">
                       {serialNumber}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                      <p className="text-xs text-muted-foreground tracking-wider">
                         Installer Code
                       </p>
-                      <p className="text-lg font-mono font-bold tracking-wider text-primary">
-                        {installerCode}
-                      </p>
+                      <HyperText className="pointer-events-none leading-5 text-lg tracking-widest">
+                        {installerCode as string}
+                      </HyperText>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                      <p className="text-xs text-muted-foreground tracking-wider">
                         Reward Amount
                       </p>
-                      <p className="text-lg font-bold tracking-wider text-green-600">
+                      <p className="text-lg font-bold tracking-widest text-success-text">
                         Rs. {rewardAmount?.toLocaleString()}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Countdown */}
-                <div className="space-y-3">
-                  <div className="relative">
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <motion.div
-                        className="h-full bg-primary"
-                        initial={{ width: "0%" }}
-                        animate={{ width: `${progressPercentage}%` }}
-                        transition={{ duration: 1, ease: "linear" }}
-                      />
-                    </div>
+                {/* WhatsApp delivery status */}
+                {deliveryMethod === "free-form" && (
+                  <div className="bg-success/10 border border-success/30 rounded-2xl p-4 space-y-1">
+                    <p className="text-sm font-medium text-success flex items-center justify-center gap-1.5">
+                      <IconWhatsapp className="size-4" fill />
+                      Claim confirmation sent via WhatsApp
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Delivered within the 24-hour window
+                    </p>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Redirecting in{" "}
-                    <span className="font-bold text-foreground">
-                      {countdown}
-                    </span>{" "}
-                    {countdown === 1 ? "second" : "seconds"}
-                  </p>
-                </div>
+                )}
+
+                {/* Manual fallback — auto-send disabled or window shut */}
+                {whatsappFailed && (
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 space-y-3 text-left">
+                    <p className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                      {deliveryMethod === "blocked"
+                        ? "WhatsApp window expired — share manually"
+                        : "Could not notify the installer on WhatsApp"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      The reward is registered. Send the confirmation yourself
+                      so the installer knows the claim is on file.
+                    </p>
+                    {whatsappMessage && (
+                      <div className="bg-background/60 border border-border rounded-xl p-3 space-y-2">
+                        <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">
+                          {whatsappMessage}
+                        </pre>
+                        <div className="flex gap-2 pt-1">
+                          {whatsappUrl && (
+                            <a
+                              href={whatsappUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-brand-1000 text-white hover:bg-brand-1000/80 transition-colors"
+                            >
+                              <IconWhatsapp className="size-3.5" fill />
+                              Send on WhatsApp
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(whatsappMessage);
+                              toast.success("Message copied to clipboard");
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-background hover:bg-muted transition-colors"
+                          >
+                            Copy Text
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Countdown — hidden while the message still needs sending */}
+                {!whatsappFailed && (
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <motion.div
+                          className="h-full bg-primary"
+                          initial={{ width: "0%" }}
+                          animate={{ width: `${progressPercentage}%` }}
+                          transition={{ duration: 1, ease: "linear" }}
+                        />
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Redirecting in{" "}
+                      <span className="font-bold text-foreground">
+                        {countdown}
+                      </span>{" "}
+                      {countdown === 1 ? "second" : "seconds"}
+                    </p>
+                  </div>
+                )}
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-2">
@@ -368,7 +452,7 @@ export function RegistrationModal({
                 {/* Error Message */}
                 <div className="space-y-2">
                   <DialogTitle className="text-2xl font-bold text-destructive">
-                    ❌ Registration Failed
+                    Registration Failed
                   </DialogTitle>
                   <DialogDescription className="text-muted-foreground">
                     The reward could not be registered. Please check the error

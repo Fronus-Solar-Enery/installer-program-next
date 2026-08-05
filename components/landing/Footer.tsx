@@ -45,12 +45,6 @@ export default function Footer() {
             >
               Installer Login
             </Link>
-            <Link
-              href="/auth/signin"
-              className="transition-colors hover:text-foreground"
-            >
-              Team Sign In
-            </Link>
           </nav>
         </div>
 
