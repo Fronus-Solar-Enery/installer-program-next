@@ -686,14 +686,15 @@ export function buildRewardRegisteredMessage(reward: {
   return [
     `Hi ${reward.fullName},`,
     "",
-    "Your reward claim has been registered with the Fronus-SolaX Installer Program 2026.",
+    "🎉 Congratulations! Your product has been successfully approved for a reward under the *Fronus-SolaX Installer Program 2026*.",
     "",
     `Product: *${reward.productModel}*`,
     `Serial Number: *\`${reward.serialNumber}\`*`,
     `Reward Amount: *Rs. ${reward.rewardAmount.toLocaleString()}*`,
     "",
-    "We'll notify you as soon as the payment is processed.",
-    "Track your claims at https://installer.fronus.com",
+    "ⓘ _The reward amount will be credited to your registered account within *48–72 working hours*._",
+    "",
+    `Track your rewards: https://installer.fronus.com`,
   ].join("\n");
 }
 
