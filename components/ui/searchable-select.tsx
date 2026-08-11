@@ -74,9 +74,9 @@ export function SearchableSelect({
           id={id}
           disabled={disabled}
           className={cn(
-            "w-full justify-between h-11 rounded-xl border-border bg-muted/40 hover:bg-muted dark:bg-background dark:hover:bg-muted/40 px-3",
+            "w-full justify-between h-11 rounded-xl border-border bg-muted/40 hover:bg-muted/60 px-3",
             !value && "text-muted-foreground",
-            className
+            className,
           )}
         >
           <div className="truncate flex-1 text-left">
@@ -108,20 +108,20 @@ export function SearchableSelect({
                       value={option.value}
                       onSelect={(currentValue) => {
                         onValueChange(
-                          currentValue === value ? "" : currentValue
+                          currentValue === value ? "" : currentValue,
                         );
                         setOpen(false);
                       }}
                       className={cn(
                         "justify-between",
-                        value === option.value && "bg-muted"
+                        value === option.value && "bg-muted",
                       )}
                     >
                       {option.label}
                       <IconCheck
                         className={cn(
                           "shrink-0",
-                          value === option.value ? "opacity-100" : "opacity-0"
+                          value === option.value ? "opacity-100" : "opacity-0",
                         )}
                       />
                     </CommandItem>
@@ -140,14 +140,14 @@ export function SearchableSelect({
                     }}
                     className={cn(
                       "justify-between",
-                      value === option.value && "bg-muted"
+                      value === option.value && "bg-muted",
                     )}
                   >
                     {option.label}
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        value === option.value ? "opacity-100" : "opacity-0"
+                        value === option.value ? "opacity-100" : "opacity-0",
                       )}
                     />
                   </CommandItem>
