@@ -40,6 +40,10 @@ import BulkUploadProgressModal, {
   UploadStep,
 } from "@/components/BulkUploadProgressModal";
 import Loading from "@/components/ui/loading";
+import {
+  accountNumberHasSpaces,
+  ACCOUNT_NUMBER_SPACES_ERROR,
+} from "@/lib/validation";
 
 function worksheetToJson(worksheet: ExcelJS.Worksheet): Record<string, unknown>[] {
   const headers: string[] = [];
@@ -346,6 +350,8 @@ export default function BulkCreateRewardsPage() {
     // Account number validation
     if (!reward.accountNumber) {
       issues.push("Account number is required");
+    } else if (accountNumberHasSpaces(reward.accountNumber)) {
+      issues.push(ACCOUNT_NUMBER_SPACES_ERROR);
     }
 
     // Account title validation

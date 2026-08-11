@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface InstallerDetails {
   _id: string;
@@ -67,6 +67,9 @@ export interface InstallerProduct {
   rewardAmount: number;
   rewardStatus: string;
   transactionId?: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountTitle?: string;
   createdAt: string;
 }
 
@@ -121,6 +124,44 @@ export function useInstallerActivities(installerObjectId?: string) {
     },
     enabled: !!installerObjectId,
     staleTime: 30000,
+  });
+}
+
+export interface BulkAccountInput {
+  rewardIds: string[];
+  bankName: string;
+  accountNumber: string;
+  accountTitle: string;
+}
+
+export interface BulkAccountResult {
+  updated: number;
+  skippedPaid: number;
+  message: string;
+}
+
+// Bulk-set payment account details across selected rewards. Invalidate
+// ["installer-rewards"] on success so the table reflects the new payee.
+export function useBulkUpdateRewardAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: BulkAccountInput): Promise<BulkAccountResult> => {
+      const res = await fetch("/api/rewards/bulk-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+      const data = await parseJsonOrThrow(res, "Failed to update account details");
+      return {
+        updated: data.data?.updated ?? 0,
+        skippedPaid: data.data?.skippedPaid ?? 0,
+        message: data.message ?? "Account details updated",
+      };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["installer-rewards"] });
+      queryClient.invalidateQueries({ queryKey: ["installer-activities"] });
+    },
   });
 }
 

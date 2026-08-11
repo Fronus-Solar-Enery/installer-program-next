@@ -5,6 +5,10 @@ import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { CITY_TO_DISTRICT, DISTRICT_CODES } from "@/lib/constants";
 import { BatchDuplicateTracker } from "@/lib/bulkValidation";
+import {
+  accountNumberHasSpaces,
+  ACCOUNT_NUMBER_SPACES_ERROR,
+} from "@/lib/validation";
 
 interface InstallerUpload {
   installerCode: string;
@@ -118,6 +122,10 @@ export const POST = withAuth(
                 `Installer code must start with "${expectedPrefix}" for district "${district}" (city: ${installer.city})`
               );
             }
+          }
+
+          if (accountNumberHasSpaces(installer.accountNumber)) {
+            newIssues.push(ACCOUNT_NUMBER_SPACES_ERROR);
           }
 
           // Check for duplicate CNIC in database

@@ -457,7 +457,15 @@ export default function InstallerDetailsPage() {
                   </AlertDescription>
                 </Alert>
               ) : (
-                <ProductsTable products={rewardsQuery.data} />
+                <ProductsTable
+                  products={rewardsQuery.data}
+                  canBulkEdit={isAdmin}
+                  accountDefaults={{
+                    bankName: installer.bankName,
+                    accountNumber: installer.accountNumber,
+                    accountTitle: installer.accountTitle,
+                  }}
+                />
               )}
             </TabsContent>
 

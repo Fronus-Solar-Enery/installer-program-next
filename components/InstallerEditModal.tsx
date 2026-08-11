@@ -33,7 +33,10 @@ import { useCNICValidation } from "@/hooks/useCNICValidation";
 import { useReferrerValidation } from "@/hooks/useReferrerValidation";
 import { useInstallerCodeGeneration } from "@/hooks/useInstallerCodeGeneration";
 import { usePhoneInput } from "@/hooks/usePhoneInput";
-import { phoneNumberToDBFormat } from "@/lib/validation-helpers";
+import {
+  phoneNumberToDBFormat,
+  stripAccountNumberSpaces,
+} from "@/lib/validation-helpers";
 import {
   IconBank,
   IconBuildings,
@@ -1038,7 +1041,7 @@ export default function InstallerEditModal({
                         onChange={(val) =>
                           isDigitalPayment
                             ? accountNumberInput.onChange(val)
-                            : setAccountNumber(val)
+                            : setAccountNumber(stripAccountNumberSpaces(val))
                         }
                         onFocus={
                           isDigitalPayment

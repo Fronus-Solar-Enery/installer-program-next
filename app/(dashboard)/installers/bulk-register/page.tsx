@@ -39,6 +39,10 @@ import { FileDropzone } from "@/components/ui/drop-zone";
 import { IconLayer, IconTrashBin2 } from "@/components/icons";
 import IconExcel from "@/components/icons/Excel";
 import IconDownloadMinimalistic from "@/components/icons/DownloadMinimalistic";
+import {
+  accountNumberHasSpaces,
+  ACCOUNT_NUMBER_SPACES_ERROR,
+} from "@/lib/validation";
 
 function worksheetToJson(worksheet: ExcelJS.Worksheet): Record<string, unknown>[] {
   const headers: string[] = [];
@@ -349,6 +353,8 @@ export default function BulkUploadInstallersPage() {
       }
       if (!installer.accountNumber || installer.accountNumber.length < 10) {
         issues.push("Account number must be at least 10 characters");
+      } else if (accountNumberHasSpaces(installer.accountNumber)) {
+        issues.push(ACCOUNT_NUMBER_SPACES_ERROR);
       }
       if (!installer.accountTitle || installer.accountTitle.length < 3) {
         issues.push("Account title is required");

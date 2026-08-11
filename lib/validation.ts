@@ -59,6 +59,22 @@ export const changePasswordSchema = z
     path: ["confirmPassword"],
   });
 
+// Account numbers key the bank payment files. An embedded space silently
+// breaks matching on the bank's side, and we can't guess whether it was a
+// typo or a grouped IBAN — so reject it everywhere rather than strip it.
+export const ACCOUNT_NUMBER_SPACES_ERROR =
+  "Account number cannot contain spaces";
+
+export function accountNumberHasSpaces(value: unknown): boolean {
+  return /\s/.test(String(value ?? "").trim());
+}
+
+const accountNumberField = z
+  .string()
+  .min(5, "Account number is required")
+  .refine((v) => !accountNumberHasSpaces(v), ACCOUNT_NUMBER_SPACES_ERROR)
+  .transform((v) => v.trim().toUpperCase());
+
 // Installer Schemas
 export const registerInstallerSchema = z.object({
   installerCode: z.string().min(1, "Installer code is required").toUpperCase(),
@@ -90,10 +106,7 @@ export const registerInstallerSchema = z.object({
     .optional()
     .transform((v) => (v ? toTitleCase(v) : v)),
   bankName: z.string().min(2, "Bank name is required"),
-  accountNumber: z
-    .string()
-    .min(5, "Account number is required")
-    .transform((v) => v.toUpperCase()),
+  accountNumber: accountNumberField,
   accountTitle: z
     .string()
     .min(2, "Account title is required")
@@ -140,6 +153,22 @@ export const updateRewardSchema = z.object({
   paymentMethod: z.string().optional(),
 });
 
+// Bulk account-detail update — payment destination only, applied to a set of
+// existing rewards. Field rules mirror the installer schema so a reward can
+// never end up with a payee shape the installer form would reject.
+export const bulkRewardAccountSchema = z.object({
+  rewardIds: z
+    .array(z.string().min(1))
+    .min(1, "Select at least one product")
+    .max(500, "Maximum 500 products per bulk update"),
+  bankName: z.string().min(2, "Bank name is required"),
+  accountNumber: accountNumberField,
+  accountTitle: z
+    .string()
+    .min(2, "Account title is required")
+    .transform(toTitleCase),
+});
+
 // Product Schemas
 export const productSchema = z.object({
   name: z.string().min(1, "Product name is required"),
@@ -159,5 +188,6 @@ export type RegisterInstallerInput = z.infer<typeof registerInstallerSchema>;
 export type UpdateInstallerInput = z.infer<typeof updateInstallerSchema>;
 export type RegisterRewardInput = z.infer<typeof registerRewardSchema>;
 export type UpdateRewardInput = z.infer<typeof updateRewardSchema>;
+export type BulkRewardAccountInput = z.infer<typeof bulkRewardAccountSchema>;
 export type ProductInput = z.infer<typeof productSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;

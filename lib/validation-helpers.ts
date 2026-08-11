@@ -1,3 +1,11 @@
+/**
+ * Account numbers must not contain spaces — they key the bank payment files,
+ * where an embedded space silently breaks matching. Strip on input so a
+ * grouped IBAN can still be pasted; the Zod schemas reject any that slip past.
+ */
+export const stripAccountNumberSpaces = (value: string): string =>
+  value.replace(/\s+/g, "");
+
 export const formatCNIC = (value: string): string => {
   const digits = value.replace(/\D/g, "");
   if (digits.length <= 5) return digits;

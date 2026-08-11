@@ -6,6 +6,10 @@ import InstallerReward from "@/models/InstallerReward";
 import TeamMember from "@/models/TeamMember";
 import Activity from "@/models/Activity";
 import { logger } from "@/lib/logger";
+import {
+  accountNumberHasSpaces,
+  ACCOUNT_NUMBER_SPACES_ERROR,
+} from "@/lib/validation";
 
 interface RewardDataInput {
   timestamp: string;
@@ -164,6 +168,10 @@ export async function POST(request: NextRequest) {
           throw new Error(
             `Missing required fields: ${missingFields.join(", ")}`
           );
+        }
+
+        if (accountNumberHasSpaces(rewardData.accountNumber)) {
+          throw new Error(ACCOUNT_NUMBER_SPACES_ERROR);
         }
 
         // Find team member ID

@@ -4,7 +4,11 @@ import dbConnect from "@/lib/mongodb";
 import Installer, { IInstaller } from "@/models/Installer";
 import Activity from "@/models/Activity";
 import { CITY_TO_DISTRICT, DISTRICT_CODES } from "@/lib/constants";
-import { toTitleCase } from "@/lib/validation";
+import {
+  toTitleCase,
+  accountNumberHasSpaces,
+  ACCOUNT_NUMBER_SPACES_ERROR,
+} from "@/lib/validation";
 import { logger } from "@/lib/logger";
 
 interface BulkInstallerData extends Partial<IInstaller> {
@@ -179,6 +183,14 @@ export async function POST(req: NextRequest) {
         installerValidationErrors.push({
           code: installerData.installerCode || "unknown",
           error: "Missing required fields",
+        });
+        continue;
+      }
+
+      if (accountNumberHasSpaces(installerData.accountNumber)) {
+        installerValidationErrors.push({
+          code: installerData.installerCode || "unknown",
+          error: ACCOUNT_NUMBER_SPACES_ERROR,
         });
         continue;
       }
