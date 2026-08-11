@@ -1,9 +1,15 @@
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import InstallerReward from "@/models/InstallerReward";
+import { IInstaller } from "@/models/Installer";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
-import { BatchDuplicateTracker } from "@/lib/bulkValidation";
+import {
+  BatchDuplicateTracker,
+  normalizeAccountNumber,
+  normalizeIdentity,
+} from "@/lib/bulkValidation";
+import { isMobileBank } from "@/lib/constants";
 
 interface RewardUpdate {
   serialNumber: string;
@@ -14,6 +20,7 @@ interface RewardUpdate {
   paymentMethod?: string;
   installerCode?: string;
   accountTitle?: string;
+  accountNumber?: string;
   issues: string[];
   isValid: boolean;
 }
@@ -22,8 +29,10 @@ interface ExistingRewardLean {
   serialNumber: string;
   referrer?: unknown;
   rewardStatus: string;
-  installerCode?: string;
-  accountTitle?: string;
+  installer?: Pick<
+    IInstaller,
+    "installerCode" | "bankName" | "accountNumber" | "accountTitle"
+  > | null;
 }
 
 export const POST = withAuth(
@@ -45,11 +54,15 @@ export const POST = withAuth(
           serialNumber: 1,
           referrer: 1,
           rewardStatus: 1,
-          installerCode: 1,
-          accountTitle: 1,
+          installer: 1,
           _id: 0,
         }
-      ).lean<ExistingRewardLean[]>();
+      )
+        .populate(
+          "installer",
+          "installerCode bankName accountNumber accountTitle"
+        )
+        .lean<ExistingRewardLean[]>();
 
       const existingSerialNumbers = new Set(
         existingRewards.map((r) => r.serialNumber.toUpperCase())
@@ -90,6 +103,41 @@ export const POST = withAuth(
             );
           }
 
+          // The uploaded row must describe the same payee the payment sheet was
+          // generated for — otherwise the TID would be recorded against the
+          // wrong reward. Compared against the live installer record, the same
+          // source the template and payment-format exports print.
+          const installer = existing?.installer;
+          if (installer) {
+            if (
+              normalizeIdentity(reward.installerCode) !==
+              normalizeIdentity(installer.installerCode)
+            ) {
+              newIssues.push(
+                `Installer code "${reward.installerCode || ""}" does not match the installer on record ("${installer.installerCode}")`
+              );
+            }
+
+            if (
+              normalizeIdentity(reward.accountTitle) !==
+              normalizeIdentity(installer.accountTitle)
+            ) {
+              newIssues.push(
+                `Reward account title "${reward.accountTitle || ""}" does not match the account on record ("${installer.accountTitle}")`
+              );
+            }
+
+            const mobile = isMobileBank(installer.bankName || "");
+            if (
+              normalizeAccountNumber(reward.accountNumber, mobile) !==
+              normalizeAccountNumber(installer.accountNumber, mobile)
+            ) {
+              newIssues.push(
+                `Reward account number "${reward.accountNumber || ""}" does not match the account on record ("${installer.accountNumber}")`
+              );
+            }
+          }
+
           // Check for duplicate serial number in the upload batch
           const dupIssue = serialsInBatch.check(
             serialUpper,
@@ -117,10 +165,10 @@ export const POST = withAuth(
             }
           }
 
+          // Echo back the uploaded identity values, not the DB ones — the
+          // preview has to show staff what their file actually said.
           return {
             ...reward,
-            installerCode: existing?.installerCode ?? reward.installerCode,
-            accountTitle: existing?.accountTitle ?? reward.accountTitle,
             issues: newIssues,
             isValid: newIssues.length === 0,
           };

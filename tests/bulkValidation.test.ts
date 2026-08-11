@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { BatchDuplicateTracker } from "@/lib/bulkValidation";
+import {
+  BatchDuplicateTracker,
+  normalizeAccountNumber,
+  normalizeIdentity,
+} from "@/lib/bulkValidation";
 
 describe("BatchDuplicateTracker", () => {
   it("returns null for the first occurrence and records its index", () => {
@@ -29,5 +33,44 @@ describe("BatchDuplicateTracker", () => {
     expect(t.check("S", 1, "serial number")).toContain(
       "Duplicate serial number in upload"
     );
+  });
+});
+
+describe("normalizeIdentity", () => {
+  it("ignores case, surrounding and repeated inner whitespace", () => {
+    expect(normalizeIdentity("  ali   raza ")).toBe(
+      normalizeIdentity("Ali Raza")
+    );
+  });
+
+  it("still separates genuinely different values", () => {
+    expect(normalizeIdentity("INS-001")).not.toBe(normalizeIdentity("INS-002"));
+  });
+
+  it("maps null/undefined to an empty key", () => {
+    expect(normalizeIdentity(null)).toBe("");
+    expect(normalizeIdentity(undefined)).toBe("");
+  });
+});
+
+describe("normalizeAccountNumber", () => {
+  it("strips non-digits from a bank account number", () => {
+    expect(normalizeAccountNumber("1234-5678 9012")).toBe("123456789012");
+  });
+
+  it("reduces mobile-wallet numbers to the 03XXXXXXXXX form", () => {
+    const expected = "03001234567";
+    expect(normalizeAccountNumber("+92 300 1234567", true)).toBe(expected);
+    expect(normalizeAccountNumber("923001234567", true)).toBe(expected);
+    expect(normalizeAccountNumber("03001234567", true)).toBe(expected);
+  });
+
+  it("does not apply the phone rewrite to non-mobile banks", () => {
+    expect(normalizeAccountNumber("923001234567", false)).toBe("923001234567");
+  });
+
+  it("leaves an empty value empty rather than producing a bare 0", () => {
+    expect(normalizeAccountNumber("", true)).toBe("");
+    expect(normalizeAccountNumber(undefined, true)).toBe("");
   });
 });

@@ -97,6 +97,7 @@ interface RewardUpdate {
   paymentMethod?: string;
   installerCode?: string;
   accountTitle?: string;
+  accountNumber?: string;
   issues: string[];
   isValid: boolean;
 }
@@ -221,6 +222,21 @@ export default function BulkUploadRewardsPage() {
         issues.push("Serial number is required (min 3 characters)");
       }
 
+      // Identity columns are pre-filled by the template; blank means the row was
+      // hand-built or a column got dropped. Their values are matched against the
+      // installer record server-side.
+      if (!reward.installerCode) {
+        issues.push("Installer code is required");
+      }
+
+      if (!reward.accountTitle) {
+        issues.push("Reward account title is required");
+      }
+
+      if (!reward.accountNumber) {
+        issues.push("Reward account number is required");
+      }
+
       if (!reward.transactionId || reward.transactionId.length < 3) {
         issues.push("Installer transaction ID is required");
       }
@@ -342,10 +358,19 @@ export default function BulkUploadRewardsPage() {
             const referrerTransactionId =
               row["Referrer Transaction ID"]?.toString().trim() || undefined;
             const serialNumber = row["Serial Number"]?.toString().trim() || "";
+            const installerCode =
+              row["Installer Code"]?.toString().trim() || "";
+            const accountTitle =
+              row["Reward Account Title"]?.toString().trim() || "";
+            const accountNumber =
+              row["Reward Account Number"]?.toString().trim() || "";
 
             // First validate the data to determine if there are issues
             const tempReward = {
               serialNumber,
+              installerCode,
+              accountTitle,
+              accountNumber,
               transactionId,
               referrerTransactionId,
               rewardStatus: "PAID", // Temporary, will be overwritten
@@ -370,6 +395,9 @@ export default function BulkUploadRewardsPage() {
 
             const reward = {
               serialNumber,
+              installerCode,
+              accountTitle,
+              accountNumber,
               transactionId,
               referrerTransactionId,
               rewardStatus,
@@ -535,6 +563,9 @@ export default function BulkUploadRewardsPage() {
       }
 
       const excelData = invalidRecords.map((record) => ({
+        "Installer Code": record.installerCode || "",
+        "Reward Account Title": record.accountTitle || "",
+        "Reward Account Number": record.accountNumber || "",
         "Serial Number": record.serialNumber,
         "Installer Transaction ID": record.transactionId,
         "Referrer Transaction ID": record.referrerTransactionId || "",
@@ -545,6 +576,17 @@ export default function BulkUploadRewardsPage() {
       const wb = new ExcelJS.Workbook();
       const ws = wb.addWorksheet("Invalid Records");
       ws.columns = [
+        { header: "Installer Code", key: "Installer Code", width: 16 },
+        {
+          header: "Reward Account Title",
+          key: "Reward Account Title",
+          width: 28,
+        },
+        {
+          header: "Reward Account Number",
+          key: "Reward Account Number",
+          width: 22,
+        },
         { header: "Serial Number", key: "Serial Number", width: 15 },
         {
           header: "Installer Transaction ID",
@@ -1168,6 +1210,7 @@ export default function BulkUploadRewardsPage() {
                     <TableHead>Status</TableHead>
                     <TableHead>Installer Code</TableHead>
                     <TableHead>Account Title</TableHead>
+                    <TableHead>Account Number</TableHead>
                     <TableHead>Serial Number</TableHead>
                     <TableHead>Transaction ID</TableHead>
                     <TableHead>Ref. Transaction</TableHead>
@@ -1203,6 +1246,9 @@ export default function BulkUploadRewardsPage() {
                       </TableCell>
                       <TableCell className="text-sm">
                         {reward.accountTitle || "-"}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {reward.accountNumber || "-"}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
                         {reward.serialNumber}
