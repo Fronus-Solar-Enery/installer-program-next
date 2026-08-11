@@ -993,7 +993,7 @@ export default function BulkUploadRewardsPage() {
         {/* Upload Form */}
         <form onSubmit={handleSubmit} className="space-y-4 h-full">
           <div className="h-full p-6">
-            <Card className="h-full p-6 squircle rounded-[4rem] space-y-4">
+            <Card className="h-full p-6 squircle rounded-4xl space-y-4">
               <h3 className="mb-3">File Upload</h3>
               <div className="space-y-2">
                 <FileDropzone
@@ -1035,7 +1035,7 @@ export default function BulkUploadRewardsPage() {
               </div>
               {file && (
                 <div className="space-y-3">
-                  <div className="relative text-sm text-foreground mt-2 py-5 px-4 border border-border bg-muted rounded-[4rem] squircle flex items-center gap-3">
+                  <div className="relative text-sm text-foreground mt-2 py-5 px-4 border border-border bg-muted rounded-4xl squircle flex items-center gap-3">
                     <IconExcel />
                     <div className="leading-none">{file.name}</div>
                     <button

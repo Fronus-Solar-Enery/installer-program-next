@@ -1399,25 +1399,22 @@ export default function DashboardPage() {
                 <span className="text-sm font-medium text-muted-foreground">
                   Total Installations
                 </span>
-                <div className="text-right">
-                  <div className="text-2xl font-bold">{stats.totalRewards}</div>
-                  <div className="text-xs text-muted-foreground">
-                    Avg: {avgPerProduct} per product
-                  </div>
+                <div className="text-2xl font-bold text-right">
+                  {stats.totalRewards}
                 </div>
               </CardFooter>
             </Card>
-            <Card className="transition-all hover:shadow-lg lg:col-span-4 ">
+            <Card className="lg:col-span-4 transition-all hover:shadow-lg flex flex-col">
               <DashboardCardHeader
                 title="Active Installers Timeline"
                 description={`Historical view of installer activity in ${timeLabels[timePeriod]}`}
                 Icon={IconUserCheckRounded}
               />
-              <CardContent className="p-0!">
+              <CardContent className="p-0! flex flex-col gap-2 max-h-[400px]">
                 {activeInstallersData.length > 0 ? (
-                  <div className="space-y-4">
-                    {activeInstallersData.map((period, index) => (
-                      <div key={period.period} className="space-y-2 p-4 lg:p-6">
+                  <>
+                    {activeInstallersData.map((period) => (
+                      <div key={period.period} className="space-y-2 p-5 h-full">
                         <div className="flex items-center justify-between text-sm">
                           <span className="font-medium flex-1">
                             {period.label}
@@ -1455,23 +1452,21 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     ))}
-                    <div className="mt-6 pt-4 border-t border-border p-4 lg:p-6">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium text-muted-foreground">
-                          Total Registered
-                        </span>
-                        <span className="text-2xl font-bold">
-                          {stats.totalInstallers}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                  </>
                 ) : (
                   <div className="h-[280px] flex items-center justify-center text-muted-foreground">
                     No active installer data available
                   </div>
                 )}
               </CardContent>
+              <CardFooter className="pt-4 border-t border-border flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Total Registered
+                </span>
+                <div className="text-2xl font-bold text-right">
+                  {stats.totalInstallers}
+                </div>
+              </CardFooter>
             </Card>
           </div>
 

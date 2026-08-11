@@ -36,12 +36,12 @@ export const FileDropzone = React.memo(
     const handleDrop = useCallback(
       (acceptedFiles: File[]) => {
         const folders = acceptedFiles.filter(
-          (file) => file.size === 0 && !file.type && !file.name
+          (file) => file.size === 0 && !file.type && !file.name,
         );
 
         if (folders.length > 0) {
           toast.error(
-            `Folders are not allowed. Please upload ${fileTypeLabel} only.`
+            `Folders are not allowed. Please upload ${fileTypeLabel} only.`,
           );
           return;
         }
@@ -50,7 +50,7 @@ export const FileDropzone = React.memo(
           onDrop(acceptedFiles);
         }
       },
-      [onDrop, fileTypeLabel]
+      [onDrop, fileTypeLabel],
     );
 
     const handleDropRejected = useCallback(
@@ -59,7 +59,7 @@ export const FileDropzone = React.memo(
           const error = rejection.errors[0];
           if (error.code === "file-invalid-type") {
             toast.error(
-              `"${rejection.file.name}" is not allowed. Please upload ${fileTypeLabel} only.`
+              `"${rejection.file.name}" is not allowed. Please upload ${fileTypeLabel} only.`,
             );
           } else if (error.code === "too-many-files") {
             toast.error(`Too many files. Maximum ${maxFiles} files allowed.`);
@@ -67,7 +67,7 @@ export const FileDropzone = React.memo(
             toast.error(
               `File "${rejection.file.name}" is too large. Maximum size is ${
                 maxSize ? maxSize / 1024 / 1024 : "unknown"
-              }MB.`
+              }MB.`,
             );
           } else {
             toast.error(`Error: ${error.message}`);
@@ -75,7 +75,7 @@ export const FileDropzone = React.memo(
         });
         onReject?.(rejectedFiles);
       },
-      [onReject, fileTypeLabel, maxFiles, maxSize]
+      [onReject, fileTypeLabel, maxFiles, maxSize],
     );
 
     // Defensive validator: safely handle missing name/type
@@ -87,7 +87,7 @@ export const FileDropzone = React.memo(
 
           // Normalize accepted extensions (ensure they start with a dot)
           const normalizedExts = (acceptedFileTypes || []).map((ext) =>
-            ext.startsWith(".") ? ext.toLowerCase() : `.${ext.toLowerCase()}`
+            ext.startsWith(".") ? ext.toLowerCase() : `.${ext.toLowerCase()}`,
           );
 
           // Allowed mime types from accept prop
@@ -119,7 +119,7 @@ export const FileDropzone = React.memo(
           };
         }
       },
-      [acceptedFileTypes, accept, fileTypeLabel]
+      [acceptedFileTypes, accept, fileTypeLabel],
     );
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -138,14 +138,14 @@ export const FileDropzone = React.memo(
     const dropzoneClasses = useMemo(
       () =>
         cn(
-          "relative h-full w-full border border-dashed p-6 pb-10 rounded-[4rem] transition-colors duration-300 group/dropzone border-black/20 dark:border-border squircle",
+          "relative h-full w-full border border-dashed p-6 pb-10 rounded-4xl transition-colors duration-300 group/dropzone border-black/20 dark:border-border squircle",
           "hover:bg-muted/20",
           isDragActive && "border-primary/30 border-[1.5px] bg-muted/40",
           disabled && "cursor-not-allowed opacity-50",
           !disabled && "cursor-pointer",
-          className
+          className,
         ),
-      [isDragActive, disabled, className]
+      [isDragActive, disabled, className],
     );
 
     const labelClasses = useMemo(
@@ -156,9 +156,9 @@ export const FileDropzone = React.memo(
           "text-muted-foreground/80 group-hover/dropzone:text-muted-foreground",
           "group-hover/dropzone:border-primary/15 group-hover/dropzone:bg-muted/70",
           "border border-border",
-          isDragActive && "text-foreground bg-muted border-primary/25"
+          isDragActive && "text-foreground bg-muted border-primary/25",
         ),
-      [isDragActive]
+      [isDragActive],
     );
 
     const contentClasses = useMemo(
@@ -166,9 +166,9 @@ export const FileDropzone = React.memo(
         cn(
           "flex gap-2 flex-col w-full h-full items-center justify-center text-center transition-colors duration-300 font-normal",
           "text-muted-foreground group-hover/dropzone:text-foreground",
-          isDragActive && "text-foreground"
+          isDragActive && "text-foreground",
         ),
-      [isDragActive]
+      [isDragActive],
     );
 
     return (
@@ -189,7 +189,7 @@ export const FileDropzone = React.memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 FileDropzone.displayName = "FileDropzone";

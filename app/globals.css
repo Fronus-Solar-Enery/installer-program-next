@@ -351,6 +351,24 @@ ol:has(li.my-toast) {
   @apply flex! items-center!;
 }
 
+.squircle.rounded-lg {
+  border-radius: var(--radius-xl);
+}
+.squircle.rounded-xl {
+  border-radius: var(--radius-xl);
+}
+.squircle.rounded-2xl {
+  border-radius: var(--radius-lg);
+}
+.squircle.rounded-3xl {
+  border-radius: var(--radius-xl);
+}
+.squircle.rounded-4xl {
+  border-radius: var(--radius-2xl);
+}
+.squircle.rounded-5xl {
+  border-radius: 2rem;
+}
 @supports (corner-shape: squircle) {
   .squircle {
     corner-shape: squircle;
@@ -376,6 +394,7 @@ ol:has(li.my-toast) {
     corner-shape: superellipse(1.2);
   }
 }
+
 .squircle.nosquircle {
   corner-shape: unset !important;
   border-radius: 50%;
