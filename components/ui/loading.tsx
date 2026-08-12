@@ -11,7 +11,7 @@ const Loading = ({
   return (
     <span aria-label="Loading..." role="status">
       <svg
-        className={cn("size-3.5 animate-spin text-foreground", className)}
+        className={cn("size-3.5 animate-spin text-inherit", className)}
         viewBox="0 0 24 24"
       >
         <circle
