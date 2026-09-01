@@ -2,9 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { IconWhatsapp, IconArrowRightUp } from "@/components/icons";
-import { buildWhatsAppUrl, WHATSAPP_LINK_ATTRS } from "@/lib/whatsapp";
 import type { LandingProduct } from "@/lib/landingProducts";
 import { cn } from "@/lib/utils";
 
