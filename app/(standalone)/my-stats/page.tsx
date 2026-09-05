@@ -3,16 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import {
-  TrendingUp,
-  Package,
-  Clock,
-  Users,
-  Calendar,
-  Share2,
-  LogOut,
-  Copy,
-} from "lucide-react";
+import { Package, Clock, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,16 +28,16 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import ProgramLogo from "@/components/ProgramLogo";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
-import { MilestoneProgress } from "@/components/MilestoneProgress";
 import { InstallationTrendChart } from "@/components/InstallationTrendChart";
 import { ProductDistributionChart } from "@/components/ProductDistributionChart";
 import { MotivationalNudge } from "@/components/MotivationalNudge";
 import { staggerContainer, slideUp } from "@/lib/motion";
-import { IconAward, IconGift, IconSave } from "@/components/icons";
+import { IconCheckCircle, IconGift, IconSave } from "@/components/icons";
 import { getInitials } from "@/lib/getInitials";
 import Loading from "@/components/ui/loading";
 import { CopyButton } from "@/components/CopyButton";
 import { HeaderMenu } from "./HeaderMenu";
+import IconInProgress from "@/components/icons/InProgress";
 
 const PAGE_TITLE = "My Stats — Fronus Installer Program";
 
@@ -93,12 +84,19 @@ function StatusBadge({ status }: { status: string }) {
       variant={
         status === "PAID"
           ? "success"
-          : status === "PENDING"
+          : status === "PENDING" || status === "IN-PROGRESS"
             ? "warning"
             : "destructive"
       }
+      className="mx-auto inline-flex items-center gap-1 text-2xs font-medium pl-1.5!"
     >
-      {status}
+      {status === "PAID" && (
+        <IconCheckCircle duotone={false} className="size-4" width="2" />
+      )}
+      {status === "IN-PROGRESS" && (
+        <IconInProgress duotone={false} className="size-4" width="2" />
+      )}
+      <span className="capitalize mt-0.5">{status}</span>
     </Badge>
   );
 }
@@ -533,7 +531,9 @@ export default function MyStatsPage() {
                             <TableHead className="pl-4">Product</TableHead>
                             <TableHead>Serial #</TableHead>
                             <TableHead>Date</TableHead>
-                            <TableHead>Status</TableHead>
+                            <TableHead className="text-center">
+                              Status
+                            </TableHead>
                             <TableHead className="text-right pr-6">
                               Amount
                             </TableHead>
@@ -553,8 +553,14 @@ export default function MyStatsPage() {
                                   reward.installationDate || reward.createdAt,
                                 ).toLocaleDateString()}
                               </TableCell>
-                              <TableCell>
-                                <StatusBadge status={reward.rewardStatus} />
+                              <TableCell className="text-center">
+                                <StatusBadge
+                                  status={
+                                    reward.rewardStatus === "PENDING"
+                                      ? "IN-PROGRESS"
+                                      : "PAID"
+                                  }
+                                />
                               </TableCell>
                               <TableCell className="text-right tabular-nums pr-6">
                                 {rs(reward.rewardAmount)}
