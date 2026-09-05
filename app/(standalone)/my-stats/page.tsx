@@ -328,7 +328,7 @@ export default function MyStatsPage() {
         {/* Hero Header Card */}
 
         {/* Top row: Logo + Actions */}
-        <div className="flex items-center justify-between mb-8 bg-card/60 backdrop-blur-md squircle rounded-full p-4 sticky top-4 z-100 border border-border">
+        <div className="flex items-center justify-between bg-card/60 backdrop-blur-md squircle rounded-4xl p-4 sticky top-4 z-100 border border-border">
           <ProgramLogo className="w-24 sm:w-28 h-10!" />
           <HeaderMenu
             onShare={handleShare}
