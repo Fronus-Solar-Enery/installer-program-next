@@ -86,7 +86,7 @@ function StatusBadge({ status }: { status: string }) {
           ? "success"
           : status === "PENDING" || status === "IN-PROGRESS"
             ? "warning"
-            : "destructive"
+            : "default"
       }
       className="mx-auto inline-flex items-center gap-1 text-2xs font-medium pl-1.5!"
     >
