@@ -82,7 +82,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <Badge
       variant={
-        status === "PAID"
+        status === "COMPLETED"
           ? "success"
           : status === "PENDING" || status === "IN-PROGRESS"
             ? "warning"
@@ -90,7 +90,7 @@ function StatusBadge({ status }: { status: string }) {
       }
       className="mx-auto inline-flex items-center gap-1 text-2xs font-medium pl-1.5!"
     >
-      {status === "PAID" && (
+      {status === "COMPLETED" && (
         <IconCheckCircle duotone={false} className="size-4" width="2" />
       )}
       {status === "IN-PROGRESS" && (
@@ -558,7 +558,9 @@ export default function MyStatsPage() {
                                   status={
                                     reward.rewardStatus === "PENDING"
                                       ? "IN-PROGRESS"
-                                      : "PAID"
+                                      : reward.rewardStatus === "PAID"
+                                        ? "COMPLETED"
+                                        : "PENDING"
                                   }
                                 />
                               </TableCell>
