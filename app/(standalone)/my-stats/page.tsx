@@ -96,7 +96,7 @@ function StatusBadge({ status }: { status: string }) {
       {status === "IN-PROGRESS" && (
         <IconInProgress duotone={false} className="size-4" width="2" />
       )}
-      <span className="capitalize mt-0.5">{status}</span>
+      <span className="capitalize mt-px">{status}</span>
     </Badge>
   );
 }
