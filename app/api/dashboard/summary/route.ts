@@ -41,6 +41,10 @@ export const GET = withAuth(
                 $group: {
                   _id: null,
                   totalRewards: { $sum: 1 },
+                  paidRewards: { $sum: { $cond: [paid, 1, 0] } },
+                  pendingRewards: { $sum: { $cond: [pending, 1, 0] } },
+                  failedRewards: { $sum: { $cond: [failed, 1, 0] } },
+                  uniqueInstallers: { $addToSet: "$installer" },
                   totalAmount: { $sum: "$rewardAmount" },
                   pendingAmount: {
                     $sum: { $cond: [pending, "$rewardAmount", 0] },
@@ -58,6 +62,12 @@ export const GET = withAuth(
                   },
                 },
               },
+              {
+                $set: {
+                  uniqueInstallersCount: { $size: "$uniqueInstallers" },
+                },
+              },
+              { $unset: "uniqueInstallers" },
             ],
             products: [
               { $group: { _id: "$productModel", installations: { $sum: 1 } } },
@@ -85,6 +95,10 @@ export const GET = withAuth(
 
       const emptyStats = {
         totalRewards: 0,
+        paidRewards: 0,
+        pendingRewards: 0,
+        failedRewards: 0,
+        uniqueInstallersCount: 0,
         totalAmount: 0,
         pendingAmount: 0,
         paidAmount: 0,

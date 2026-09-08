@@ -21,7 +21,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -90,6 +89,10 @@ import {
 interface Stats {
   totalInstallers: number;
   totalRewards: number;
+  paidRewards: number;
+  pendingRewards: number;
+  failedRewards: number;
+  uniqueInstallersCount: number;
   totalAmount: number;
   pendingAmount: number;
   paidAmount: number;
@@ -184,13 +187,19 @@ const timeLabels: Record<TimePeriod, string> = {
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>("last30days");
+  // Match the rewards database's default scope so both pages show the same
+  // figures on first load. Staff can still narrow the dashboard with presets.
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>("all");
   const [customStartDate, setCustomStartDate] = useState<string>("");
   const [customEndDate, setCustomEndDate] = useState<string>("");
   const [isCustomDateOpen, setIsCustomDateOpen] = useState(false);
   const [stats, setStats] = useState<Stats>({
     totalInstallers: 0,
     totalRewards: 0,
+    paidRewards: 0,
+    pendingRewards: 0,
+    failedRewards: 0,
+    uniqueInstallersCount: 0,
     totalAmount: 0,
     pendingAmount: 0,
     paidAmount: 0,
@@ -331,6 +340,10 @@ export default function DashboardPage() {
       const summary = summaryData.data;
       const rewardStats = summary?.stats ?? {
         totalRewards: 0,
+        paidRewards: 0,
+        pendingRewards: 0,
+        failedRewards: 0,
+        uniqueInstallersCount: 0,
         totalAmount: 0,
         pendingAmount: 0,
         paidAmount: 0,
@@ -351,6 +364,10 @@ export default function DashboardPage() {
       setStats({
         totalInstallers: summary?.totalInstallers ?? 0,
         totalRewards: rewardStats.totalRewards,
+        paidRewards: rewardStats.paidRewards,
+        pendingRewards: rewardStats.pendingRewards,
+        failedRewards: rewardStats.failedRewards,
+        uniqueInstallersCount: rewardStats.uniqueInstallersCount,
         totalAmount: rewardStats.totalAmount,
         pendingAmount: rewardStats.pendingAmount,
         paidAmount: rewardStats.paidAmount,
@@ -419,16 +436,6 @@ export default function DashboardPage() {
     }
   }, [getDateRange, timePeriod]);
 
-  const paidCount = useMemo(
-    () =>
-      stats.totalRewards > 0
-        ? Math.round(
-            (stats.paidAmount / stats.totalAmount) * stats.totalRewards,
-          )
-        : 0,
-    [stats.totalRewards, stats.paidAmount, stats.totalAmount],
-  );
-
   const avgPerProduct = useMemo(
     () =>
       productData.length > 0
@@ -489,8 +496,7 @@ export default function DashboardPage() {
             <ToggleGroup
               type="single"
               disabled={loading}
-              defaultValue={timePeriod}
-              // value={timePeriod}
+              value={timePeriod}
               onValueChange={(value) => {
                 if (!value) return;
                 if (value === "custom") {
@@ -591,7 +597,7 @@ export default function DashboardPage() {
                         onClick={() => {
                           setCustomStartDate("");
                           setCustomEndDate("");
-                          setTimePeriod("last30days");
+                          setTimePeriod("all");
                           setIsCustomDateOpen(false);
                         }}
                       >
@@ -881,19 +887,19 @@ export default function DashboardPage() {
                     <span>Total Rewards</span>
                   </div>
                   <div className="text-4xl font-bold text-primary">
-                    Rs. {formatNumber(stats.grandTotal)}
+                    Rs. {stats.grandTotal.toLocaleString()}
                   </div>
                   <div className="flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1">
                       <IconInstaller className="text-blue-400" />
                       <span className="text-muted-foreground">
-                        Rs. {formatNumber(stats.totalAmount)}
+                        Rs. {stats.totalAmount.toLocaleString()}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <IconReferrer className="text-purple-400" />
                       <span className="text-muted-foreground">
-                        Rs. {formatNumber(stats.referrerRewardsTotal)}
+                        Rs. {stats.referrerRewardsTotal.toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -906,19 +912,19 @@ export default function DashboardPage() {
                     <span>Total Paid</span>
                   </div>
                   <div className="text-4xl font-bold text-emerald-600 dark:text-emerald-500">
-                    Rs. {formatNumber(stats.grandTotalPaid)}
+                    Rs. {stats.grandTotalPaid.toLocaleString()}
                   </div>
                   <div className="flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1">
                       <IconInstaller className="text-blue-400" />
                       <span className="text-muted-foreground">
-                        Rs. {formatNumber(stats.paidAmount)}
+                        Rs. {stats.paidAmount.toLocaleString()}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <IconReferrer className="text-purple-400" />
                       <span className="text-muted-foreground">
-                        Rs. {formatNumber(stats.referrerRewardsPaid)}
+                        Rs. {stats.referrerRewardsPaid.toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -931,19 +937,19 @@ export default function DashboardPage() {
                     <span>Total Pending</span>
                   </div>
                   <div className="text-4xl font-bold text-yellow-600 dark:text-yellow-500">
-                    Rs. {formatNumber(stats.grandTotalPending)}
+                    Rs. {stats.grandTotalPending.toLocaleString()}
                   </div>
                   <div className="flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1">
                       <IconInstaller className="text-blue-400" />
                       <span className="text-muted-foreground">
-                        Rs. {formatNumber(stats.pendingAmount)}
+                        Rs. {stats.pendingAmount.toLocaleString()}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
                       <IconReferrer className="text-purple-400" />
                       <span className="text-muted-foreground">
-                        Rs. {formatNumber(stats.referrerRewardsPending)}
+                        Rs. {stats.referrerRewardsPending.toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -1000,7 +1006,7 @@ export default function DashboardPage() {
             <Card className="relative overflow-hidden transition-all hover:shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Installers
+                  Unique Installers
                 </CardTitle>
                 <div className="size-12 rounded-full bg-blue-500/10 flex items-center justify-center">
                   <IconInstaller className="size-5 text-blue-500" />
@@ -1008,13 +1014,11 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="pt-0!">
                 <div className="text-3xl font-bold">
-                  {stats.totalInstallers}
+                  {stats.uniqueInstallersCount}
                 </div>
-                <div className="flex items-center gap-1 mt-2 text-xs">
-                  <ArrowUpRight className="h-3 w-3 text-green-500" />
-                  <span className="text-green-500 font-medium">+0%</span>
-                  <span className="text-muted-foreground">from last month</span>
-                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Reward participants in {timeLabels[timePeriod]}
+                </p>
               </CardContent>
             </Card>
 
@@ -1030,11 +1034,9 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="pt-0!">
                 <div className="text-3xl font-bold">{stats.totalRewards}</div>
-                <div className="flex items-center gap-1 mt-2 text-xs">
-                  <ArrowUpRight className="h-3 w-3 text-green-500" />
-                  <span className="text-green-500 font-medium">+0%</span>
-                  <span className="text-muted-foreground">from last month</span>
-                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Registered in {timeLabels[timePeriod]}
+                </p>
               </CardContent>
             </Card>
 
@@ -1049,12 +1051,10 @@ export default function DashboardPage() {
                 </div>
               </CardHeader>
               <CardContent className="pt-0!">
-                <div className="text-3xl font-bold">{paidCount}</div>
-                <div className="flex items-center gap-1 mt-2 text-xs">
-                  <ArrowUpRight className="h-3 w-3 text-green-500" />
-                  <span className="text-green-500 font-medium">+0%</span>
-                  <span className="text-muted-foreground">from last month</span>
-                </div>
+                <div className="text-3xl font-bold">{stats.paidRewards}</div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Paid in {timeLabels[timePeriod]}
+                </p>
               </CardContent>
             </Card>
 
@@ -1070,7 +1070,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="pt-0!">
                 <div className="text-3xl font-bold">
-                  Rs. {(stats.totalAmount / 1000).toFixed(0)}K
+                  Rs. {stats.totalAmount.toLocaleString()}
                 </div>
                 <div className="flex items-center gap-1 mt-2 text-xs">
                   <span className="text-muted-foreground">
