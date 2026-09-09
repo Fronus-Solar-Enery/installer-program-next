@@ -41,17 +41,26 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* Ordinal chart ramp — one hue (neutral), monotone lightness, chart-1 is the
+     LOWEST magnitude step. Re-stepped so the light end clears 2:1 against the
+     card surface; the old 0.87 step sat at 1.48:1 and disappeared on white. */
+  --chart-1: oklch(0.76 0 0);
+  --chart-2: oklch(0.66 0 0);
+  --chart-3: oklch(0.55 0 0);
+  --chart-4: oklch(0.44 0 0);
+  --chart-5: oklch(0.32 0 0);
 
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  /* Reward-status fills for charts. Reserved — never reused as a series colour.
+     Separation between them comes from lightness, not hue, so they survive
+     protanopia/deuteranopia (worst all-pairs ΔE 11.0). Always shipped with a
+     label or legend, never colour alone. */
+  --chart-paid: oklch(0.6 0.145 163.2);
+  --chart-pending: oklch(0.75 0.15 75);
+  --chart-failed: oklch(0.45 0.19 27);
+  /* Hairline grid/axis — one step off the surface, solid, never dashed. */
+  --chart-grid: oklch(0.9 0 0);
+  /* De-emphasis step for context marks (sparkline tails, rest-of-field). */
+  --chart-muted: oklch(0.85 0 0);
 }
 
 .dark {
@@ -88,6 +97,24 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* Dark ramp runs dim → bright so chart-1 stays the LOWEST magnitude step and
+     every step keeps ≥2:1 against the dark card. Reusing the light ramp here
+     would bury chart-4/5 in the surface. */
+  --chart-1: oklch(0.44 0 0);
+  --chart-2: oklch(0.55 0 0);
+  --chart-3: oklch(0.66 0 0);
+  --chart-4: oklch(0.77 0 0);
+  --chart-5: oklch(0.88 0 0);
+
+  /* Status fills re-stepped for the dark surface (all inside the dark lightness
+     band, worst all-pairs CVD ΔE 7.0 — legal with the direct labels, 2px stack
+     gaps and table view every status chart ships). */
+  --chart-paid: oklch(0.55 0.15 163.2);
+  --chart-pending: oklch(0.665 0.15 78);
+  --chart-failed: oklch(0.5 0.2 22);
+  --chart-grid: oklch(1 0 0 / 12%);
+  --chart-muted: oklch(0.36 0 0);
 }
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -161,6 +188,11 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-chart-paid: var(--chart-paid);
+  --color-chart-pending: var(--chart-pending);
+  --color-chart-failed: var(--chart-failed);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-muted: var(--chart-muted);
 
   --text-2xs: 0.625rem;
 

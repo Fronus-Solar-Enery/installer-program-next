@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { IconAdd, IconCard, IconClose } from "@/components/icons";
-import { DashboardCardHeader } from "../dashboard/page";
+import { DashboardCardHeader } from "@/components/DashboardCardHeader";
 
 const MAX_METHODS = 20;
 const MAX_LENGTH = 40;

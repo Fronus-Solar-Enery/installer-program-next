@@ -29,7 +29,7 @@ import {
   IconSettings,
 } from "@/components/icons";
 import IconReset from "@/components/icons/Reset";
-import { DashboardCardHeader } from "../dashboard/page";
+import { DashboardCardHeader } from "@/components/DashboardCardHeader";
 import { AnimatePresence, motion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import {
