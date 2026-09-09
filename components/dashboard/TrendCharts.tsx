@@ -152,6 +152,9 @@ export function ActivityTrendChart({
       title="Activity over time"
       description={`How ${meta.label.toLowerCase()} moved across ${rangeLabel.toLowerCase()}`}
       Icon={IconDiagramUp}
+      // Widest card in the Trends row (col-span-8) and the first chart on the
+      // page — the type confirms what the layout already says.
+      emphasis
       stale={stale}
       empty={!series.length}
       table={{ rows: data, columns }}
@@ -414,7 +417,7 @@ export function CumulativePayoutChart({
       }
     >
       <ChartContainer config={chartConfig} className="aspect-auto h-full min-h-[280px] w-full">
-        <ComposedChart accessibilityLayer data={series} margin={{ top: 8, right: 12, left: 4, bottom: 0 }}>
+        <ComposedChart accessibilityLayer data={series} margin={{ top: 20, right: 12, left: 4, bottom: 0 }}>
           <defs>
             <linearGradient id="accrued-wash" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={SERIES.accent} stopOpacity={0.14} />
@@ -428,7 +431,19 @@ export function CumulativePayoutChart({
             interval={xAxisInterval(series.length)}
             minTickGap={8}
           />
-          <YAxis {...AXIS_PROPS} width={58} tickFormatter={formatPkrCompact} />
+          {/* Accrued is monotonically non-decreasing, so its last point is
+              always the series peak. With no domain padding that peak sits
+              exactly on the axis max — an 8px margin and a "nice" rounded
+              tick aren't reliably enough headroom, and the 2px stroke reads
+              as clipped against the card's rounded top edge. 12% headroom
+              above the actual max, not just the rounded tick, fixes it
+              regardless of what values land in a given range. */}
+          <YAxis
+            {...AXIS_PROPS}
+            width={58}
+            tickFormatter={formatPkrCompact}
+            domain={[0, (max: number) => Math.ceil(max * 1.12)]}
+          />
           <Tooltip
             cursor={{ stroke: "var(--color-chart-grid)", strokeWidth: 1 }}
             content={

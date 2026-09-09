@@ -50,10 +50,50 @@ import { APP_REFRESH_EVENT } from "@/lib/refreshBus";
 import IconDiagramUp from "@/components/icons/DiagramUp";
 import IconGift from "@/components/icons/Gift";
 import {
+  IconActivity,
+  IconChart,
+  IconFilter,
   IconInstaller,
   IconProduct,
   IconReward,
 } from "@/components/icons";
+
+/**
+ * Small-caps eyebrow that opens each section below the headline block.
+ *
+ * The headline (hero + KPI row) needs no label of its own — it's the biggest
+ * type on the page and sits right under the page title. Everything after it
+ * is a step down in importance, and without a visible marker the four
+ * sections used to blend into one long scroll of identically-weighted cards.
+ * Follows the house pattern for section eyebrows (see
+ * `installers/[id]/ProfileSidebar.tsx`).
+ */
+function SectionHeading({
+  id,
+  Icon,
+  title,
+  description,
+}: {
+  id: string;
+  Icon: React.ComponentType<IconProps>;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div className="mb-3">
+      <h2
+        id={id}
+        className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+      >
+        <Icon className="size-3.5" />
+        {title}
+      </h2>
+      {description ? (
+        <p className="mt-1 text-xs text-muted-foreground/80">{description}</p>
+      ) : null}
+    </div>
+  );
+}
 
 /**
  * The team dashboard.
@@ -62,6 +102,11 @@ import {
  * the programme is judged on, then the four figures that qualify it, then the
  * time series that explain how it got there, then the deep cuts behind tabs.
  * Everything on the page is scoped by the one range control in the header.
+ *
+ * Spacing carries the same argument: 16px between cards inside one section
+ * (the default grid `gap-4`), a wider gap before each new section (`pt-*`
+ * layered on top of that) — so the eye reads section boundaries as real
+ * boundaries instead of the page being one undifferentiated scroll.
  */
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -186,8 +231,21 @@ export default function DashboardPage() {
             aria-label="Headline figures"
             className="grid gap-4 lg:grid-cols-12"
           >
-            <Card className="lg:col-span-5">
-              <CardContent className="flex h-full flex-col gap-6 py-6">
+            {/* The one number the page leads with gets a touch of depth a
+                peer card doesn't — a hairline-thin radial wash in the
+                existing primary token (no new hue), reinforcing what the
+                type size already says: read this one first. */}
+            <Card className="relative overflow-hidden lg:col-span-5">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(120% 100% at 100% 0%, var(--color-primary) 0%, transparent 55%)",
+                  opacity: 0.05,
+                }}
+              />
+              <CardContent className="relative flex h-full flex-col gap-6 py-6">
                 <HeroFigure
                   label="Total reward value"
                   value={totalValue}
@@ -236,7 +294,11 @@ export default function DashboardPage() {
                     {(
                       [
                         ["paid", current?.paidAmount ?? 0, SERIES.paid],
-                        ["pending", current?.pendingAmount ?? 0, SERIES.pending],
+                        [
+                          "pending",
+                          current?.pendingAmount ?? 0,
+                          SERIES.pending,
+                        ],
                         ["failed", current?.failedAmount ?? 0, SERIES.failed],
                       ] as const
                     ).map(([key, value, color]) => (
@@ -337,30 +399,43 @@ export default function DashboardPage() {
           </section>
 
           {/* -- trends ----------------------------------------------------- */}
-          <section aria-label="Trends" className="grid gap-4 lg:grid-cols-12">
-            <div className="lg:col-span-8">
-              <ActivityTrendChart
-                series={series}
-                stale={refreshing}
-                rangeLabel={rangeLabel}
-              />
-            </div>
-            <div className="lg:col-span-4">
-              <SettlementFunnel analytics={analytics} stale={refreshing} />
-            </div>
-            <div className="lg:col-span-7">
-              <StatusTrendChart series={series} stale={refreshing} />
-            </div>
-            <div className="lg:col-span-5">
-              <CumulativePayoutChart series={series} stale={refreshing} />
-            </div>
-            <div className="lg:col-span-12">
-              <AcquisitionChart series={series} stale={refreshing} />
+          <section aria-labelledby="dashboard-trends" className="pt-4">
+            <SectionHeading
+              id="dashboard-trends"
+              Icon={IconChart}
+              title="Trends"
+            />
+            <div className="grid gap-4 lg:grid-cols-12">
+              <div className="lg:col-span-8">
+                <ActivityTrendChart
+                  series={series}
+                  stale={refreshing}
+                  rangeLabel={rangeLabel}
+                />
+              </div>
+              <div className="lg:col-span-4">
+                <SettlementFunnel analytics={analytics} stale={refreshing} />
+              </div>
+              <div className="lg:col-span-7">
+                <StatusTrendChart series={series} stale={refreshing} />
+              </div>
+              <div className="lg:col-span-5">
+                <CumulativePayoutChart series={series} stale={refreshing} />
+              </div>
+              <div className="lg:col-span-12">
+                <AcquisitionChart series={series} stale={refreshing} />
+              </div>
             </div>
           </section>
 
           {/* -- deep cuts -------------------------------------------------- */}
-          <section aria-label="Detailed breakdowns" className="space-y-3 pt-2">
+          <section aria-labelledby="dashboard-deep-dive" className="pt-6">
+            <SectionHeading
+              id="dashboard-deep-dive"
+              Icon={IconFilter}
+              title="Deep dive"
+              description="Slice this period by geography, installer cohort, or payment rail."
+            />
             <Tabs defaultValue="geography" variant="segment">
               <div className="overflow-x-auto pb-1">
                 <TabsList>
@@ -395,9 +470,6 @@ export default function DashboardPage() {
                       stale={refreshing}
                     />
                   </div>
-                  <div className="lg:col-span-12">
-                    <LeaderboardCard analytics={analytics} stale={refreshing} />
-                  </div>
                 </div>
               </TabsContent>
 
@@ -414,15 +486,29 @@ export default function DashboardPage() {
           </section>
 
           {/* -- live feeds ------------------------------------------------- */}
-          <section aria-label="Recent activity" className="grid gap-4 md:grid-cols-2">
-            <RecentInstallationsFeed
-              rows={recentQuery.data?.installations ?? []}
-              loading={recentQuery.isPending}
+          <section aria-labelledby="dashboard-recent" className="pt-4">
+            <SectionHeading
+              id="dashboard-recent"
+              Icon={IconActivity}
+              title="Recent activity"
             />
-            <RecentInstallersFeed
-              rows={recentQuery.data?.installers ?? []}
-              loading={recentQuery.isPending}
-            />
+            <div className="grid gap-4 md:grid-cols-3">
+              {/* Who is actually leading, not buried three clicks into a tab —
+                own row so it isn't squeezed against the trend beside it. */}
+              <LeaderboardCard
+                analytics={analytics}
+                stale={refreshing}
+                className="max-h-[530px]"
+              />
+              <RecentInstallationsFeed
+                rows={recentQuery.data?.installations ?? []}
+                loading={recentQuery.isPending}
+              />
+              <RecentInstallersFeed
+                rows={recentQuery.data?.installers ?? []}
+                loading={recentQuery.isPending}
+              />
+            </div>
           </section>
         </>
       )}

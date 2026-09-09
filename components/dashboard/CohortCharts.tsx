@@ -61,10 +61,7 @@ export function InstallerVolumeChart({
   const data = useMemo(() => {
     const rows = analytics?.cohorts.distribution ?? [];
     const byLabel = new Map(
-      rows.map((r) => [
-        BAND_BY_LOWER[String(r.band)] ?? String(r.band),
-        r,
-      ]),
+      rows.map((r) => [BAND_BY_LOWER[String(r.band)] ?? String(r.band), r]),
     );
     // Render every band, including the empty ones — a missing band would make
     // the distribution look narrower than it is.
@@ -118,8 +115,15 @@ export function InstallerVolumeChart({
         </p>
       }
     >
-      <ChartContainer config={chartConfig} className="aspect-auto h-full min-h-[260px] w-full">
-        <BarChart accessibilityLayer data={data} margin={{ top: 22, right: 8, left: 4, bottom: 0 }}>
+      <ChartContainer
+        config={chartConfig}
+        className="aspect-auto h-full min-h-[260px] w-full"
+      >
+        <BarChart
+          accessibilityLayer
+          data={data}
+          margin={{ top: 22, right: 8, left: 4, bottom: 0 }}
+        >
           <CartesianGrid {...GRID_PROPS} />
           <XAxis {...AXIS_PROPS} dataKey="band" />
           <YAxis {...AXIS_PROPS} width={36} allowDecimals={false} />
@@ -140,14 +144,19 @@ export function InstallerVolumeChart({
               here encodes real order rather than restating bar height. */}
           <Bar dataKey="installers" maxBarSize={BAR_MAX} radius={[4, 4, 0, 0]}>
             {data.map((d, i) => (
-              <Cell key={d.band} fill={rampStep(data.length - 1 - i, data.length)} />
+              <Cell
+                key={d.band}
+                fill={rampStep(data.length - 1 - i, data.length)}
+              />
             ))}
             <LabelList
               dataKey="installers"
               position="top"
               offset={8}
               className="fill-foreground text-[11px] font-medium"
-              formatter={(v) => (Number(v) > 0 ? Number(v).toLocaleString("en-US") : "")}
+              formatter={(v) =>
+                Number(v) > 0 ? Number(v).toLocaleString("en-US") : ""
+              }
             />
           </Bar>
         </BarChart>
@@ -273,12 +282,44 @@ export function ConcentrationCard({
 
 // -- leaderboard -------------------------------------------------------------
 
+/**
+ * Podium treatment for the top 3 rows — a badge tint + ring, not a chart
+ * colour. This is a UI convention (gold/silver/bronze), not a data encoding,
+ * so it sits outside the chart palette rules: nothing here is a mark standing
+ * in for a magnitude, it is decoration that says "these three are different"
+ * the way a medal does. Dual light/dark values follow the same
+ * Tailwind-utility-plus-dark-variant pattern already used elsewhere on this
+ * page (e.g. the emerald icon badge in DashboardCardHeader).
+ */
+const PODIUM_STYLES = [
+  {
+    badge:
+      "bg-amber-100 text-amber-700 ring-1 ring-amber-400/50 dark:bg-amber-500/15 dark:text-amber-300 dark:ring-amber-400/30",
+    row: "bg-amber-50/60 dark:bg-amber-500/[0.06]",
+    bar: "bg-amber-500 dark:bg-amber-400",
+  },
+  {
+    badge:
+      "bg-zinc-100 text-zinc-600 ring-1 ring-zinc-400/40 dark:bg-zinc-400/15 dark:text-zinc-300 dark:ring-zinc-400/30",
+    row: "bg-zinc-50/60 dark:bg-zinc-400/[0.05]",
+    bar: "bg-zinc-500 dark:bg-zinc-400",
+  },
+  {
+    badge:
+      "bg-orange-100 text-orange-700 ring-1 ring-orange-400/40 dark:bg-orange-500/15 dark:text-orange-300 dark:ring-orange-400/30",
+    row: "bg-orange-50/60 dark:bg-orange-500/[0.06]",
+    bar: "bg-orange-500 dark:bg-orange-400",
+  },
+] as const;
+
 export function LeaderboardCard({
   analytics,
   stale,
+  className,
 }: {
   analytics: DashboardAnalytics | undefined;
   stale?: boolean;
+  className?: string;
 }) {
   const rows = analytics?.cohorts.leaderboard ?? [];
   const top = rows[0]?.installations ?? 0;
@@ -313,65 +354,75 @@ export function LeaderboardCard({
       description="The ten highest-volume installers in this period, with their reward totals"
       Icon={IconAward}
       stale={stale}
+      className={className}
       empty={!rows.length}
       emptyTitle="No leaderboard yet"
       emptyDescription="Rankings appear once installations are registered in this period."
       table={{ rows, columns }}
     >
       <ol className="min-h-0 flex-1 space-y-1.5 overflow-y-auto">
-        {rows.map((row, i) => (
-          <li key={row.installerCode}>
-            <Link
-              href={`/installers/${row.installerCode}`}
-              className="squircle group flex items-center gap-3 rounded-2xl p-2.5 transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span
+        {rows.map((row, i) => {
+          const podium = PODIUM_STYLES[i];
+          return (
+            <li key={row.installerCode}>
+              <Link
+                href={`/installers/${row.installerCode}`}
                 className={cn(
-                  "flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold tabular-nums",
-                  i === 0
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground",
+                  "squircle group flex items-center gap-3 rounded-2xl p-2.5 transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  podium?.row,
                 )}
               >
-                {i + 1}
-              </span>
+                <span
+                  className={cn(
+                    "flex shrink-0 items-center justify-center rounded-full font-semibold tabular-nums",
+                    podium
+                      ? cn("size-9 text-sm", podium.badge)
+                      : "size-8 bg-muted text-xs text-muted-foreground",
+                  )}
+                >
+                  {i + 1}
+                </span>
 
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-foreground">
-                  {row.fullName}
-                </p>
-                <p className="truncate font-mono text-[11px] text-muted-foreground">
-                  {row.installerCode}
-                  {row.district ? ` · ${row.district}` : ""}
-                </p>
-                {/* Bar-in-row: relative volume without a second chart. */}
-                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-chart-muted">
-                  <div
-                    className="h-full rounded-full bg-primary"
-                    style={{
-                      width: `${top > 0 ? (row.installations / top) * 100 : 0}%`,
-                    }}
-                  />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {row.fullName}
+                  </p>
+                  <p className="truncate font-mono text-[11px] text-muted-foreground">
+                    {row.installerCode}
+                    {row.district ? ` · ${row.district}` : ""}
+                  </p>
+                  {/* Bar-in-row: relative volume without a second chart. */}
+                  <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-chart-muted">
+                    <div
+                      className={cn(
+                        "h-full rounded-full",
+                        podium?.bar ?? "bg-primary",
+                      )}
+                      style={{
+                        width: `${top > 0 ? (row.installations / top) * 100 : 0}%`,
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="shrink-0 text-right">
-                <p className="text-sm font-semibold tabular-nums text-foreground">
-                  {row.installations.toLocaleString("en-US")}
-                </p>
-                <p className="text-[11px] tabular-nums text-muted-foreground">
-                  {formatPkr(row.amount)}
-                </p>
-              </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-sm font-semibold tabular-nums text-foreground">
+                    {row.installations.toLocaleString("en-US")}
+                  </p>
+                  <p className="text-[11px] tabular-nums text-muted-foreground">
+                    {formatPkr(row.amount)}
+                  </p>
+                </div>
 
-              <IconArrowRightUp
-                width={2}
-                className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
-                aria-hidden
-              />
-            </Link>
-          </li>
-        ))}
+                <IconArrowRightUp
+                  width={2}
+                  className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+                  aria-hidden
+                />
+              </Link>
+            </li>
+          );
+        })}
       </ol>
     </AnalyticsCard>
   );

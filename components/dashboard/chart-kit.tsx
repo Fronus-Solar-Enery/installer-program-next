@@ -138,6 +138,15 @@ interface AnalyticsCardProps<T> {
   emptyTitle?: string;
   emptyDescription?: string;
   footer?: ReactNode;
+  /**
+   * Marks this card as the lead chart of its section — one step up in title
+   * size and icon weight. A dashboard where every card shouts the same volume
+   * has no hierarchy; reserve this for the single chart a section's grid span
+   * already signals as primary (e.g. the widest card in its row), so the type
+   * confirms what the layout already implies rather than fighting it. At most
+   * one per section.
+   */
+  emphasis?: boolean;
 }
 
 /**
@@ -160,6 +169,7 @@ export function AnalyticsCard<T>({
   emptyTitle = "Nothing to chart yet",
   emptyDescription = "There is no activity in this period. Widen the range or register an installation to see it here.",
   footer,
+  emphasis,
 }: AnalyticsCardProps<T>) {
   const [view, setView] = useState<"chart" | "table">("chart");
   const reduce = useReducedMotion();
@@ -173,13 +183,21 @@ export function AnalyticsCard<T>({
       <CardHeader className="flex flex-row items-start gap-3 border-b border-border pb-4">
         {Icon ? (
           <Icon
-            className="hidden md:block size-10 shrink-0 text-primary"
+            className={cn(
+              "hidden md:block shrink-0 text-primary",
+              emphasis ? "size-11" : "size-10",
+            )}
             fill
             duotone
           />
         ) : null}
         <div className="min-w-0 flex-1">
-          <h3 className="text-base font-medium leading-tight text-foreground">
+          <h3
+            className={cn(
+              "leading-tight text-foreground",
+              emphasis ? "text-lg font-semibold" : "text-base font-medium",
+            )}
+          >
             {title}
           </h3>
           {description ? (
@@ -342,7 +360,9 @@ export function ChartLegendRow({
   className?: string;
 }) {
   return (
-    <ul className={cn("flex flex-wrap items-center gap-x-4 gap-y-1.5", className)}>
+    <ul
+      className={cn("flex flex-wrap items-center gap-x-4 gap-y-1.5", className)}
+    >
       {items.map((item) => (
         <li
           key={item.label}
@@ -481,7 +501,9 @@ export function Sparkline({
       return [x, y] as const;
     });
     const line = points
-      .map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`)
+      .map(
+        ([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(2)},${y.toFixed(2)}`,
+      )
       .join(" ");
     const area = `${line} L${w},${h} L0,${h} Z`;
     return { line, area, last: points[points.length - 1] };
@@ -489,34 +511,48 @@ export function Sparkline({
 
   if (!path) return null;
 
+  // preserveAspectRatio="none" is what lets a 100×28 viewBox stretch to fill
+  // whatever width the card gives it — necessary for the line, since a
+  // sparkline stretching horizontally is the whole point. But that stretch is
+  // non-uniform (the box is far wider than it is tall), and a <circle> is
+  // defined in that same distorted coordinate space: vector-effect only
+  // protects stroke *width*, not the circle's own geometry, so the end-dot
+  // rendered as a flattened sliver instead of a dot. Plain HTML/CSS in an
+  // overlay isn't subject to the SVG's internal scaling, so the marker moves
+  // there — positioned by percentage, sized in real pixels.
+  const [lastX, lastY] = path.last;
+
   return (
-    <svg
-      viewBox="0 0 100 28"
-      preserveAspectRatio="none"
-      aria-hidden
-      focusable="false"
-      className={cn("h-7 w-full overflow-visible", className)}
-    >
-      <path d={path.area} fill={color} opacity={0.1} />
-      <path
-        d={path.line}
-        fill="none"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
+    <span className={cn("relative block h-7 w-full", className)}>
+      <svg
+        viewBox="0 0 100 28"
+        preserveAspectRatio="none"
+        aria-hidden
+        focusable="false"
+        className="absolute inset-0 h-full w-full overflow-visible"
+      >
+        <path d={path.area} fill={color} opacity={0.1} />
+        <path
+          d={path.line}
+          fill="none"
+          stroke={color}
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <span
+        aria-hidden
+        className="absolute size-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{
+          left: `${(lastX / 100) * 100}%`,
+          top: `${(lastY / 28) * 100}%`,
+          backgroundColor: color,
+          boxShadow: `0 0 0 2px ${SERIES.surface}`,
+        }}
       />
-      <circle
-        cx={path.last[0]}
-        cy={path.last[1]}
-        r={2.5}
-        fill={color}
-        stroke={SERIES.surface}
-        strokeWidth={2}
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
+    </span>
   );
 }
 
