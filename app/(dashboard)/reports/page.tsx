@@ -18,7 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, DollarSign, Wallet, UserX } from "lucide-react";
+import {
+  Users,
+  DollarSign,
+  Wallet,
+  UserX,
+  FileSpreadsheet,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export default function ReportsPage() {
@@ -65,6 +71,28 @@ export default function ReportsPage() {
           <CardContent>
             <Button
               onClick={() => downloadReport("installers")}
+              disabled={loading}
+              className="w-full"
+            >
+              Download Excel
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Complete Installers Report</CardTitle>
+              <FileSpreadsheet className="h-8 w-8 text-primary" />
+            </div>
+            <CardDescription>
+              Full installer profiles with every product submitted and its
+              product details
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={() => downloadReport("complete-installers")}
               disabled={loading}
               className="w-full"
             >

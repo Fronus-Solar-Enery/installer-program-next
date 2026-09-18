@@ -262,8 +262,10 @@ describe("volumeBand", () => {
 });
 
 describe("bucket labels", () => {
-  it("labels day and month buckets compactly", () => {
-    expect(formatBucketLabel("2026-04-13T00:00:00.000Z", "day")).toBe("13 Apr");
+  it("labels day and week buckets as day/month, while keeping month labels", () => {
+    expect(formatBucketLabel("2026-04-13T00:00:00.000Z", "day")).toBe("13/04");
+    expect(formatBucketLabel("2026-07-06T00:00:00.000Z", "week")).toBe("6/07");
+    expect(formatBucketLabel("2026-08-03T00:00:00.000Z", "week")).toBe("3/08");
     expect(formatBucketLabel("2026-04-01T00:00:00.000Z", "month")).toBe(
       "Apr 26",
     );

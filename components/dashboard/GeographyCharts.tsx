@@ -35,7 +35,7 @@ const LEVELS: Record<Level, { short: string; label: string; note: string }> = {
   provinces: {
     short: "Province",
     label: "Province",
-    note: "Installer home province — the widest cut of the field",
+    note: "Installations grouped by each installer’s home province",
   },
   districts: {
     short: "District",
@@ -45,7 +45,7 @@ const LEVELS: Record<Level, { short: string; label: string; note: string }> = {
   cities: {
     short: "City",
     label: "City",
-    note: "Top 10 cities by where the hardware was actually installed",
+    note: "Top 10 cities where products were installed",
   },
 };
 
@@ -142,13 +142,13 @@ export function RegionBreakdown({
 
   return (
     <AnalyticsCard
-      title="Geographic distribution"
+      title="Installations by location"
       description={meta.note}
       Icon={IconMapPoint}
       stale={stale}
       empty={!rows.length}
-      emptyTitle="No locations to map yet"
-      emptyDescription="Installations carry the installer's district and the city they were fitted in. Neither has any rows in this period."
+      emptyTitle="No installation locations yet"
+      emptyDescription="Locations will appear when installations are registered in this period."
       table={{ rows, columns }}
       actions={
         <ToggleGroup
@@ -180,7 +180,7 @@ export function RegionBreakdown({
             value={rows.length.toLocaleString("en-US")}
           />
           <SummaryStat
-            label="Top 3 share"
+            label="Installations in top 3"
             value={`${topThreeShare.toFixed(0)}%`}
           />
           <SummaryStat
@@ -281,13 +281,13 @@ export function ProductMixChart({
 
   return (
     <AnalyticsCard
-      title="Product mix"
-      description="Which models the field is actually installing, by unit share"
+      title="Products installed"
+      description="Which product models were installed most often"
       Icon={IconPackage}
       stale={stale}
       empty={!products.length}
-      emptyTitle="No products registered yet"
-      emptyDescription="Product mix is derived from the model on each reward claim. There are no claims in this period."
+      emptyTitle="No products installed in this period"
+      emptyDescription="Product models will appear when installations are registered in this period."
       table={{ rows: products, columns }}
       footer={
         <ChartLegendRow

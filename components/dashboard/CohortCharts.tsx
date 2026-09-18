@@ -86,7 +86,7 @@ export function InstallerVolumeChart({
     },
     {
       key: "share",
-      header: "Share of field",
+      header: "Share of installers",
       numeric: true,
       render: (r) => `${shareOf(r.installers, totalInstallers).toFixed(1)}%`,
     },
@@ -100,13 +100,13 @@ export function InstallerVolumeChart({
 
   return (
     <AnalyticsCard
-      title="Output distribution"
-      description="How many installers sit in each volume band. The bands widen because installer output is heavily skewed"
+      title="Installations per installer"
+      description="How many installers registered 1, 2–3, or more installations"
       Icon={IconUsersGroupRounded}
       stale={stale}
       empty={!totalInstallers}
       emptyTitle="No installer activity yet"
-      emptyDescription="Once installers start submitting claims their volume spread appears here."
+      emptyDescription="This chart will show installers by their number of registered installations."
       table={{ rows: data, columns }}
       footer={
         <p className="text-xs text-muted-foreground">
@@ -135,7 +135,7 @@ export function InstallerVolumeChart({
                   installers: { label: "Installers" },
                 }}
                 footer={(p) =>
-                  `${Number(p.installations ?? 0).toLocaleString("en-US")} installations from this band`
+                  `${Number(p.installations ?? 0).toLocaleString("en-US")} installations from this group`
                 }
               />
             }
@@ -206,7 +206,7 @@ export function ConcentrationCard({
       note: "of all installations in this period",
     },
     {
-      label: "Activation rate",
+      label: "Installers who submitted",
       value: `${activationRate.toFixed(1)}%`,
       meter: activationRate,
       note: `${activeInstallers.toLocaleString("en-US")} of ${registered.toLocaleString("en-US")} registered installers submitted in this period`,
@@ -224,10 +224,10 @@ export function ConcentrationCard({
         />
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-medium leading-tight text-foreground">
-            Concentration
+            Who registered the installations
           </h3>
           <p className="mt-1 text-pretty text-xs text-muted-foreground">
-            How much of the programme rests on how few installers
+            See how many installations came from the most active installers
           </p>
         </div>
       </CardHeader>
@@ -258,11 +258,11 @@ export function ConcentrationCard({
 
         <div className="mt-auto rounded-2xl bg-muted/50 p-3">
           <p className="text-[11px] text-muted-foreground">
-            Average time from sign-up to first claim
+            Average time from sign-up to first installation
           </p>
           <p className="mt-1 text-lg font-semibold text-foreground">
             {lag == null
-              ? "No activations yet"
+              ? "No first installations yet"
               : `${lag.toFixed(1)} ${lag === 1 ? "day" : "days"}`}
           </p>
           {lag != null ? (
@@ -271,7 +271,7 @@ export function ConcentrationCard({
               {(analytics?.cohorts.activatedInstallers ?? 0).toLocaleString(
                 "en-US",
               )}{" "}
-              installers who activated in this period
+              installers who registered their first installation in this period
             </p>
           ) : null}
         </div>
@@ -356,7 +356,7 @@ export function LeaderboardCard({
       stale={stale}
       className={className}
       empty={!rows.length}
-      emptyTitle="No leaderboard yet"
+      emptyTitle="No top installers yet"
       emptyDescription="Rankings appear once installations are registered in this period."
       table={{ rows, columns }}
     >

@@ -96,7 +96,7 @@ export function DistrictDialog({
                   <p className="text-[11px] tabular-nums text-muted-foreground">
                     {formatPkr(installer.rewardAmount)}
                     {installer.referralRewardAmount > 0
-                      ? ` + ${formatPkr(installer.referralRewardAmount)} ref`
+                      ? ` + ${formatPkr(installer.referralRewardAmount)} referral reward`
                       : ""}
                   </p>
                 </div>

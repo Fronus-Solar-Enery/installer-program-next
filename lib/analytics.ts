@@ -158,11 +158,7 @@ export function formatBucketLabel(
       timeZone: "UTC",
     });
   }
-  return d.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  });
+  return `${d.getUTCDate()}/${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 /** Full-precision bucket label for tooltips, where there is room to spell it out. */

@@ -92,7 +92,7 @@ export function RangeFilter({
               <div className="space-y-1">
                 <h4 className="text-sm font-medium">Custom date range</h4>
                 <p className="text-xs text-muted-foreground">
-                  Scopes every figure and chart on this page.
+                  Show dashboard numbers and charts for these dates.
                 </p>
               </div>
               <div className="space-y-3">

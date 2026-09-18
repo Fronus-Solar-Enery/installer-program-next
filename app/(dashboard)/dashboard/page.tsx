@@ -157,7 +157,7 @@ export default function DashboardPage() {
   const current = analytics?.totals.current;
   const previous = analytics?.totals.previous ?? null;
   const hasBaseline = Boolean(analytics?.range.hasBaseline && previous);
-  const baselineLabel = `vs previous ${rangeLabel.toLowerCase()}`;
+  const baselineLabel = "compared with the previous period";
 
   const totalValue = (current?.amount ?? 0) + (current?.referrerAmount ?? 0);
   const previousValue = previous
@@ -185,7 +185,7 @@ export default function DashboardPage() {
       <PageHeader
         title="Dashboard"
         Icon={IconDiagramUp}
-        description="Programme performance, installer activity and reward settlement"
+        description="See installations, installers, and reward payments"
         action={
           <RangeFilter
             period={period}
@@ -207,12 +207,12 @@ export default function DashboardPage() {
           <CardContent className="flex flex-wrap items-center justify-between gap-4 py-6">
             <div>
               <h2 className="text-base font-medium text-foreground">
-                Analytics could not be loaded
+                Dashboard data could not be loaded
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 {analyticsQuery.error instanceof Error
                   ? analyticsQuery.error.message
-                  : "The dashboard aggregation request failed."}
+                  : "Could not load the dashboard data."}
               </p>
             </div>
             <Button onClick={() => void analyticsQuery.refetch()}>
@@ -247,7 +247,7 @@ export default function DashboardPage() {
               />
               <CardContent className="relative flex h-full flex-col gap-6 py-6">
                 <HeroFigure
-                  label="Total reward value"
+                  label="Total rewards recorded"
                   value={totalValue}
                   delta={percentDelta(totalValue, previousValue)}
                   baselineLabel={baselineLabel}
@@ -274,17 +274,17 @@ export default function DashboardPage() {
                 <div className="space-y-2">
                   <div className="flex items-baseline justify-between gap-3">
                     <p className="text-xs font-medium text-muted-foreground">
-                      Settlement progress
+                      Installer rewards paid
                     </p>
                     <p className="text-xs font-semibold tabular-nums text-foreground">
-                      {settlementRate.toFixed(1)}% settled
+                      {settlementRate.toFixed(1)}% paid
                     </p>
                   </div>
                   {/* One stacked meter rather than three bars: the reader is
                       comparing parts of a single whole, not three magnitudes. */}
                   <div
                     role="img"
-                    aria-label={`Settlement split: ${formatPkr(
+                    aria-label={`Reward payments: ${formatPkr(
                       current?.paidAmount ?? 0,
                     )} paid, ${formatPkr(
                       current?.pendingAmount ?? 0,
@@ -362,10 +362,10 @@ export default function DashboardPage() {
                 baselineLabel={baselineLabel}
                 hidden={!hasBaseline}
                 stale={refreshing}
-                footnote="Submitted at least one claim in this period"
+                footnote="Registered at least one installation in this period"
               />
               <StatTile
-                label="Settled value"
+                label="Rewards paid"
                 value={current?.paidAmount ?? 0}
                 prefix="Rs"
                 compact
@@ -379,7 +379,7 @@ export default function DashboardPage() {
                 baselineLabel={baselineLabel}
                 hidden={!hasBaseline}
                 stale={refreshing}
-                footnote={`${(current?.paid ?? 0).toLocaleString("en-US")} of ${(current?.installations ?? 0).toLocaleString("en-US")} claims paid`}
+                footnote={`${(current?.paid ?? 0).toLocaleString("en-US")} of ${(current?.installations ?? 0).toLocaleString("en-US")} installation rewards paid`}
               />
               <StatTile
                 label="Average reward"
@@ -393,7 +393,7 @@ export default function DashboardPage() {
                 baselineLabel={baselineLabel}
                 hidden={!hasBaseline}
                 stale={refreshing}
-                footnote="Per installation, installer reward only"
+                footnote="Average installer reward per installation"
               />
             </div>
           </section>
@@ -433,13 +433,13 @@ export default function DashboardPage() {
             <SectionHeading
               id="dashboard-deep-dive"
               Icon={IconFilter}
-              title="Deep dive"
-              description="Slice this period by geography, installer cohort, or payment rail."
+              title="More details"
+              description="See where installations happened, installer activity, and payment details."
             />
             <Tabs defaultValue="geography" variant="segment">
               <div className="overflow-x-auto pb-1">
                 <TabsList>
-                  <TabsTrigger value="geography">Geography</TabsTrigger>
+                  <TabsTrigger value="geography">Locations</TabsTrigger>
                   <TabsTrigger value="installers">Installers</TabsTrigger>
                   <TabsTrigger value="payments">Payments</TabsTrigger>
                 </TabsList>

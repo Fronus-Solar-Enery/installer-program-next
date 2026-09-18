@@ -150,7 +150,7 @@ export function ActivityTrendChart({
   return (
     <AnalyticsCard
       title="Activity over time"
-      description={`How ${meta.label.toLowerCase()} moved across ${rangeLabel.toLowerCase()}`}
+      description={`How ${meta.label.toLowerCase()} changed during ${rangeLabel.toLowerCase()}`}
       Icon={IconDiagramUp}
       // Widest card in the Trends row (col-span-8) and the first chart on the
       // page — the type confirms what the layout already says.
@@ -285,7 +285,7 @@ export function StatusTrendChart({
   return (
     <AnalyticsCard
       title="Payment status over time"
-      description="Every registered installation, stacked by where its reward stands"
+      description="How many installation rewards were paid, are waiting for payment, or failed"
       Icon={IconLayer}
       stale={stale}
       empty={!grand}
@@ -379,13 +379,13 @@ export function CumulativePayoutChart({
     { key: "period", header: "Period", render: (r) => r.fullLabel },
     {
       key: "accrued",
-      header: "Accrued",
+      header: "Rewards recorded",
       numeric: true,
       render: (r) => formatPkr(r.cumulativeAmount),
     },
     {
       key: "paid",
-      header: "Settled",
+      header: "Rewards paid",
       numeric: true,
       render: (r) => formatPkr(r.cumulativePaid),
     },
@@ -393,8 +393,8 @@ export function CumulativePayoutChart({
 
   return (
     <AnalyticsCard
-      title="Cumulative reward liability"
-      description="What the programme has committed against what it has actually settled"
+      title="Rewards recorded and paid over time"
+      description="Compare total installer rewards recorded with rewards paid so far"
       Icon={IconCourseUp}
       stale={stale}
       empty={!series.length}
@@ -403,12 +403,12 @@ export function CumulativePayoutChart({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <ChartLegendRow
             items={[
-              { label: "Accrued", color: SERIES.accent },
-              { label: "Settled", color: SERIES.paid },
+              { label: "Recorded", color: SERIES.accent },
+              { label: "Paid", color: SERIES.paid },
             ]}
           />
           <p className="text-xs text-muted-foreground">
-            Outstanding{" "}
+            Not yet paid{" "}
             <span className="font-medium tabular-nums text-foreground">
               {formatPkr(outstanding)}
             </span>
@@ -449,11 +449,11 @@ export function CumulativePayoutChart({
             content={
               <SeriesTooltip
                 series={{
-                  cumulativeAmount: { label: "Accrued", format: formatPkr },
-                  cumulativePaid: { label: "Settled", format: formatPkr },
+                  cumulativeAmount: { label: "Recorded", format: formatPkr },
+                  cumulativePaid: { label: "Paid", format: formatPkr },
                 }}
                 footer={(p) =>
-                  `Outstanding ${formatPkr(
+                  `Not yet paid ${formatPkr(
                     Number(p.cumulativeAmount ?? 0) - Number(p.cumulativePaid ?? 0),
                   )}`
                 }
@@ -531,8 +531,8 @@ export function AcquisitionChart({
 
   return (
     <AnalyticsCard
-      title="Acquisition and activation"
-      description="Sign-ups against the installers who actually submitted — first-timers split from returning"
+      title="New and active installers"
+      description="See new sign-ups, first-time installers, and returning installers"
       Icon={IconUserCheckRounded}
       stale={stale}
       empty={!totals.registrations && !totals.newInstallers && !totals.returning}

@@ -58,11 +58,11 @@ export function SettlementFunnel({
   const stages = [
     {
       key: "registered",
-      label: "Claims registered",
+      label: "Installations registered",
       count: claims,
       amount: (t?.amount ?? 0) + (t?.referrerAmount ?? 0),
       color: SERIES.accent,
-      note: "Everything submitted in this period",
+      note: "Includes installer and referrer rewards",
     },
     {
       key: "pending",
@@ -70,15 +70,15 @@ export function SettlementFunnel({
       count: t?.pending ?? 0,
       amount: t?.pendingAmount ?? 0,
       color: SERIES.pending,
-      note: "Approved but not yet sent",
+      note: "Payment has not been sent yet",
     },
     {
       key: "paid",
-      label: "Settled",
+      label: "Paid",
       count: t?.paid ?? 0,
       amount: t?.paidAmount ?? 0,
       color: SERIES.paid,
-      note: "Money out the door",
+      note: "Payment sent",
     },
     {
       key: "failed",
@@ -86,7 +86,7 @@ export function SettlementFunnel({
       count: t?.failed ?? 0,
       amount: t?.failedAmount ?? 0,
       color: SERIES.failed,
-      note: "Rejected or bounced — needs a human",
+      note: "Payment did not go through; needs attention",
     },
   ];
 
@@ -94,7 +94,7 @@ export function SettlementFunnel({
     { key: "stage", header: "Stage", render: (r) => r.label },
     {
       key: "count",
-      header: "Claims",
+      header: "Installations",
       numeric: true,
       render: (r) => r.count.toLocaleString("en-US"),
     },
@@ -114,13 +114,13 @@ export function SettlementFunnel({
 
   return (
     <AnalyticsCard
-      title="Settlement funnel"
-      description="Every claim in this period and where its money currently stands"
+      title="Reward payment status"
+      description="How many installation rewards are waiting, paid, or failed"
       Icon={IconMoney}
       stale={stale}
       empty={!claims}
-      emptyTitle="No claims in this period"
-      emptyDescription="The funnel fills as installations are registered and their rewards move through payment."
+      emptyTitle="No installations in this period"
+      emptyDescription="Payment status will appear as installations are registered."
       table={{ rows: stages, columns }}
     >
       <ul className="flex min-h-0 flex-1 flex-col justify-between gap-4">
@@ -194,7 +194,7 @@ export function PayoutLagChart({
     );
     return LAG_BANDS.map((band) => ({
       band: band.label,
-      fullLabel: `Settled in ${band.label}`,
+      fullLabel: `Paid in ${band.label}`,
       count: byKey.get(band.key) ?? 0,
     }));
   }, [lag]);
@@ -220,12 +220,12 @@ export function PayoutLagChart({
   return (
     <AnalyticsCard
       title="Time to payment"
-      description="Days between a claim being registered and its reward being sent"
+      description="Days from registering an installation to sending its reward"
       Icon={IconTimerPause}
       stale={stale}
       empty={!total}
-      emptyTitle="No settled rewards to time"
-      emptyDescription="This chart measures paid rewards that carry a sending date. None are recorded in this period."
+      emptyTitle="No payment times to show yet"
+      emptyDescription="Payment times will appear when paid rewards have a payment date."
       table={{ rows: data, columns }}
       footer={
         <dl className="flex flex-wrap items-center justify-between gap-4 text-xs">
@@ -261,7 +261,7 @@ export function PayoutLagChart({
               <SeriesTooltip
                 series={{ count: { label: "Rewards" } }}
                 footer={(p) =>
-                  `${shareOf(Number(p.count ?? 0), total).toFixed(1)}% of settled rewards`
+                  `${shareOf(Number(p.count ?? 0), total).toFixed(1)}% of paid rewards`
                 }
               />
             }
@@ -339,7 +339,7 @@ export function PaymentRailsChart({
 
   return (
     <AnalyticsCard
-      title="Payment rails"
+      title="Banks and payment methods"
       description={
         rail === "banks"
           ? "Top 8 receiving banks by number of rewards"
@@ -348,8 +348,8 @@ export function PaymentRailsChart({
       Icon={IconBank}
       stale={stale}
       empty={!rows.length}
-      emptyTitle="No payment rails recorded"
-      emptyDescription="Bank and method come from the reward record. None are set in this period."
+      emptyTitle="No banks or payment methods recorded"
+      emptyDescription="These details will appear when they are added to rewards in this period."
       table={{ rows, columns }}
       actions={
         <ToggleGroup
@@ -357,7 +357,7 @@ export function PaymentRailsChart({
           size="sm"
           value={rail}
           onValueChange={(v) => v && setRail(v as Rail)}
-          aria-label="Payment rail"
+          aria-label="Show banks or payment methods"
         >
           <ToggleGroupItem value="banks">Banks</ToggleGroupItem>
           <ToggleGroupItem value="methods">Methods</ToggleGroupItem>
@@ -412,12 +412,12 @@ export function FailedWatchlist({
   return (
     <AnalyticsCard
       title="Failed payments"
-      description="The most recent rewards that did not go through — each one needs a human"
+      description="Recent reward payments that did not go through and need attention"
       Icon={IconWarning2}
       stale={stale}
       empty={!rows.length}
       emptyTitle="Nothing has failed"
-      emptyDescription="No reward in this period is in a failed state. That is the state you want this card in."
+      emptyDescription="No reward payments failed in this period."
       table={{ rows, columns }}
       footer={
         <p className="text-xs text-muted-foreground">

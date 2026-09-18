@@ -80,7 +80,7 @@ export function RecentInstallationsFeed({
   return (
     <FeedCard
       title="Latest installations"
-      description="The most recent reward claims, newest first"
+      description="The most recently registered installations"
     >
       {loading ? (
         <FeedSkeleton />
