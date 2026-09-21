@@ -1,9 +1,11 @@
 import { NextRequest } from 'next/server';
-import { auth } from '@/lib/auth';
+import { withAuth } from '@/lib/authGuard';
 import ExcelJS from 'exceljs';
 import dbConnect from '@/lib/mongodb';
 import Installer, { IInstaller } from '@/models/Installer';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
+import { escapeRegex } from '@/lib/queryBuilder';
+import { FilterQuery } from 'mongoose';
 
 // Type for Excel export data
 interface ExcelNonCertifiedData {
@@ -53,21 +55,29 @@ function formatPhoneNumbers(phone: string, whatsapp: string): string {
   return `${formattedPhone}, ${formattedWhatsapp}`;
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest) => {
   try {
-    const session = await auth();
-
-    if (!session) {
-      return ApiResponse.unauthorized();
-    }
-
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'json';
+    const city = searchParams.get('city');
+    const province = searchParams.get('province');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
-    // Query for non-certified installers only
-    const installers = await Installer.find({ certified: false })
+    const query: FilterQuery<IInstaller> = { certified: false };
+    if (city) query.city = { $regex: escapeRegex(city), $options: 'i' };
+    if (province) {
+      query.province = { $regex: escapeRegex(province), $options: 'i' };
+    }
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+
+    const installers = await Installer.find(query)
       .select('installerCode fullName address city province phoneNumber whatsappNumber')
       .sort({ createdAt: -1 })
       .lean<IInstaller[]>();
@@ -123,4 +133,4 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+});

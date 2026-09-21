@@ -28,7 +28,7 @@ type AuthorizedHandler = (
   request: NextRequest,
   context: RouteContext,
   session: AuthSession
-) => Promise<NextResponse>;
+) => Promise<Response>;
 
 /**
  * Options for withAuth wrapper
@@ -67,7 +67,7 @@ export function withAuth(
   return async (
     request: NextRequest,
     context: RouteContext
-  ): Promise<NextResponse> => {
+  ): Promise<Response> => {
     try {
       const session = await auth();
 
@@ -92,11 +92,7 @@ export function withAuth(
       }
 
       // Call the actual handler with the authenticated session
-      return (await handler(
-        request,
-        context,
-        session as AuthSession
-      )) as NextResponse;
+      return await handler(request, context, session as AuthSession);
     } catch (error) {
       console.error("Auth guard error:", error);
       return ApiResponse.serverError() as NextResponse;

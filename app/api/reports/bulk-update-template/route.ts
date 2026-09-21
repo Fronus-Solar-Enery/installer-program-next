@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
+import { withAuth } from "@/lib/authGuard";
 import ExcelJS from "exceljs";
 import dbConnect from "@/lib/mongodb";
 import InstallerReward, { IInstallerReward } from "@/models/InstallerReward";
@@ -7,6 +7,7 @@ import { IInstaller } from "@/models/Installer";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { isMobileBank } from "@/lib/constants";
 import { normalizeAccountNumber } from "@/lib/bulkValidation";
+import { buildRewardsQuery } from "@/lib/rewardsQuery";
 
 // Pre-filled bulk-update template: one row per PENDING/FAILED reward, with the
 // serial number and the payee's identity columns populated from the database so
@@ -20,21 +21,23 @@ type TemplateReward = Pick<IInstallerReward, "serialNumber"> & {
   > | null;
 };
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest) => {
   try {
-    const session = await auth();
-    if (!session) {
-      return ApiResponse.unauthorized();
-    }
-
     await dbConnect();
 
-    const rewards = await InstallerReward.find(
-      {
-        rewardStatus: { $in: ["PENDING", "FAILED"] },
-      },
-      { serialNumber: 1, installer: 1, _id: 0 }
-    )
+    const { searchParams } = new URL(request.url);
+    const requestedStatus = searchParams.get("rewardStatus");
+    const query = await buildRewardsQuery(searchParams);
+    query.rewardStatus =
+      requestedStatus === "PENDING" || requestedStatus === "FAILED"
+        ? requestedStatus
+        : { $in: ["PENDING", "FAILED"] };
+
+    const rewards = await InstallerReward.find(query, {
+      serialNumber: 1,
+      installer: 1,
+      _id: 0,
+    })
       .populate("installer", "installerCode bankName accountNumber accountTitle")
       .sort({ createdAt: -1 })
       .lean<TemplateReward[]>();
@@ -82,4 +85,4 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+});

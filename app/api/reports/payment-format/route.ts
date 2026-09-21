@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
+import { withAuth } from "@/lib/authGuard";
 import ExcelJS from "exceljs";
 import dbConnect from "@/lib/mongodb";
 import InstallerReward, { IInstallerReward } from "@/models/InstallerReward";
 import { IInstaller } from "@/models/Installer";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
-import { FilterQuery } from "mongoose";
 import { getBankMatchcase, isMobileBank } from "@/lib/constants";
+import { buildRewardsQuery } from "@/lib/rewardsQuery";
 
 // Type for populated reward document
 interface PopulatedReward
@@ -73,35 +73,20 @@ function formatPhoneNumber(phone: string): string {
   return cleaned;
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest) => {
   try {
-    const session = await auth();
-
-    if (!session) {
-      return ApiResponse.unauthorized();
-    }
-
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
-    const rewardStatus = searchParams.get("rewardStatus") || "PENDING";
-    const startDate = searchParams.get("startDate");
-    const endDate = searchParams.get("endDate");
+    const requestedStatus = searchParams.get("rewardStatus");
+    const query = await buildRewardsQuery(searchParams);
 
-    // Query for both PENDING and FAILED rewards.
-    const query: FilterQuery<IInstallerReward> = {
-      rewardStatus: { $in: ["PENDING", "FAILED"] },
-    };
-
-    if (startDate || endDate) {
-      query.sendingDate = {};
-      if (startDate) {
-        query.sendingDate.$gte = new Date(startDate);
-      }
-      if (endDate) {
-        query.sendingDate.$lte = new Date(endDate);
-      }
-    }
+    // Payment files only contain unsettled rewards. Staff may further narrow
+    // them to one unsettled status, but a paid export would be misleading.
+    query.rewardStatus =
+      requestedStatus === "PENDING" || requestedStatus === "FAILED"
+        ? requestedStatus
+        : { $in: ["PENDING", "FAILED"] };
 
     const rewards = await InstallerReward.find(query)
       .populate(
@@ -204,4 +189,4 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+});

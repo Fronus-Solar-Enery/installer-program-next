@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { auth } from '@/lib/auth';
+import { withAuth } from '@/lib/authGuard';
 import ExcelJS from 'exceljs';
 import dbConnect from '@/lib/mongodb';
 import Installer, { IInstaller } from '@/models/Installer';
@@ -37,14 +37,8 @@ interface ExcelInstallerData {
   'Registration Date': string;
 }
 
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest) => {
   try {
-    const session = await auth();
-
-    if (!session) {
-      return ApiResponse.unauthorized();
-    }
-
     await dbConnect();
 
     const { searchParams } = new URL(request.url);
@@ -52,6 +46,8 @@ export async function GET(request: NextRequest) {
     const city = searchParams.get('city');
     const province = searchParams.get('province');
     const certified = searchParams.get('certified');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
     const query: FilterQuery<IInstaller> = {};
 
@@ -65,6 +61,12 @@ export async function GET(request: NextRequest) {
 
     if (certified !== null && certified !== undefined) {
       query.certified = certified === 'true';
+    }
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
     }
 
     const installers = await Installer.find(query)
@@ -127,4 +129,4 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     return handleApiError(error);
   }
-}
+});

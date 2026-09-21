@@ -24,6 +24,8 @@ export const GET = withAuth(async (request: NextRequest) => {
     const city = searchParams.get("city");
     const province = searchParams.get("province");
     const certified = searchParams.get("certified");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
 
     const query: FilterQuery<IInstaller> = {};
     if (city) query.city = { $regex: escapeRegex(city), $options: "i" };
@@ -31,6 +33,11 @@ export const GET = withAuth(async (request: NextRequest) => {
       query.province = { $regex: escapeRegex(province), $options: "i" };
     if (certified === "true" || certified === "false") {
       query.certified = certified === "true";
+    }
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
     }
 
     const installers = (await Installer.find(query)
