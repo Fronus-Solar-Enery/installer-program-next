@@ -226,14 +226,7 @@ export default function RewardsPage() {
     }
   }, [
     debouncedSearch,
-    state.filters.rewardStatus,
-    state.filters.paymentMethod,
-    state.filters.installationDate,
-    state.filters.productModel,
-    state.filters.teamMember,
-    state.filters.dateRange,
-    state.filters.customStartDate,
-    state.filters.customEndDate,
+    state.filters,
     state.currentPage,
     state.itemsPerPage,
     state.sortField,

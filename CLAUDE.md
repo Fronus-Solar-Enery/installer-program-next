@@ -152,6 +152,7 @@ Tailwind CSS v4 with shadcn/ui components. Fonts (all wired as CSS variables in 
 
 - **Design Quality:** ALWAYS produce production-ready, premium-quality interfaces that follow modern UI/UX principles. Prioritize clarity, usability, accessibility, visual hierarchy, consistency, and responsiveness over decorative elements.
 - **Component Philosophy:** Build reusable, composable, scalable, and maintainable components. Avoid duplication and ensure consistent spacing, typography, colors, states, and interaction patterns throughout the application.
+- **UI Component Reuse:** Before adding a UI component, search the existing components, primitives, and established patterns for one that can be reused or extended. If none is suitable, ask the user for approval before creating a new UI component; do not introduce a near-duplicate component or variant without that approval.
 - **Frontend Standards:** Follow modern frontend best practices, emphasizing semantic HTML, accessibility (WCAG), responsive layouts, performance optimization, and clean component architecture.
 - **Visual Consistency:** Maintain a cohesive design language including spacing system, typography scale, color palette, border radius, shadows, elevation, icons, and interactive states across the entire application.
 - **Responsive First:** Design and implement mobile-first layouts that adapt gracefully across all screen sizes without breaking hierarchy, usability, or visual balance.

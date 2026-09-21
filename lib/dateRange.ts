@@ -5,6 +5,28 @@ export interface DateRangeBounds {
   end: Date | null;
 }
 
+const pakistanDateFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Karachi",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/** Return an ISO-like calendar date as seen by rewards users in Pakistan. */
+export function toPakistanCalendarDate(value: string | Date): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const parts = pakistanDateFormatter.formatToParts(date);
+  const getPart = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value;
+  const year = getPart("year");
+  const month = getPart("month");
+  const day = getPart("day");
+
+  return year && month && day ? `${year}-${month}-${day}` : "";
+}
+
 /**
  * Resolve a date-range preset (or custom range) to concrete local-time bounds.
  *

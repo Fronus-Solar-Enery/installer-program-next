@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveDateRange } from "@/lib/dateRange";
+import { resolveDateRange, toPakistanCalendarDate } from "@/lib/dateRange";
 
 const base = { customStartDate: "", customEndDate: "" };
 
@@ -50,5 +50,16 @@ describe("resolveDateRange", () => {
     expect(start!.getFullYear()).toBe(now.getFullYear() - 1);
     expect(start!.getMonth()).toBe(now.getMonth());
     expect(start!.getDate()).toBe(now.getDate());
+  });
+});
+
+describe("toPakistanCalendarDate", () => {
+  it("uses Pakistan calendar dates for UTC timestamps around midnight", () => {
+    expect(toPakistanCalendarDate("2026-08-31T19:00:00.000Z")).toBe(
+      "2026-09-01"
+    );
+    expect(toPakistanCalendarDate("2026-09-20T19:00:00.000Z")).toBe(
+      "2026-09-21"
+    );
   });
 });

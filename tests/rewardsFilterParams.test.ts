@@ -51,28 +51,26 @@ describe("buildRewardsFilterParams", () => {
     expect(params.get("registeredBy")).toBe("team-1");
   });
 
-  it("widens an installation month to that month's bounds", () => {
+  it("widens an installation month to Pakistan calendar-month bounds", () => {
     const params = buildRewardsFilterParams({
       ...base,
       installationDate: "2026-02",
     });
 
-    expect(params.get("installationStart")).toBe("2026-02-01T00:00:00.000Z");
-    // February 2026 has 28 days — the end bound must land on the 28th.
-    expect(params.get("installationEnd")).toBe("2026-02-28T23:59:59.999Z");
+    expect(params.get("installationStart")).toBe("2026-01-31T19:00:00.000Z");
+    // February 2026 has 28 days; the final Pakistan calendar instant is 18:59:59.999Z.
+    expect(params.get("installationEnd")).toBe("2026-02-28T18:59:59.999Z");
   });
 
-  it("sends the sending-date range with the end covering the whole day", () => {
+  it("sends the sending-date range using Pakistan calendar-day bounds", () => {
     const params = buildRewardsFilterParams({
       ...base,
       sendingStart: "2026-03-01",
       sendingEnd: "2026-03-31",
     });
 
-    expect(params.get("sendingStart")).toBeTruthy();
-    const end = new Date(params.get("sendingEnd")!);
-    expect(end.getHours()).toBe(23);
-    expect(end.getMinutes()).toBe(59);
+    expect(params.get("sendingStart")).toBe("2026-02-28T19:00:00.000Z");
+    expect(params.get("sendingEnd")).toBe("2026-03-31T18:59:59.999Z");
   });
 
   it("accepts a one-sided sending range", () => {

@@ -59,7 +59,13 @@ import Dropdown, {
 } from "@/components/ui/dropdown";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { MonthYearGridPicker } from "@/components/ui/month-year-grid-picker";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CopyButton } from "@/components/CopyButton";
 import {
@@ -68,10 +74,12 @@ import {
   IconLayer,
   IconActivity,
   IconAdd,
+  IconClockCircle,
   IconClose,
   IconSortFromTopToBottom,
   IconSortFromBottomToTop,
 } from "@/components/icons";
+import type { DateRange } from "react-day-picker";
 import { EmptyState } from "@/components/EmptyState";
 import type { RewardWithId } from "@/hooks/useOptimizedRewardsFilter";
 import type { ColumnVisibility, RewardsFilters } from "@/hooks/useRewardsState";
@@ -122,6 +130,42 @@ interface RewardsTableProps {
   onClearAllFilters?: () => void;
 }
 
+function toLocalDateString(date: Date) {
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+    .toISOString()
+    .split("T")[0];
+}
+
+function filterMonthToMonthYear(value?: string) {
+  if (!value) return "";
+
+  const [yearText, monthText] = value.split("-");
+  const year = Number(yearText);
+  const monthIndex = Number(monthText) - 1;
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(monthIndex) ||
+    monthIndex < 0 ||
+    monthIndex > 11
+  ) {
+    return "";
+  }
+
+  return `${new Date(Date.UTC(year, monthIndex, 1)).toLocaleString("en-US", {
+    month: "long",
+    timeZone: "UTC",
+  })} ${year}`;
+}
+
+function monthYearToFilterMonth(value: string) {
+  const [monthName, yearText] = value.split(" ");
+  const monthIndex = new Date(`${monthName} 1, 2000`).getMonth();
+  const year = Number(yearText);
+  if (Number.isNaN(monthIndex) || !Number.isInteger(year)) return "";
+
+  return `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+}
+
 export const RewardsTable = React.memo<RewardsTableProps>(
   ({
     rewards,
@@ -163,6 +207,31 @@ export const RewardsTable = React.memo<RewardsTableProps>(
     const [columnWidths, setColumnWidths] = useState<Record<string, number>>(
       {},
     );
+    const [isSendingDateOpen, setIsSendingDateOpen] = useState(false);
+    const [sendingDateRange, setSendingDateRange] = useState<
+      DateRange | undefined
+    >();
+    const installationMonthYear = useMemo(
+      () => filterMonthToMonthYear(filters?.installationDate),
+      [filters?.installationDate],
+    );
+
+    useEffect(() => {
+      if (!isSendingDateOpen) return;
+
+      setSendingDateRange(
+        filters?.sendingStart || filters?.sendingEnd
+          ? {
+              from: filters.sendingStart
+                ? new Date(`${filters.sendingStart}T00:00:00`)
+                : undefined,
+              to: filters.sendingEnd
+                ? new Date(`${filters.sendingEnd}T00:00:00`)
+                : undefined,
+            }
+          : undefined,
+      );
+    }, [filters?.sendingEnd, filters?.sendingStart, isSendingDateOpen]);
 
     // Virtual scrolling setup
     const rowVirtualizer = useVirtualizer({
@@ -345,8 +414,8 @@ export const RewardsTable = React.memo<RewardsTableProps>(
       <>
         <CardContent className="p-0! light:bg-muted/50">
           {/* Filters Display Section */}
-          <div className="flex justify-between p-4 bg-background dark:bg-muted/30">
-            <div className="flex items-center gap-2 *:font-mono">
+          <div className="flex flex-col gap-3 bg-background p-4 dark:bg-muted/30 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2 *:font-mono">
               <p className="text-sm leading-none">Filters Applied:</p>
               {/* Sort - Always Show */}
               <div className="text-xs flex items-center gap-1 text-muted-foreground">
@@ -494,24 +563,6 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                 </div>
               )}
 
-              {/* Team Member Filter */}
-              {filters?.teamMember && filters.teamMember !== "all" && (
-                <div className="text-xs flex items-center gap-1 text-muted-foreground">
-                  Registered By:
-                  <Badge
-                    variant="outline"
-                    className="gap-1 [&>svg]:pointer-events-auto h-5.5"
-                    id="filtersTeamMember"
-                  >
-                    {getTeamMemberName(filters.teamMember)}
-                    <IconClose
-                      className="size-4! cursor-pointer"
-                      onClick={() => onClearFilter?.("teamMember")}
-                    />
-                  </Badge>
-                </div>
-              )}
-
               {/* Sending Date range */}
               {(filters?.sendingStart || filters?.sendingEnd) && (
                 <div className="text-xs flex items-center gap-1 text-muted-foreground">
@@ -535,7 +586,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
 
           {/* FILTERS */}
           <Activity mode={showFilters ? "visible" : "hidden"}>
-            <CardContent className="p-4 flex items-center gap-2 ">
+            <CardContent className="flex items-center gap-4 p-4">
               {/* Reward Status Filter */}
               <div className="space-y-2 w-full">
                 <span className="text-sm px-2">Reward Status</span>
@@ -561,45 +612,103 @@ export const RewardsTable = React.memo<RewardsTableProps>(
 
               {/* Sending Date range */}
               <div className="space-y-2 w-full">
-                <span className="text-sm px-2">Sending Date</span>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="date"
-                    aria-label="Sending date from"
-                    value={filters?.sendingStart || ""}
-                    max={filters?.sendingEnd || undefined}
-                    onChange={(e) =>
-                      onFilterChange?.("sendingStart", e.target.value)
-                    }
-                    className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors"
-                    disabled={loading}
-                  />
-                  <span className="text-xs text-muted-foreground">to</span>
-                  <Input
-                    type="date"
-                    aria-label="Sending date to"
-                    value={filters?.sendingEnd || ""}
-                    min={filters?.sendingStart || undefined}
-                    onChange={(e) =>
-                      onFilterChange?.("sendingEnd", e.target.value)
-                    }
-                    className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors"
-                    disabled={loading}
-                  />
-                </div>
+                <span id="sending-date-filter-label" className="text-sm px-2">
+                  Sending Date
+                </span>
+                <Popover
+                  open={isSendingDateOpen}
+                  onOpenChange={setIsSendingDateOpen}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      disabled={loading}
+                      aria-labelledby="sending-date-filter-label"
+                      className="h-9 w-full justify-between bg-muted/40 font-normal hover:bg-muted/60"
+                    >
+                      {filters?.sendingStart || filters?.sendingEnd
+                        ? `${filters.sendingStart || "Any"} to ${filters.sendingEnd || "Any"}`
+                        : "Any sending date"}
+                      <IconClockCircle className="size-4 shrink-0 text-muted-foreground" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="start"
+                    className="w-auto max-w-[calc(100vw-2rem)] overflow-hidden p-0"
+                  >
+                    <div className="border-b border-border px-4 py-3">
+                      <h4 className="text-sm font-medium">Sending date</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Choose the inclusive date range for reward sends.
+                      </p>
+                    </div>
+                    <CalendarComponent
+                      mode="range"
+                      selected={sendingDateRange}
+                      onSelect={setSendingDateRange}
+                      numberOfMonths={2}
+                      startMonth={new Date(2026, 0, 1)}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date("2026-01-01")
+                      }
+                      excludeDisabled
+                      captionLayout="dropdown"
+                    />
+                    <div className="flex justify-end gap-2 border-t border-border p-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSendingDateRange(undefined);
+                          onFilterChange?.("sendingStart", "");
+                          onFilterChange?.("sendingEnd", "");
+                          setIsSendingDateOpen(false);
+                        }}
+                      >
+                        Clear
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={
+                          !sendingDateRange?.from || !sendingDateRange?.to
+                        }
+                        onClick={() => {
+                          const range = sendingDateRange;
+                          if (!range?.from || !range.to) return;
+
+                          onFilterChange?.(
+                            "sendingStart",
+                            toLocalDateString(range.from),
+                          );
+                          onFilterChange?.(
+                            "sendingEnd",
+                            toLocalDateString(range.to),
+                          );
+                          setIsSendingDateOpen(false);
+                        }}
+                      >
+                        Apply
+                      </Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               {/* Installation Date Filter */}
               <div className="space-y-2 w-full">
-                <span className="text-sm px-2">Installation Date</span>
-                <Input
-                  type="month"
-                  value={filters?.installationDate || ""}
-                  onChange={(e) =>
-                    onFilterChange?.("installationDate", e.target.value)
+                <span className="text-sm px-2">Installation Month</span>
+                <MonthYearGridPicker
+                  value={installationMonthYear}
+                  onChange={(value) =>
+                    onFilterChange?.(
+                      "installationDate",
+                      monthYearToFilterMonth(value),
+                    )
                   }
-                  className="h-9 bg-muted/40 hover:bg-muted/60 transition-colors"
                   disabled={loading}
+                  startMonth={0}
+                  startYear={2026}
+                  className="h-9 rounded-xl bg-muted/40 hover:bg-muted/60"
                 />
               </div>
 
@@ -666,6 +775,8 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                   disabled={
                     (filters?.rewardStatus === "ALL" &&
                       filters?.paymentMethod === "all" &&
+                      filters?.sendingStart === "" &&
+                      filters?.sendingEnd === "" &&
                       filters?.installationDate === "" &&
                       filters?.productModel === "all" &&
                       filters?.teamMember === "all" &&
@@ -674,9 +785,9 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                       sortDirection === "desc") ||
                     loading
                   }
-                  className="min-w-fit gap-1.5 pl-1"
+                  className="min-w-fit pl-1.5 pr-3.5 gap-0.5 h-8 flex items-center"
                 >
-                  <IconClose />
+                  <IconClose className="mt-0.5" />
                   Reset All
                 </Button>
               </div>

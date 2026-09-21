@@ -1,6 +1,29 @@
 import type { RewardsFilters } from "@/hooks/useRewardsState";
 import { resolveDateRange } from "@/lib/dateRange";
 
+// Reward installation and sending dates represent calendar dates in Pakistan.
+// Store/query their boundaries explicitly rather than relying on the server's
+// timezone, which may be UTC in production.
+const PAKISTAN_UTC_OFFSET_MS = 5 * 60 * 60 * 1000;
+
+function pakistanDayStart(date: string): Date | null {
+  const [yearText, monthText, dayText] = date.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  if (!year || !month || !day) return null;
+
+  return new Date(Date.UTC(year, month - 1, day) - PAKISTAN_UTC_OFFSET_MS);
+}
+
+function pakistanMonthStart(year: number, month: number): Date {
+  return new Date(Date.UTC(year, month - 1, 1) - PAKISTAN_UTC_OFFSET_MS);
+}
+
+function pakistanMonthEnd(year: number, month: number): Date {
+  return new Date(Date.UTC(year, month, 1) - PAKISTAN_UTC_OFFSET_MS - 1);
+}
+
 /**
  * Turn the rewards list filter state into query params.
  *
@@ -29,28 +52,30 @@ export function buildRewardsFilterParams(
     params.append("registeredBy", filters.teamMember);
   }
 
-  // Installation date is a month (YYYY-MM) in the UI; widen it to that month.
+  // Installation date is a Pakistan calendar month (YYYY-MM) in the UI.
   if (filters.installationDate) {
     const [year, month] = filters.installationDate.split("-").map(Number);
     if (year && month) {
       params.append(
         "installationStart",
-        new Date(Date.UTC(year, month - 1, 1)).toISOString()
+        pakistanMonthStart(year, month).toISOString()
       );
       params.append(
         "installationEnd",
-        new Date(Date.UTC(year, month, 0, 23, 59, 59, 999)).toISOString()
+        pakistanMonthEnd(year, month).toISOString()
       );
     }
   }
 
   if (filters.sendingStart) {
-    params.append("sendingStart", new Date(filters.sendingStart).toISOString());
+    const start = pakistanDayStart(filters.sendingStart);
+    if (start) params.append("sendingStart", start.toISOString());
   }
   if (filters.sendingEnd) {
-    const end = new Date(filters.sendingEnd);
-    end.setHours(23, 59, 59, 999);
-    params.append("sendingEnd", end.toISOString());
+    const start = pakistanDayStart(filters.sendingEnd);
+    if (start) {
+      params.append("sendingEnd", new Date(start.getTime() + 86_400_000 - 1).toISOString());
+    }
   }
 
   const { start, end } = resolveDateRange(filters);

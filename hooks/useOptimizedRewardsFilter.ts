@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMemo } from "react";
-import { resolveDateRange } from "@/lib/dateRange";
+import { resolveDateRange, toPakistanCalendarDate } from "@/lib/dateRange";
 
 export interface RewardWithId {
   _id: string;
@@ -163,7 +163,7 @@ export function useOptimizedRewardsFilter({
       // ISO datetime still matches the day the user picked.
       if (filters.sendingStart || filters.sendingEnd) {
         if (!reward.sendingDate) return false;
-        const sentDay = reward.sendingDate.slice(0, 10);
+        const sentDay = toPakistanCalendarDate(reward.sendingDate);
         if (filters.sendingStart && sentDay < filters.sendingStart) return false;
         if (filters.sendingEnd && sentDay > filters.sendingEnd) return false;
       }
@@ -174,13 +174,10 @@ export function useOptimizedRewardsFilter({
 
       if (filters.installationDate) {
         if (!reward.installationDate) return false;
-        const rewardDate = new Date(reward.installationDate);
-        const filterDate = new Date(filters.installationDate + "-01");
-        if (
-          rewardDate.getFullYear() !== filterDate.getFullYear() ||
-          rewardDate.getMonth() !== filterDate.getMonth()
-        )
-          return false;
+        const installationMonth = toPakistanCalendarDate(
+          reward.installationDate
+        ).slice(0, 7);
+        if (installationMonth !== filters.installationDate) return false;
       }
 
       if (filters.productModel && filters.productModel !== "all") {
