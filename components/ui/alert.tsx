@@ -9,14 +9,16 @@ const alertVariants = cva(
     variants: {
       variant: {
         default: "",
+        // Tinted surface + per-theme text keep WCAG AA contrast:
+        // red-700 on red-50 (light) and red-400 on a dark tint (dark).
         destructive:
-          "border-destructive/50 text-destructive [&>svg]:text-destructive",
+          "border-red-300 bg-red-50 text-red-700 [&>svg]:text-red-700 dark:border-red-500/25 dark:bg-red-950/10 dark:text-red-400 dark:[&>svg]:text-red-400",
       },
     },
     defaultVariants: {
       variant: "default",
     },
-  }
+  },
 );
 
 const Alert = React.forwardRef<

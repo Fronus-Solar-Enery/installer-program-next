@@ -20,9 +20,7 @@ function ipFromRequest(request: Request | undefined): string {
   const headers = request?.headers;
   const forwarded = headers?.get("x-forwarded-for");
   return (
-    forwarded?.split(",")[0]?.trim() ||
-    headers?.get("x-real-ip") ||
-    "unknown"
+    forwarded?.split(",")[0]?.trim() || headers?.get("x-real-ip") || "unknown"
   );
 }
 
@@ -39,7 +37,9 @@ class CustomAuthError extends AuthError {
 // Validate required environment variables
 if (!process.env.NEXTAUTH_SECRET) {
   console.error("CRITICAL: NEXTAUTH_SECRET environment variable is not set");
-  throw new Error("Missing NEXTAUTH_SECRET - check environment variables in deployment settings");
+  throw new Error(
+    "Missing NEXTAUTH_SECRET - check environment variables in deployment settings",
+  );
 }
 
 if (!process.env.NEXTAUTH_URL) {
@@ -56,25 +56,26 @@ export const authConfig: NextAuthConfig = {
   logger: {
     error(error: Error) {
       // Suppress credential-related errors in development
-      const isCredentialError = error.name === 'CredentialsSignin' ||
-        error.message?.includes('No account found') ||
-        error.message?.includes('Incorrect password') ||
-        error.message?.includes('Email cannot be empty') ||
-        error.message?.includes('Password cannot be empty');
+      const isCredentialError =
+        error.name === "CredentialsSignin" ||
+        error.message?.includes("No account found") ||
+        error.message?.includes("Incorrect password") ||
+        error.message?.includes("Email cannot be empty") ||
+        error.message?.includes("Password cannot be empty");
 
       // Only log non-credential errors in development, or all errors in production
-      if (process.env.NODE_ENV === 'production' || !isCredentialError) {
+      if (process.env.NODE_ENV === "production" || !isCredentialError) {
         console.error(error);
       }
     },
     warn(code: string) {
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV === "production") {
         console.warn(code);
       }
     },
     debug(message: string, metadata?: unknown) {
       // Suppress debug logs in development
-      if (process.env.NEXTAUTH_DEBUG === 'true') {
+      if (process.env.NEXTAUTH_DEBUG === "true") {
         console.log(message, metadata);
       }
     },
@@ -106,7 +107,7 @@ export const authConfig: NextAuthConfig = {
         // recorded, so a legitimate login never consumes the budget.
         const normalizedEmail = email.trim().toLowerCase();
         const rateLimitKey = `login:${normalizedEmail}:${ipFromRequest(
-          request as Request | undefined
+          request as Request | undefined,
         )}`;
         const rl = await isRateLimited(rateLimitKey, {
           limit: LOGIN_LIMIT,
@@ -114,7 +115,7 @@ export const authConfig: NextAuthConfig = {
         });
         if (rl.limited) {
           throw new CustomAuthError(
-            "Too many login attempts. Please try again later."
+            "Too many login attempts. Please try again later.",
           );
         }
 
@@ -130,7 +131,9 @@ export const authConfig: NextAuthConfig = {
 
         if (!user) {
           logger.info("Login failed: no account", { email: normalizedEmail });
-          await recordFailedAttempt(rateLimitKey, { windowMs: LOGIN_WINDOW_MS });
+          await recordFailedAttempt(rateLimitKey, {
+            windowMs: LOGIN_WINDOW_MS,
+          });
           throw new CustomAuthError(INVALID_CREDENTIALS);
         }
 
@@ -138,7 +141,9 @@ export const authConfig: NextAuthConfig = {
           logger.info("Login failed: Google-only account", {
             email: normalizedEmail,
           });
-          await recordFailedAttempt(rateLimitKey, { windowMs: LOGIN_WINDOW_MS });
+          await recordFailedAttempt(rateLimitKey, {
+            windowMs: LOGIN_WINDOW_MS,
+          });
           throw new CustomAuthError(INVALID_CREDENTIALS);
         }
 
@@ -149,7 +154,9 @@ export const authConfig: NextAuthConfig = {
           logger.info("Login failed: wrong password", {
             email: normalizedEmail,
           });
-          await recordFailedAttempt(rateLimitKey, { windowMs: LOGIN_WINDOW_MS });
+          await recordFailedAttempt(rateLimitKey, {
+            windowMs: LOGIN_WINDOW_MS,
+          });
           throw new CustomAuthError(INVALID_CREDENTIALS);
         }
 
@@ -160,7 +167,7 @@ export const authConfig: NextAuthConfig = {
             email: normalizedEmail,
           });
           throw new CustomAuthError(
-            "Your access has been revoked. Contact an administrator."
+            "Your access has been revoked. Contact an administrator.",
           );
         }
 

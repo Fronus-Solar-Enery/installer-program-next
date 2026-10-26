@@ -3,6 +3,10 @@
 import { signIn } from "@/lib/auth";
 import { AuthError } from "next-auth";
 
+// Auth.js appends ". Read more at https://errors.authjs.dev#<type>" to every
+// error message; strip it so only our own text reaches the user.
+const AUTHJS_DOCS_SUFFIX = /\.\s*Read more at https:\/\/errors\.authjs\.dev\S*$/;
+
 export async function authenticate(email: string, password: string) {
   try {
     // signIn will throw on error, return undefined on success
@@ -18,7 +22,9 @@ export async function authenticate(email: string, password: string) {
     if (error instanceof AuthError) {
       // Extract the actual error message from the AuthError
       // The message property contains our custom error text
-      const errorMessage = error.message || "Authentication failed";
+      const errorMessage =
+        error.message?.replace(AUTHJS_DOCS_SUFFIX, "").trim() ||
+        "Authentication failed";
 
       return {
         success: false,
