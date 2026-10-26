@@ -472,7 +472,7 @@ export default function ActivityPage() {
                             </div>
                           )}
 
-                          {/* Admin delete action (revealed on card click) */}
+                          {/* Admin delete action (revealed on card click) — disabled for now
                           <AnimatePresence initial={false}>
                             {isSelected && (
                               <motion.div
@@ -503,7 +503,7 @@ export default function ActivityPage() {
                                 </Button>
                               </motion.div>
                             )}
-                          </AnimatePresence>
+                          </AnimatePresence> */}
                         </div>
                       </div>
                     </CardContent>
