@@ -155,7 +155,6 @@ export default function InstallerEditModal({
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
   const [address, setAddress] = useState("");
-  const [initialDistrict, setInitialDistrict] = useState("");
   const [originalInstallerCode, setOriginalInstallerCode] = useState("");
 
   const {
@@ -166,6 +165,7 @@ export default function InstallerEditModal({
     codeValid,
     handleInstallerCodeChange,
     setInstallerCode,
+    generateInstallerCode,
   } = useInstallerCodeGeneration(
     district,
     settings?.allowInstallerCodeEdit || false,
@@ -304,7 +304,6 @@ export default function InstallerEditModal({
         setCity(data.city);
         setProvince(data.province);
         setDistrict(data.district);
-        setInitialDistrict(data.district);
         setCompanyName(data.companyName);
         setBankName(data.bankName);
 
@@ -364,38 +363,22 @@ export default function InstallerEditModal({
 
   // Auto-fill province/district when a city is picked (interactive only — the
   // load path sets province/district directly from the fetched record).
+  // Picking a different city issues a fresh installer code (prefixed for the
+  // new district); picking the original city again restores the original code.
   const handleCityChange = (value: string) => {
+    if (value === city) return;
     setCity(value);
     const cityProvince = CITY_TO_PROVINCE[value];
     if (cityProvince) setProvince(cityProvince);
     const cityDistrict = CITY_TO_DISTRICT[value];
     if (cityDistrict) setDistrict(cityDistrict);
-  };
 
-  // Handle district change and installer code regeneration
-  useEffect(() => {
-    if (
-      district &&
-      installerCodeAutoGen &&
-      !loading &&
-      initialDistrict // Only if we have an initial value (edit mode)
-    ) {
-      if (district === initialDistrict) {
-        // District changed back to original, restore original installer code
-        setInstallerCode(originalInstallerCode);
-      } else if (district !== initialDistrict) {
-        // District changed to something different, clear code to trigger regeneration
-        setInstallerCode("");
-      }
+    if (value === originalData?.city) {
+      setInstallerCode(originalInstallerCode);
+    } else {
+      generateInstallerCode(cityDistrict ?? district);
     }
-  }, [
-    district,
-    initialDistrict,
-    installerCodeAutoGen,
-    loading,
-    originalInstallerCode,
-    setInstallerCode,
-  ]);
+  };
 
   // Memoize validation functions
   const isStep1Valid = useCallback(() => {

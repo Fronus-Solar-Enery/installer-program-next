@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useSession } from "next-auth/react";
+import { useMutation } from "@tanstack/react-query";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { toast } from "sonner";
 import {
   Activity,
   Clock,
@@ -29,11 +33,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import PageHeader from "@/components/PageHeader";
+import { SimpleDeleteDialog } from "@/components/SimpleDeleteDialog";
+import { TeamRole } from "@/types/roles";
 import {
   IconActivity,
   IconEdit,
   IconInstaller,
   IconReward,
+  IconTrashBin2,
   IconUser,
 } from "@/components/icons";
 
@@ -69,6 +76,44 @@ export default function ActivityPage() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // ADMIN-only permanent delete: clicking a card reveals its delete action
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === TeamRole.ADMIN;
+  const reduceMotion = useReducedMotion();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<ActivityData | null>(
+    null,
+  );
+
+  const deleteActivity = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/activities/${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.message || "Failed to delete activity");
+      }
+      return id;
+    },
+    onSuccess: (id) => {
+      setActivities((prev) => prev.filter((a) => a._id !== id));
+      // Keep the current page valid once the list shrinks
+      const remainingPages = Math.max(
+        1,
+        Math.ceil((filteredActivities.length - 1) / itemsPerPage),
+      );
+      setCurrentPage((page) => Math.min(page, remainingPages));
+      setSelectedId(null);
+      setPendingDelete(null);
+      toast.success("Activity deleted");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const toggleSelected = (id: string) => {
+    if (!isAdmin) return;
+    setSelectedId((current) => (current === id ? null : id));
+  };
 
   useEffect(() => {
     fetchActivities();
@@ -254,10 +299,37 @@ export default function ActivityPage() {
                   activity.type.includes("REGISTERED") ||
                   activity.type.includes("CREATED");
 
+                const isSelected = isAdmin && selectedId === activity._id;
+
                 return (
                   <Card
                     key={activity._id}
-                    className="transition-all hover:shadow-md"
+                    className={`transition-all hover:shadow-md ${
+                      isAdmin
+                        ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        : ""
+                    } relative`}
+                    {...(isAdmin && {
+                      tabIndex: 0,
+                      "aria-expanded": isSelected,
+                      onClick: (e: React.MouseEvent<HTMLDivElement>) => {
+                        // Don't toggle when using inner controls (View Changes, delete)
+                        if (
+                          (e.target as HTMLElement).closest(
+                            "summary, details, button",
+                          )
+                        )
+                          return;
+                        toggleSelected(activity._id);
+                      },
+                      onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => {
+                        if (e.target !== e.currentTarget) return;
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          toggleSelected(activity._id);
+                        }
+                      },
+                    })}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start gap-4">
@@ -399,6 +471,39 @@ export default function ActivityPage() {
                               )}
                             </div>
                           )}
+
+                          {/* Admin delete action (revealed on card click) */}
+                          <AnimatePresence initial={false}>
+                            {isSelected && (
+                              <motion.div
+                                key="delete-action"
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                transition={
+                                  reduceMotion
+                                    ? { duration: 0 }
+                                    : {
+                                        type: "spring",
+                                        bounce: 0,
+                                        visualDuration: 0.2,
+                                      }
+                                }
+                                className="absolute bottom-3 right-4"
+                              >
+                                <Button
+                                  variant="destructive"
+                                  size="icon"
+                                  aria-label="Delete activity permanently"
+                                  title="Delete permanently"
+                                  className="bg-transparent hover:bg-transparent"
+                                  onClick={() => setPendingDelete(activity)}
+                                >
+                                  <IconTrashBin2 className="size-4" />
+                                </Button>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       </div>
                     </CardContent>
@@ -495,6 +600,20 @@ export default function ActivityPage() {
           )}
         </div>
       </div>
+
+      <SimpleDeleteDialog
+        open={pendingDelete !== null}
+        deleting={deleteActivity.isPending}
+        itemName={pendingDelete ? getActivityTitle(pendingDelete) : ""}
+        entityType="activity"
+        warningMessage="It will be removed from the audit trail for everyone."
+        onConfirm={() => {
+          if (pendingDelete) deleteActivity.mutate(pendingDelete._id);
+        }}
+        onClose={() => {
+          if (!deleteActivity.isPending) setPendingDelete(null);
+        }}
+      />
     </div>
   );
 }

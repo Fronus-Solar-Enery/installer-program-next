@@ -20,8 +20,11 @@ export function useInstallerCodeGeneration(
   const [codeError, setCodeError] = useState<string | null>(null);
   const [codeValid, setCodeValid] = useState(false);
 
-  const generateInstallerCode = useCallback(async () => {
-    const prefix = DISTRICT_CODES[district];
+  // `forDistrict` lets callers generate for a district that was just picked,
+  // before the `district` state has re-rendered into this hook.
+  const generateInstallerCode = useCallback(async (forDistrict?: string) => {
+    const targetDistrict = forDistrict ?? district;
+    const prefix = DISTRICT_CODES[targetDistrict];
     if (!prefix) return;
 
     setCodeGenerating(true);
@@ -43,7 +46,7 @@ export function useInstallerCodeGeneration(
           (i: InstallerResponse) => i.installerCode === proposedCode
         );
         if (exists) {
-          setTimeout(() => generateInstallerCode(), 100);
+          setTimeout(() => generateInstallerCode(targetDistrict), 100);
           return;
         }
       }
@@ -173,5 +176,6 @@ export function useInstallerCodeGeneration(
     codeValid,
     handleInstallerCodeChange,
     setInstallerCode,
+    generateInstallerCode,
   };
 }

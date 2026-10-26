@@ -16,7 +16,7 @@ interface SimpleDeleteDialogProps {
   open: boolean;
   deleting: boolean;
   itemName: string;
-  entityType: "installer" | "reward";
+  entityType: "installer" | "reward" | "activity";
   warningMessage?: string;
   additionalWarning?: React.ReactNode;
   onConfirm: () => void;
@@ -33,7 +33,11 @@ export function SimpleDeleteDialog({
   onConfirm,
   onClose,
 }: SimpleDeleteDialogProps) {
-  const entityLabel = entityType === "installer" ? "Installer" : "Reward";
+  const entityLabel = {
+    installer: "Installer",
+    reward: "Reward",
+    activity: "Activity",
+  }[entityType];
   const entityLabelLower = entityLabel.toLowerCase();
 
   return (

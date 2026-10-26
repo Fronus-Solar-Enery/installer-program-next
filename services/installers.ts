@@ -325,6 +325,11 @@ export async function updateInstaller(
 
   await logContactActivity(installer, contactCreated, actor);
 
+  const oldCode = originalData.installerCode as string;
+  if (installer.installerCode !== oldCode) {
+    await propagateInstallerCodeChange(installer, oldCode);
+  }
+
   const changes = getChanges(originalData, input);
   const changedFields = Object.keys(changes);
   if (changedFields.length > 0) {
@@ -345,6 +350,65 @@ export async function updateInstaller(
   return findInstallerByIdOrCode(
     String(installer._id),
     INSTALLER_POPULATE_OPTIONS.full
+  );
+}
+
+/**
+ * Rewrite the denormalized copies of an installer's code after it changes:
+ * `installerCode` on their rewards, `referrerCode` on rewards they referred and
+ * on installers they referred. Links are by ObjectId, so only the display /
+ * search copies drift. Referred installers' Google Contacts embed the code
+ * ("CODE REF-OLDCODE Name"), so they are re-synced best-effort — a contact
+ * failure is logged, never thrown, since the installer is already saved.
+ */
+async function propagateInstallerCodeChange(
+  installer: HydratedDocument<IInstaller>,
+  oldCode: string
+): Promise<void> {
+  const newCode = installer.installerCode;
+  const id = installer._id;
+
+  const referred = await Installer.find({ referrer: id });
+
+  const [rewards, referralRewards, referredInstallers] = await Promise.all([
+    InstallerReward.updateMany(
+      { installer: id },
+      { $set: { installerCode: newCode } }
+    ),
+    InstallerReward.updateMany(
+      { referrer: id },
+      { $set: { referrerCode: newCode } }
+    ),
+    Installer.updateMany({ referrer: id }, { $set: { referrerCode: newCode } }),
+  ]);
+
+  logger.info("Installer code change propagated", {
+    installerId: String(id),
+    oldCode,
+    newCode,
+    rewards: rewards.modifiedCount,
+    referralRewards: referralRewards.modifiedCount,
+    referredInstallers: referredInstallers.modifiedCount,
+  });
+
+  await Promise.all(
+    referred
+      .filter((r) => r.googleContactId)
+      .map(async (r) => {
+        r.referrerCode = newCode;
+        try {
+          await updateGoogleContactOrThrow(
+            r.googleContactId!,
+            prepareInstallerContactData(r)
+          );
+        } catch (error) {
+          logger.warn("Failed to re-sync referred installer's Google contact", {
+            installerCode: r.installerCode,
+            referrerCode: newCode,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      })
   );
 }
 
