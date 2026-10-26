@@ -26,8 +26,9 @@ export async function POST(request: NextRequest) {
     // Only issue/send a PIN for a real account — but the response below is
     // identical whether or not the account exists, so an attacker cannot
     // enumerate valid emails. Any failure here is logged, never surfaced (a
-    // distinct error would re-leak the "account exists" signal).
-    if (user) {
+    // distinct error would re-leak the "account exists" signal). Revoked
+    // accounts get the same response but no PIN.
+    if (user && !user.accessRevoked) {
       try {
         const pin = generatePIN();
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000);

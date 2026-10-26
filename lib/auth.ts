@@ -153,6 +153,17 @@ export const authConfig: NextAuthConfig = {
           throw new CustomAuthError(INVALID_CREDENTIALS);
         }
 
+        // Checked only after the password matches, so this message never
+        // reveals account status to someone guessing emails.
+        if (user.accessRevoked) {
+          logger.info("Login blocked: access revoked", {
+            email: normalizedEmail,
+          });
+          throw new CustomAuthError(
+            "Your access has been revoked. Contact an administrator."
+          );
+        }
+
         return {
           id: user._id.toString(),
           email: user.email,
@@ -184,6 +195,7 @@ export const authConfig: NextAuthConfig = {
           try {
             await dbConnect();
             const dbUser = await TeamMember.findOne({ email: token.email });
+            if (dbUser?.accessRevoked) return null;
             if (dbUser) {
               token.id = dbUser._id.toString();
               token.role = dbUser.role;
@@ -196,15 +208,16 @@ export const authConfig: NextAuthConfig = {
         }
       }
 
-      // Revalidate role/existence periodically so demotions and deletions take
-      // effect within ROLE_REVALIDATE_MS instead of the 30-day token lifetime.
+      // Revalidate role/existence/access periodically so demotions, deletions
+      // and revocations take effect within ROLE_REVALIDATE_MS instead of the
+      // 30-day token lifetime.
       const lastChecked = (token.lastChecked as number | undefined) ?? 0;
       if (token.email && Date.now() - lastChecked > ROLE_REVALIDATE_MS) {
         try {
           await dbConnect();
           const dbUser = await TeamMember.findOne({ email: token.email });
-          // User was deleted -> invalidate the session entirely.
-          if (!dbUser) return null;
+          // User was deleted or had access revoked -> invalidate the session.
+          if (!dbUser || dbUser.accessRevoked) return null;
           token.id = dbUser._id.toString();
           token.role = dbUser.role;
           token.name = dbUser.name;

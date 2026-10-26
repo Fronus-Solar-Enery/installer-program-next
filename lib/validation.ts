@@ -46,6 +46,10 @@ export const updateTeamMemberSchema = z.object({
   role: z.enum(TeamRole).optional(),
 });
 
+export const teamMemberAccessSchema = z.object({
+  revoked: z.boolean(),
+});
+
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, "Current password is required"),

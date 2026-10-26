@@ -71,6 +71,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // A PIN issued before revocation must not restore access.
+    if (user.accessRevoked) {
+      await PasswordReset.deleteOne({ _id: result.record._id });
+      return NextResponse.json(
+        { error: "Your access has been revoked. Contact an administrator." },
+        { status: 403 }
+      );
+    }
+
     // Hash new password
     user.password = await bcrypt.hash(newPassword, 12);
     await user.save();

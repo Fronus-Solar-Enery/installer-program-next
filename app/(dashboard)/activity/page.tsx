@@ -105,16 +105,22 @@ export default function ActivityPage() {
   const getActivityVariant = (
     type: string,
   ): "default" | "destructive" | "outline" | "secondary" => {
-    if (type.includes("DELETED")) return "destructive";
-    if (type.includes("REGISTERED") || type.includes("PAID")) return "default";
+    if (type.includes("DELETED") || type.includes("REVOKED"))
+      return "destructive";
+    if (
+      type.includes("REGISTERED") ||
+      type.includes("PAID") ||
+      type.includes("RESTORED")
+    )
+      return "default";
     if (type.includes("UPDATED")) return "secondary";
     return "outline";
   };
 
   const getActivityBgColor = (type: string) => {
-    if (type.includes("DELETED"))
+    if (type.includes("DELETED") || type.includes("REVOKED"))
       return "bg-red-500/10 text-red-600 dark:text-red-400";
-    if (type.includes("REGISTERED"))
+    if (type.includes("REGISTERED") || type.includes("RESTORED"))
       return "bg-green-500/10 text-green-600 dark:text-green-400";
     if (type.includes("PAID"))
       return "bg-green-500/10 text-green-600 dark:text-green-400";

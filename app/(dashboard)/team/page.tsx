@@ -14,7 +14,13 @@ import {
   type DeleteDialogState,
 } from "@/components/DeleteConfirmationDialog";
 import PageHeader from "@/components/PageHeader";
-import { IconAdd, IconEdit2, IconUser } from "@/components/icons";
+import {
+  IconAdd,
+  IconEdit2,
+  IconLockPassword,
+  IconUser,
+} from "@/components/icons";
+import IconUserCheckRounded from "@/components/icons/UserCheckRounded";
 import IconTrashBin2 from "@/components/icons/TrashBin2";
 import IconSortVertical from "@/components/icons/SortVertical";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -29,6 +35,7 @@ interface TeamMember {
   role: TeamRole;
   createdAt: string;
   googleId?: string;
+  accessRevoked?: boolean;
 }
 
 type SortField = "name" | "email" | "role" | "createdAt";
@@ -66,6 +73,15 @@ export default function TeamPage() {
   >({
     open: false,
     status: "confirm",
+  });
+
+  // Revoke/restore access dialog state
+  const [accessDialogState, setAccessDialogState] = useState<
+    DeleteDialogState & { memberId?: string; memberName?: string; revoke: boolean }
+  >({
+    open: false,
+    status: "confirm",
+    revoke: true,
   });
 
   const fetchTeamMembers = useCallback(async () => {
@@ -200,6 +216,62 @@ export default function TeamPage() {
       open: false,
       status: "confirm",
     });
+  }, []);
+
+  const openAccessDialog = useCallback(
+    (id: string, name: string, revoke: boolean) => {
+      setAccessDialogState({
+        open: true,
+        status: "confirm",
+        memberId: id,
+        memberName: name,
+        revoke,
+      });
+    },
+    []
+  );
+
+  const handleAccessChange = useCallback(async () => {
+    const { memberId, memberName, revoke } = accessDialogState;
+    if (!memberId || !memberName) return;
+
+    setAccessDialogState((prev) => ({ ...prev, status: "deleting" }));
+
+    try {
+      const response = await fetch(`/api/team/${memberId}/access`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ revoked: revoke }),
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        setAccessDialogState((prev) => ({
+          ...prev,
+          status: "success",
+          message: revoke
+            ? `${memberName} can no longer sign in.`
+            : `${memberName} can sign in again.`,
+        }));
+        fetchTeamMembers();
+      } else {
+        setAccessDialogState((prev) => ({
+          ...prev,
+          status: "error",
+          message: data.message || "Failed to update access",
+        }));
+      }
+    } catch {
+      setAccessDialogState((prev) => ({
+        ...prev,
+        status: "error",
+        message: "An error occurred while updating access",
+      }));
+    }
+  }, [accessDialogState, fetchTeamMembers]);
+
+  const closeAccessDialog = useCallback(() => {
+    setAccessDialogState((prev) => ({ ...prev, open: false }));
   }, []);
 
   const getRoleBadgeVariant = (role: TeamRole) => {
@@ -392,8 +464,26 @@ export default function TeamPage() {
                     className="px-4 py-3 flex items-center gap-3"
                     style={columnStyles.name}
                   >
-                    <UserAvatar user={member} className="size-10 text-sm" />
-                    <span className="font-medium">{member.name}</span>
+                    <UserAvatar
+                      user={member}
+                      className={cn(
+                        "size-10 text-sm",
+                        member.accessRevoked && "opacity-50 grayscale"
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        "font-medium",
+                        member.accessRevoked && "text-muted-foreground"
+                      )}
+                    >
+                      {member.name}
+                    </span>
+                    {member.accessRevoked && (
+                      <Badge variant="outline" className="text-xs">
+                        Revoked
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Email */}
@@ -483,6 +573,48 @@ export default function TeamPage() {
                       <IconEdit2 className="size-5" />
                     </button>
                     <button
+                      onClick={() =>
+                        openAccessDialog(
+                          member._id,
+                          member.name,
+                          !member.accessRevoked
+                        )
+                      }
+                      disabled={
+                        session?.user?.id === member._id ||
+                        (!isAdmin && member.role === TeamRole.ADMIN)
+                      }
+                      className={cn(
+                        "transition-colors cursor-pointer",
+                        member.accessRevoked
+                          ? "text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
+                          : "text-muted-foreground hover:text-foreground",
+                        (session?.user?.id === member._id ||
+                          (!isAdmin && member.role === TeamRole.ADMIN)) &&
+                          "opacity-50 cursor-not-allowed"
+                      )}
+                      title={
+                        session?.user?.id === member._id
+                          ? "Cannot change your own access"
+                          : !isAdmin && member.role === TeamRole.ADMIN
+                          ? "Cannot change admin access"
+                          : member.accessRevoked
+                          ? `Restore access for ${member.name}`
+                          : `Revoke access for ${member.name}`
+                      }
+                      aria-label={
+                        member.accessRevoked
+                          ? `Restore access for ${member.name}`
+                          : `Revoke access for ${member.name}`
+                      }
+                    >
+                      {member.accessRevoked ? (
+                        <IconUserCheckRounded className="size-5" />
+                      ) : (
+                        <IconLockPassword className="size-5" />
+                      )}
+                    </button>
+                    <button
                       onClick={() => openDeleteDialog(member._id, member.name)}
                       disabled={
                         session?.user?.id === member._id ||
@@ -545,6 +677,13 @@ export default function TeamPage() {
               </Badge>
               Can register installers and rewards only.
             </p>
+            <p>
+              <Badge variant="outline" className="mr-2">
+                Revoked
+              </Badge>
+              Cannot sign in. Signed-in sessions end within 5 minutes. Admins
+              and managers can restore access at any time.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -574,6 +713,93 @@ export default function TeamPage() {
         warningMessage="This action cannot be undone."
         onConfirm={handleDelete}
         onClose={closeDeleteDialog}
+      />
+
+      {/* Revoke / Restore Access Dialog */}
+      <DeleteConfirmationDialog
+        open={accessDialogState.open}
+        status={accessDialogState.status}
+        itemName={accessDialogState.memberName}
+        message={accessDialogState.message}
+        entityType="team-member"
+        warningMessage={
+          accessDialogState.revoke
+            ? "They will be signed out within 5 minutes and blocked from logging in until access is restored."
+            : "They will be able to sign in again with their existing password."
+        }
+        copy={
+          accessDialogState.revoke
+            ? {
+                icon: (
+                  <IconLockPassword
+                    className="size-32 text-destructive-text"
+                    fill
+                    duotone
+                  />
+                ),
+                description: (
+                  <>
+                    This will revoke sign-in access for{" "}
+                    <strong className="whitespace-nowrap">
+                      {accessDialogState.memberName}
+                    </strong>
+                  </>
+                ),
+                confirmLabel: "Revoke Access",
+                pendingTitle: "Revoking...",
+                pendingLabel: "Revoking Access...",
+                pendingDescription: (
+                  <>
+                    Revoking access for{" "}
+                    <strong>{accessDialogState.memberName}</strong>
+                  </>
+                ),
+                errorTitle: "Revoke Failed",
+                errorDescription: (
+                  <>
+                    Failed to revoke access for{" "}
+                    <strong>{accessDialogState.memberName}</strong>
+                  </>
+                ),
+              }
+            : {
+                icon: (
+                  <IconUserCheckRounded
+                    className="size-32 text-emerald-600 dark:text-emerald-400"
+                    fill
+                    duotone
+                  />
+                ),
+                description: (
+                  <>
+                    This will restore sign-in access for{" "}
+                    <strong className="whitespace-nowrap">
+                      {accessDialogState.memberName}
+                    </strong>
+                  </>
+                ),
+                confirmLabel: "Restore Access",
+                pendingTitle: "Restoring...",
+                pendingLabel: "Restoring Access...",
+                pendingDescription: (
+                  <>
+                    Restoring access for{" "}
+                    <strong>{accessDialogState.memberName}</strong>
+                  </>
+                ),
+                errorTitle: "Restore Failed",
+                errorDescription: (
+                  <>
+                    Failed to restore access for{" "}
+                    <strong>{accessDialogState.memberName}</strong>
+                  </>
+                ),
+                confirmVariant: "default",
+                warningTone: "muted",
+              }
+        }
+        onConfirm={handleAccessChange}
+        onClose={closeAccessDialog}
       />
     </div>
   );

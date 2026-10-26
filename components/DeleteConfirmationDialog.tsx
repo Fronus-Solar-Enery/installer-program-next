@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -16,6 +16,7 @@ import {
   IconTrashBin2,
 } from "@/components/icons";
 import Loading from "@/components/ui/loading";
+import { cn } from "@/lib/utils";
 
 export type DeleteStatus = "confirm" | "deleting" | "success" | "error";
 
@@ -27,6 +28,24 @@ export interface DeleteDialogState {
   message?: string;
 }
 
+/**
+ * Optional overrides that let this dialog confirm actions other than a delete
+ * (e.g. revoking access). Anything omitted falls back to the delete wording.
+ */
+export interface ConfirmationDialogCopy {
+  icon?: ReactNode;
+  description?: ReactNode;
+  confirmLabel?: string;
+  pendingTitle?: string;
+  pendingLabel?: string;
+  pendingDescription?: ReactNode;
+  errorTitle?: string;
+  errorDescription?: ReactNode;
+  confirmVariant?: "destructive" | "default";
+  /** Muted renders the warning line in neutral text instead of red */
+  warningTone?: "destructive" | "muted";
+}
+
 interface DeleteConfirmationDialogProps {
   open: boolean;
   status: DeleteStatus;
@@ -34,6 +53,7 @@ interface DeleteConfirmationDialogProps {
   message?: string;
   entityType: "installer" | "reward" | "batch-job" | "team-member" | "product";
   warningMessage?: string;
+  copy?: ConfirmationDialogCopy;
   onConfirm: () => void;
   onClose: () => void;
 }
@@ -45,6 +65,7 @@ export function DeleteConfirmationDialog({
   message,
   entityType,
   warningMessage,
+  copy,
   onConfirm,
   onClose,
 }: DeleteConfirmationDialogProps) {
@@ -90,19 +111,32 @@ export function DeleteConfirmationDialog({
           >
             {status === "confirm" && (
               <>
-                <IconTrashBin2
-                  className="size-32 text-destructive-text"
-                  fill
-                  opacity={"0.2"}
-                  duotone={true}
-                />
+                {copy?.icon ?? (
+                  <IconTrashBin2
+                    className="size-32 text-destructive-text"
+                    fill
+                    opacity={"0.2"}
+                    duotone={true}
+                  />
+                )}
                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                 <AlertDialogDescription className="w-19/20 flex flex-col text-center items-center text-balance">
-                  This will permanently delete the {entityLabelLower}{" "}
-                  <span className="flex items-center gap-2">
-                    <strong className="whitespace-nowrap">{itemName}</strong>
-                  </span>
-                  <span className="mt-6 flex gap-2 text-destructive-text text-left">
+                  {copy?.description ?? (
+                    <>
+                      This will permanently delete the {entityLabelLower}{" "}
+                      <span className="flex items-center gap-2">
+                        <strong className="whitespace-nowrap">{itemName}</strong>
+                      </span>
+                    </>
+                  )}
+                  <span
+                    className={cn(
+                      "mt-6 flex gap-2 text-left",
+                      copy?.warningTone === "muted"
+                        ? "text-muted-foreground"
+                        : "text-destructive-text"
+                    )}
+                  >
                     <IconInfoCircle className="size-6 shrink-0" duotone />
                     <span>
                       {warningMessage ||
@@ -118,10 +152,16 @@ export function DeleteConfirmationDialog({
                 <div className="size-32 flex items-center justify-center">
                   <Loading className="size-24" />
                 </div>
-                <AlertDialogTitle>Deleting...</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {copy?.pendingTitle ?? "Deleting..."}
+                </AlertDialogTitle>
                 <AlertDialogDescription className="w-19/20 text-center text-balance">
-                  Please wait while we delete {entityLabelLower}{" "}
-                  <strong>{itemName}</strong>
+                  {copy?.pendingDescription ?? (
+                    <>
+                      Please wait while we delete {entityLabelLower}{" "}
+                      <strong>{itemName}</strong>
+                    </>
+                  )}
                 </AlertDialogDescription>
               </>
             )}
@@ -149,11 +189,17 @@ export function DeleteConfirmationDialog({
                   duotone
                   opacity={0.1}
                 />
-                <AlertDialogTitle>Deletion Failed</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {copy?.errorTitle ?? "Deletion Failed"}
+                </AlertDialogTitle>
                 <AlertDialogDescription className="w-19/20 flex flex-col items-center text-balance">
                   <span className="mb-2">
-                    Failed to delete {entityLabelLower}{" "}
-                    <strong>{itemName}</strong>
+                    {copy?.errorDescription ?? (
+                      <>
+                        Failed to delete {entityLabelLower}{" "}
+                        <strong>{itemName}</strong>
+                      </>
+                    )}
                   </span>
                   <span className="mt-4 flex gap-2 text-destructive-text items-start justify-center">
                     <IconInfoCircle className="mt-0.5 shrink-0" />
@@ -174,13 +220,14 @@ export function DeleteConfirmationDialog({
                 onClick={onConfirm}
                 className="w-full rounded-full"
                 size="icon"
-                variant={"destructive"}
+                variant={copy?.confirmVariant ?? "destructive"}
                 disabled={status === "deleting"}
               >
-                {status === "confirm" && `Delete ${entityLabel}`}
+                {status === "confirm" &&
+                  (copy?.confirmLabel ?? `Delete ${entityLabel}`)}
                 {status === "deleting" && (
                   <div className="flex items-center gap-2">
-                    Deleting {entityLabel}...
+                    {copy?.pendingLabel ?? `Deleting ${entityLabel}...`}
                   </div>
                 )}
               </Button>

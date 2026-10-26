@@ -12,6 +12,9 @@ export interface ITeamMember {
   role: TeamRole;
   googleId?: string;
   image?: string;
+  accessRevoked?: boolean;
+  accessRevokedAt?: Date;
+  accessRevokedBy?: mongoose.Types.ObjectId;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -49,6 +52,19 @@ const TeamMemberSchema = new Schema<ITeamMember>(
     },
     image: {
       type: String,
+    },
+    // Revoked members keep their account and history but cannot sign in;
+    // existing sessions are dropped on the next JWT revalidation (lib/auth.ts).
+    accessRevoked: {
+      type: Boolean,
+      default: false,
+    },
+    accessRevokedAt: {
+      type: Date,
+    },
+    accessRevokedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'TeamMember',
     },
   },
   {
