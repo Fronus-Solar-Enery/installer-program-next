@@ -282,7 +282,7 @@ export function useRecentActivity() {
     queryFn: async () => {
       const [rewards, installers] = await Promise.all([
         getJson<{ rewards: RecentInstallation[] }>(
-          "/api/rewards?limit=6&sortBy=createdAt&sortOrder=desc",
+          "/api/rewards?limit=6&sortBy=createdAt&sortOrder=desc&excludeRejected=true",
         ),
         getJson<{ installers: RecentInstaller[] }>(
           "/api/installers?limit=6&sortBy=createdAt&sortOrder=desc",

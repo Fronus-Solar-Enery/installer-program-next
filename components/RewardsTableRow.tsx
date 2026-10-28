@@ -109,6 +109,8 @@ export const RewardsTableRow = React.memo<RewardsTableRowProps>(
                   ? "default"
                   : reward.rewardStatus === "PENDING"
                   ? "secondary"
+                  : reward.rewardStatus === "REJECTED"
+                  ? "outline"
                   : "destructive"
               }
             >

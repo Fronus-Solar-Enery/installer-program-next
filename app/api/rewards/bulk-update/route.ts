@@ -119,6 +119,16 @@ export const POST = withAuth(
           continue;
         }
 
+        // Rejected rewards are out of the payment flow; restore them one by
+        // one from the reward page instead.
+        if (existingReward.rewardStatus === RewardStatus.REJECTED) {
+          results.failed++;
+          results.errors.push(
+            `Serial number ${rewardUpdate.serialNumber} is REJECTED and cannot be updated via bulk update`
+          );
+          continue;
+        }
+
         // Enforce Transaction ID before allowing a reward to be marked PAID.
         if (
           requireTransactionIdForPaid &&

@@ -304,14 +304,18 @@ describe("dashboard analytics route", () => {
 
     // Pipeline D: the $group that finds each installer's first-ever reward must
     // come BEFORE the range $match, or a long-time installer would be relabelled
-    // "new" every time the range moved.
+    // "new" every time the range moved. Only the status filter (rejected
+    // rewards never count) may precede it — it has no date condition.
     const firstActivity = rewardAggregate.mock.calls[3][0] as unknown as Array<
       Record<string, unknown>
     >;
-    expect(firstActivity[0]).toHaveProperty("$group");
-    expect(firstActivity[1]).toHaveProperty("$match");
+    expect(firstActivity[0]).toEqual({
+      $match: { rewardStatus: { $ne: "REJECTED" } },
+    });
+    expect(firstActivity[1]).toHaveProperty("$group");
+    expect(firstActivity[2]).toHaveProperty("$match");
     expect(
-      (firstActivity[0] as { $group: Record<string, unknown> }).$group,
+      (firstActivity[1] as { $group: Record<string, unknown> }).$group,
     ).toMatchObject({ _id: "$installer", firstAt: { $min: "$createdAt" } });
   });
 });

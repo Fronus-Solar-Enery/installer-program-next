@@ -103,6 +103,12 @@ export const POST = withAuth(
             );
           }
 
+          if (existing?.rewardStatus === "REJECTED") {
+            newIssues.push(
+              `Serial number "${reward.serialNumber}" is REJECTED and cannot be updated via bulk update`
+            );
+          }
+
           // The uploaded row must describe the same payee the payment sheet was
           // generated for — otherwise the TID would be recorded against the
           // wrong reward. Compared against the live installer record, the same

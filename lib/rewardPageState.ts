@@ -1,6 +1,11 @@
 import { RewardStatus } from "@/types/rewards";
 
-export type RewardPageState = "blocked" | "payable" | "paid" | "failed";
+export type RewardPageState =
+  | "blocked"
+  | "payable"
+  | "paid"
+  | "failed"
+  | "rejected";
 
 export interface RewardStateInput {
   rewardStatus: RewardStatus | string;
@@ -24,6 +29,7 @@ export function deriveRewardPageState(
 ): RewardPageState {
   if (reward.rewardStatus === RewardStatus.PAID) return "paid";
   if (reward.rewardStatus === RewardStatus.FAILED) return "failed";
+  if (reward.rewardStatus === RewardStatus.REJECTED) return "rejected";
   return getPaymentBlockers(reward).length > 0 ? "blocked" : "payable";
 }
 

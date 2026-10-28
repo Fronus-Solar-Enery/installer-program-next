@@ -111,6 +111,7 @@ export function useOptimizedRewardsFilter({
     const uniqueProductModels = new Set<string>();
     const uniqueInstallers = new Set<string>();
 
+    let countedRewards = 0;
     let totalAmount = 0;
     let paidAmount = 0;
     let pendingAmount = 0;
@@ -125,8 +126,11 @@ export function useOptimizedRewardsFilter({
       if (reward.productModel) uniqueProductModels.add(reward.productModel);
       if (reward.installer?._id) uniqueInstallers.add(reward.installer._id);
 
-      // Accumulate total statistics
-      totalAmount += reward.rewardAmount || 0;
+      // Accumulate total statistics (rejected rewards never count)
+      if (reward.rewardStatus !== "REJECTED") {
+        countedRewards++;
+        totalAmount += reward.rewardAmount || 0;
+      }
       if (reward.rewardStatus === "PAID") {
         paidAmount += reward.rewardAmount || 0;
         paidCount++;
@@ -231,7 +235,7 @@ export function useOptimizedRewardsFilter({
     return {
       filtered: sorted,
       statistics: {
-        totalRewards: rewards.length,
+        totalRewards: countedRewards,
         totalAmount,
         paidAmount,
         pendingAmount,

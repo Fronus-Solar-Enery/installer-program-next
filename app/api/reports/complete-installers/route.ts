@@ -8,6 +8,7 @@ import Product from "@/models/Product";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth } from "@/lib/authGuard";
 import { escapeRegex } from "@/lib/queryBuilder";
+import { COUNTED_REWARDS_FILTER } from "@/types/rewards";
 import {
   COMPLETE_INSTALLER_COLUMNS,
   buildCompleteInstallerRows,
@@ -46,8 +47,10 @@ export const GET = withAuth(async (request: NextRequest) => {
       .sort({ createdAt: -1 })
       .lean()) as unknown as ReportInstaller[];
 
+    // Rejected rewards stay out of reports entirely.
     const rewards = (await InstallerReward.find({
       installer: { $in: installers.map((i) => i._id) },
+      ...COUNTED_REWARDS_FILTER,
     })
       .populate("registeredBy", "name email")
       .sort({ createdAt: -1 })

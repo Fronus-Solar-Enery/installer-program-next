@@ -144,11 +144,16 @@ export default function RewardsPage() {
   // Real totals for the summary cards, computed server-side over the full
   // matched query — not just the current page's rows.
   const serverCardStatistics = useMemo(() => {
+    // The server already leaves REJECTED out of these stats, so the total is
+    // the sum of counted rewards — not the list's totalCount, which includes
+    // rejected rows.
     const byStatus = { PAID: 0, PENDING: 0, FAILED: 0 };
+    let totalRewards = 0;
     let totalAmount = 0;
     let paidAmount = 0;
     let pendingAmount = 0;
     for (const s of serverStatusStats) {
+      totalRewards += s.count;
       totalAmount += s.totalAmount;
       if (s._id === "PAID") {
         byStatus.PAID = s.count;
@@ -161,14 +166,14 @@ export default function RewardsPage() {
       }
     }
     return {
-      totalRewards: totalCount,
+      totalRewards,
       totalAmount,
       paidAmount,
       pendingAmount,
       uniqueInstallersCount,
       byStatus,
     };
-  }, [serverStatusStats, totalCount, uniqueInstallersCount]);
+  }, [serverStatusStats, uniqueInstallersCount]);
 
   // Reset to first page when filters or search change
   useEffect(() => {

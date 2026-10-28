@@ -10,7 +10,7 @@ import { parseSortParams } from "@/lib/queryBuilder";
 import { buildRewardsQuery } from "@/lib/rewardsQuery";
 import { getPaginationParams, createPaginationMeta, LIST_MAX_LIMIT } from "@/lib/pagination";
 import { getSettings } from "@/models/Settings";
-import { RewardStatus } from "@/types/rewards";
+import { RewardStatus, COUNTED_REWARDS_FILTER } from "@/types/rewards";
 import {
   sendRewardPaymentMessage,
   sendReferralRewardMessage,
@@ -62,9 +62,11 @@ export const GET = withAuth(
         // Only run expensive aggregation if stats are requested. Computed
         // over the full matched query (not the paginated page) so the
         // dashboard cards reflect the whole filtered set, not just page 1.
+        // Rejected rewards are listed but never counted.
         includeStats
           ? InstallerReward.aggregate([
               { $match: query },
+              { $match: COUNTED_REWARDS_FILTER },
               {
                 $facet: {
                   byStatus: [

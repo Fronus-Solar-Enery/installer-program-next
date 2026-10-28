@@ -2,6 +2,7 @@ import { FilterQuery } from "mongoose";
 import { IInstallerReward } from "@/models/InstallerReward";
 import { QueryBuilder, escapeRegex } from "@/lib/queryBuilder";
 import Installer from "@/models/Installer";
+import { COUNTED_REWARDS_FILTER } from "@/types/rewards";
 
 /**
  * The one place reward list filters are turned into a Mongo query.
@@ -22,8 +23,9 @@ export async function buildRewardsQuery(
   };
 
   const searchValue = get("search");
+  const rewardStatus = get("rewardStatus");
   const builder = new QueryBuilder<IInstallerReward>()
-    .enumFilter("rewardStatus", get("rewardStatus"))
+    .enumFilter("rewardStatus", rewardStatus)
     .filter("productModel", get("productModel"), { regex: true })
     .filter("cityOfInstallation", get("city"), { regex: true })
     .filter("paymentMethod", get("paymentMethod"))
@@ -37,6 +39,13 @@ export async function buildRewardsQuery(
       get("installationStart"),
       get("installationEnd")
     );
+
+  // The rewards list shows rejected rewards; everything else that reads
+  // rewards through here (reports, dashboard feed) opts out with this flag.
+  // An explicit status filter already decides the set on its own.
+  if (params.get("excludeRejected") === "true" && !rewardStatus) {
+    builder.raw(COUNTED_REWARDS_FILTER);
+  }
 
   if (searchValue) {
     const pattern = escapeRegex(searchValue);

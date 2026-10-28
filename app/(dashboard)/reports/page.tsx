@@ -169,6 +169,9 @@ export default function ReportsPage() {
 
     if (report.scope === "nonCertified") return params;
 
+    // Rejected rewards never appear in reports.
+    params.set("excludeRejected", "true");
+
     const isPaymentReport =
       report.id === "payment-format" || report.id === "bulk-update-template";
     if (

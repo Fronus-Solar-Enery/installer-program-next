@@ -1,7 +1,7 @@
 import dbConnect from "@/lib/mongodb";
 import Installer from "@/models/Installer";
 import InstallerReward from "@/models/InstallerReward";
-import { RewardStatus } from "@/types/rewards";
+import { RewardStatus, COUNTED_REWARDS_FILTER } from "@/types/rewards";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { getInstallerFromCookie } from "@/lib/installerAuth";
 
@@ -21,7 +21,11 @@ export async function GET() {
         Installer.findById(session.installerId).select(
           "installerCode fullName companyName city district certified createdAt"
         ),
-        InstallerReward.find({ installer: session.installerId })
+        // Rejected rewards are hidden from installers entirely.
+        InstallerReward.find({
+          installer: session.installerId,
+          ...COUNTED_REWARDS_FILTER,
+        })
           .select(
             "productModel serialNumber installationDate rewardStatus rewardAmount createdAt"
           )
@@ -29,7 +33,10 @@ export async function GET() {
         Installer.find({ referrer: session.installerId }).select(
           "installerCode fullName createdAt"
         ),
-        InstallerReward.find({ referrer: session.installerId })
+        InstallerReward.find({
+          referrer: session.installerId,
+          ...COUNTED_REWARDS_FILTER,
+        })
           .select("referrerRewardAmount rewardStatus installerCode createdAt")
           .sort({ createdAt: -1 }),
       ]);

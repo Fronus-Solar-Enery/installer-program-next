@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import dbConnect from "@/lib/mongodb";
 import Installer from "@/models/Installer";
 import InstallerReward from "@/models/InstallerReward";
-import { RewardStatus } from "@/types/rewards";
+import { RewardStatus, COUNTED_REWARDS_FILTER } from "@/types/rewards";
 import ProgramLogo from "@/components/ProgramLogo";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -42,6 +42,7 @@ async function getProfile(installerCode: string) {
 
   const rewards = await InstallerReward.find({
     installer: installer._id,
+    ...COUNTED_REWARDS_FILTER,
   }).select("rewardAmount rewardStatus");
 
   return {

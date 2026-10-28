@@ -608,6 +608,8 @@ export default function GlobalSearchModal({
                 ? "default"
                 : reward.rewardStatus === "PENDING"
                 ? "warning"
+                : reward.rewardStatus === "REJECTED"
+                ? "outline"
                 : "destructive"
             }
             className="text-[10px] tracking-widest font-semibold"

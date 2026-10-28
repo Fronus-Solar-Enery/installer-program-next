@@ -171,7 +171,7 @@ export default function ActivityPage() {
       return "bg-green-500/10 text-green-600 dark:text-green-400";
     if (type.includes("UPDATED"))
       return "bg-blue-500/10 text-blue-600 dark:text-blue-400";
-    if (type.includes("FAILED"))
+    if (type.includes("FAILED") || type.includes("REJECTED"))
       return "bg-orange-500/10 text-orange-600 dark:text-orange-400";
     return "bg-muted text-muted-foreground";
   };

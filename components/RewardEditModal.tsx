@@ -71,6 +71,7 @@ const STATUS_OPTIONS = [
   { value: RewardStatus.PENDING, label: "Pending" },
   { value: RewardStatus.PAID, label: "Paid" },
   { value: RewardStatus.FAILED, label: "Failed" },
+  { value: RewardStatus.REJECTED, label: "Rejected" },
 ];
 
 // ISO date <-> "Month YYYY" for the MonthYearGridPicker (matches register page).

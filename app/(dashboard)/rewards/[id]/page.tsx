@@ -29,7 +29,9 @@ import {
   IconTrashBin2,
   IconMoney,
   IconCloseCircle,
+  IconDangerCircle,
 } from "@/components/icons";
+import IconRestart from "@/components/icons/Restart";
 import { cn } from "@/lib/utils";
 import {
   useDeleteReward,
@@ -42,6 +44,7 @@ import {
   deriveRewardPageState,
   getPaymentBlockers,
   getPendingDays,
+  type RewardPageState,
 } from "@/lib/rewardPageState";
 import RewardStatusHero from "./RewardStatusHero";
 import MarkPaidDialog from "./MarkPaidDialog";
@@ -171,24 +174,29 @@ function MenuItem({
 }
 
 interface RewardActionsMenuProps {
-  pageState: "blocked" | "payable" | "paid" | "failed";
+  pageState: RewardPageState;
   canDelete: boolean;
-  markFailedPending: boolean;
+  statusPending: boolean;
   onEdit: () => void;
   onMarkPaid: () => void;
   onMarkFailed: () => void;
+  onReject: () => void;
+  onRestore: () => void;
   onDelete: () => void;
 }
 
 function RewardActionsMenu({
   pageState,
   canDelete,
-  markFailedPending,
+  statusPending,
   onEdit,
   onMarkPaid,
   onMarkFailed,
+  onReject,
+  onRestore,
   onDelete,
 }: RewardActionsMenuProps) {
+  const rejected = pageState === "rejected";
   const paidLabel =
     pageState === "paid"
       ? "Edit payment"
@@ -215,17 +223,36 @@ function RewardActionsMenu({
             label="Edit"
             onSelect={onEdit}
           />
-          <MenuItem
-            icon={<IconMoney className="mr-2" duotone />}
-            label={paidLabel}
-            onSelect={onMarkPaid}
-          />
-          {pageState !== "failed" && (
+          {rejected ? (
+            <MenuItem
+              icon={<IconRestart className="mr-2" />}
+              label="Restore to Pending"
+              onSelect={onRestore}
+              disabled={statusPending}
+            />
+          ) : (
+            <MenuItem
+              icon={<IconMoney className="mr-2" duotone />}
+              label={paidLabel}
+              onSelect={onMarkPaid}
+            />
+          )}
+          {pageState !== "failed" && !rejected && (
             <MenuItem
               icon={<IconCloseCircle className="mr-2" />}
               label="Mark as Failed"
               onSelect={onMarkFailed}
-              disabled={markFailedPending}
+              disabled={statusPending}
+              className="text-destructive-text hover:text-destructive-text-hover"
+            />
+          )}
+          {/* PAID rewards can't be rejected — the server enforces it too. */}
+          {pageState !== "paid" && !rejected && (
+            <MenuItem
+              icon={<IconDangerCircle className="mr-2" />}
+              label="Reject"
+              onSelect={onReject}
+              disabled={statusPending}
               className="text-destructive-text hover:text-destructive-text-hover"
             />
           )}
@@ -262,15 +289,21 @@ export default function RewardDetailsPage() {
   const setRewardStatus = useMarkRewardPaid(rewardId);
   const reduceMotion = useReducedMotion();
 
-  const handleMarkFailed = () =>
+  const changeStatus = (rewardStatus: RewardStatus, successMessage: string) =>
     setRewardStatus.mutate(
-      { rewardStatus: RewardStatus.FAILED },
+      { rewardStatus },
       {
-        onSuccess: () => toast.success("Reward marked as failed"),
+        onSuccess: () => toast.success(successMessage),
         onError: (error) =>
           toast.error(error.message || "Failed to update reward"),
       },
     );
+  const handleMarkFailed = () =>
+    changeStatus(RewardStatus.FAILED, "Reward marked as failed");
+  const handleReject = () =>
+    changeStatus(RewardStatus.REJECTED, "Reward rejected");
+  const handleRestore = () =>
+    changeStatus(RewardStatus.PENDING, "Reward restored to pending");
 
   const canDelete =
     session?.user?.role === TeamRole.ADMIN ||
@@ -339,10 +372,12 @@ export default function RewardDetailsPage() {
           <RewardActionsMenu
             pageState={pageState}
             canDelete={canDelete}
-            markFailedPending={setRewardStatus.isPending}
+            statusPending={setRewardStatus.isPending}
             onEdit={() => setEditModalOpen(true)}
             onMarkPaid={() => setMarkPaidOpen(true)}
             onMarkFailed={handleMarkFailed}
+            onReject={handleReject}
+            onRestore={handleRestore}
             onDelete={() => setDeleteDialogOpen(true)}
           />
         }
@@ -365,6 +400,7 @@ export default function RewardDetailsPage() {
         blockers={blockers}
         onMarkPaid={() => setMarkPaidOpen(true)}
         onMarkFailed={handleMarkFailed}
+        onRestore={handleRestore}
         markFailedPending={setRewardStatus.isPending}
         onEdit={() => setEditModalOpen(true)}
       />

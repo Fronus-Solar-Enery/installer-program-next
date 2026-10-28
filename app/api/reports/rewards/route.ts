@@ -8,6 +8,7 @@ import { ITeamMember } from '@/models/TeamMember';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
 import { getBankLabel } from '@/lib/constants';
 import { buildRewardsQuery } from '@/lib/rewardsQuery';
+import { COUNTED_REWARDS_FILTER } from '@/types/rewards';
 
 // Type for populated reward document
 interface PopulatedReward extends Omit<IInstallerReward, 'installer' | 'referrer' | 'registeredBy'> {
@@ -121,9 +122,10 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Calculate statistics
+    // Calculate statistics — rejected rewards are listed but never counted
     const stats = await InstallerReward.aggregate<RewardStatistics>([
       { $match: query },
+      { $match: COUNTED_REWARDS_FILTER },
       {
         $group: {
           _id: null,

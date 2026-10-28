@@ -309,6 +309,7 @@ export default function EditRewardPage() {
                   <SelectItem value={RewardStatus.PENDING}>Pending</SelectItem>
                   <SelectItem value={RewardStatus.PAID}>Paid</SelectItem>
                   <SelectItem value={RewardStatus.FAILED}>Failed</SelectItem>
+                  <SelectItem value={RewardStatus.REJECTED}>Rejected</SelectItem>
                 </SelectContent>
               </Select>
             </div>

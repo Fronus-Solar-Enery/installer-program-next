@@ -16,14 +16,35 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { IconBoxMinimalistic, IconEdit2, IconEye } from "@/components/icons";
-import type { InstallerProduct } from "@/hooks/useInstallerDetails";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import Loading from "@/components/ui/loading";
+import {
+  IconBoxMinimalistic,
+  IconDangerCircle,
+  IconEdit2,
+  IconEye,
+} from "@/components/icons";
+import {
+  useBulkRejectRewards,
+  type InstallerProduct,
+} from "@/hooks/useInstallerDetails";
 import Unavailable from "@/components/ui/not-avaiable";
+import { toast } from "sonner";
 import BulkAccountDialog from "./BulkAccountDialog";
 
 function statusVariant(status: string) {
   if (status === "PAID") return "success" as const;
   if (status === "PENDING") return "warning" as const;
+  if (status === "REJECTED") return "outline" as const;
   return "destructive" as const;
 }
 
@@ -64,12 +85,39 @@ export default function ProductsTable({
   const reduceMotion = useReducedMotion();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const bulkReject = useBulkRejectRewards();
 
   // PAID rewards keep their payee as a historical record — never selectable.
   const editable = useMemo(
     () => products.filter((p) => p.rewardStatus !== "PAID"),
     [products],
   );
+
+  // Selected rewards that can actually be rejected (PENDING/FAILED); the
+  // server applies the same rule and skips the rest.
+  const rejectableIds = useMemo(
+    () =>
+      products
+        .filter(
+          (p) =>
+            selected.has(p._id) &&
+            (p.rewardStatus === "PENDING" || p.rewardStatus === "FAILED"),
+        )
+        .map((p) => p._id),
+    [products, selected],
+  );
+  const alreadyRejected = selected.size - rejectableIds.length;
+
+  const handleReject = () =>
+    bulkReject.mutate(rejectableIds, {
+      onSuccess: (result) => {
+        toast.success(result.message);
+        setRejectOpen(false);
+        setSelected(new Set());
+      },
+      onError: (err) => toast.error(err.message || "Failed to reject rewards"),
+    });
 
   const allSelected =
     editable.length > 0 && editable.every((p) => selected.has(p._id));
@@ -261,6 +309,21 @@ export default function ProductsTable({
                   Edit account details
                 </Button>
                 <Button
+                  variant="destructive"
+                  size="sm"
+                  className="gap-1.5"
+                  disabled={rejectableIds.length === 0}
+                  title={
+                    rejectableIds.length === 0
+                      ? "Selected products are already rejected"
+                      : undefined
+                  }
+                  onClick={() => setRejectOpen(true)}
+                >
+                  <IconDangerCircle className="size-4" />
+                  Reject
+                </Button>
+                <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelected(new Set())}
@@ -280,6 +343,49 @@ export default function ProductsTable({
         defaults={accountDefaults}
         onSuccess={() => setSelected(new Set())}
       />
+
+      <AlertDialog
+        open={rejectOpen}
+        onOpenChange={(open) => !bulkReject.isPending && setRejectOpen(open)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Reject {rejectableIds.length} product
+              {rejectableIds.length === 1 ? "" : "s"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Rejected rewards stay in the rewards list but are excluded from
+              all stats, totals and payment files, and the installer won&apos;t
+              see them. You can restore each one to Pending from its reward
+              page.
+              {alreadyRejected > 0 &&
+                ` ${alreadyRejected} selected product${alreadyRejected === 1 ? " is" : "s are"} already rejected and will be skipped.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkReject.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={bulkReject.isPending}
+              onClick={(e) => {
+                // Keep the dialog open until the request settles.
+                e.preventDefault();
+                handleReject();
+              }}
+            >
+              {bulkReject.isPending ? (
+                <>
+                  <Loading /> Rejecting…
+                </>
+              ) : (
+                "Reject"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

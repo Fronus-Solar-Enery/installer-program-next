@@ -17,6 +17,7 @@ import {
   InstallerServiceError,
 } from "@/services/installers";
 import { GoogleContactError } from "@/lib/googleContacts";
+import { COUNTED_REWARDS_FILTER } from "@/types/rewards";
 
 // GET single installer with stats
 export const GET = withAuth(
@@ -34,11 +35,14 @@ export const GET = withAuth(
         return ApiResponse.notFound("Installer not found");
       }
 
-      // Get reward statistics
+      // Get reward statistics (rejected rewards never count)
       const installerId = installer._id;
       const [totalRewards, pendingRewards, paidRewards, failedRewards] =
         await Promise.all([
-          InstallerReward.countDocuments({ installer: installerId }),
+          InstallerReward.countDocuments({
+            installer: installerId,
+            ...COUNTED_REWARDS_FILTER,
+          }),
           InstallerReward.countDocuments({
             installer: installerId,
             rewardStatus: "PENDING",
@@ -55,7 +59,7 @@ export const GET = withAuth(
 
       // Get reward amounts
       const rewardAmounts = await InstallerReward.aggregate([
-        { $match: { installer: installerId } },
+        { $match: { installer: installerId, ...COUNTED_REWARDS_FILTER } },
         {
           $group: {
             _id: "$rewardStatus",

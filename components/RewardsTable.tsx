@@ -606,6 +606,7 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                     <SelectItem value="PENDING">Pending</SelectItem>
                     <SelectItem value="PAID">Paid</SelectItem>
                     <SelectItem value="FAILED">Failed</SelectItem>
+                    <SelectItem value="REJECTED">Rejected</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1167,7 +1168,9 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                                 ? "success"
                                 : reward.rewardStatus === "PENDING"
                                   ? "warning"
-                                  : "destructive"
+                                  : reward.rewardStatus === "REJECTED"
+                                    ? "outline"
+                                    : "destructive"
                             }
                           >
                             {reward.rewardStatus}

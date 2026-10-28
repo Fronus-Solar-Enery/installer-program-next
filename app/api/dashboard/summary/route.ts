@@ -5,6 +5,7 @@ import InstallerReward from "@/models/InstallerReward";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { buildDateRangeFilter, hasFilterConditions } from "@/lib/queryHelpers";
+import { COUNTED_REWARDS_FILTER } from "@/types/rewards";
 
 /**
  * Dashboard summary — everything the dashboard used to compute client-side by
@@ -22,9 +23,14 @@ export const GET = withAuth(
       const endDate = searchParams.get("endDate");
 
       const dateFilter = buildDateRangeFilter(startDate, endDate);
-      const rangeMatch = hasFilterConditions(dateFilter)
-        ? [{ $match: dateFilter }]
-        : [];
+      // Rejected rewards never count toward dashboard numbers.
+      const rangeMatch = [
+        {
+          $match: hasFilterConditions(dateFilter)
+            ? { ...dateFilter, ...COUNTED_REWARDS_FILTER }
+            : COUNTED_REWARDS_FILTER,
+        },
+      ];
 
       const pending = { $eq: ["$rewardStatus", "PENDING"] };
       const paid = { $eq: ["$rewardStatus", "PAID"] };
@@ -140,7 +146,12 @@ export const GET = withAuth(
       const previousYearEnd = new Date(currentYear - 1, 11, 31, 23, 59, 59);
 
       const distinctInstallers = (start: Date, end: Date) => [
-        { $match: { createdAt: { $gte: start, $lte: end } } },
+        {
+          $match: {
+            createdAt: { $gte: start, $lte: end },
+            ...COUNTED_REWARDS_FILTER,
+          },
+        },
         { $group: { _id: "$installer" } },
         { $count: "count" },
       ];

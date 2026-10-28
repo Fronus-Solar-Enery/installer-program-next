@@ -12,10 +12,12 @@ import {
   IconCheckCircle,
   IconClockCircle,
   IconCloseCircle,
+  IconDangerCircle,
   IconEdit2,
   IconMoney,
   IconWarning2,
 } from "@/components/icons";
+import IconRestart from "@/components/icons/Restart";
 import LifecycleStepper from "./LifecycleStepper";
 import type { RewardPageState } from "@/lib/rewardPageState";
 import type { RewardDetails } from "@/hooks/useRewardDetails";
@@ -62,6 +64,15 @@ const STATE_CHROME: Record<
       </Badge>
     ),
   },
+  rejected: {
+    card: "bg-muted/40",
+    chip: (
+      <Badge variant="outline" role="status" className="text-muted-foreground">
+        <IconDangerCircle className="size-3" />
+        Rejected
+      </Badge>
+    ),
+  },
 };
 
 function formatDate(date?: string) {
@@ -80,6 +91,7 @@ interface RewardStatusHeroProps {
   blockers: string[];
   onMarkPaid: () => void;
   onMarkFailed: () => void;
+  onRestore: () => void;
   markFailedPending?: boolean;
   onEdit: () => void;
 }
@@ -91,6 +103,7 @@ export default function RewardStatusHero({
   blockers,
   onMarkPaid,
   onMarkFailed,
+  onRestore,
   markFailedPending,
   onEdit,
 }: RewardStatusHeroProps) {
@@ -190,8 +203,31 @@ export default function RewardStatusHero({
                 </Button>
               </>
             )}
+            {state === "rejected" && (
+              <Button
+                variant="outline"
+                onClick={onRestore}
+                disabled={markFailedPending}
+              >
+                {markFailedPending ? (
+                  <Loading className="mr-2" />
+                ) : (
+                  <IconRestart className="mr-2 size-4" />
+                )}
+                Restore to Pending
+              </Button>
+            )}
           </div>
         </div>
+
+        {/* Rejected: explain why the amount doesn't count anywhere */}
+        {state === "rejected" && (
+          <p className="rounded-xl border border-border bg-background/60 p-3 text-xs text-muted-foreground">
+            This claim was rejected. It stays in the rewards list for the
+            record but is excluded from all stats, totals and payment files,
+            and the installer can&apos;t see it.
+          </p>
+        )}
 
         {/* Blocked: requirements checklist */}
         {state === "blocked" && (

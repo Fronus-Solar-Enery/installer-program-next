@@ -35,6 +35,14 @@ const NODE_ICONS: Record<NodeState, React.ComponentType<IconProps>> = {
 function stepsFor(
   state: RewardPageState,
 ): { label: string; node: NodeState }[] {
+  // A rejected claim stops at verification and never reaches payment.
+  if (state === "rejected") {
+    return [
+      { label: "Registered", node: "complete" },
+      { label: "Rejected", node: "failed" },
+      { label: "Paid", node: "upcoming" },
+    ];
+  }
   return [
     { label: "Registered", node: "complete" },
     {
@@ -60,7 +68,8 @@ export default function LifecycleStepper({
 }) {
   const reduceMotion = useReducedMotion();
   const steps = stepsFor(state);
-  const currentIndex = state === "paid" ? 3 : state === "blocked" ? 1 : 2;
+  const currentIndex =
+    state === "paid" ? 3 : state === "blocked" || state === "rejected" ? 1 : 2;
 
   return (
     <ol

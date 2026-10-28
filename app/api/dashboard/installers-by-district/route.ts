@@ -4,6 +4,7 @@ import InstallerReward from "@/models/InstallerReward";
 import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { buildDateRangeFilter, hasFilterConditions } from "@/lib/queryHelpers";
+import { COUNTED_REWARDS_FILTER } from "@/types/rewards";
 
 export const GET = withAuth(
   async (request: NextRequest, context: RouteContext, session: AuthSession) => {
@@ -23,8 +24,12 @@ export const GET = withAuth(
 
       // Aggregate to get installers from specific district with installations
       const installers = await InstallerReward.aggregate([
-        // Filter by date range if provided
-        ...(hasFilterConditions(dateFilter) ? [{ $match: dateFilter }] : []),
+        // Filter by date range if provided; rejected rewards never count.
+        {
+          $match: hasFilterConditions(dateFilter)
+            ? { ...dateFilter, ...COUNTED_REWARDS_FILTER }
+            : COUNTED_REWARDS_FILTER,
+        },
 
         // Lookup installer details
         {

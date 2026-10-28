@@ -21,7 +21,7 @@ function classifyActivity(type: string) {
     isUpdated: type.includes("UPDATED"),
     isDeleted: type.includes("DELETED"),
     isPaid: type.includes("PAID"),
-    isFailed: type.includes("FAILED"),
+    isFailed: type.includes("FAILED") || type.includes("REJECTED"),
   };
 }
 

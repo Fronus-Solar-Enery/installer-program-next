@@ -6,7 +6,7 @@ import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { validateBody } from "@/lib/validateRequest";
 import { TeamRole } from "@/models/TeamMember";
-import { RewardStatus } from "@/types/rewards";
+import { RewardStatus, rewardStatusChangeError } from "@/types/rewards";
 import { getSettings } from "@/models/Settings";
 import { sendRewardPaymentMessage } from "@/lib/whatsappService";
 import { logger } from "@/lib/logger";
@@ -80,13 +80,34 @@ export const PUT = withAuth(
         }
       }
 
+      const nextStatus = validation.data.rewardStatus;
+      if (nextStatus) {
+        const statusError = rewardStatusChangeError(
+          previous.rewardStatus,
+          nextStatus,
+        );
+        if (statusError) {
+          return ApiResponse.badRequest(statusError, {
+            rewardStatus: [statusError],
+          });
+        }
+      }
+
       const becomingPaid =
         previous.rewardStatus !== RewardStatus.PAID &&
-        validation.data.rewardStatus === RewardStatus.PAID;
+        nextStatus === RewardStatus.PAID;
 
       const becomingFailed =
         previous.rewardStatus !== RewardStatus.FAILED &&
-        validation.data.rewardStatus === RewardStatus.FAILED;
+        nextStatus === RewardStatus.FAILED;
+
+      const becomingRejected =
+        previous.rewardStatus !== RewardStatus.REJECTED &&
+        nextStatus === RewardStatus.REJECTED;
+
+      const becomingRestored =
+        previous.rewardStatus === RewardStatus.REJECTED &&
+        nextStatus === RewardStatus.PENDING;
 
       // Enforce Transaction ID before allowing a reward to be marked PAID.
       const settings = becomingPaid ? await getSettings() : null;
@@ -142,24 +163,22 @@ export const PUT = withAuth(
         }
       }
 
-      const activityType = becomingPaid
-        ? ActivityType.REWARD_MARKED_PAID
+      const [activityType, action]: [ActivityType, string] = becomingPaid
+        ? [ActivityType.REWARD_MARKED_PAID, "Marked reward PAID"]
         : becomingFailed
-          ? ActivityType.REWARD_MARKED_FAILED
-          : ActivityType.REWARD_UPDATED;
+          ? [ActivityType.REWARD_MARKED_FAILED, "Marked reward FAILED"]
+          : becomingRejected
+            ? [ActivityType.REWARD_REJECTED, "Rejected reward"]
+            : becomingRestored
+              ? [ActivityType.REWARD_RESTORED, "Restored rejected reward"]
+              : [ActivityType.REWARD_UPDATED, "Updated reward"];
       await logActivity({
         type: activityType,
         performedBy: session.user.id,
         targetType: "InstallerReward",
         targetId: reward._id,
         targetName: `${reward.installerCode} - ${reward.serialNumber}`,
-        description: `${
-          becomingPaid
-            ? "Marked reward PAID"
-            : becomingFailed
-              ? "Marked reward FAILED"
-              : "Updated reward"
-        } for ${installer?.fullName ?? reward.installerCode} (serial ${reward.serialNumber})`,
+        description: `${action} for ${installer?.fullName ?? reward.installerCode} (serial ${reward.serialNumber})`,
         metadata: {
           serialNumber: reward.serialNumber,
           previousStatus: previous.rewardStatus,

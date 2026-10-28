@@ -7,6 +7,7 @@ import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { validateParam } from "@/lib/validateRequest";
 import { pickGranularity, previousPeriod, type Granularity } from "@/lib/analytics";
+import { COUNTED_REWARDS_FILTER } from "@/types/rewards";
 
 /**
  * Dashboard analytics — the aggregations behind the trend, geography, cohort
@@ -136,6 +137,7 @@ export const GET = withAuth(
         end.setHours(23, 59, 59, 999);
       } else {
         const [earliest] = await InstallerReward.aggregate([
+          { $match: COUNTED_REWARDS_FILTER },
           { $group: { _id: null, first: { $min: "$createdAt" } } },
         ]);
         end = new Date();
@@ -148,6 +150,8 @@ export const GET = withAuth(
       const previous = explicitRange ? previousPeriod(start, end) : null;
 
       const inCurrent = { createdAt: { $gte: start, $lte: end } };
+      // Reward pipelines only ever see counted (non-rejected) rewards.
+      const rewardsInCurrent = { ...inCurrent, ...COUNTED_REWARDS_FILTER };
       const scanFrom = previous ? previous.start : start;
 
       // ---------------------------------------------------------------------
@@ -157,7 +161,12 @@ export const GET = withAuth(
       // period-over-period comparison costs nothing beyond the range it adds.
       // ---------------------------------------------------------------------
       const seriesPipeline = InstallerReward.aggregate([
-        { $match: { createdAt: { $gte: scanFrom, $lte: end } } },
+        {
+          $match: {
+            createdAt: { $gte: scanFrom, $lte: end },
+            ...COUNTED_REWARDS_FILTER,
+          },
+        },
         {
           $facet: {
             buckets: [
@@ -217,7 +226,7 @@ export const GET = withAuth(
       // once-per-active-installer, which is the whole cost of this pipeline.
       // ---------------------------------------------------------------------
       const cohortPipeline = InstallerReward.aggregate([
-        { $match: inCurrent },
+        { $match: rewardsInCurrent },
         {
           $group: {
             _id: "$installer",
@@ -328,7 +337,7 @@ export const GET = withAuth(
       // rails and the payout lag. No installer join needed for any of these.
       // ---------------------------------------------------------------------
       const breakdownPipeline = InstallerReward.aggregate([
-        { $match: inCurrent },
+        { $match: rewardsInCurrent },
         {
           $facet: {
             products: [
@@ -469,6 +478,7 @@ export const GET = withAuth(
       // installer as new every time the range moved.
       // ---------------------------------------------------------------------
       const firstActivityPipeline = InstallerReward.aggregate([
+        { $match: COUNTED_REWARDS_FILTER },
         { $group: { _id: "$installer", firstAt: { $min: "$createdAt" } } },
         { $match: { firstAt: { $gte: start, $lte: end } } },
         {

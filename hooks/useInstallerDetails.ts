@@ -165,6 +165,38 @@ export function useBulkUpdateRewardAccount() {
   });
 }
 
+export interface BulkRejectResult {
+  rejected: number;
+  skipped: number;
+  message: string;
+}
+
+// Bulk-reject selected rewards. Also invalidates the installer query, whose
+// stats exclude rejected rewards.
+export function useBulkRejectRewards() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (rewardIds: string[]): Promise<BulkRejectResult> => {
+      const res = await fetch("/api/rewards/bulk-reject", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rewardIds }),
+      });
+      const data = await parseJsonOrThrow(res, "Failed to reject rewards");
+      return {
+        rejected: data.data?.rejected ?? 0,
+        skipped: data.data?.skipped ?? 0,
+        message: data.message ?? "Rewards rejected",
+      };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["installer"] });
+      queryClient.invalidateQueries({ queryKey: ["installer-rewards"] });
+      queryClient.invalidateQueries({ queryKey: ["installer-activities"] });
+    },
+  });
+}
+
 export interface ResendPinResult {
   pin: string | null;
   whatsappMessage: string | null;

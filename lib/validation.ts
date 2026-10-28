@@ -130,7 +130,10 @@ export const registerRewardSchema = z.object({
   inverterSerialNumber: z.string().min(1, "Inverter serial number is required"),
   installationDate: z.string().optional(),
   rewardAmount: z.number().min(0, "Reward amount must be positive"),
-  rewardStatus: z.enum(RewardStatus).default(RewardStatus.PENDING),
+  // REJECTED is a staff decision on an existing claim, never a starting state.
+  rewardStatus: z
+    .enum([RewardStatus.PENDING, RewardStatus.PAID, RewardStatus.FAILED])
+    .default(RewardStatus.PENDING),
   transactionId: z.string().optional(),
   sendingDate: z.string().or(z.date()).optional(),
   paymentMethod: z.string().optional(),
@@ -160,6 +163,14 @@ export const updateRewardSchema = z.object({
 // Bulk account-detail update — payment destination only, applied to a set of
 // existing rewards. Field rules mirror the installer schema so a reward can
 // never end up with a payee shape the installer form would reject.
+// Bulk reject — moves the selected PENDING/FAILED rewards to REJECTED.
+export const bulkRewardRejectSchema = z.object({
+  rewardIds: z
+    .array(z.string().min(1))
+    .min(1, "Select at least one product")
+    .max(500, "Maximum 500 products per bulk update"),
+});
+
 export const bulkRewardAccountSchema = z.object({
   rewardIds: z
     .array(z.string().min(1))

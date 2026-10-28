@@ -26,6 +26,12 @@ describe("deriveRewardPageState", () => {
     ).toBe("failed");
   });
 
+  it("returns rejected for REJECTED even with missing payment details", () => {
+    expect(
+      deriveRewardPageState({ rewardStatus: RewardStatus.REJECTED }),
+    ).toBe("rejected");
+  });
+
   it("returns payable for PENDING with complete payment details", () => {
     expect(deriveRewardPageState(complete)).toBe("payable");
   });
