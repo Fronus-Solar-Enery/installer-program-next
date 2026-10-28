@@ -8,7 +8,7 @@ import { ITeamMember } from '@/models/TeamMember';
 import { ApiResponse, handleApiError } from '@/lib/apiResponse';
 import { getBankLabel } from '@/lib/constants';
 import { buildRewardsQuery } from '@/lib/rewardsQuery';
-import { COUNTED_REWARDS_FILTER } from '@/types/rewards';
+import { COUNTED_REWARDS_FILTER, hideRejectedUnlessAdmin } from '@/types/rewards';
 
 // Type for populated reward document
 interface PopulatedReward extends Omit<IInstallerReward, 'installer' | 'referrer' | 'registeredBy'> {
@@ -67,7 +67,10 @@ export async function GET(request: NextRequest) {
 
     // Same builder the rewards list uses, so the export is exactly the filtered
     // set the user is looking at.
-    const query = await buildRewardsQuery(searchParams);
+    const query = hideRejectedUnlessAdmin(
+      await buildRewardsQuery(searchParams),
+      session.user?.role,
+    );
 
     const rewards = await InstallerReward.find(query)
       .populate('installer', 'installerCode fullName phoneNumber bankName accountNumber accountTitle')

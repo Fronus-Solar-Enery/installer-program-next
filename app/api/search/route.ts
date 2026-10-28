@@ -6,6 +6,7 @@ import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { getSearchParams } from "@/lib/validateRequest";
 import { escapeRegex } from "@/lib/queryBuilder";
+import { hideRejectedUnlessAdmin } from "@/types/rewards";
 
 // GET - Global search across installers and rewards
 export const GET = withAuth(
@@ -49,13 +50,18 @@ export const GET = withAuth(
           .lean(),
 
         // Search rewards by serial number, transaction IDs
-        InstallerReward.find({
-          $or: [
-            { serialNumber: searchRegex },
-            { transactionId: searchRegex },
-            { referrerTransactionId: searchRegex },
-          ],
-        })
+        InstallerReward.find(
+          hideRejectedUnlessAdmin(
+            {
+              $or: [
+                { serialNumber: searchRegex },
+                { transactionId: searchRegex },
+                { referrerTransactionId: searchRegex },
+              ],
+            },
+            session.user.role,
+          ),
+        )
           .populate({
             path: "installer",
             select:
@@ -79,9 +85,12 @@ export const GET = withAuth(
       // Fetch rewards by installer IDs if any were found
       let mergedRewards = rewards;
       if (installerIds.length > 0) {
-        const rewardsByInstaller = await InstallerReward.find({
-          installer: { $in: installerIds.map((i) => i._id) },
-        })
+        const rewardsByInstaller = await InstallerReward.find(
+          hideRejectedUnlessAdmin(
+            { installer: { $in: installerIds.map((i) => i._id) } },
+            session.user.role,
+          ),
+        )
           .populate({
             path: "installer",
             select:

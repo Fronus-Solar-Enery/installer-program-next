@@ -38,7 +38,7 @@ import {
   useMarkRewardPaid,
   useRewardDetails,
 } from "@/hooks/useRewardDetails";
-import { RewardStatus } from "@/types/rewards";
+import { RewardStatus, canSeeRejected } from "@/types/rewards";
 import { toast } from "sonner";
 import {
   deriveRewardPageState,
@@ -176,6 +176,7 @@ function MenuItem({
 interface RewardActionsMenuProps {
   pageState: RewardPageState;
   canDelete: boolean;
+  canReject: boolean;
   statusPending: boolean;
   onEdit: () => void;
   onMarkPaid: () => void;
@@ -188,6 +189,7 @@ interface RewardActionsMenuProps {
 function RewardActionsMenu({
   pageState,
   canDelete,
+  canReject,
   statusPending,
   onEdit,
   onMarkPaid,
@@ -247,7 +249,7 @@ function RewardActionsMenu({
             />
           )}
           {/* PAID rewards can't be rejected — the server enforces it too. */}
-          {pageState !== "paid" && !rejected && (
+          {canReject && pageState !== "paid" && !rejected && (
             <MenuItem
               icon={<IconDangerCircle className="mr-2" />}
               label="Reject"
@@ -372,6 +374,7 @@ export default function RewardDetailsPage() {
           <RewardActionsMenu
             pageState={pageState}
             canDelete={canDelete}
+            canReject={canSeeRejected(session?.user?.role)}
             statusPending={setRewardStatus.isPending}
             onEdit={() => setEditModalOpen(true)}
             onMarkPaid={() => setMarkPaidOpen(true)}

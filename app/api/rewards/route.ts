@@ -10,7 +10,11 @@ import { parseSortParams } from "@/lib/queryBuilder";
 import { buildRewardsQuery } from "@/lib/rewardsQuery";
 import { getPaginationParams, createPaginationMeta, LIST_MAX_LIMIT } from "@/lib/pagination";
 import { getSettings } from "@/models/Settings";
-import { RewardStatus, COUNTED_REWARDS_FILTER } from "@/types/rewards";
+import {
+  RewardStatus,
+  COUNTED_REWARDS_FILTER,
+  hideRejectedUnlessAdmin,
+} from "@/types/rewards";
 import {
   sendRewardPaymentMessage,
   sendReferralRewardMessage,
@@ -38,7 +42,11 @@ export const GET = withAuth(
       const { field: sortBy, order: sortOrder } = parseSortParams(params.raw);
 
       // Shared with the rewards export so a download always matches the screen.
-      const query = await buildRewardsQuery(params.raw);
+      // Rejected rewards are admin-only.
+      const query = hideRejectedUnlessAdmin(
+        await buildRewardsQuery(params.raw),
+        session.user.role,
+      );
 
       // Check if stats are requested (skip expensive aggregation when not needed)
       const includeStats = params.getString("includeStats") === "true";
@@ -62,14 +70,16 @@ export const GET = withAuth(
         // Only run expensive aggregation if stats are requested. Computed
         // over the full matched query (not the paginated page) so the
         // dashboard cards reflect the whole filtered set, not just page 1.
-        // Rejected rewards are listed but never counted.
+        // Rejected rewards are listed but never counted: they're summarised
+        // separately (`rejected`) so the Rejected filter has something to
+        // show, without ever entering the counted totals.
         includeStats
           ? InstallerReward.aggregate([
               { $match: query },
-              { $match: COUNTED_REWARDS_FILTER },
               {
                 $facet: {
                   byStatus: [
+                    { $match: COUNTED_REWARDS_FILTER },
                     {
                       $group: {
                         _id: "$rewardStatus",
@@ -79,8 +89,20 @@ export const GET = withAuth(
                     },
                   ],
                   uniqueInstallers: [
+                    { $match: COUNTED_REWARDS_FILTER },
                     { $group: { _id: "$installer" } },
                     { $count: "count" },
+                  ],
+                  rejected: [
+                    { $match: { rewardStatus: RewardStatus.REJECTED } },
+                    {
+                      $group: {
+                        _id: null,
+                        count: { $sum: 1 },
+                        totalAmount: { $sum: "$rewardAmount" },
+                        installers: { $addToSet: "$installer" },
+                      },
+                    },
                   ],
                 },
               },
@@ -89,12 +111,18 @@ export const GET = withAuth(
       ]);
 
       const [statsFacet] = stats;
+      const rejectedRow = statsFacet?.rejected?.[0];
 
       return ApiResponse.success({
         rewards,
         statistics: {
           byStatus: statsFacet?.byStatus ?? [],
           uniqueInstallersCount: statsFacet?.uniqueInstallers?.[0]?.count ?? 0,
+          rejected: {
+            count: rejectedRow?.count ?? 0,
+            totalAmount: rejectedRow?.totalAmount ?? 0,
+            uniqueInstallersCount: rejectedRow?.installers?.length ?? 0,
+          },
         },
         pagination: createPaginationMeta(total, page, limit),
       });

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { RewardStatus } from '@/types/rewards';
+import { useSession } from 'next-auth/react';
+import { RewardStatus, canSeeRejected } from '@/types/rewards';
 import { emitAppRefresh } from '@/lib/refreshBus';
 import { useProducts } from '@/hooks/useProducts';
 import { usePaymentMethods, useSettings } from '@/hooks/useSettings';
@@ -24,6 +25,7 @@ export default function EditRewardPage() {
   const router = useRouter();
   const params = useParams();
   const rewardId = params.id as string;
+  const { data: session } = useSession();
   const { data: products = [] } = useProducts();
   // Default to required while loading so PAID can't slip through un-gated.
   const { data: appSettings } = useSettings();
@@ -309,7 +311,9 @@ export default function EditRewardPage() {
                   <SelectItem value={RewardStatus.PENDING}>Pending</SelectItem>
                   <SelectItem value={RewardStatus.PAID}>Paid</SelectItem>
                   <SelectItem value={RewardStatus.FAILED}>Failed</SelectItem>
-                  <SelectItem value={RewardStatus.REJECTED}>Rejected</SelectItem>
+                  {canSeeRejected(session?.user?.role) && (
+                    <SelectItem value={RewardStatus.REJECTED}>Rejected</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>

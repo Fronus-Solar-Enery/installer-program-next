@@ -35,7 +35,10 @@ import {
   useOptimizedRewardsFilter,
   type RewardWithId,
 } from "@/hooks/useOptimizedRewardsFilter";
-import { RewardsStatisticsCards } from "@/components/RewardsStatisticsCards";
+import {
+  RewardsStatisticsCards,
+  type RejectedStatistics,
+} from "@/components/RewardsStatisticsCards";
 import { RewardsTable } from "@/components/RewardsTable";
 import { DeleteConfirmationDialog } from "@/components/DeleteConfirmationDialog";
 import { BulkDeleteConfirmationDialog } from "@/components/BulkDeleteConfirmationDialog";
@@ -79,6 +82,13 @@ export default function RewardsPage() {
     Array<{ _id: string; count: number; totalAmount: number }>
   >([]);
   const [uniqueInstallersCount, setUniqueInstallersCount] = useState(0);
+  // Rejected rewards are summarised apart from the counted stats; shown on
+  // the cards only while the Rejected filter is on.
+  const [rejectedStats, setRejectedStats] = useState<RejectedStatistics>({
+    count: 0,
+    totalAmount: 0,
+    uniqueInstallersCount: 0,
+  });
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(EMPTY_ARRAY);
   const [loading, setLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
@@ -209,6 +219,13 @@ export default function RewardsPage() {
         setServerStatusStats(data.data.statistics?.byStatus ?? []);
         setUniqueInstallersCount(
           data.data.statistics?.uniqueInstallersCount ?? 0,
+        );
+        setRejectedStats(
+          data.data.statistics?.rejected ?? {
+            count: 0,
+            totalAmount: 0,
+            uniqueInstallersCount: 0,
+          },
         );
 
         // Extract unique team members (from first fetch only, cache for filters)
@@ -689,7 +706,12 @@ export default function RewardsPage() {
         />
 
         {/* Statistics Cards */}
-        <RewardsStatisticsCards statistics={serverCardStatistics} />
+        <RewardsStatisticsCards
+          statistics={serverCardStatistics}
+          rejected={
+            state.filters.rewardStatus === "REJECTED" ? rejectedStats : undefined
+          }
+        />
 
         {/* Date Range Filter Card */}
         <Card className="bg-transparent">

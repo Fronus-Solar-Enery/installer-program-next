@@ -1,5 +1,7 @@
 // Shared types for rewards that can be used in both client and server code
 
+import { TeamRole } from "@/types/roles";
+
 export enum RewardStatus {
   PENDING = "PENDING",
   PAID = "PAID",
@@ -17,6 +19,29 @@ export enum RewardStatus {
 export const COUNTED_REWARDS_FILTER = {
   rewardStatus: { $ne: RewardStatus.REJECTED },
 } as const;
+
+/**
+ * Rejected rewards are visible to ADMIN only — and only admins can reject or
+ * restore. Everyone else sees the rewards collection as if rejected rows
+ * didn't exist.
+ */
+export function canSeeRejected(role: string | null | undefined): boolean {
+  return role === TeamRole.ADMIN;
+}
+
+/**
+ * Narrow a reward query so non-admins never get rejected rows. Uses `$and` so
+ * it composes with whatever `rewardStatus` filter the query already has
+ * (e.g. an explicit REJECTED filter from a non-admin then matches nothing).
+ */
+export function hideRejectedUnlessAdmin<Q extends Record<string, unknown>>(
+  query: Q,
+  role: string | null | undefined,
+): Q {
+  if (canSeeRejected(role)) return query;
+  const existing = Array.isArray(query.$and) ? query.$and : [];
+  return { ...query, $and: [...existing, COUNTED_REWARDS_FILTER] };
+}
 
 /** Whether a reward counts toward stats/totals (anything but REJECTED). */
 export function isCountedReward(status: string | null | undefined): boolean {

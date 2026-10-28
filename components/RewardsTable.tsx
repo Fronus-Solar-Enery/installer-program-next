@@ -8,7 +8,9 @@ import React, {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { canSeeRejected } from "@/types/rewards";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Loader2,
@@ -199,6 +201,10 @@ export const RewardsTable = React.memo<RewardsTableProps>(
     onClearAllFilters,
   }) => {
     const router = useRouter();
+    // The Rejected status filter is admin-only (the API hides rejected rows
+    // from everyone else anyway).
+    const { data: session } = useSession();
+    const showRejectedFilter = canSeeRejected(session?.user?.role);
 
     // Virtual scrolling ref for large datasets
     const parentRef = useRef<HTMLDivElement>(null);
@@ -606,7 +612,9 @@ export const RewardsTable = React.memo<RewardsTableProps>(
                     <SelectItem value="PENDING">Pending</SelectItem>
                     <SelectItem value="PAID">Paid</SelectItem>
                     <SelectItem value="FAILED">Failed</SelectItem>
-                    <SelectItem value="REJECTED">Rejected</SelectItem>
+                    {showRejectedFilter && (
+                      <SelectItem value="REJECTED">Rejected</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

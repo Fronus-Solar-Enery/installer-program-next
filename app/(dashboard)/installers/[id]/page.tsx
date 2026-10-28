@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { TeamRole } from "@/types/roles";
+import { canSeeRejected } from "@/types/rewards";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -460,6 +461,7 @@ export default function InstallerDetailsPage() {
                 <ProductsTable
                   products={rewardsQuery.data}
                   canBulkEdit={isAdmin}
+                  canReject={canSeeRejected(session?.user?.role)}
                   accountDefaults={{
                     bankName: installer.bankName,
                     accountNumber: installer.accountNumber,

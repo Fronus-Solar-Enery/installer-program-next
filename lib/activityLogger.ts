@@ -1,5 +1,6 @@
 import Activity, { ActivityType } from "@/models/Activity";
 import InstallerReward from "@/models/InstallerReward";
+import { RewardStatus } from "@/types/rewards";
 import { Types } from "mongoose";
 
 interface LogActivityParams {
@@ -60,14 +61,47 @@ export function getChanges(
 }
 
 /**
+ * Rejected rewards are admin-only, so for everyone else the audit trail hides
+ * the reject/restore entries and anything about a currently-rejected reward
+ * (e.g. its original "registered" entry) — otherwise the log would reveal it.
+ * Returns an extra condition to AND into an Activity query, or null for admins.
+ */
+async function rejectedActivityCondition(hideRejected: boolean) {
+  if (!hideRejected) return null;
+  const rejectedIds = await InstallerReward.find({
+    rewardStatus: RewardStatus.REJECTED,
+  }).distinct("_id");
+  return {
+    type: {
+      $nin: [ActivityType.REWARD_REJECTED, ActivityType.REWARD_RESTORED],
+    },
+    $nor: [{ targetType: "InstallerReward", targetId: { $in: rejectedIds } }],
+  };
+}
+
+/** AND an optional extra condition into a base Activity query. */
+function withCondition(
+  base: Record<string, unknown>,
+  extra: Record<string, unknown> | null
+) {
+  return extra ? { $and: [base, extra] } : base;
+}
+
+/**
  * Get activities for a specific target (installer, reward, etc.)
  */
 export async function getTargetActivities(
   targetType: "Installer" | "InstallerReward" | "TeamMember",
   targetId: string,
-  limit: number = 50
+  limit: number = 50,
+  { hideRejected = false }: { hideRejected?: boolean } = {}
 ) {
-  return await Activity.find({ targetType, targetId })
+  return await Activity.find(
+    withCondition(
+      { targetType, targetId },
+      await rejectedActivityCondition(hideRejected)
+    )
+  )
     .populate("performedBy", "name email")
     .sort({ createdAt: -1 })
     .limit(limit)
@@ -80,18 +114,24 @@ export async function getTargetActivities(
  */
 export async function getInstallerActivities(
   installerId: string,
-  limit: number = 200
+  limit: number = 200,
+  { hideRejected = false }: { hideRejected?: boolean } = {}
 ) {
   const rewardIds = await InstallerReward.find({
     installer: installerId,
   }).distinct("_id");
 
-  return await Activity.find({
-    $or: [
-      { targetType: "Installer", targetId: installerId },
-      { targetType: "InstallerReward", targetId: { $in: rewardIds } },
-    ],
-  })
+  return await Activity.find(
+    withCondition(
+      {
+        $or: [
+          { targetType: "Installer", targetId: installerId },
+          { targetType: "InstallerReward", targetId: { $in: rewardIds } },
+        ],
+      },
+      await rejectedActivityCondition(hideRejected)
+    )
+  )
     .populate("performedBy", "name email")
     .sort({ createdAt: -1 })
     .limit(limit)
@@ -101,8 +141,13 @@ export async function getInstallerActivities(
 /**
  * Get recent activities across the system
  */
-export async function getRecentActivities(limit: number = 100) {
-  return await Activity.find()
+export async function getRecentActivities(
+  limit: number = 100,
+  { hideRejected = false }: { hideRejected?: boolean } = {}
+) {
+  return await Activity.find(
+    withCondition({}, await rejectedActivityCondition(hideRejected))
+  )
     .populate("performedBy", "name email")
     .sort({ createdAt: -1 })
     .limit(limit)

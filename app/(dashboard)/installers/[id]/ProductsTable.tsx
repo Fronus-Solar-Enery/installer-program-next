@@ -33,8 +33,10 @@ import {
   IconEdit2,
   IconEye,
 } from "@/components/icons";
+import IconRestart from "@/components/icons/Restart";
 import {
-  useBulkRejectRewards,
+  useBulkRewardStatus,
+  type BulkStatusAction,
   type InstallerProduct,
 } from "@/hooks/useInstallerDetails";
 import Unavailable from "@/components/ui/not-avaiable";
@@ -68,6 +70,8 @@ interface ProductsTableProps {
   products: InstallerProduct[];
   /** ADMIN/MANAGER only — matches the bulk-account route's role guard. */
   canBulkEdit?: boolean;
+  /** ADMIN only — rejected rewards are admin-only (bulk-status route guard). */
+  canReject?: boolean;
   /** Prefill for the bulk dialog: the installer's profile account details. */
   accountDefaults?: {
     bankName?: string;
@@ -79,14 +83,18 @@ interface ProductsTableProps {
 export default function ProductsTable({
   products,
   canBulkEdit = false,
+  canReject = false,
   accountDefaults = {},
 }: ProductsTableProps) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [rejectOpen, setRejectOpen] = useState(false);
-  const bulkReject = useBulkRejectRewards();
+  // Which bulk status change is awaiting confirmation, if any.
+  const [confirmAction, setConfirmAction] = useState<BulkStatusAction | null>(
+    null,
+  );
+  const bulkStatus = useBulkRewardStatus();
 
   // PAID rewards keep their payee as a historical record — never selectable.
   const editable = useMemo(
@@ -94,30 +102,40 @@ export default function ProductsTable({
     [products],
   );
 
-  // Selected rewards that can actually be rejected (PENDING/FAILED); the
-  // server applies the same rule and skips the rest.
-  const rejectableIds = useMemo(
-    () =>
-      products
-        .filter(
-          (p) =>
-            selected.has(p._id) &&
-            (p.rewardStatus === "PENDING" || p.rewardStatus === "FAILED"),
-        )
-        .map((p) => p._id),
-    [products, selected],
-  );
-  const alreadyRejected = selected.size - rejectableIds.length;
+  // Split the selection by what each bulk action can act on: PENDING/FAILED
+  // can be rejected, REJECTED can be restored. The server applies the same
+  // rules and skips the rest.
+  const { rejectableIds, restorableIds } = useMemo(() => {
+    const rejectable: string[] = [];
+    const restorable: string[] = [];
+    for (const p of products) {
+      if (!selected.has(p._id)) continue;
+      if (p.rewardStatus === "REJECTED") restorable.push(p._id);
+      else if (p.rewardStatus === "PENDING" || p.rewardStatus === "FAILED")
+        rejectable.push(p._id);
+    }
+    return { rejectableIds: rejectable, restorableIds: restorable };
+  }, [products, selected]);
 
-  const handleReject = () =>
-    bulkReject.mutate(rejectableIds, {
-      onSuccess: (result) => {
-        toast.success(result.message);
-        setRejectOpen(false);
-        setSelected(new Set());
+  const confirmIds =
+    confirmAction === "restore" ? restorableIds : rejectableIds;
+  const confirmSkipped = selected.size - confirmIds.length;
+
+  const handleConfirm = () => {
+    if (!confirmAction) return;
+    bulkStatus.mutate(
+      { rewardIds: confirmIds, action: confirmAction },
+      {
+        onSuccess: (result) => {
+          toast.success(result.message);
+          setConfirmAction(null);
+          setSelected(new Set());
+        },
+        onError: (err) =>
+          toast.error(err.message || "Failed to update rewards"),
       },
-      onError: (err) => toast.error(err.message || "Failed to reject rewards"),
-    });
+    );
+  };
 
   const allSelected =
     editable.length > 0 && editable.every((p) => selected.has(p._id));
@@ -308,21 +326,28 @@ export default function ProductsTable({
                   <IconEdit2 className="size-4" />
                   Edit account details
                 </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="gap-1.5"
-                  disabled={rejectableIds.length === 0}
-                  title={
-                    rejectableIds.length === 0
-                      ? "Selected products are already rejected"
-                      : undefined
-                  }
-                  onClick={() => setRejectOpen(true)}
-                >
-                  <IconDangerCircle className="size-4" />
-                  Reject
-                </Button>
+                {canReject && restorableIds.length > 0 && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => setConfirmAction("restore")}
+                  >
+                    <IconRestart className="size-4" />
+                    Restore{rejectableIds.length > 0 && ` (${restorableIds.length})`}
+                  </Button>
+                )}
+                {canReject && rejectableIds.length > 0 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => setConfirmAction("reject")}
+                  >
+                    <IconDangerCircle className="size-4" />
+                    Reject{restorableIds.length > 0 && ` (${rejectableIds.length})`}
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
@@ -345,40 +370,45 @@ export default function ProductsTable({
       />
 
       <AlertDialog
-        open={rejectOpen}
-        onOpenChange={(open) => !bulkReject.isPending && setRejectOpen(open)}
+        open={confirmAction !== null}
+        onOpenChange={(open) =>
+          !open && !bulkStatus.isPending && setConfirmAction(null)
+        }
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Reject {rejectableIds.length} product
-              {rejectableIds.length === 1 ? "" : "s"}?
+              {confirmAction === "restore" ? "Restore" : "Reject"}{" "}
+              {confirmIds.length} product{confirmIds.length === 1 ? "" : "s"}?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Rejected rewards stay in the rewards list but are excluded from
-              all stats, totals and payment files, and the installer won&apos;t
-              see them. You can restore each one to Pending from its reward
-              page.
-              {alreadyRejected > 0 &&
-                ` ${alreadyRejected} selected product${alreadyRejected === 1 ? " is" : "s are"} already rejected and will be skipped.`}
+              {confirmAction === "restore"
+                ? "These rewards go back to Pending and count in stats, totals and payment files again. The installer will see them again."
+                : "Rejected rewards stay in the rewards list but are excluded from all stats, totals and payment files, and the installer won't see them. You can restore them later."}
+              {confirmSkipped > 0 &&
+                ` ${confirmSkipped} other selected product${confirmSkipped === 1 ? "" : "s"} will be left unchanged.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={bulkReject.isPending}>
+            <AlertDialogCancel disabled={bulkStatus.isPending}>
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              disabled={bulkReject.isPending}
+              variant={confirmAction === "restore" ? "default" : "destructive"}
+              disabled={bulkStatus.isPending}
               onClick={(e) => {
                 // Keep the dialog open until the request settles.
                 e.preventDefault();
-                handleReject();
+                handleConfirm();
               }}
             >
-              {bulkReject.isPending ? (
+              {bulkStatus.isPending ? (
                 <>
-                  <Loading /> Rejecting…
+                  <Loading />{" "}
+                  {confirmAction === "restore" ? "Restoring…" : "Rejecting…"}
                 </>
+              ) : confirmAction === "restore" ? (
+                "Restore"
               ) : (
                 "Reject"
               )}

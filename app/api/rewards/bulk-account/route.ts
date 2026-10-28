@@ -6,7 +6,7 @@ import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { TeamRole } from "@/models/TeamMember";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { validateBody } from "@/lib/validateRequest";
-import { RewardStatus } from "@/types/rewards";
+import { RewardStatus, hideRejectedUnlessAdmin } from "@/types/rewards";
 import { logActivity } from "@/lib/activityLogger";
 import { ActivityType } from "@/models/Activity";
 import { getClientInfo } from "@/lib/requestUtils";
@@ -23,10 +23,12 @@ export const POST = withAuth(
 
       await dbConnect();
 
-      const targets = await InstallerReward.find({
-        _id: { $in: rewardIds },
-        rewardStatus: { $ne: RewardStatus.PAID },
-      })
+      const targets = await InstallerReward.find(
+        hideRejectedUnlessAdmin(
+          { _id: { $in: rewardIds }, rewardStatus: { $ne: RewardStatus.PAID } },
+          session.user.role,
+        ),
+      )
         .select("_id serialNumber installerCode")
         .lean();
 

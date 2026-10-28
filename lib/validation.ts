@@ -163,12 +163,14 @@ export const updateRewardSchema = z.object({
 // Bulk account-detail update — payment destination only, applied to a set of
 // existing rewards. Field rules mirror the installer schema so a reward can
 // never end up with a payee shape the installer form would reject.
-// Bulk reject — moves the selected PENDING/FAILED rewards to REJECTED.
-export const bulkRewardRejectSchema = z.object({
+// Bulk status change — "reject" moves PENDING/FAILED rewards to REJECTED,
+// "restore" moves REJECTED rewards back to PENDING.
+export const bulkRewardStatusSchema = z.object({
   rewardIds: z
     .array(z.string().min(1))
     .min(1, "Select at least one product")
     .max(500, "Maximum 500 products per bulk update"),
+  action: z.enum(["reject", "restore"]),
 });
 
 export const bulkRewardAccountSchema = z.object({

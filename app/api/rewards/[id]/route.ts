@@ -6,7 +6,12 @@ import { ApiResponse, handleApiError } from "@/lib/apiResponse";
 import { withAuth, type RouteContext, type AuthSession } from "@/lib/authGuard";
 import { validateBody } from "@/lib/validateRequest";
 import { TeamRole } from "@/models/TeamMember";
-import { RewardStatus, rewardStatusChangeError } from "@/types/rewards";
+import {
+  RewardStatus,
+  canSeeRejected,
+  hideRejectedUnlessAdmin,
+  rewardStatusChangeError,
+} from "@/types/rewards";
 import { getSettings } from "@/models/Settings";
 import { sendRewardPaymentMessage } from "@/lib/whatsappService";
 import { logger } from "@/lib/logger";
@@ -38,7 +43,12 @@ export const GET = withAuth(
       const { id } = await context.params;
       const reward = await InstallerReward.findById(id).populate([...POPULATE]);
 
-      if (!reward) {
+      // Rejected rewards are admin-only; to anyone else they don't exist.
+      if (
+        !reward ||
+        (reward.rewardStatus === RewardStatus.REJECTED &&
+          !canSeeRejected(session.user.role))
+      ) {
         return ApiResponse.notFound("Reward not found");
       }
 
@@ -62,8 +72,17 @@ export const PUT = withAuth(
       const previous = await InstallerReward.findById(id).select(
         "rewardStatus transactionId",
       );
-      if (!previous) {
+      const isAdmin = canSeeRejected(session.user.role);
+      if (
+        !previous ||
+        (previous.rewardStatus === RewardStatus.REJECTED && !isAdmin)
+      ) {
         return ApiResponse.notFound("Reward not found");
+      }
+
+      // Only admins can reject (or restore, which needs seeing the reward).
+      if (validation.data.rewardStatus === RewardStatus.REJECTED && !isAdmin) {
+        return ApiResponse.forbidden("Only admins can reject rewards");
       }
 
       // Reject a Transaction ID already used by a different reward.
@@ -202,7 +221,10 @@ export const DELETE = withAuth(
       await dbConnect();
 
       const { id } = await context.params;
-      const reward = await InstallerReward.findByIdAndDelete(id);
+      // Non-admins can't see rejected rewards, so they can't delete them either.
+      const reward = await InstallerReward.findOneAndDelete(
+        hideRejectedUnlessAdmin({ _id: id }, session.user.role),
+      );
 
       if (!reward) {
         return ApiResponse.notFound("Reward not found");

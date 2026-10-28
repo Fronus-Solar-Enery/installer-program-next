@@ -6,7 +6,8 @@ import { useProducts } from "@/hooks/useProducts";
 import { usePaymentMethods } from "@/hooks/useSettings";
 import { useTransactionIdCheck } from "@/hooks/useTransactionIdCheck";
 import { CITIES, CITY_TO_PROVINCE, PROVINCES } from "@/lib/constants";
-import { RewardStatus } from "@/types/rewards";
+import { useSession } from "next-auth/react";
+import { RewardStatus, canSeeRejected } from "@/types/rewards";
 import { toast } from "sonner";
 import { MonthYearGridPicker } from "@/components/ui/month-year-grid-picker";
 import { emitAppRefresh } from "@/lib/refreshBus";
@@ -71,8 +72,9 @@ const STATUS_OPTIONS = [
   { value: RewardStatus.PENDING, label: "Pending" },
   { value: RewardStatus.PAID, label: "Paid" },
   { value: RewardStatus.FAILED, label: "Failed" },
-  { value: RewardStatus.REJECTED, label: "Rejected" },
 ];
+// Rejecting is admin-only (enforced by the reward PUT route).
+const REJECTED_OPTION = { value: RewardStatus.REJECTED, label: "Rejected" };
 
 // ISO date <-> "Month YYYY" for the MonthYearGridPicker (matches register page).
 function formatMonthYear(iso?: string): string {
@@ -111,6 +113,10 @@ export default function RewardEditModal({
 }: RewardEditModalProps) {
   const { data: products = [] } = useProducts();
   const paymentMethods = usePaymentMethods();
+  const { data: session } = useSession();
+  const statusOptions = canSeeRejected(session?.user?.role)
+    ? [...STATUS_OPTIONS, REJECTED_OPTION]
+    : STATUS_OPTIONS;
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -939,7 +945,7 @@ export default function RewardEditModal({
                       placeholder="Select status"
                       hint="Current payment status"
                       icon={IconReward}
-                      options={STATUS_OPTIONS}
+                      options={statusOptions}
                     />
 
                     <FormField

@@ -1,12 +1,14 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
+import { QRCodeSVG } from "qrcode.react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Loading from "@/components/ui/loading";
 import { CopyButton } from "@/components/CopyButton";
 import { InstallerAvatar } from "@/components/UserAvatar";
 import { getBankLabel } from "@/lib/constants";
+import { normalizePhone } from "@/lib/phoneUtils";
 import {
   IconAward,
   IconBank,
@@ -72,6 +74,12 @@ export default function ProfileSidebar({
       day: "numeric",
       year: "numeric",
     });
+
+  // wa.me deep link to the installer's own WhatsApp — used by both the link
+  // and the QR code, so scanning opens the same chat.
+  const whatsappLink = installer.whatsappNumber
+    ? `https://wa.me/${normalizePhone(installer.whatsappNumber)}`
+    : null;
 
   return (
     <motion.aside
@@ -166,7 +174,7 @@ export default function ProfileSidebar({
               <CopyButton text={installer.phoneNumber} label="Phone Number" />
             </a>
             <a
-              href={`https://wa.me/${installer.whatsappNumber?.replace(/\+/g, "")}`}
+              href={whatsappLink ?? undefined}
               target="_blank"
               rel="noopener noreferrer"
               className="group flex items-center justify-between gap-3 rounded-lg bg-muted/30 p-2.5 transition-colors hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-ring"
@@ -190,6 +198,27 @@ export default function ProfileSidebar({
                 label="WhatsApp Number"
               />
             </a>
+            {whatsappLink && (
+              <figure className="flex flex-col items-center gap-2 rounded-lg bg-muted/30 p-4">
+                {/* Always dark-on-white: phone scanners struggle with
+                    inverted codes, so this tile ignores the dark theme. */}
+                <div className="rounded-lg bg-white p-2.5">
+                  <QRCodeSVG
+                    value={whatsappLink}
+                    size={144}
+                    level="M"
+                    bgColor="#ffffff"
+                    fgColor="#000000"
+                    role="img"
+                    aria-label={`QR code to open a WhatsApp chat with ${installer.fullName}`}
+                  />
+                </div>
+                <figcaption className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <IconWhatsapp className="size-3.5 text-success-text" duotone />
+                  Scan to chat on WhatsApp
+                </figcaption>
+              </figure>
+            )}
           </div>
         </CardContent>
 

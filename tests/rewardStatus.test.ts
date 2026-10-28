@@ -2,27 +2,62 @@ import { describe, expect, it } from "vitest";
 import {
   COUNTED_REWARDS_FILTER,
   RewardStatus,
+  canSeeRejected,
+  hideRejectedUnlessAdmin,
   isCountedReward,
   rewardStatusChangeError,
 } from "@/types/rewards";
 import {
-  bulkRewardRejectSchema,
+  bulkRewardStatusSchema,
   registerRewardSchema,
 } from "@/lib/validation";
 
-describe("bulkRewardRejectSchema", () => {
+describe("bulkRewardStatusSchema", () => {
   it("requires between 1 and 500 reward ids", () => {
-    expect(bulkRewardRejectSchema.safeParse({ rewardIds: [] }).success).toBe(
-      false,
-    );
+    const parse = (rewardIds: string[]) =>
+      bulkRewardStatusSchema.safeParse({ rewardIds, action: "reject" })
+        .success;
+    expect(parse([])).toBe(false);
+    expect(parse(["a", "b"])).toBe(true);
     expect(
-      bulkRewardRejectSchema.safeParse({ rewardIds: ["a", "b"] }).success,
-    ).toBe(true);
-    expect(
-      bulkRewardRejectSchema.safeParse({
-        rewardIds: Array.from({ length: 501 }, (_, i) => String(i)),
-      }).success,
+      parse(Array.from({ length: 501 }, (_, i) => String(i))),
     ).toBe(false);
+  });
+
+  it("accepts only the reject and restore actions", () => {
+    const parse = (action: unknown) =>
+      bulkRewardStatusSchema.safeParse({ rewardIds: ["a"], action }).success;
+    expect(parse("reject")).toBe(true);
+    expect(parse("restore")).toBe(true);
+    expect(parse("PAID")).toBe(false);
+    expect(parse(undefined)).toBe(false);
+  });
+});
+
+describe("rejected visibility (admin only)", () => {
+  it("only ADMIN can see rejected rewards", () => {
+    expect(canSeeRejected("ADMIN")).toBe(true);
+    expect(canSeeRejected("MANAGER")).toBe(false);
+    expect(canSeeRejected("USER")).toBe(false);
+    expect(canSeeRejected(undefined)).toBe(false);
+  });
+
+  it("leaves an admin's query untouched", () => {
+    const query = { rewardStatus: "REJECTED" };
+    expect(hideRejectedUnlessAdmin(query, "ADMIN")).toBe(query);
+  });
+
+  it("adds the counted filter for non-admins without clobbering existing conditions", () => {
+    const query = {
+      rewardStatus: "REJECTED",
+      $and: [{ installer: "abc" }],
+    };
+    expect(hideRejectedUnlessAdmin(query, "MANAGER")).toEqual({
+      rewardStatus: "REJECTED",
+      $and: [{ installer: "abc" }, { rewardStatus: { $ne: "REJECTED" } }],
+    });
+    // The original object isn't mutated.
+    expect(query.$and).toHaveLength(1);
   });
 });
 

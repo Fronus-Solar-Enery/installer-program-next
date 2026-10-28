@@ -165,28 +165,38 @@ export function useBulkUpdateRewardAccount() {
   });
 }
 
-export interface BulkRejectResult {
-  rejected: number;
+export type BulkStatusAction = "reject" | "restore";
+
+export interface BulkStatusResult {
+  updated: number;
   skipped: number;
   message: string;
 }
 
-// Bulk-reject selected rewards. Also invalidates the installer query, whose
-// stats exclude rejected rewards.
-export function useBulkRejectRewards() {
+// Bulk-reject or restore selected rewards. Also invalidates the installer
+// query, whose stats exclude rejected rewards.
+export function useBulkRewardStatus() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (rewardIds: string[]): Promise<BulkRejectResult> => {
-      const res = await fetch("/api/rewards/bulk-reject", {
+    mutationFn: async (input: {
+      rewardIds: string[];
+      action: BulkStatusAction;
+    }): Promise<BulkStatusResult> => {
+      const res = await fetch("/api/rewards/bulk-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rewardIds }),
+        body: JSON.stringify(input),
       });
-      const data = await parseJsonOrThrow(res, "Failed to reject rewards");
+      const data = await parseJsonOrThrow(
+        res,
+        input.action === "reject"
+          ? "Failed to reject rewards"
+          : "Failed to restore rewards",
+      );
       return {
-        rejected: data.data?.rejected ?? 0,
+        updated: data.data?.updated ?? 0,
         skipped: data.data?.skipped ?? 0,
-        message: data.message ?? "Rewards rejected",
+        message: data.message ?? "Rewards updated",
       };
     },
     onSuccess: () => {

@@ -8,6 +8,7 @@ import { logActivity } from "@/lib/activityLogger";
 import { ActivityType } from "@/models/Activity";
 import { getClientInfo } from "@/lib/requestUtils";
 import { logger } from "@/lib/logger";
+import { hideRejectedUnlessAdmin } from "@/types/rewards";
 
 interface BulkDeleteResult {
   successCount: number;
@@ -45,10 +46,10 @@ export const POST = withAuth(
       const deletePromises = rewardIds.map(async (rewardId) => {
         try {
           // Find reward
-          const reward = await InstallerReward.findById(rewardId).populate(
-            "installer",
-            "installerCode fullName"
-          );
+          // Non-admins can't see (so can't delete) rejected rewards.
+          const reward = await InstallerReward.findOne(
+            hideRejectedUnlessAdmin({ _id: rewardId }, session.user.role)
+          ).populate("installer", "installerCode fullName");
 
           if (!reward) {
             result.failCount++;
